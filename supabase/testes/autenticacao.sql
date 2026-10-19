@@ -107,8 +107,8 @@ insert into dispositivo_push (pessoa_id, token_fcm, modelo_aparelho) values
   ('a0000000-0000-0000-0000-000000000001', 'token-tablet-carla', 'Tablet'),
   ('b0000000-0000-0000-0000-000000000001', 'token-celular-bruno', 'Celular');
 
--- Com a confirmação dupla, o pedido de troca grava o endereço novo em email_change;
--- email só muda depois das duas confirmações.
+-- O pedido de troca grava o endereço novo em email_change; email só muda depois que
+-- o código enviado ao endereço novo é confirmado.
 select pg_temp.espera_ok('pedido de troca ainda não confirmado',
   $c$update auth.users set email_change = 'carla@gmail.com'
      where id = 'a0000000-0000-0000-0000-000000000001'$c$);
@@ -121,7 +121,7 @@ select pg_temp.espera_ok('update que repete o mesmo e-mail',
 select pg_temp.espera_verdade('e-mail repetido não apaga aparelho',
   (select count(*) from dispositivo_push where pessoa_id = 'a0000000-0000-0000-0000-000000000001') = 2);
 
-select pg_temp.espera_ok('troca confirmada nos dois endereços',
+select pg_temp.espera_ok('troca confirmada pelo código no endereço novo',
   $c$update auth.users set email = 'carla@gmail.com', email_change = ''
      where id = 'a0000000-0000-0000-0000-000000000001'$c$);
 select pg_temp.espera_verdade('troca confirmada apaga todos os aparelhos do titular',

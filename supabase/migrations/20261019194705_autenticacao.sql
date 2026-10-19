@@ -20,7 +20,7 @@ create trigger criar_pessoa after insert on auth.users
   for each row execute function privado.criar_pessoa();
 
 -- Troca de e-mail: apaga todos os aparelhos de push do titular, para os avisos pararem em
--- todo lugar (RNF07). Com double_confirm_changes, o email só muda depois das duas confirmações.
+-- todo lugar (RNF07). O email só muda quando o código enviado ao endereço novo é confirmado.
 -- O aparelho que confirmou a troca registra a si mesmo de novo.
 create function privado.apagar_dispositivos_na_troca() returns trigger
 language plpgsql

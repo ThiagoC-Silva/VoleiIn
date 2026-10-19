@@ -13,7 +13,7 @@ Ligar `auth.users` a `pessoa` sem chave estrangeira (ver `docs/stack.md`, Autent
 
 ## O que falta
 
-- [ ] Corrigir os comentários que ainda falam em confirmação dupla, contrariando `double_confirm_changes = false`:
+- [x] Corrigir os comentários que ainda falam em confirmação dupla, contrariando `double_confirm_changes = false`:
   - na migração: "Com double_confirm_changes, o email só muda depois das duas confirmações";
   - no teste: "Com a confirmação dupla, o pedido de troca grava…" e a descrição `'troca confirmada nos dois endereços'`.
 
