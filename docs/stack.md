@@ -10,7 +10,7 @@ A restrição que organiza tudo aqui é custo. O piloto cabe inteiro em planos g
 
 | Camada | Escolha | Custo |
 | --- | --- | --- |
-| App | Flutter, Android nativo, `minSdk` 23, layout de celular | R$ 0 |
+| App | Flutter, Android nativo, `minSdk` 23, layout de celular, `applicationId` `br.com.voleiin` | R$ 0 |
 | Distribuição | Firebase App Distribution, convite por e-mail e build por link | R$ 0 |
 | Banco e API | Postgres do Supabase, com política de linha; o app consulta direto, sem servidor no meio | R$ 0 até 500 MB |
 | Autenticação | Supabase Auth, código de seis dígitos por e-mail (`signInWithOtp`) | R$ 0 até 50 mil contas ativas por mês |
@@ -90,9 +90,15 @@ A `listar_participantes` é função, e não consulta com política de linha, po
 
 A credencial é o e-mail e vive em `auth.users`, tabela do próprio Supabase Auth; `Pessoa` é só o perfil. Os dois se ligam pelo id: um gatilho cria a linha de `Pessoa` com o mesmo UUID do usuário no primeiro acesso, e nenhuma chave estrangeira amarra as duas.
 
+O nome chega ao gatilho pelos metadados do cadastro, porque `Pessoa.nome` é obrigatório e a tela de entrar só tem o e-mail (RN21). O app pede o código com `signInWithOtp(shouldCreateUser: false)`; se a conta não existe, o serviço responde `otp_disabled`, a tela mostra o campo de nome e repete o pedido com `shouldCreateUser: true` e `data: {'nome': ...}`. O gatilho lê `raw_user_meta_data->>'nome'` sem espaços nas pontas e, vazio, recusa o cadastro inteiro: não existe perfil sem nome nem estado de perfil incompleto. O custo aceito é a tela revelar se um e-mail já tem conta.
+
 A ausência dessa chave é deliberada. A exclusão de conta precisa apagar o usuário — é o que faz a credencial deixar de existir — e **preservar** o perfil anonimizado, porque participações e cobranças de terceiros apontam para ele (RN27). Com chave estrangeira em cascata, apagar o usuário levaria o histórico; sem ela, o perfil sobrevive sozinho, anônimo e sem forma de login. O ganho secundário é que a política de linha compara `id = auth.uid()` direto, sem subconsulta.
 
-O Supabase Auth atende a RNF06 por configuração: código de seis dígitos, validade de cinco minutos, uso único e limite de envios por hora. O produto não implementa geração, hash nem contagem de tentativas. A RNF07 é atendida pelo par de tokens do serviço, e a revogação em todo aparelho é um `signOut` global na troca de e-mail e na exclusão.
+O Supabase Auth atende a RNF06 por configuração: código de seis dígitos (`otp_length = 6`), validade de cinco minutos (`otp_expiry = 300`), uso único e limite de envios. O limite por endereço é o intervalo mínimo de 60 segundos entre envios ao mesmo e-mail (`max_frequency`), no máximo 60 por hora; o teto do projeto (`rate_limit.email_sent`) fica abaixo das 300 mensagens por dia do Brevo. Os modelos de e-mail — primeiro acesso, acesso e troca de e-mail — são em português e mostram o código (`{{ .Token }}`), não um link. O produto não implementa geração, hash nem contagem de tentativas.
+
+A RNF07 é atendida pelo par de tokens do serviço. Na troca de e-mail, confirmada nos dois endereços (`double_confirm_changes`), o app chama `signOut(scope: others)`: as outras sessões caem e a do aparelho que confirmou continua. Na exclusão, o `signOut` é global. Os aparelhos de push não dependem do app cooperar: um gatilho na mudança de `email` em `auth.users` apaga todo `dispositivo_push` do titular, e o aparelho que confirmou registra a si mesmo de novo. Como o `email` só muda depois das duas confirmações, o gatilho não dispara em troca pela metade.
+
+As duas funções de gatilho ficam no schema `privado`, na migração `autenticacao`, e não são RPC.
 
 ## Estrutura
 
@@ -100,7 +106,7 @@ O Supabase Auth atende a RNF06 por configuração: código de seis dígitos, val
 supabase/
   migrations/   criadas com `supabase migration new <nome>`, que prefixa o
                 timestamp UTC. Na ordem dos passos: enums, tabelas, indices,
-                rls, rpc_grupo, rpc_jogo, rpc_presenca, rpc_cobranca, storage,
+                rls, autenticacao, rpc_grupo, rpc_jogo, rpc_presenca, rpc_cobranca, storage,
                 avisos, rotinas_cron, rpc_convite
   seed.sql      locais, quadras e horários do piloto
   functions/enviar-push/

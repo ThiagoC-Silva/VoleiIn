@@ -161,7 +161,7 @@ A RN13 distribui as operações entre os papéis. Criador é quem criou o jogo, 
 
 | ID | Regra |
 | --- | --- |
-| RN21 | O acesso é por código de seis dígitos enviado ao e-mail informado. O e-mail é a credencial e vive no serviço de autenticação, não na tabela Pessoa; o telefone é contato opcional do perfil, sem unicidade e sem papel de acesso. Não há canal alternativo de entrega, porque o canal já é o e-mail: quem não recebe pede outro código. A troca de e-mail (RF35) é feita a partir da sessão ativa, confirmada nos dois endereços, e mantém conta, histórico e cobranças; e-mail que já pertence a outra conta bloqueia a troca |
+| RN21 | O acesso é por código de seis dígitos enviado ao e-mail informado. O e-mail é a credencial e vive no serviço de autenticação, não na tabela Pessoa; o telefone é contato opcional do perfil, sem unicidade e sem papel de acesso. Não há canal alternativo de entrega, porque o canal já é o e-mail: quem não recebe pede outro código. O primeiro acesso de um e-mail sem conta pede também o nome de exibição, e só ele, porque o perfil não existe sem nome; os demais campos do perfil ficam para depois (RF02). A troca de e-mail (RF35) é feita a partir da sessão ativa, confirmada nos dois endereços, e mantém conta, histórico e cobranças; e-mail que já pertence a outra conta bloqueia a troca |
 | RN22 | O convite de grupo é um link multiuso, sem expiração, que o admin pode revogar preenchendo `revogado_em`; link revogado deixa de aplicar o convite e informa quem o abrir. O convite de jogo é multiuso e expira no início do jogo. Quem entra por convite de jogo participa somente daquele jogo, sem se tornar membro do grupo. Quem abre um convite sem ter conta conclui o cadastro e o convite é aplicado em seguida |
 
 ## Modelo de dados
@@ -369,7 +369,7 @@ Autorização de push de um aparelho. Uma pessoa pode ter vários, um por aparel
 | modelo\_aparelho | texto | não | Identificação do aparelho, para a pessoa reconhecer a sessão |
 | ultimo\_erro\_em | data e hora | não | Marca o token expirado, que a rotina descarta |
 
-A troca de e-mail e a exclusão de conta apagam todos os dispositivos do titular, não os de um aparelho específico: são os dois casos de revogação da RNF07, e em ambos o push deve parar em todo lugar. Por isso o modelo não precisa conhecer sessão, que fica como detalhe da stack de autenticação.
+A troca de e-mail e a exclusão de conta apagam todos os dispositivos do titular, não os de um aparelho específico: são os dois casos de revogação da RNF07, e em ambos o push deve parar em todo lugar. Na troca, o aparelho onde ela foi confirmada segue conectado e registra a si mesmo de novo. Por isso o modelo não precisa conhecer sessão, que fica como detalhe da stack de autenticação.
 
 ## Relacionamentos
 
@@ -402,7 +402,7 @@ O MVP trata dado pessoal e dado bancário de terceiros. Esta seção fixa o que 
 | ID | Requisito |
 | --- | --- |
 | RNF06 | O código de seis dígitos vale cinco minutos e só uma vez, com limite de envios por e-mail a cada hora. A exigência é atendida pela configuração do serviço de autenticação, que também é quem guarda o código como hash: o produto não implementa geração, hash nem contagem de tentativas |
-| RNF07 | A sessão é um par de credenciais do serviço de autenticação: um token curto, renovado por um token de validade longa. A troca de e-mail e a exclusão de conta encerram todas as sessões do titular, em todo aparelho |
+| RNF07 | A sessão é um par de credenciais do serviço de autenticação: um token curto, renovado por um token de validade longa. A troca de e-mail encerra todas as outras sessões do titular, em todo aparelho; a do aparelho onde a troca foi confirmada continua, porque quem está com ele acabou de provar o controle dos dois endereços. A exclusão de conta encerra todas |
 | RNF08 | Toda data e hora de regra usa o horário do servidor em horário de Brasília, nunca o do aparelho (RN02). O armazenamento é em UTC e a conversão acontece na borda |
 | RNF09 | A disputa pela vaga é resolvida no banco, em transação, travando a linha do jogo e contando os confirmados no momento da escrita. Duas confirmações simultâneas para a última vaga não podem gerar dois confirmados; a perdedora cai na lista de espera (RN08) |
 | RNF10 | Confirmar presença, cancelar, dar baixa e enviar comprovante são idempotentes por requisição: o toque repetido, ou o reenvio após falha de rede, não gera segunda participação, segunda cobrança nem segunda baixa |

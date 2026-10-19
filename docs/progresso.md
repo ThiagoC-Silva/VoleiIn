@@ -63,7 +63,7 @@ Política de linha ligada nas treze tabelas, conforme a matriz de `docs/stack.md
 **Aberto:**
 - Token FCM já registrado por outra conta no mesmo aparelho: decidido depois do fechamento que o registro passa pela `registrar_dispositivo`, que transfere a linha (`docs/stack.md`, Política de linha). A migração `rls` ainda concede `insert` em `dispositivo_push`; a migração `avisos` do passo 7 revoga esse privilégio e a política `dispositivo_push_insert_titular`, e o `rls.sql` troca as asserções de insert direto pelas da função.
 - Funções de grupo, de convite, `apagar_comprovante` e `registrar_dispositivo` entraram na lista de `docs/stack.md`, com passo definido: grupo no 4 (`rpc_grupo`), `apagar_comprovante` no 6, `registrar_dispositivo` no 7 (`avisos`), convites no 9 (`rpc_convite`).
-- Quem apaga os aparelhos na troca de e-mail (RNF07) não está definido: o `signOut` global derruba sessões, não linhas de `dispositivo_push`. Decidir no passo 3; a sugestão é um gatilho na mudança de e-mail em `auth.users`.
+- ~~Quem apaga os aparelhos na troca de e-mail (RNF07)~~ — resolvido na abertura do passo 3: um gatilho na mudança de `email` em `auth.users` apaga todo `dispositivo_push` do titular (`docs/stack.md`, Autenticação).
 
 <!-- Modelo de entrada, a copiar ao fechar um passo:
 
