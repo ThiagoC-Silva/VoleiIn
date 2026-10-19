@@ -61,8 +61,9 @@ Política de linha ligada nas treze tabelas, conforme a matriz de `docs/stack.md
 - Os testes trocam de usuário como a API faz: papel `authenticated` e o id em `request.jwt.claims`, lido por `auth.uid()`.
 
 **Aberto:**
-- Token FCM já registrado por outra conta no mesmo aparelho bate na unicidade de `token_fcm` sem que o novo titular enxergue a linha que o bloqueia. Resolver no passo 7.
-- Criar e editar grupo, entrar, sair, remover e promover membro (RF03, RF06, RF29–RF31) não têm escrita direta e não estão na lista de funções de `docs/stack.md`. Precisam entrar nela antes do passo em que forem implementados.
+- Token FCM já registrado por outra conta no mesmo aparelho: decidido depois do fechamento que o registro passa pela `registrar_dispositivo`, que transfere a linha (`docs/stack.md`, Política de linha). A migração `rls` ainda concede `insert` em `dispositivo_push`; a migração `avisos` do passo 7 revoga esse privilégio e a política `dispositivo_push_insert_titular`, e o `rls.sql` troca as asserções de insert direto pelas da função.
+- Funções de grupo, de convite, `apagar_comprovante` e `registrar_dispositivo` entraram na lista de `docs/stack.md`, com passo definido: grupo no 4 (`rpc_grupo`), `apagar_comprovante` no 6, `registrar_dispositivo` no 7 (`avisos`), convites no 9 (`rpc_convite`).
+- Quem apaga os aparelhos na troca de e-mail (RNF07) não está definido: o `signOut` global derruba sessões, não linhas de `dispositivo_push`. Decidir no passo 3; a sugestão é um gatilho na mudança de e-mail em `auth.users`.
 
 <!-- Modelo de entrada, a copiar ao fechar um passo:
 

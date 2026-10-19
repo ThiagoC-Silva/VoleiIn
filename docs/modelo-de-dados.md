@@ -277,6 +277,7 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | Convite com `revogado_em` preenchido não aplica mais o convite, mesmo dentro do prazo | RF32, RN22 |
 | A exclusão de conta apaga o usuário no serviço de autenticação e preserva a linha de Pessoa, anonimizada; nenhuma coluna do perfil guarda credencial | RN21, RN27 |
 | A troca de e-mail e a exclusão de conta apagam todos os DispositivoPush do titular, não os de um aparelho | RNF07, RN27 |
+| `DispositivoPush.token_fcm` pertence a quem o registrou por último: registrar um token que já existe transfere a linha, em vez de criar outra | RN29 |
 | `Participacao.posicao_espera` só é preenchido enquanto o status for `lista_espera` | RN08 |
 | `Cobranca` só sai de `pendente` por ato de pessoa depois do jogo encerrado | RN07 |
 | `Cobranca.confirmado_por` e `confirmado_em` são preenchidos juntos ou ficam ambos vazios: a baixa e a isenção manual registram o par, e a transição automática o deixa vazio | RN07 |

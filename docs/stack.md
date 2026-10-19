@@ -35,7 +35,7 @@ O desenho tem uma regra de corte: **o app nunca escreve nas tabelas do rateio**.
 
 | Camada | O que vive lá |
 | --- | --- |
-| Funções plpgsql (RPC) | Todo cálculo e toda transição de estado: rateio e arredondamento (RN01, RN16), prazo e multa (RN02, RN03), fila e disputa de vaga (RN08, RNF09), reconfirmação (RN25), substituição e isenção automática (RN05), edição e recálculo (RN20), ciclo do jogo (RN17, RN23), falta (RN04), baixa e isenção manual (RN07, RN13), triagem e unicidade do comprovante (RN09, RN10), convite (RN22), exclusão de conta (RN27) |
+| Funções plpgsql (RPC) | Todo cálculo e toda transição de estado: rateio e arredondamento (RN01, RN16), prazo e multa (RN02, RN03), fila e disputa de vaga (RN08, RNF09), reconfirmação (RN25), substituição e isenção automática (RN05), edição e recálculo (RN20), ciclo do jogo (RN17, RN23), falta (RN04), baixa e isenção manual (RN07, RN13), triagem e unicidade do comprovante (RN09, RN10), regras e membros do grupo (RN11, RN30), convite (RN22), exclusão de conta (RN27) |
 | Política de linha | Quem lê o quê, na matriz da seção seguinte: cobrança e comprovante só para devedor e credor (RN19, RNF02), jogo para membros do grupo e participantes, aviso só para o destinatário, Local e Quadra somente leitura para todo mundo (RN18). Também as três escritas diretas fora do rateio |
 | `pg_cron`, uma vez por minuto | Encerramento do jogo (RN17), vencimento da cobrança (RN07), fim da janela de falta (RN04), descarte de comprovante por retenção (RNF03) e remoção de token de push já rejeitado |
 | Edge Function | Único ponto que fala com serviço externo: o envio para a FCM, acionado por `pg_net` a partir de um gatilho em Notificacao |
@@ -53,7 +53,14 @@ As funções previstas, uma por operação que muda estado:
 | `marcar_falta` | RN04, RN13 (quem pode) |
 | `dar_baixa`, `isentar_cobranca` | RN07 (congelamento), RN13 (só o credor) |
 | `enviar_comprovante` | RN09 (classificação no servidor), RN10 (unicidade do identificador) |
-| `aplicar_convite` | RN22 (expiração e revogação), RN13 |
+| `apagar_comprovante` | RF37, RN19 (só o devedor, só depois da baixa; esvazia `arquivo_url` e preserva a linha) |
+| `criar_grupo` | RF03, RN12 (padrões do grupo); quem cria entra como admin (RN13, RN30) |
+| `editar_grupo` | RF06, RN11 (vale de imediato nos jogos abertos, aviso aos confirmados), RN13 (só admins) |
+| `promover_admin` | RF31, RN13 (só quem criou o grupo), RN29 (aviso) |
+| `remover_membro`, `sair_grupo` | RF29, RF30, RN30 (participações e cobranças ficam; quem criou só sai depois de promover outro admin), RN13 (remoção só por admin), RN29 (aviso ao removido) |
+| `gerar_convite`, `revogar_convite` | RF09, RF32, RN22 (convite de jogo expira no início; o de grupo, só por revogação), RN13 (grupo: só admins; jogo: qualquer confirmado) |
+| `aplicar_convite` | RF04, RN22 (expiração e revogação), RN13 |
+| `registrar_dispositivo` | RF38, RN29; token já registrado por outra conta passa a quem registra agora (seção Política de linha) |
 | `listar_participantes` | RN26 (a marca de débito vencido só aparece para criador, recebedor e admins) |
 | `excluir_conta` | RN27 (bloqueio por pendência, anonimização, remoção do usuário) |
 | `rotinas_minuto` | O que a linha de `pg_cron` acima descreve |
@@ -73,7 +80,9 @@ Toda tabela tem política de linha, e o papel `anon` não lê nem escreve nada: 
 | `cobranca`, `comprovante` | Devedor e credor da cobrança (RN19, RNF02) |
 | `notificacao`, `dispositivo_push` | O titular |
 
-A regra de corte vale para o rateio. Três escritas ficam de fora dele e vão direto à tabela, cada uma limitada à linha do titular pela política e às colunas pelo privilégio: o próprio perfil em `pessoa` (nome, foto, telefone e chave Pix, RF02), `lida_em` dos próprios avisos em `notificacao` (RF40) e inserir ou apagar os próprios aparelhos em `dispositivo_push` (RF38). Qualquer outra escrita do app é recusada pelo banco.
+A regra de corte vale para o rateio. Três escritas ficam de fora dele e vão direto à tabela, cada uma limitada à linha do titular pela política e às colunas pelo privilégio: o próprio perfil em `pessoa` (nome, foto, telefone e chave Pix, RF02), `lida_em` dos próprios avisos em `notificacao` (RF40) e apagar os próprios aparelhos em `dispositivo_push` (RF38). Qualquer outra escrita do app é recusada pelo banco.
+
+Registrar um aparelho não é escrita direta: passa pela `registrar_dispositivo`. O token da FCM pertence à instalação do app, não à pessoa, então duas contas que se revezam no mesmo celular disputam o mesmo token. Se o Bruno sai da conta sem rede e a Carla entra no mesmo aparelho, a linha dele continua lá: um `insert` da Carla bateria na unicidade de `token_fcm` sem que ela enxergue a linha que a bloqueia, e os avisos de cobrança do Bruno seguiriam chegando à tela dela. A função resolve os dois de uma vez: token já registrado passa a quem o registra agora, porque só quem está com o aparelho na mão conhece o token. O app também apaga a própria linha ao sair da conta, como limpeza do caminho normal.
 
 A `listar_participantes` é função, e não consulta com política de linha, porque o que varia não é a linha: é uma coluna, visível a uns e não a outros. Decidir isso em SQL, com o papel de quem chama, sai mais simples que montar duas visões.
 
@@ -90,8 +99,9 @@ O Supabase Auth atende a RNF06 por configuração: código de seis dígitos, val
 ```
 supabase/
   migrations/   criadas com `supabase migration new <nome>`, que prefixa o
-                timestamp UTC. Na ordem: enums, tabelas, indices, rls,
-                rpc_jogo, rpc_presenca, rpc_cobranca, rotinas_cron, storage
+                timestamp UTC. Na ordem dos passos: enums, tabelas, indices,
+                rls, rpc_grupo, rpc_jogo, rpc_presenca, rpc_cobranca, storage,
+                avisos, rotinas_cron, rpc_convite
   seed.sql      locais, quadras e horários do piloto
   functions/enviar-push/
 app/            projeto Flutter
@@ -112,12 +122,12 @@ Cada passo fecha antes do seguinte começar.
 1. **Schema.** Enums, tabelas, índices e unicidades. Atenção ao índice único de `id_transacao`, que precisa ser parcial: vários comprovantes ilegíveis entram sem identificador e não disputam entre si (RN10).
 2. **Política de linha.** Uma política por tabela, mais a negação de escrita em Local, Quadra e HorarioFuncionamento, e a função `listar_participantes`.
 3. **Autenticação.** Projeto no Supabase, Brevo como SMTP, código de seis dígitos e cinco minutos, gatilho de criação do perfil, telas de entrar e de trocar o e-mail.
-4. **Núcleo financeiro.** As funções de jogo, presença e cobrança, com um script SQL de cenários rodando contra o Supabase local.
+4. **Núcleo financeiro.** As funções de grupo (`criar_grupo`, `editar_grupo`, `promover_admin`, `remover_membro`, `sair_grupo`), de jogo, presença e cobrança, com um script SQL de cenários rodando contra o Supabase local. As de grupo vêm primeiro, para os cenários criarem grupos pelo caminho real, com quem cria entrando como admin.
 5. **App.** Feed com selo de grupo, tela de jogo, confirmação e cancelamento, painel de débitos e painel de recebimentos.
-6. **Comprovante.** Captura, compressão, reconhecimento de texto, upload para o espaço privado, função de envio e URL assinada na leitura.
-7. **Avisos.** Tabela, gatilho, Edge Function, FCM no aparelho, sino e marcação de lido.
+6. **Comprovante.** Captura, compressão, reconhecimento de texto, upload para o espaço privado, função de envio, `apagar_comprovante` e URL assinada na leitura.
+7. **Avisos.** Tabela, gatilho, Edge Function, FCM no aparelho, `registrar_dispositivo`, sino e marcação de lido.
 8. **Rotinas.** A função de minuto e o agendamento em `pg_cron`.
-9. **Convites.** Geração do código, tela de entrar com código, página do GitHub Pages e `app_links`.
+9. **Convites.** `gerar_convite`, `revogar_convite` e `aplicar_convite`, tela de entrar com código, página do GitHub Pages e `app_links`.
 10. **Distribuição.** Firebase App Distribution e um workflow diário no GitHub Actions para o projeto não pausar.
 
 ## Riscos e limites do plano gratuito

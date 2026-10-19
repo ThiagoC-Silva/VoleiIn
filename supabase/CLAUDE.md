@@ -21,7 +21,7 @@ Exigem Docker rodando. Executar da raiz do repositório.
 ## Migrações
 
 - Crie sempre com `supabase migration new <nome>`, que gera o arquivo já prefixado pelo timestamp UTC. Nunca nomeie à mão: o timestamp é o que define a ordem de execução.
-- A sequência prevista está em `docs/stack.md`: `enums`, `tabelas`, `indices`, `rls`, `rpc_jogo`, `rpc_presenca`, `rpc_cobranca`, `rotinas_cron`, `storage`.
+- A sequência prevista está em `docs/stack.md`: `enums`, `tabelas`, `indices`, `rls`, `rpc_grupo`, `rpc_jogo`, `rpc_presenca`, `rpc_cobranca`, `storage`, `avisos`, `rotinas_cron`, `rpc_convite`.
 - **Nunca edite uma migração já aplicada.** Corrija criando a próxima. O banco remoto não roda de novo um arquivo que já rodou, então editar faz local e remoto divergirem em silêncio.
 - Valide com `supabase db reset`, que recria o banco local do zero, roda todas as migrações em ordem e aplica o `seed.sql`. Se isso passa de um banco vazio, a sequência está consistente.
 - `seed.sql` guarda os locais, quadras e horários do piloto. São dados mantidos pelo desenvolvedor, não escritos pelo app (RN18).
@@ -45,7 +45,7 @@ Exigem Docker rodando. Executar da raiz do repositório.
 
 - Política de linha em toda tabela, conforme a matriz de `docs/stack.md`. Cobrança e comprovante só para devedor e credor (RN19, RNF02); aviso só para o destinatário.
 - `anon` não tem privilégio em nada, e privilégio padrão está revogado: **toda função RPC nova precisa de `grant execute ... to authenticated`**, senão o app recebe 42501.
-- O app escreve direto só em três lugares, limitados por coluna: o próprio perfil em `pessoa`, `lida_em` em `notificacao` e os próprios aparelhos em `dispositivo_push`.
+- O app escreve direto só em três lugares, limitados por coluna: o próprio perfil em `pessoa`, `lida_em` em `notificacao` e apagar os próprios aparelhos em `dispositivo_push`. Registrar aparelho é pela `registrar_dispositivo`, que transfere token já registrado por outra conta.
 - Auxiliares de política ficam no schema `privado`, fora da API. Vencimento e janela de falta partem de `privado.encerramento_previsto` (RN04, RN07, RN17).
 - `local`, `quadra` e `horario_funcionamento` são somente leitura para qualquer cliente autenticado: a política nega escrita e só a chave de serviço grava (RN18).
 - A chave de serviço nunca aparece no app nem em arquivo versionado. Segredo de Edge Function fica na função.
