@@ -1,6 +1,6 @@
 # T01 — Fechar a documentação de autenticação
 
-**Estado:** parcial · **Depende de:** —
+**Estado:** feito · **Depende de:** —
 
 ## Objetivo
 
@@ -14,10 +14,10 @@ Alterações não commitadas:
 
 ## O que falta
 
-- [ ] Revisar o diff de `docs/prd.md` e `docs/stack.md` (`git diff docs/`).
-- [ ] `docs/stack.md`, tabela Escolhas: `minSdk` 23 → 24.
-- [ ] `app/CLAUDE.md`: `minSdk` 23 → 24.
-- [ ] Conferir que `docs/modelo-de-dados.md` não cita confirmação nos dois endereços (`grep -n "dois endereços" docs/`).
+- [x] Revisar o diff de `docs/prd.md` e `docs/stack.md` (`git diff docs/`).
+- [x] `docs/stack.md`, tabela Escolhas: `minSdk` 23 → 24.
+- [x] `app/CLAUDE.md`: `minSdk` 23 → 24.
+- [x] Conferir que `docs/modelo-de-dados.md` não cita confirmação nos dois endereços (`grep -n "dois endereços" docs/`).
 
 ## Pronto quando
 

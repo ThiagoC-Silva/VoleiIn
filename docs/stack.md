@@ -10,7 +10,7 @@ A restrição que organiza tudo aqui é custo. O piloto cabe inteiro em planos g
 
 | Camada | Escolha | Custo |
 | --- | --- | --- |
-| App | Flutter, Android nativo, `minSdk` 23, layout de celular, `applicationId` `br.com.voleiin` | R$ 0 |
+| App | Flutter, Android nativo, `minSdk` 24, layout de celular, `applicationId` `br.com.voleiin` | R$ 0 |
 | Distribuição | Firebase App Distribution, convite por e-mail e build por link | R$ 0 |
 | Banco e API | Postgres do Supabase, com política de linha; o app consulta direto, sem servidor no meio | R$ 0 até 500 MB |
 | Autenticação | Supabase Auth, código de seis dígitos por e-mail (`signInWithOtp`) | R$ 0 até 50 mil contas ativas por mês |

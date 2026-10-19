@@ -17,7 +17,7 @@ Decisões tomadas na abertura:
 
 | # | Task | Estado | Depende de |
 | --- | --- | --- | --- |
-| [T01](01-documentacao.md) | Fechar a documentação de autenticação | parcial | — |
+| [T01](01-documentacao.md) | Fechar a documentação de autenticação | feito | — |
 | [T02](02-config-auth-local.md) | Configuração local do Supabase Auth e modelos de e-mail | parcial | T01 |
 | [T03](03-migracao-autenticacao.md) | Migração `autenticacao` e asserções | parcial | T01 |
 | [T04](04-base-app-flutter.md) | Base do app Flutter | parcial | T01 |

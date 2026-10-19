@@ -1,6 +1,6 @@
 # app/
 
-O projeto Flutter. Android nativo, `minSdk` 23, layout de celular. Sem web e sem iOS (RNF11).
+O projeto Flutter. Android nativo, `minSdk` 24, layout de celular. Sem web e sem iOS (RNF11).
 
 ## Fronteira
 
