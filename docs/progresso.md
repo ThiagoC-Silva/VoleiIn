@@ -6,12 +6,12 @@ O que entra aqui é o que **não se descobre lendo o código**: a decisão tomad
 
 ## Estado
 
-**Passo atual: 2 — Política de linha.**
+**Passo atual: 3 — Autenticação.**
 
 | Passo | Estado |
 | --- | --- |
 | 1. Schema | feito |
-| 2. Política de linha | a fazer |
+| 2. Política de linha | feito |
 | 3. Autenticação | a fazer |
 | 4. Núcleo financeiro | a fazer |
 | 5. App | a fazer |
@@ -45,6 +45,24 @@ Os dez enums, as treze tabelas com as 27 chaves estrangeiras do modelo, as seis 
 - `local.verificado` "sempre falso no MVP" (RN18) não tem `check`: ficou fora da lista do passo. Decidir se entra numa migração futura.
 - Não há índice em `comprovante (cobranca_id)` nem nas chaves estrangeiras que ninguém consulta. Irrelevante no volume do piloto; reavaliar quando o passo 6 definir as consultas do comprovante.
 - O usuário está no grupo `docker`, mas a sessão precisa ser reaberta para valer; até lá, os comandos rodam com `sg docker -c '…'`.
+
+## Passo 2 — Política de linha · 2026-10-19
+
+Política de linha ligada nas treze tabelas, conforme a matriz de `docs/stack.md`; o papel `anon` não alcança nada, e `authenticated` só escreve nas três exceções fora do rateio. A `listar_participantes` devolve a marca de débito vencido da RN26. `supabase/testes/rls.sql` passa com 69 asserções, e a `schema.sql` segue com 61.
+
+**Arquivos:** `supabase/migrations/` (`rls`), `supabase/testes/rls.sql`.
+
+**Decisões de implementação:**
+- As auxiliares das políticas (`eh_membro`, `eh_admin`, `pode_ver_jogo`, `pode_ver_grupo`, `conhece`) são `security definer` num schema `privado`, fora da API: assim jogo e participação não se consultam em recursão, e nenhuma delas vira RPC.
+- `privado.encerramento_previsto(inicio, duracao_minutos)` é a âncora da RN17; vencimento (RN07) e fim da janela de falta (RN04) são ela mais 24 horas. Os passos 4 e 8 devem usá-la, não recalcular.
+- Além da política, os privilégios foram revogados: escrita sem privilégio falha com 42501, em vez de passar em silêncio sem tocar linha. As três escritas diretas têm grant por coluna — `pessoa` (nome, avatar_url, telefone, chave_pix), `notificacao` (lida_em), `dispositivo_push` (insert das colunas do app e delete).
+- Privilégio padrão revogado: função ou tabela nova nasce sem acesso para `anon`, `authenticated` nem `public`. **Toda função RPC do passo 4 precisa de `grant execute ... to authenticated` explícito.**
+- `listar_participantes` devolve `debito_vencido` vazio (`null`) para quem não tem papel, em vez de `false`, para não afirmar que a pessoa está em dia. Quem não vê o jogo recebe lista vazia, como na política.
+- Os testes trocam de usuário como a API faz: papel `authenticated` e o id em `request.jwt.claims`, lido por `auth.uid()`.
+
+**Aberto:**
+- Token FCM já registrado por outra conta no mesmo aparelho bate na unicidade de `token_fcm` sem que o novo titular enxergue a linha que o bloqueia. Resolver no passo 7.
+- Criar e editar grupo, entrar, sair, remover e promover membro (RF03, RF06, RF29–RF31) não têm escrita direta e não estão na lista de funções de `docs/stack.md`. Precisam entrar nela antes do passo em que forem implementados.
 
 <!-- Modelo de entrada, a copiar ao fechar um passo:
 

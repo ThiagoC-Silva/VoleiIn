@@ -14,6 +14,7 @@ Exigem Docker rodando. Executar da raiz do repositório.
 | `supabase db reset` | Recria o banco local do zero, roda todas as migrações e o `seed.sql` |
 | `supabase migration list` | Mostra quais migrações já foram aplicadas, local e remoto |
 | `docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/schema.sql` | Roda as asserções de schema numa transação desfeita; imprime `SUCESSO: N asserções` ou para no primeiro `FALHOU` |
+| `docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/rls.sql` | Roda as asserções de acesso, simulando cada usuário como a API faz |
 | `supabase db push` | Aplica no projeto remoto as migrações que faltam |
 | `supabase functions deploy enviar-push` | Publica a Edge Function |
 
@@ -42,6 +43,9 @@ Exigem Docker rodando. Executar da raiz do repositório.
 
 ## Acesso
 
-- Política de linha em toda tabela. Cobrança e comprovante só para devedor e credor (RN19, RNF02); aviso só para o destinatário.
+- Política de linha em toda tabela, conforme a matriz de `docs/stack.md`. Cobrança e comprovante só para devedor e credor (RN19, RNF02); aviso só para o destinatário.
+- `anon` não tem privilégio em nada, e privilégio padrão está revogado: **toda função RPC nova precisa de `grant execute ... to authenticated`**, senão o app recebe 42501.
+- O app escreve direto só em três lugares, limitados por coluna: o próprio perfil em `pessoa`, `lida_em` em `notificacao` e os próprios aparelhos em `dispositivo_push`.
+- Auxiliares de política ficam no schema `privado`, fora da API. Vencimento e janela de falta partem de `privado.encerramento_previsto` (RN04, RN07, RN17).
 - `local`, `quadra` e `horario_funcionamento` são somente leitura para qualquer cliente autenticado: a política nega escrita e só a chave de serviço grava (RN18).
 - A chave de serviço nunca aparece no app nem em arquivo versionado. Segredo de Edge Function fica na função.
