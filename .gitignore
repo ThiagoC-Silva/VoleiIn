@@ -1,0 +1,16 @@
+# Instruções e segredos locais
+CLAUDE.local.md
+.env
+.env.*
+
+# Flutter
+app/build/
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/android/local.properties
+app/android/app/google-services.json
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
