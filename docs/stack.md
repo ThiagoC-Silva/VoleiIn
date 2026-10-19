@@ -36,7 +36,7 @@ O desenho tem uma regra de corte: **o app nunca escreve nas tabelas do rateio**.
 | Camada | O que vive lá |
 | --- | --- |
 | Funções plpgsql (RPC) | Todo cálculo e toda transição de estado: rateio e arredondamento (RN01, RN16), prazo e multa (RN02, RN03), fila e disputa de vaga (RN08, RNF09), reconfirmação (RN25), substituição e isenção automática (RN05), edição e recálculo (RN20), ciclo do jogo (RN17, RN23), falta (RN04), baixa e isenção manual (RN07, RN13), triagem e unicidade do comprovante (RN09, RN10), convite (RN22), exclusão de conta (RN27) |
-| Política de linha | Quem lê o quê: cobrança e comprovante só para devedor e credor (RN19, RNF02), jogo para membros do grupo e participantes, aviso só para o destinatário, Local e Quadra somente leitura para todo mundo (RN18) |
+| Política de linha | Quem lê o quê, na matriz da seção seguinte: cobrança e comprovante só para devedor e credor (RN19, RNF02), jogo para membros do grupo e participantes, aviso só para o destinatário, Local e Quadra somente leitura para todo mundo (RN18). Também as três escritas diretas fora do rateio |
 | `pg_cron`, uma vez por minuto | Encerramento do jogo (RN17), vencimento da cobrança (RN07), fim da janela de falta (RN04), descarte de comprovante por retenção (RNF03) e remoção de token de push já rejeitado |
 | Edge Function | Único ponto que fala com serviço externo: o envio para a FCM, acionado por `pg_net` a partir de um gatilho em Notificacao |
 | App Flutter | Telas, reconhecimento de texto do comprovante, pedido de localização, conversão de fuso para exibição. Nenhuma regra de dinheiro |
@@ -57,6 +57,23 @@ As funções previstas, uma por operação que muda estado:
 | `listar_participantes` | RN26 (a marca de débito vencido só aparece para criador, recebedor e admins) |
 | `excluir_conta` | RN27 (bloqueio por pendência, anonimização, remoção do usuário) |
 | `rotinas_minuto` | O que a linha de `pg_cron` acima descreve |
+
+## Política de linha
+
+Toda tabela tem política de linha, e o papel `anon` não lê nem escreve nada: o app só fala com o banco depois de autenticado. Para `authenticated`, a leitura segue a matriz abaixo. "Ver o jogo" é ser criador, recebedor, membro do grupo do jogo ou ter participação nele, em qualquer status.
+
+| Tabela | Quem lê |
+| --- | --- |
+| `pessoa` | O próprio, quem divide um grupo com ele e quem está envolvido — participação, criador ou recebedor — num jogo que ele vê. Todas as colunas, inclusive telefone e chave Pix: dentro da turma, é o uso normal delas, e é o que alimenta a lista de recebedores com chave (RN24) |
+| `grupo` | Membros, e quem participa de um jogo do grupo sem ser membro, para o selo do feed (RF12) |
+| `membro_grupo` | Membros do mesmo grupo (RF05) |
+| `convite` | Quem criou, e os admins do grupo no convite de tipo `grupo` (RF32) |
+| `local`, `quadra`, `horario_funcionamento` | Todos (RN18) |
+| `jogo`, `participacao` | Quem vê o jogo |
+| `cobranca`, `comprovante` | Devedor e credor da cobrança (RN19, RNF02) |
+| `notificacao`, `dispositivo_push` | O titular |
+
+A regra de corte vale para o rateio. Três escritas ficam de fora dele e vão direto à tabela, cada uma limitada à linha do titular pela política e às colunas pelo privilégio: o próprio perfil em `pessoa` (nome, foto, telefone e chave Pix, RF02), `lida_em` dos próprios avisos em `notificacao` (RF40) e inserir ou apagar os próprios aparelhos em `dispositivo_push` (RF38). Qualquer outra escrita do app é recusada pelo banco.
 
 A `listar_participantes` é função, e não consulta com política de linha, porque o que varia não é a linha: é uma coluna, visível a uns e não a outros. Decidir isso em SQL, com o papel de quem chama, sai mais simples que montar duas visões.
 

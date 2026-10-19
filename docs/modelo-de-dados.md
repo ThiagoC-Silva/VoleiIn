@@ -284,6 +284,7 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | `Comprovante.resultado` é derivado no servidor a partir dos campos lidos e dos dados da cobrança, nunca informado pelo app | RN09 |
 | O descarte do comprovante esvazia `arquivo_url` mas preserva a linha, porque `id_transacao` segue bloqueando reenvio | RN10, RN19 |
 | `Participacao` passa a `faltou` junto com a mudança da cobrança para origem `falta` | RN04 |
+| A cobrança vence e a janela de falta fecha 24 horas após o encerramento previsto, `inicio + duracao_minutos + 1h`, mesmo quando o jogo foi encerrado antes à mão | RN04, RN07, RN17 |
 | `Local.verificado` é sempre falso no MVP | RN18 |
 | Local, Quadra e HorarioFuncionamento são somente leitura para todo cliente autenticado; só a chave de serviço escreve | RN18 |
 | Só o devedor e o credor da cobrança leem o `arquivo_url` do comprovante | RN19, RNF02 |
