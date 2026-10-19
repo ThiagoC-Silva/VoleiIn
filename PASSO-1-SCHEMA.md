@@ -94,8 +94,8 @@ O `check` de `preco_por_vaga` é o mais valioso dos doze: torna a RN16 estrutura
 
 ### 1.5 — Asserções de schema
 
-- [ ] `supabase/testes/schema.sql`, tentando violar cada restrição e esperando o erro: cada unicidade, cada `check` no valor limite, o enum recusando valor fora da lista, o gatilho de `atualizado_em` movendo o campo num `update`
-- [ ] Os casos que devem passar: dois comprovantes ilegíveis na mesma cobrança, e um jogo válido ponta a ponta do local à cobrança
+- [x] `supabase/testes/schema.sql`, tentando violar cada restrição e esperando o erro: cada unicidade, cada `check` no valor limite, o enum recusando valor fora da lista, o gatilho de `atualizado_em` movendo o campo num `update`
+- [x] Os casos que devem passar: dois comprovantes ilegíveis na mesma cobrança, e um jogo válido ponta a ponta do local à cobrança
 
 **Fecha quando:** o arquivo roda inteiro e reporta sucesso.
 
@@ -117,7 +117,7 @@ O `check` de `preco_por_vaga` é o mais valioso dos doze: torna a RN16 estrutura
 | 1.2 Tabelas | **feito** | `db reset` aplica `20261019172256_tabelas.sql`; o banco tem 13 tabelas, 27 chaves estrangeiras (as 27 linhas de `docs/modelo-de-dados.md`), 18 `check` nas doze linhas da tabela e 13 gatilhos; 10000/7 com `preco_por_vaga` 1429 entra e 1428 é recusado |
 | 1.3 Índices | **feito** | `db reset` aplica `20261019173043_indices.sql`; seis índices únicos (cinco comuns e o parcial de `id_transacao`) e nove de leitura; dois comprovantes sem `id_transacao` convivem na mesma cobrança e o segundo `E123` é recusado por `comprovante_id_transacao_unico` |
 | 1.4 `seed.sql` | **feito** | `db reset` aplica `supabase/seed.sql` sem erro: uma pessoa de UUID fixo, um local `por_quadra` com duas quadras e seis faixas, um `por_horario` com capacidade 2 e oito faixas, cada um com uma faixa atravessando a meia-noite. Dados provisórios |
-| 1.5 Asserções | a fazer | — |
+| 1.5 Asserções | **feito** | `supabase/testes/schema.sql` roda numa transação desfeita e imprime `SUCESSO: 61 asserções`: as seis unicidades, os dezoito `check` no limite, o enum, `pessoa` sem id e o gatilho; uma asserção adulterada para o arquivo com `FALHOU` e exit diferente de zero |
 | 1.6 Registro | a fazer | `docs/progresso.md` marca o passo 1 como a fazer |
 
 Ao fim, conferir contra os documentos: dez tipos com os valores exatos do catálogo, treze tabelas, as chaves estrangeiras e as seis unicidades de `docs/modelo-de-dados.md`. E `supabase migration list` mostrando as três migrações aplicadas no local e nenhuma no remoto — o remoto só entra no passo 3.
