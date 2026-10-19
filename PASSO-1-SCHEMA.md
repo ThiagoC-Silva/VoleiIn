@@ -77,10 +77,10 @@ O `check` de `preco_por_vaga` é o mais valioso dos doze: torna a RN16 estrutura
 
 ### 1.3 — Migração de índices
 
-- [ ] `supabase migration new indices`
-- [ ] Unicidades: `membro_grupo (grupo_id, pessoa_id)`, `participacao (jogo_id, pessoa_id)`, `cobranca (participacao_id)`, `convite (token)`, `dispositivo_push (token_fcm)`
-- [ ] `comprovante (id_transacao)` **parcial**, com `where id_transacao is not null` (RN10)
-- [ ] Índices de leitura: feed de `jogo` por grupo e por data, `jogo` por quadra e por local no tempo (checagens da RN15), `cobranca` por devedor e por credor com status, `participacao` por jogo e status, `notificacao` por pessoa e `lida_em`, `local_id` em `quadra` e `horario_funcionamento`
+- [x] `supabase migration new indices`
+- [x] Unicidades: `membro_grupo (grupo_id, pessoa_id)`, `participacao (jogo_id, pessoa_id)`, `cobranca (participacao_id)`, `convite (token)`, `dispositivo_push (token_fcm)`
+- [x] `comprovante (id_transacao)` **parcial**, com `where id_transacao is not null` (RN10)
+- [x] Índices de leitura: feed de `jogo` por grupo e por data, `jogo` por quadra e por local no tempo (checagens da RN15), `cobranca` por devedor e por credor com status, `participacao` por jogo e status, `notificacao` por pessoa e `lida_em`, `local_id` em `quadra` e `horario_funcionamento`
 
 **Fecha quando:** dois comprovantes sem `id_transacao` convivem na mesma cobrança, e dois com o mesmo identificador são recusados.
 
@@ -115,7 +115,7 @@ O `check` de `preco_por_vaga` é o mais valioso dos doze: torna a RN16 estrutura
 | 1.0 Ambiente | **feito** | Docker 29.9.1 e CLI 3.0.0-next.20 instalados; `supabase status` lista os serviços de pé e o Studio abre em `127.0.0.1:54323` |
 | 1.1 Enums | **feito** | `db reset` aplica `20261019165515_enums.sql`; `\dT+` lista os dez tipos com as contagens 2, 2, 2, 3, 3, 5, 3, 5, 3, 14 |
 | 1.2 Tabelas | **feito** | `db reset` aplica `20261019172256_tabelas.sql`; o banco tem 13 tabelas, 27 chaves estrangeiras (as 27 linhas de `docs/modelo-de-dados.md`), 18 `check` nas doze linhas da tabela e 13 gatilhos; 10000/7 com `preco_por_vaga` 1429 entra e 1428 é recusado |
-| 1.3 Índices | a fazer | — |
+| 1.3 Índices | **feito** | `db reset` aplica `20261019173043_indices.sql`; seis índices únicos (cinco comuns e o parcial de `id_transacao`) e nove de leitura; dois comprovantes sem `id_transacao` convivem na mesma cobrança e o segundo `E123` é recusado por `comprovante_id_transacao_unico` |
 | 1.4 `seed.sql` | a fazer | — |
 | 1.5 Asserções | a fazer | — |
 | 1.6 Registro | a fazer | `docs/progresso.md` marca o passo 1 como a fazer |
