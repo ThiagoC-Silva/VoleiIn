@@ -13,6 +13,8 @@ Entrar e criar conta numa tela só (RF01, RN21, RNF06): e-mail; nome só quando 
 - `app/lib/features/auth/etapa_codigo.dart` — campo de código e contagem de 60 s para o reenvio, reaproveitado na T06.
 - `app/test/features/auth/entrar_tela_test.dart` — 4 testes, passando.
 
+Tudo commitado em `a9a99cf`.
+
 ## O que falta
 
 - [ ] Conferir em `_traduzir` os códigos de erro que o Auth local devolve de fato (anotar na T07): `otp_disabled`, `otp_expired`, `over_email_send_rate_limit`, `over_request_rate_limit`, `email_address_invalid`/`validation_failed`. Ajustar o que vier diferente.
@@ -25,4 +27,4 @@ Entrar e criar conta numa tela só (RF01, RN21, RNF06): e-mail; nome só quando 
 
 ## Commit
 
-`Cria a tela de entrar por código de seis dígitos`
+A tela já entrou em `a9a99cf`. O que falta vai em: `Cobre o voltar e o reenvio de conta nova na tela de entrar`

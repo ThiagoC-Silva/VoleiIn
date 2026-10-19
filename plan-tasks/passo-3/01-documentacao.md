@@ -8,7 +8,7 @@ Deixar os documentos normativos coerentes com o que o passo 3 entrega, antes de 
 
 ## O que já existe
 
-Alterações não commitadas:
+Commitado em `9814aa7` (troca de e-mail) e `c550444` (minSdk):
 - `docs/prd.md` — RN21 e RNF07 reescritas para "código ao endereço novo, aviso ao antigo"; nova linha "Troca de e-mail" na tabela de decisões.
 - `docs/stack.md`, seção Autenticação — `double_confirm_changes = false`, `notification.email_changed`, explicação de por que a confirmação dupla não adiantaria no fluxo por código.
 
@@ -26,4 +26,4 @@ Alterações não commitadas:
 
 ## Commit
 
-`Fecha a troca de e-mail por código no endereço novo e o minSdk 24`
+Feito em `9814aa7` e `c550444`.

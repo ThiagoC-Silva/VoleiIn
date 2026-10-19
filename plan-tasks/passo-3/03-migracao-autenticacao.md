@@ -8,7 +8,7 @@ Ligar `auth.users` a `pessoa` sem chave estrangeira (ver `docs/stack.md`, Autent
 
 ## O que já existe
 
-- `supabase/migrations/20261019194705_autenticacao.sql` — `privado.criar_pessoa()` (gatilho `after insert`) e `privado.apagar_dispositivos_na_troca()` (gatilho `after update of email`, só quando o e-mail muda), ambas `security definer`, `search_path = ''`, sem `execute` para ninguém. Aplicada **só no banco local**.
+- `supabase/migrations/20261019194705_autenticacao.sql` — `privado.criar_pessoa()` (gatilho `after insert`) e `privado.apagar_dispositivos_na_troca()` (gatilho `after update of email`, só quando o e-mail muda), ambas `security definer`, `search_path = ''`, sem `execute` para ninguém. Commitada em `69656e0`; comentários corrigidos em `51b3b35`. Aplicada **só no banco local**.
 - `supabase/testes/autenticacao.sql` — 16 asserções, passando.
 
 ## O que falta
@@ -34,4 +34,4 @@ docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supa
 
 ## Commit
 
-`Cria os gatilhos de perfil e de troca de e-mail do passo 3`
+A migração e o teste já entraram em `69656e0` e `51b3b35`. O que falta vai em: `Registra o teste de autenticação nos comandos do Supabase`

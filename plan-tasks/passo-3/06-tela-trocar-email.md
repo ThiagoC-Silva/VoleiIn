@@ -12,6 +12,8 @@ Trocar o e-mail a partir da sessão ativa (RF35, RN21): código no endereço nov
 - `app/lib/features/perfil/trocar_email_tela.dart` — recusa o mesmo e-mail atual, envia o código, mostra `EtapaCodigo`, e no sucesso exibe um snackbar e fecha a tela.
 - Os aparelhos de push são apagados pelo gatilho da T03, não pelo app.
 
+Tudo commitado em `a9a99cf`.
+
 ## O que falta
 
 - [ ] `app/test/features/perfil/trocar_email_tela_test.dart`, com um `AuthRepositorio` falso como em `entrar_tela_test.dart`:
@@ -27,4 +29,4 @@ Trocar o e-mail a partir da sessão ativa (RF35, RN21): código no endereço nov
 
 ## Commit
 
-`Cria a tela de trocar e-mail com queda das outras sessões`
+A tela já entrou em `a9a99cf`. O que falta vai em: `Cria os testes da tela de trocar e-mail`

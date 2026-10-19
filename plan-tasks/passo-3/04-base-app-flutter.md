@@ -8,7 +8,7 @@ Projeto Flutter Android pronto para os passos seguintes: `applicationId` `br.com
 
 ## O que já existe
 
-Não commitado:
+Commitado em `a9a99cf`:
 - `app/pubspec.yaml` — `flutter_riverpod`, `supabase_flutter`.
 - `app/lib/main.dart`, `app/lib/core/supabase.dart` (lê `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`), `app/lib/core/tema.dart`, `app/lib/core/rotas.dart` (`Raiz`: sem sessão → `EntrarTela`; com sessão → `InicioTela`).
 - `app/lib/features/feed/inicio_tela.dart` — tela provisória (nome, e-mail, trocar e-mail, sair); o feed do passo 5 toma o lugar dela.
@@ -25,7 +25,7 @@ Não commitado:
   - `flutter test`;
   - `flutter analyze` e o contorno abaixo.
 - [ ] Contorno do analyzer: `flutter analyze` quebra com `FormatException` no servidor LSP por causa do "Á" em "Área de trabalho". Rodar a partir de um caminho ASCII, por exemplo `ln -s "$HOME/Área de trabalho/VoleiIn" ~/voleiin` e `cd ~/voleiin/app && flutter analyze`. Registrar no `CLAUDE.md` da raiz.
-- [ ] Conferir que `app/.gitignore` deixa de fora `.idea/`, `*.iml`, `.dart_tool/` e `build/` antes do `git add app/`.
+- [x] Conferir que `app/.gitignore` deixa de fora `.idea/`, `*.iml`, `.dart_tool/` e `build/` antes do `git add app/`.
 
 ## Pronto quando
 
@@ -35,4 +35,4 @@ Não commitado:
 
 ## Commit
 
-`Cria o projeto Flutter com cliente Supabase e raiz por sessão`
+O projeto já entrou em `a9a99cf`. O que falta vai em: `Libera a internet no APK release e registra os comandos do Flutter`

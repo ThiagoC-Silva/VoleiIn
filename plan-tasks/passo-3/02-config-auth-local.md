@@ -8,7 +8,7 @@ O Supabase Auth local atende RNF06 e RNF07 por configuração: código de seis d
 
 ## O que já existe
 
-Alterações não commitadas:
+Commitado em `e5f7f0c`:
 - `supabase/config.toml`:
   - `[auth.email]`: `otp_length = 6`, `otp_expiry = 300`, `max_frequency = "60s"`, `double_confirm_changes = false`.
   - `[auth.rate_limit]`: `email_sent = 30`.
@@ -31,4 +31,4 @@ Alterações não commitadas:
 
 ## Commit
 
-`Configura o código de acesso e os modelos de e-mail do Supabase Auth`
+A configuração entrou em `e5f7f0c`. Só há commit novo se a conferência no Mailpit exigir correção.

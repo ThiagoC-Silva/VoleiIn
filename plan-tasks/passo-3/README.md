@@ -6,7 +6,7 @@ Quebra do passo 3 de [`docs/stack.md`](../../docs/stack.md) em tasks menores. Ca
 
 ## Diagnóstico de 2026-10-19
 
-Quase todo o código do passo já existe no working tree, mas **nada foi commitado** e não há projeto remoto (`supabase link` nunca rodou). As três suítes SQL passam (schema 61, rls 69, autenticacao 16) e os 4 testes de widget da tela de entrar passam.
+Quase todo o código do passo já existia no working tree, sem commit e sem projeto remoto (`supabase link` nunca rodou). Foi commitado e enviado ao GitHub em seguida (`9814aa7` a `56de0ae`); o que falta em cada task está no arquivo dela. As três suítes SQL passam (schema 61, rls 69, autenticacao 16) e os 4 testes de widget da tela de entrar passam.
 
 Decisões tomadas na abertura:
 - `minSdk` é **24**, não 23: o Flutter 3.47.7 instalado já não dá suporte ao Android 6. Corrigir `docs/stack.md` e `app/CLAUDE.md` (T01).

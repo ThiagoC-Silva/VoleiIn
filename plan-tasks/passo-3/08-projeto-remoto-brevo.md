@@ -14,7 +14,7 @@ Os itens marcados **[Thiago]** exigem conta, painel ou DNS e são feitos à mão
 
 - [ ] **[Thiago]** Criar o projeto no plano gratuito, região São Paulo (`sa-east-1`). Guardar a senha do banco fora do repositório.
 - [ ] `supabase link --project-ref <ref>`.
-- [ ] `supabase db push` — aplica `enums`, `tabelas`, `indices`, `rls`, `autenticacao`. Antes, confirmar que a T03 corrigiu os comentários da migração: depois daqui ela não pode mais ser editada.
+- [ ] `supabase db push` — aplica `enums`, `tabelas`, `indices`, `rls`, `autenticacao`. Os comentários da migração já foram corrigidos (`51b3b35`); depois daqui ela não pode mais ser editada.
 - [ ] Rodar o `seed.sql` no remoto só se for útil para teste; ele ainda é provisório.
 - [ ] Configuração do Auth no remoto, pelo painel ou `supabase config push` (conferir o diff antes de aceitar):
   - OTP de 6 dígitos, validade de 300 s;
