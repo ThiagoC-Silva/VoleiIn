@@ -197,7 +197,7 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+email_sent = 30
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -222,17 +222,17 @@ web3 = 30
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
-double_confirm_changes = true
+double_confirm_changes = false
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+otp_expiry = 300
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
@@ -243,6 +243,25 @@ otp_expiry = 3600
 # pass = "env(SENDGRID_API_KEY)"
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
+
+# Modelos em português, com o código no lugar do link (RN21, RNF06).
+[auth.email.template.confirmation]
+subject = "Seu código de acesso ao VoleiIn"
+content_path = "./supabase/templates/confirmacao.html"
+
+[auth.email.template.magic_link]
+subject = "Seu código de acesso ao VoleiIn"
+content_path = "./supabase/templates/codigo_acesso.html"
+
+[auth.email.template.email_change]
+subject = "Confirme a troca de e-mail no VoleiIn"
+content_path = "./supabase/templates/troca_email.html"
+
+# Aviso ao endereço antigo quando a troca de e-mail se conclui (RN21).
+[auth.email.notification.email_changed]
+enabled = true
+subject = "O e-mail da sua conta no VoleiIn foi trocado"
+content_path = "./supabase/templates/aviso_troca_email.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
