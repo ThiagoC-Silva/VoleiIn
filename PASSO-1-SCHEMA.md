@@ -86,9 +86,9 @@ O `check` de `preco_por_vaga` é o mais valioso dos doze: torna a RN16 estrutura
 
 ### 1.4 — `seed.sql`
 
-- [ ] Pessoa de UUID fixo, para satisfazer `local.criado_por`
-- [ ] Locais, quadras, preços e horários do piloto (RN18)
-- [ ] Pelo menos uma faixa atravessando a meia-noite, com `fecha` menor ou igual a `abre` (RN15)
+- [x] Pessoa de UUID fixo, para satisfazer `local.criado_por`
+- [x] Locais, quadras, preços e horários do piloto (RN18)
+- [x] Pelo menos uma faixa atravessando a meia-noite, com `fecha` menor ou igual a `abre` (RN15)
 
 **Fecha quando:** `db reset` aplica o seed sem erro.
 
@@ -116,7 +116,7 @@ O `check` de `preco_por_vaga` é o mais valioso dos doze: torna a RN16 estrutura
 | 1.1 Enums | **feito** | `db reset` aplica `20261019165515_enums.sql`; `\dT+` lista os dez tipos com as contagens 2, 2, 2, 3, 3, 5, 3, 5, 3, 14 |
 | 1.2 Tabelas | **feito** | `db reset` aplica `20261019172256_tabelas.sql`; o banco tem 13 tabelas, 27 chaves estrangeiras (as 27 linhas de `docs/modelo-de-dados.md`), 18 `check` nas doze linhas da tabela e 13 gatilhos; 10000/7 com `preco_por_vaga` 1429 entra e 1428 é recusado |
 | 1.3 Índices | **feito** | `db reset` aplica `20261019173043_indices.sql`; seis índices únicos (cinco comuns e o parcial de `id_transacao`) e nove de leitura; dois comprovantes sem `id_transacao` convivem na mesma cobrança e o segundo `E123` é recusado por `comprovante_id_transacao_unico` |
-| 1.4 `seed.sql` | a fazer | — |
+| 1.4 `seed.sql` | **feito** | `db reset` aplica `supabase/seed.sql` sem erro: uma pessoa de UUID fixo, um local `por_quadra` com duas quadras e seis faixas, um `por_horario` com capacidade 2 e oito faixas, cada um com uma faixa atravessando a meia-noite. Dados provisórios |
 | 1.5 Asserções | a fazer | — |
 | 1.6 Registro | a fazer | `docs/progresso.md` marca o passo 1 como a fazer |
 
