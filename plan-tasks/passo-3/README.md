@@ -13,13 +13,18 @@ Decisões tomadas na abertura:
 - **Sem especificação de tela** no passo 3: as telas são codadas direto e o design será refeito depois. Registrar como "Aberto" no fechamento (T10).
 - `plan-tasks/` fica versionado, com uma subpasta por passo.
 
+## Decisões de 2026-10-20
+
+- **O perfil só nasce na confirmação do primeiro código.** A sonda da T02 mostrou que, com a autoconfirmação ligada, conta pedida e nunca confirmada já ficava confirmada e com `pessoa`. Agora `enable_confirmations = true` e o gatilho cria `pessoa` quando `email_confirmed_at` é preenchido; o nome segue conferido no pedido (`docs/stack.md`, Autenticação). Reabre T02 e T03, ajusta T07 e T08.
+- A T07 roda em dois trilhos: um script versionado pela API do Auth (`supabase/testes/autenticacao_api.sh`, reaproveitado na T09) e o celular físico, porque não há emulador nesta máquina.
+
 ## Tasks
 
 | # | Task | Estado | Depende de |
 | --- | --- | --- | --- |
 | [T01](01-documentacao.md) | Fechar a documentação de autenticação | feito | — |
 | [T02](02-config-auth-local.md) | Configuração local do Supabase Auth e modelos de e-mail | parcial | T01 |
-| [T03](03-migracao-autenticacao.md) | Migração `autenticacao` e asserções | feito | T01 |
+| [T03](03-migracao-autenticacao.md) | Migração `autenticacao` e asserções | parcial (reaberta) | T01 |
 | [T04](04-base-app-flutter.md) | Base do app Flutter | feito | T01 |
 | [T05](05-tela-entrar.md) | Tela de entrar (RF01) | feito | T04 |
 | [T06](06-tela-trocar-email.md) | Tela de trocar e-mail (RF35) | feito | T04 |
@@ -28,7 +33,7 @@ Decisões tomadas na abertura:
 | [T09](09-e2e-remoto.md) | Validação ponta a ponta no remoto | a fazer | T08 |
 | [T10](10-fechamento.md) | Fechamento do passo | a fazer | T09 |
 
-Ordem: T01 → T02 e T03 → T04 → T05 e T06 → T07 → T08 → T09 → T10.
+Ordem: T01 → T02 e T03 → T04 → T05 e T06 → T07 → T08 → T09 → T10. A reabertura de T02 e T03 é um commit só e vem antes da T07.
 
 Ao concluir uma task, troque o estado nesta tabela e no cabeçalho do arquivo dela.
 

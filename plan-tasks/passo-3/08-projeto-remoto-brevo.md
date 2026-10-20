@@ -20,6 +20,7 @@ Os itens marcados **[Thiago]** exigem conta, painel ou DNS e são feitos à mão
   - OTP de 6 dígitos, validade de 300 s;
   - intervalo mínimo de 60 s entre envios; teto de 30 e-mails por hora;
   - "Secure email change" desligado (`double_confirm_changes = false`);
+  - "Confirm email" **ligado** (`enable_confirmations = true`), senão o perfil nasce antes do código (`docs/stack.md`, Autenticação);
   - os três modelos e o aviso de e-mail trocado, com os assuntos de `config.toml`.
 
 ### Brevo

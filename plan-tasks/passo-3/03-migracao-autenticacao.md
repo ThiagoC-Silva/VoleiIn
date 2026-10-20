@@ -1,10 +1,29 @@
 # T03 — Migração `autenticacao` e asserções
 
-**Estado:** feito · **Depende de:** T01
+**Estado:** parcial · **Depende de:** T01
 
 ## Objetivo
 
-Ligar `auth.users` a `pessoa` sem chave estrangeira (ver `docs/stack.md`, Autenticação): o perfil nasce com o mesmo id e o nome dos metadados, e nome vazio recusa o cadastro inteiro (RN21). A troca de e-mail apaga todos os aparelhos de push do titular (RNF07).
+Ligar `auth.users` a `pessoa` sem chave estrangeira (ver `docs/stack.md`, Autenticação): o perfil nasce com o mesmo id e o nome dos metadados **quando o primeiro código é confirmado**, e nome vazio recusa o cadastro inteiro já no pedido (RN21). A troca de e-mail apaga todos os aparelhos de push do titular (RNF07).
+
+## Reaberta em 2026-10-20
+
+A sonda da T02 mostrou que, com `enable_confirmations = false`, o Auth confirma o usuário já no pedido de código e o gatilho `after insert` cria `pessoa` antes de alguém digitar o código. Um e-mail digitado errado deixava conta confirmada e perfil órfão. Decidido: o perfil só nasce na confirmação (`docs/stack.md`, Autenticação). A migração é **editada no lugar**, como na correção de comentários abaixo, porque ainda não foi ao remoto.
+
+### O que falta (reabertura)
+
+- [ ] Em `supabase/migrations/20261019194705_autenticacao.sql`:
+  - nova `privado.conferir_nome()`, gatilho `before insert on auth.users`: nome dos metadados sem espaços nas pontas, vazio ou ausente → erro, e o cadastro é recusado no pedido;
+  - `privado.criar_pessoa()` passa a disparar em dois gatilhos: `after insert ... when (new.email_confirmed_at is not null)` (usuário inserido já confirmado, como pelo Studio) e `after update of email_confirmed_at ... when (old.email_confirmed_at is null and new.email_confirmed_at is not null)`;
+  - `revoke execute` também na função nova; comentários de acordo.
+- [ ] `supabase/testes/autenticacao.sql`, refeito para o novo momento:
+  - insert não confirmado com nome → existe `auth.users`, **não** existe `pessoa`;
+  - confirmar (`email_confirmed_at = now()`) → `pessoa` com o mesmo id e o nome sem espaços;
+  - insert sem nome, sem metadados ou só com espaços → recusado mesmo sem confirmação (manter as três asserções atuais, conferindo o erro do gatilho novo em vez do `not null` de `pessoa.nome`);
+  - insert já confirmado → `pessoa` criada no insert;
+  - novo update de `email_confirmed_at` em quem já é confirmado, e a troca de e-mail, não criam segunda `pessoa`;
+  - as asserções de `dispositivo_push` na troca seguem como estão, com a Carla confirmada antes.
+- [ ] `supabase db reset` e as três suítes; atualizar a contagem de `autenticacao` abaixo.
 
 ## O que já existe
 
@@ -34,4 +53,4 @@ docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supa
 
 ## Commit
 
-A migração e o teste já entraram em `69656e0` e `51b3b35`. O que falta vai em: `Registra o teste de autenticação nos comandos do Supabase`
+A migração e o teste já entraram em `69656e0` e `51b3b35`; a linha de comando, em `a28c2cf`. A reabertura vai em: `Cria o perfil só quando o primeiro código é confirmado`, junto com o `enable_confirmations = true` da T02, porque um sem o outro não resolve: com o gatilho novo e a autoconfirmação ligada, o usuário já nasce confirmado e o perfil sai no insert de novo.
