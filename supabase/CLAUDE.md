@@ -15,6 +15,7 @@ Exigem Docker rodando. Executar da raiz do repositório.
 | `supabase migration list` | Mostra quais migrações já foram aplicadas, local e remoto |
 | `docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/schema.sql` | Roda as asserções de schema numa transação desfeita; imprime `SUCESSO: N asserções` ou para no primeiro `FALHOU` |
 | `docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/rls.sql` | Roda as asserções de acesso, simulando cada usuário como a API faz |
+| `docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/autenticacao.sql` | Roda as asserções dos gatilhos de `auth.users`: criação do perfil e limpeza dos aparelhos na troca de e-mail |
 | `supabase db push` | Aplica no projeto remoto as migrações que faltam |
 | `supabase functions deploy enviar-push` | Publica a Edge Function |
 

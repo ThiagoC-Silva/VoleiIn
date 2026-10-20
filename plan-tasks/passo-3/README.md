@@ -19,7 +19,7 @@ Decisões tomadas na abertura:
 | --- | --- | --- | --- |
 | [T01](01-documentacao.md) | Fechar a documentação de autenticação | feito | — |
 | [T02](02-config-auth-local.md) | Configuração local do Supabase Auth e modelos de e-mail | parcial | T01 |
-| [T03](03-migracao-autenticacao.md) | Migração `autenticacao` e asserções | parcial | T01 |
+| [T03](03-migracao-autenticacao.md) | Migração `autenticacao` e asserções | feito | T01 |
 | [T04](04-base-app-flutter.md) | Base do app Flutter | parcial | T01 |
 | [T05](05-tela-entrar.md) | Tela de entrar (RF01) | parcial | T04 |
 | [T06](06-tela-trocar-email.md) | Tela de trocar e-mail (RF35) | parcial | T04 |

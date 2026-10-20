@@ -1,6 +1,6 @@
 # T03 — Migração `autenticacao` e asserções
 
-**Estado:** parcial · **Depende de:** T01
+**Estado:** feito · **Depende de:** T01
 
 ## Objetivo
 
@@ -18,8 +18,8 @@ Ligar `auth.users` a `pessoa` sem chave estrangeira (ver `docs/stack.md`, Autent
   - no teste: "Com a confirmação dupla, o pedido de troca grava…" e a descrição `'troca confirmada nos dois endereços'`.
 
   Editar a migração é seguro **só porque ela ainda não foi ao remoto**. Depois do `db push` da T08, vale a regra de `supabase/CLAUDE.md`: corrige-se criando a próxima.
-- [ ] Em `supabase/CLAUDE.md`, tabela de comandos: acrescentar a linha de `supabase/testes/autenticacao.sql`.
-- [ ] `supabase db reset` e as três suítes.
+- [x] Em `supabase/CLAUDE.md`, tabela de comandos: acrescentar a linha de `supabase/testes/autenticacao.sql`.
+- [x] `supabase db reset` e as três suítes.
 
 ## Pronto quando
 
@@ -30,7 +30,7 @@ docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supa
 docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/autenticacao.sql  # SUCESSO: 16
 ```
 
-`grep -n "dupla\|duas confirmações\|dois endereços" supabase/` não acha nada.
+`grep -rn "dupla\|duas confirmações\|dois endereços" supabase/migrations supabase/testes` não acha nada. O grep fica fora de `supabase/CLAUDE.md` porque a linha de `confirmar_presenca` ("duas confirmações simultâneas") trata de presença, não de e-mail.
 
 ## Commit
 
