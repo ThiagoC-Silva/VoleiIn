@@ -17,7 +17,7 @@ Os itens marcados **[Thiago]** exigem conta e painel e são feitos à mão.
   - tipo externo;
   - nome "VoleiIn" e e-mail de suporte;
   - escopos `openid`, `email` e `profile`;
-  - publicada ("Em produção"). Com só esses escopos, o Google não pede verificação; em modo de teste, só entram os usuários listados.
+  - **em teste**, com o Gmail do Thiago e o Gmail de teste da T07 em "Usuários de teste". Publicar exige página inicial e Política de Privacidade, que ficam para o passo 10 (decisão de 2026-10-20 no [README](README.md)).
 - [ ] **[Thiago]** Cliente OAuth **web**. Guardar:
   - o ID, que vai no `config.toml` abaixo e no `--dart-define` da T04;
   - o segredo, que vai só em `supabase/.env` e, na T08, no painel do Supabase.

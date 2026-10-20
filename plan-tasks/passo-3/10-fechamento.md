@@ -25,6 +25,7 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
 - [ ] "Aberto" a registrar:
   - especificação de telas e design ainda por fazer;
   - `flutter analyze` quebra com o caminho "Área de trabalho"; contorno pelo `dart analyze` (link simbólico não resolve);
+  - tela de consentimento do Google em teste: só as usuárias de teste entram pelo Google até o passo 10, que publica a tela com página inicial e Política de Privacidade no GitHub Pages;
   - chave própria de assinatura do APK distribuído, com o SHA-1 dela no cliente Android do Google (passo 10); até lá, o release assina com a chave de debug de quem o gera;
   - `inicio_tela.dart` é provisória; sair ainda não apaga o aparelho de push (passo 7).
 - [ ] Atualizar o estado de todas as tasks em `plan-tasks/passo-3/README.md`.

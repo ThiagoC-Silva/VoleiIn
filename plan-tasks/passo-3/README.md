@@ -30,6 +30,10 @@ O acesso deixou de ser por código a cada entrada: passa a ser **e-mail e senha,
 
 Efeito nas tasks: T01 reaberta e fechada no mesmo dia; T02, T03, T04 e T07 a T10 reabertas; T05 reescrita; T06 sem mudança de código; T11 (Google Cloud) e T12 (senha) novas. A numeração antiga fica, porque commits já citam "T05" e "T06".
 
+## Decisões de 2026-10-20 — tela de consentimento em teste
+
+O Google recusou publicar a tela de consentimento sem página inicial e Política de Privacidade, e o VoleiIn ainda não tem nenhuma das duas. Decidido: ela fica **em teste** até o passo 10, com as contas de desenvolvimento como usuárias de teste (até 100). Nos passos 3 a 9 só elas usam o app, e quem não está na lista continua entrando com e-mail e senha. A publicação, com as duas páginas no GitHub Pages, passa a fazer parte do passo 10, antes de o APK chegar à turma (`docs/stack.md`, Autenticação, Riscos e Ordem de implementação). O texto da Política de Privacidade é decisão de produto, a fechar no passo 10.
+
 ## Tasks
 
 | # | Task | Estado | Depende de |
