@@ -55,3 +55,29 @@ Os comandos do Supabase estão em `supabase/CLAUDE.md`. Os do Flutter rodam a pa
 | `dart analyze` | Análise estática, com as mesmas regras de `analysis_options.yaml` |
 
 Não use `flutter analyze`: ele fala com o servidor de análise por LSP, e o "Á" de "Área de trabalho" no caminho quebra a mensagem de abertura com `FormatException`. Link simbólico não contorna, porque o Dart resolve o caminho real. O `dart analyze` usa outro protocolo e funciona daqui.
+
+### Celular físico, por depuração sem fio
+
+`SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` são resolvidos na compilação, não em tempo de execução (ver `app/lib/core/supabase.dart`): cada `flutter run` precisa dos dois, e o endereço depende da rede em uso no momento, não da máquina. Isso vale tanto trocando de rede (residencial ou da empresa) quanto trocando de máquina (de casa ou da empresa).
+
+Por aparelho e por máquina, uma vez:
+1. No celular, Opções do desenvolvedor → Depuração sem fio → parear com código.
+2. Na máquina, `adb pair <ip-do-celular>:<porta>` com o código mostrado no celular.
+
+A partir daí, com o celular na mesma rede da máquina, `flutter devices` encontra o aparelho sem cabo e sem parear de novo — a identidade do pareamento é por máquina, então uma máquina nova pede o passo acima de novo.
+
+A cada troca de rede (inclusive religando o Wi-Fi), o IP da máquina muda e precisa ser pego de novo:
+
+```
+hostname -I | awk '{print $1}'
+```
+
+A chave pública não muda com a rede — só se o Supabase local for recriado do zero (`supabase status` mostra a atual). O comando completo:
+
+```
+flutter run -d <id-do-aparelho-em-'flutter devices'> \
+  --dart-define=SUPABASE_URL=http://<ip-da-máquina-agora>:54321 \
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave-de-supabase-status>
+```
+
+Pré-requisito em qualquer rede: celular e máquina não podem estar isolados um do outro. Redes residenciais costumam deixar isso livre; redes de empresa costumam isolar ou bloquear porta fora do padrão por política — teste abrindo `http://<ip-da-máquina>:54321` no navegador do celular antes de insistir no `flutter run`. Se não abrir, é a rede, não o app.
