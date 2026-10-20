@@ -19,7 +19,7 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
   - as escritas em `auth.users` nos testes SQL são feitas como `postgres`; o caminho real pelo Auth foi conferido na T07.
 - [ ] "Aberto" a registrar:
   - especificação de telas e design ainda por fazer;
-  - `flutter analyze` quebra com o caminho "Área de trabalho"; contorno pelo link simbólico ASCII;
+  - `flutter analyze` quebra com o caminho "Área de trabalho"; contorno pelo `dart analyze` (link simbólico não resolve);
   - resultado do cenário 11 da T07 (perfil criado por cadastro não confirmado), se aconteceu;
   - `inicio_tela.dart` é provisória; sair ainda não apaga o aparelho de push (passo 7).
 - [ ] Atualizar o estado de todas as tasks em `plan-tasks/passo-3/README.md`.

@@ -46,4 +46,12 @@ Documentação antes de código: não comece a implementar enquanto uma decisão
 
 ## Comandos
 
-Os comandos do Supabase estão em `supabase/CLAUDE.md`. O projeto Flutter ainda não foi inicializado: ao criá-lo, registre aqui os comandos de build e de teste.
+Os comandos do Supabase estão em `supabase/CLAUDE.md`. Os do Flutter rodam a partir de `app/`:
+
+| Comando | O que faz |
+| --- | --- |
+| `flutter run --dart-define=SUPABASE_URL=http://10.0.2.2:54321 --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave>` | Roda no emulador falando com o Supabase local; a chave sai de `supabase status`, e `10.0.2.2` é o host visto de dentro do emulador |
+| `flutter test` | Testes de widget |
+| `dart analyze` | Análise estática, com as mesmas regras de `analysis_options.yaml` |
+
+Não use `flutter analyze`: ele fala com o servidor de análise por LSP, e o "Á" de "Área de trabalho" no caminho quebra a mensagem de abertura com `FormatException`. Link simbólico não contorna, porque o Dart resolve o caminho real. O `dart analyze` usa outro protocolo e funciona daqui.
