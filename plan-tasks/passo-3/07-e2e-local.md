@@ -54,7 +54,7 @@ Dois trilhos:
 | 2 | Carla sai e entra com e-mail e senha | API, celular | Entra sem nenhum e-mail enviado |
 | 3 | Senha errada | API, celular | `invalid_credentials`; mensagem; continua na etapa |
 | 4 | Cadastro com senha de 7 caracteres (forçado via curl) | API | `weak_password` |
-| 5 | Cadastro com e-mail que já tem conta | API, celular | Usuário devolvido sem `identities` e nenhum e-mail; a tela diz que o e-mail já tem conta |
+| 5 | Cadastro com e-mail que já tem conta | API, celular | `user_already_exists`, como na sonda da T02, ou usuário devolvido sem `identities`; nenhum e-mail; a tela diz que o e-mail já tem conta |
 | 6 | Cadastro não confirmado, depois entrar com a senha | API, celular | `email_not_confirmed`; o código é reenviado; confirmar entra. Anotar também: um segundo `signUp` com outra senha antes de confirmar — qual senha vale depois |
 | 7 | Código errado, código depois de 5 min (`--com-expiracao`) e código usado duas vezes | API | Os três recusados; anotar o código de erro de cada um |
 | 8 | Reenvio antes de 60 s | API | `over_email_send_rate_limit` |

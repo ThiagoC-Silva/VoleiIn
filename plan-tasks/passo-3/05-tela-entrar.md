@@ -21,13 +21,15 @@ A tela entregue pedia o código a cada entrada. Ela entrou em `a9a99cf` e os tes
   - `entrar(email, senha)` — `signInWithPassword`.
     - Devolve `false` quando o serviço responde `email_not_confirmed`, depois de reenviar o código (`resend(type: OtpType.signup)`), para a tela ir à etapa do código.
     - É o mesmo desenho do `pedirCodigo` de antes, que devolvia `false` para conta inexistente.
-  - `criarConta(nome, email, senha)` — `signUp(email:, password:, data: {'nome': nome})`. Usuário devolvido sem `identities` vira `FalhaAuth('Esse e-mail já tem conta. Entre com a senha ou pelo Google.')`.
+  - `criarConta(nome, email, senha)` — `signUp(email:, password:, data: {'nome': nome})`. E-mail que já tem conta vira `FalhaAuth('Esse e-mail já tem conta. Entre com a senha ou pelo Google.')`. O serviço sinaliza isso de um de dois jeitos, e o app trata os dois:
+    - o erro `user_already_exists`, que é o que o Auth local devolve (sonda da T02);
+    - um usuário sem `identities`, quando o serviço esconde a conta.
   - `confirmarCadastro(email, codigo)` — `verifyOTP(type: OtpType.email)`.
   - `reenviarConfirmacao(email)` — `resend(type: OtpType.signup)`.
   - `entrarComGoogle()` — `GoogleSignIn.instance.authenticate()`, depois o ID token, depois `signInWithIdToken(provider: OAuthProvider.google, idToken: ...)`. Cancelar o seletor de contas não é erro e não mostra mensagem.
   - `sair()` — também `GoogleSignIn.instance.signOut()`, para o seletor de contas voltar a aparecer na próxima entrada.
   - `_traduzir`:
-    - entram `invalid_credentials` ("E-mail ou senha incorretos."), `weak_password` ("A senha precisa de pelo menos 8 caracteres."), `user_already_exists` e `same_password`;
+    - entram `invalid_credentials` ("E-mail ou senha incorretos."), `weak_password` ("A senha precisa de pelo menos 8 caracteres."), `user_already_exists` (a mensagem do `criarConta` acima) e `same_password`;
     - os demais ficam;
     - os códigos reais se conferem na T07.
   - Comentário da classe de acordo: senha ou Google; código só no cadastro, na redefinição e na troca.

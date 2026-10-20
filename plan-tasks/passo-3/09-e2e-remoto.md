@@ -22,6 +22,7 @@ Repetir no projeto remoto, com e-mail real e aparelho físico, o que só aparece
   - cadastro (1);
   - entrada com senha (2);
   - senha errada (3);
+  - cadastro com e-mail que já tem conta (5): anotar se o remoto responde `user_already_exists`, como o local, ou um usuário sem `identities`;
   - redefinição de senha com segunda sessão (9);
   - troca de e-mail (13 e 16);
   - Google no primeiro acesso (17);
