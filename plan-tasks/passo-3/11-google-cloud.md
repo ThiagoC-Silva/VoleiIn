@@ -1,6 +1,6 @@
 # T11 — Projeto no Google Cloud e provedor Google local
 
-**Estado:** parcial ·  **Depende de:** T01
+**Estado:** feito ·  **Depende de:** T01
 
 ## Objetivo
 
@@ -17,7 +17,7 @@ Os itens marcados **[Thiago]** exigem conta e painel e são feitos à mão.
   - tipo externo;
   - nome "VoleiIn" e e-mail de suporte;
   - escopos `openid`, `email` e `profile`;
-  - [ ] **em teste**, com o Gmail do Thiago e o Gmail de teste da T07 em "Usuários de teste". Publicar exige página inicial e Política de Privacidade, que ficam para o passo 10 (decisão de 2026-10-20 no [README](README.md)).
+  - [x] **em teste**, com o Gmail do Thiago e o Gmail de teste da T07 em "Usuários de teste". Publicar exige página inicial e Política de Privacidade, que ficam para o passo 10 (decisão de 2026-10-20 no [README](README.md)).
 - [x] **[Thiago]** Cliente OAuth **web**. Guardar:
   - o ID, que vai no `config.toml` abaixo e no `--dart-define` da T04;
   - o segredo, que vai só em `supabase/.env` e, na T08, no painel do Supabase.
@@ -51,7 +51,7 @@ Os itens marcados **[Thiago]** exigem conta e painel e são feitos à mão.
 - `git check-ignore supabase/.env` confirma o arquivo fora do git.
 - As três suítes seguem passando: schema 61, rls 69, autenticacao 36.
 
-Faltam só as confirmações do Thiago: as duas contas em "Usuários de teste". O cliente Android desta máquina foi criado. Elas não travam a T04 nem a T05; travam o primeiro login real pelo Google, na T07.
+O Thiago confirmou no painel o cliente Android desta máquina e as duas contas em "Usuários de teste".
 
 ## Pronto quando
 

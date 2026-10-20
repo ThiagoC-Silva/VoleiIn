@@ -48,7 +48,7 @@ O Google recusou publicar a tela de consentimento sem página inicial e Polític
 | [T08](08-projeto-remoto-brevo.md) | Projeto Supabase remoto e Brevo como SMTP | a fazer | T07 |
 | [T09](09-e2e-remoto.md) | Validação ponta a ponta no remoto | a fazer | T08 |
 | [T10](10-fechamento.md) | Fechamento do passo | a fazer | T09 |
-| [T11](11-google-cloud.md) | Projeto no Google Cloud e provedor Google local | parcial | T01 |
+| [T11](11-google-cloud.md) | Projeto no Google Cloud e provedor Google local | feito | T01 |
 | [T12](12-redefinir-senha.md) | Redefinição e troca de senha (RF41) | a fazer | T05 |
 
 Ordem: T01 → T02 e T03 → T11 → T04 → T05 → T12 → T07 → T08 → T09 → T10. A reabertura de T02 e T03 é um commit só.
