@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/google.dart';
 import 'core/rotas.dart';
 import 'core/supabase.dart';
 import 'core/tema.dart';
@@ -8,6 +9,7 @@ import 'core/tema.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await iniciarSupabase();
+  await iniciarGoogle();
   runApp(const ProviderScope(child: VoleiInApp()));
 }
 

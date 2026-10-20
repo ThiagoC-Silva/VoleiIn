@@ -21,7 +21,7 @@ Os itens marcados **[Thiago]** exigem conta e painel e são feitos à mão.
 - [x] **[Thiago]** Cliente OAuth **web**. Guardar:
   - o ID, que vai no `config.toml` abaixo e no `--dart-define` da T04;
   - o segredo, que vai só em `supabase/.env` e, na T08, no painel do Supabase.
-- [ ] **[Thiago]** Cliente OAuth **Android**:
+- [x] **[Thiago]** Cliente OAuth **Android**:
   - pacote `br.com.voleiin`;
   - SHA-1 da chave de debug desta máquina: `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`;
   - repetir na outra máquina, com o SHA-1 dela: um cliente Android por SHA-1, todos no mesmo projeto do cliente web.
@@ -51,7 +51,7 @@ Os itens marcados **[Thiago]** exigem conta e painel e são feitos à mão.
 - `git check-ignore supabase/.env` confirma o arquivo fora do git.
 - As três suítes seguem passando: schema 61, rls 69, autenticacao 36.
 
-Faltam só as confirmações do Thiago: as duas contas em "Usuários de teste" e o cliente Android desta máquina. Elas não travam a T04 nem a T05; travam o primeiro login real pelo Google, na T07.
+Faltam só as confirmações do Thiago: as duas contas em "Usuários de teste". O cliente Android desta máquina foi criado. Elas não travam a T04 nem a T05; travam o primeiro login real pelo Google, na T07.
 
 ## Pronto quando
 

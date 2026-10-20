@@ -50,7 +50,7 @@ Os comandos do Supabase estão em `supabase/CLAUDE.md`. Os do Flutter rodam a pa
 
 | Comando | O que faz |
 | --- | --- |
-| `flutter run --dart-define=SUPABASE_URL=http://10.0.2.2:54321 --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave>` | Roda no emulador falando com o Supabase local; a chave sai de `supabase status`, e `10.0.2.2` é o host visto de dentro do emulador |
+| `flutter run --dart-define=SUPABASE_URL=http://10.0.2.2:54321 --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave> --dart-define=GOOGLE_WEB_CLIENT_ID=<id>` | Roda no emulador falando com o Supabase local; a chave sai de `supabase status`, `10.0.2.2` é o host visto de dentro do emulador, e o id é o do cliente web do Google, o mesmo `client_id` de `[auth.external.google]` em `supabase/config.toml` |
 | `flutter test` | Testes de widget |
 | `dart analyze` | Análise estática, com as mesmas regras de `analysis_options.yaml` |
 
@@ -58,13 +58,21 @@ Não use `flutter analyze`: ele fala com o servidor de análise por LSP, e o "Á
 
 ### Celular físico, por depuração sem fio
 
-`SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` são resolvidos na compilação, não em tempo de execução (ver `app/lib/core/supabase.dart`): cada `flutter run` precisa dos dois, e o endereço depende da rede em uso no momento, não da máquina. Isso vale tanto trocando de rede (residencial ou da empresa) quanto trocando de máquina (de casa ou da empresa).
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `GOOGLE_WEB_CLIENT_ID` são resolvidos na compilação, não em tempo de execução (ver `app/lib/core/supabase.dart` e `app/lib/core/google.dart`): cada `flutter run` precisa dos três, e o endereço depende da rede em uso no momento, não da máquina. Isso vale tanto trocando de rede (residencial ou da empresa) quanto trocando de máquina (de casa ou da empresa).
 
 Por aparelho e por máquina, uma vez:
 1. No celular, Opções do desenvolvedor → Depuração sem fio → parear com código.
 2. Na máquina, `adb pair <ip-do-celular>:<porta>` com o código mostrado no celular.
 
 A partir daí, com o celular na mesma rede da máquina, `flutter devices` encontra o aparelho sem cabo e sem parear de novo — a identidade do pareamento é por máquina, então uma máquina nova pede o passo acima de novo.
+
+Por máquina, uma vez: cadastrar o SHA-1 da chave de debug dela num cliente Android do Google Cloud, no projeto VoleiIn, com o pacote `br.com.voleiin`. Sem ele, a entrada pelo Google falha nos builds daquela máquina. O SHA-1 sai de:
+
+```
+keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android
+```
+
+O APK release também assina com a chave de debug de quem o gera (`signingConfig = debug` em `app/android/app/build.gradle.kts`), até a chave própria do passo 10.
 
 A cada troca de rede (inclusive religando o Wi-Fi), o IP da máquina muda e precisa ser pego de novo:
 
@@ -77,7 +85,8 @@ A chave pública não muda com a rede — só se o Supabase local for recriado d
 ```
 flutter run -d <id-do-aparelho-em-'flutter devices'> \
   --dart-define=SUPABASE_URL=http://<ip-da-máquina-agora>:54321 \
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave-de-supabase-status>
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave-de-supabase-status> \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=<client_id-de-auth.external.google-no-config.toml>
 ```
 
 Pré-requisito em qualquer rede: celular e máquina não podem estar isolados um do outro. Redes residenciais costumam deixar isso livre; redes de empresa costumam isolar ou bloquear porta fora do padrão por política — teste abrindo `http://<ip-da-máquina>:54321` no navegador do celular antes de insistir no `flutter run`. Se não abrir, é a rede, não o app.

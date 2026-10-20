@@ -10,7 +10,7 @@ Toda mutação é uma chamada RPC a uma função do banco. Leitura é consulta d
 
 ## Estrutura
 
-- `lib/core/` — cliente Supabase, tema, rotas, fuso.
+- `lib/core/` — cliente Supabase, cliente Google, tema, rotas, fuso.
 - `lib/dados/` — modelos e repositórios, um por agregado, chamando as funções.
 - `lib/features/` — `auth`, `feed`, `jogo`, `grupo`, `cobranca`, `comprovante`, `perfil`, `avisos`.
 

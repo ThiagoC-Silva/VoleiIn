@@ -1,6 +1,6 @@
 # T04 — Base do app Flutter
 
-**Estado:** parcial (reaberta) · **Depende de:** T01, T11
+**Estado:** feito · **Depende de:** T01, T11
 
 ## Objetivo
 
@@ -12,14 +12,21 @@ A entrada pelo Google é nativa, pelo pacote `google_sign_in` (ver as decisões 
 
 ### O que falta
 
-- [ ] `app/pubspec.yaml`: `google_sign_in`, na versão estável atual. `app/CLAUDE.md` pede justificar pacote novo por custo e tamanho: o custo é zero, a justificativa está em `docs/stack.md`, e o tamanho se mede no APK release antes e depois. Anotar a diferença para a T10.
-- [ ] `app/lib/core/`:
+- [x] `app/pubspec.yaml`: `google_sign_in`, na versão estável atual. `app/CLAUDE.md` pede justificar pacote novo por custo e tamanho: o custo é zero, a justificativa está em `docs/stack.md`, e o tamanho se mede no APK release antes e depois. Anotar a diferença para a T10.
+- [x] `app/lib/core/`:
   - `GOOGLE_WEB_CLIENT_ID` por `String.fromEnvironment`, no padrão de `supabase.dart`: sem o valor, o app falha cedo com a mesma mensagem apontando o `CLAUDE.md`;
   - `GoogleSignIn.instance.initialize(serverClientId: ...)` no `main.dart`, depois de `iniciarSupabase()`.
-- [ ] `CLAUDE.md` da raiz:
+- [x] `CLAUDE.md` da raiz:
   - `--dart-define=GOOGLE_WEB_CLIENT_ID=<id do cliente web>` nos dois `flutter run` (emulador e celular físico), dizendo de onde sai o valor (T11);
   - em "Por aparelho e por máquina, uma vez": cadastrar o SHA-1 da chave de debug da máquina no cliente Android do Google Cloud, com `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`. Sem ele, o login pelo Google falha nos builds daquela máquina, como o pareamento do `adb`;
   - o APK release também assina com a chave de debug de quem o gera (`signingConfig = debug` em `build.gradle.kts`), até a chave própria do passo 10.
+
+### Feito em 2026-10-20
+
+- `google_sign_in` ^7.2.0. A leitura do ID e a inicialização ficam em `app/lib/core/google.dart` (`iniciarGoogle`), no mesmo padrão de `supabase.dart`, chamada no `main.dart` depois de `iniciarSupabase()`.
+- APK release (todas as arquiteturas): 52.722.572 bytes antes e 53.144.602 depois, **+412 KB** (0,8%). Vai para a T10.
+- `dart analyze` sem erro e `flutter test` com os 10 testes passando.
+- A falha de `flutter run` sem `GOOGLE_WEB_CLIENT_ID` não foi vista num aparelho: não havia celular conectado. O `StateError` é o mesmo de `supabase.dart`; conferir no primeiro `flutter run` da T07.
 
 ### Pronto quando
 
