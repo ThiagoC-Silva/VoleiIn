@@ -1,50 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voleiin/dados/auth_repositorio.dart';
 import 'package:voleiin/features/auth/entrar_tela.dart';
 
-/// Serviço de autenticação de mentira: só conhece as contas de [existentes].
-class _AuthFalso implements AuthRepositorio {
-  _AuthFalso({this.existentes = const {}, this.falhaNoCodigo});
+import '../../auth_falso.dart';
 
-  final Set<String> existentes;
-  final FalhaAuth? falhaNoCodigo;
-  final chamadas = <String>[];
-
-  @override
-  Future<bool> pedirCodigo(String email) async {
-    chamadas.add('pedirCodigo $email');
-    return existentes.contains(email);
-  }
-
-  @override
-  Future<void> criarConta(String email, String nome) async => chamadas.add('criarConta $email $nome');
-
-  @override
-  Future<void> confirmarCodigo(String email, String codigo) async {
-    chamadas.add('confirmarCodigo $email $codigo');
-    if (falhaNoCodigo != null) throw falhaNoCodigo!;
-  }
-
-  @override
-  Stream<Session?> get sessoes => Stream.value(null);
-
-  @override
-  String? get emailAtual => null;
-
-  @override
-  Future<void> pedirTrocaEmail(String novo) async {}
-
-  @override
-  Future<void> confirmarTrocaEmail(String novo, String codigo) async {}
-
-  @override
-  Future<void> sair() async {}
-}
-
-Future<void> _abrir(WidgetTester tester, _AuthFalso auth) => tester.pumpWidget(
+Future<void> _abrir(WidgetTester tester, AuthFalso auth) => tester.pumpWidget(
       ProviderScope(
         overrides: [authRepositorioProvider.overrideWithValue(auth)],
         child: const MaterialApp(home: EntrarTela()),
@@ -59,7 +21,7 @@ Future<void> _digitarEmail(WidgetTester tester, String email) async {
 
 void main() {
   testWidgets('conta existente vai direto ao código, sem pedir nome', (tester) async {
-    final auth = _AuthFalso(existentes: {'carla@exemplo.com'});
+    final auth = AuthFalso(existentes: {'carla@exemplo.com'});
     await _abrir(tester, auth);
 
     await _digitarEmail(tester, '  Carla@Exemplo.com ');
@@ -76,7 +38,7 @@ void main() {
   });
 
   testWidgets('e-mail sem conta pede o nome e cria a conta com ele', (tester) async {
-    final auth = _AuthFalso();
+    final auth = AuthFalso();
     await _abrir(tester, auth);
 
     await _digitarEmail(tester, 'bruno@exemplo.com');
@@ -96,7 +58,7 @@ void main() {
   });
 
   testWidgets('código recusado mostra a mensagem e mantém a etapa', (tester) async {
-    final auth = _AuthFalso(
+    final auth = AuthFalso(
       existentes: {'carla@exemplo.com'},
       falhaNoCodigo: const FalhaAuth('Código inválido ou vencido. Confira ou peça outro.'),
     );
@@ -113,7 +75,7 @@ void main() {
   });
 
   testWidgets('reenvio só libera depois do intervalo mínimo', (tester) async {
-    final auth = _AuthFalso(existentes: {'carla@exemplo.com'});
+    final auth = AuthFalso(existentes: {'carla@exemplo.com'});
     await _abrir(tester, auth);
     await _digitarEmail(tester, 'carla@exemplo.com');
 
@@ -124,5 +86,39 @@ void main() {
 
     expect(auth.chamadas, ['pedirCodigo carla@exemplo.com', 'pedirCodigo carla@exemplo.com']);
     expect(find.text('Reenviar código em 60 s'), findsOneWidget);
+  });
+
+  testWidgets('voltar da etapa de código retorna para a etapa de e-mail', (tester) async {
+    final auth = AuthFalso(existentes: {'carla@exemplo.com'});
+    await _abrir(tester, auth);
+    await _digitarEmail(tester, 'carla@exemplo.com');
+    expect(find.byKey(const Key('campo-codigo')), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Trocar e-mail'));
+    await tester.pump();
+
+    expect(find.byKey(const Key('campo-email')), findsOneWidget);
+    expect(find.byKey(const Key('campo-codigo')), findsNothing);
+  });
+
+  testWidgets('reenvio de conta nova cria a conta de novo, não pede só o código', (tester) async {
+    final auth = AuthFalso();
+    await _abrir(tester, auth);
+
+    await _digitarEmail(tester, 'bruno@exemplo.com');
+    await tester.enterText(find.byKey(const Key('campo-nome')), 'Bruno');
+    await tester.tap(find.text('Criar conta'));
+    await tester.pump();
+    expect(auth.chamadas, ['pedirCodigo bruno@exemplo.com', 'criarConta bruno@exemplo.com Bruno']);
+
+    await tester.pump(const Duration(seconds: 60));
+    await tester.tap(find.text('Reenviar código'));
+    await tester.pump();
+
+    expect(auth.chamadas, [
+      'pedirCodigo bruno@exemplo.com',
+      'criarConta bruno@exemplo.com Bruno',
+      'criarConta bruno@exemplo.com Bruno',
+    ]);
   });
 }

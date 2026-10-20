@@ -21,8 +21,8 @@ Decisões tomadas na abertura:
 | [T02](02-config-auth-local.md) | Configuração local do Supabase Auth e modelos de e-mail | parcial | T01 |
 | [T03](03-migracao-autenticacao.md) | Migração `autenticacao` e asserções | feito | T01 |
 | [T04](04-base-app-flutter.md) | Base do app Flutter | feito | T01 |
-| [T05](05-tela-entrar.md) | Tela de entrar (RF01) | parcial | T04 |
-| [T06](06-tela-trocar-email.md) | Tela de trocar e-mail (RF35) | parcial | T04 |
+| [T05](05-tela-entrar.md) | Tela de entrar (RF01) | feito | T04 |
+| [T06](06-tela-trocar-email.md) | Tela de trocar e-mail (RF35) | feito | T04 |
 | [T07](07-e2e-local.md) | Validação ponta a ponta no Supabase local | a fazer | T02, T03, T05, T06 |
 | [T08](08-projeto-remoto-brevo.md) | Projeto Supabase remoto e Brevo como SMTP | a fazer | T07 |
 | [T09](09-e2e-remoto.md) | Validação ponta a ponta no remoto | a fazer | T08 |

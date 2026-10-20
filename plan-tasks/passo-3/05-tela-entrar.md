@@ -1,6 +1,6 @@
 # T05 — Tela de entrar (RF01)
 
-**Estado:** parcial · **Depende de:** T04
+**Estado:** feito · **Depende de:** T04
 
 ## Objetivo
 
@@ -17,14 +17,14 @@ Tudo commitado em `a9a99cf`.
 
 ## O que falta
 
-- [ ] Conferir em `_traduzir` os códigos de erro que o Auth local devolve de fato (anotar na T07): `otp_disabled`, `otp_expired`, `over_email_send_rate_limit`, `over_request_rate_limit`, `email_address_invalid`/`validation_failed`. Ajustar o que vier diferente.
-- [ ] Teste de widget para o botão de voltar (da etapa de código para a de e-mail).
-- [ ] Teste de widget para conta nova: o reenvio chama `criarConta` de novo, não `pedirCodigo`.
+- [x] Teste de widget para o botão de voltar (da etapa de código para a de e-mail).
+- [x] Teste de widget para conta nova: o reenvio chama `criarConta` de novo, não `pedirCodigo`.
+- [ ] Conferir em `_traduzir` os códigos de erro que o Auth local devolve de fato: `otp_disabled`, `otp_expired`, `over_email_send_rate_limit`, `over_request_rate_limit`, `email_address_invalid`/`validation_failed`. Ajustar o que vier diferente. Fica para a T07, que já carrega esse roteiro — não bloqueia o fechamento desta task.
 
 ## Pronto quando
 
-`cd app && flutter test` passa, com os testes novos.
+`cd app && flutter test` passa, com os testes novos. **Feito.**
 
 ## Commit
 
-A tela já entrou em `a9a99cf`. O que falta vai em: `Cobre o voltar e o reenvio de conta nova na tela de entrar`
+A tela já entrou em `a9a99cf`. O resto, em `Cobre o voltar e o reenvio de conta nova na tela de entrar` — inclui a extração do fake de autenticação para `app/test/auth_falso.dart`, reaproveitado pela T06.
