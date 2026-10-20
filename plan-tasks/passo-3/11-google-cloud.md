@@ -1,6 +1,6 @@
 # T11 — Projeto no Google Cloud e provedor Google local
 
-**Estado:** a fazer · **Depende de:** T01
+**Estado:** parcial ·  **Depende de:** T01
 
 ## Objetivo
 
@@ -12,13 +12,13 @@ Os itens marcados **[Thiago]** exigem conta e painel e são feitos à mão.
 
 ### Google Cloud
 
-- [ ] **[Thiago]** Projeto no Google Cloud. De preferência, já o projeto do Firebase que o passo 7 vai usar para a FCM: todo projeto Firebase é um projeto do Google Cloud, e assim login e push não ficam em dois projetos.
-- [ ] **[Thiago]** Tela de consentimento:
+- [x] **[Thiago]** Projeto no Google Cloud. De preferência, já o projeto do Firebase que o passo 7 vai usar para a FCM: todo projeto Firebase é um projeto do Google Cloud, e assim login e push não ficam em dois projetos.
+- [x] **[Thiago]** Tela de consentimento:
   - tipo externo;
   - nome "VoleiIn" e e-mail de suporte;
   - escopos `openid`, `email` e `profile`;
-  - **em teste**, com o Gmail do Thiago e o Gmail de teste da T07 em "Usuários de teste". Publicar exige página inicial e Política de Privacidade, que ficam para o passo 10 (decisão de 2026-10-20 no [README](README.md)).
-- [ ] **[Thiago]** Cliente OAuth **web**. Guardar:
+  - [ ] **em teste**, com o Gmail do Thiago e o Gmail de teste da T07 em "Usuários de teste". Publicar exige página inicial e Política de Privacidade, que ficam para o passo 10 (decisão de 2026-10-20 no [README](README.md)).
+- [x] **[Thiago]** Cliente OAuth **web**. Guardar:
   - o ID, que vai no `config.toml` abaixo e no `--dart-define` da T04;
   - o segredo, que vai só em `supabase/.env` e, na T08, no painel do Supabase.
 - [ ] **[Thiago]** Cliente OAuth **Android**:
@@ -28,7 +28,7 @@ Os itens marcados **[Thiago]** exigem conta e painel e são feitos à mão.
 
 ### Supabase local
 
-- [ ] `supabase/config.toml`:
+- [x] `supabase/config.toml`:
 
   ```toml
   # Entrada pelo Google, por ID token (RN21). O segredo fica em supabase/.env, fora do git.
@@ -40,9 +40,18 @@ Os itens marcados **[Thiago]** exigem conta e painel e são feitos à mão.
   ```
 
   `skip_nonce_check` é o que o CLI pede para o Google no local; para o remoto, decide-se na T08.
-- [ ] `supabase/.env` com `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=...`, fora do git. O `.env` do `.gitignore` da raiz já cobre; conferir com `git check-ignore supabase/.env`.
-- [ ] `supabase/CLAUDE.md`: o segredo do Google mora em `supabase/.env`, que o CLI lê no `supabase start`. Quem clona o repositório cria o seu.
-- [ ] `supabase stop && supabase start` e conferir no `docker inspect supabase_auth_VoleiIn` o provedor Google ligado, com o `client_id` certo.
+- [x] `supabase/.env` com `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=...`, fora do git. O `.env` do `.gitignore` da raiz já cobre; conferir com `git check-ignore supabase/.env`.
+- [x] `supabase/CLAUDE.md`: o segredo do Google mora em `supabase/.env`, que o CLI lê no `supabase start`. Quem clona o repositório cria o seu.
+- [x] `supabase stop && supabase start` e conferir no `docker inspect supabase_auth_VoleiIn` o provedor Google ligado, com o `client_id` certo.
+
+## Conferido em 2026-10-20
+
+- O Google recusou publicar a tela de consentimento sem página inicial e Política de Privacidade; ela fica em teste até o passo 10 (ver o [README](README.md)).
+- Depois de `supabase stop && supabase start`, o `docker inspect supabase_auth_VoleiIn` mostra `GOTRUE_EXTERNAL_GOOGLE_ENABLED=true`, o `client_id` do cliente web, o segredo preenchido e `SKIP_NONCE_CHECK=true`. O `/auth/v1/settings` responde `google: true`.
+- `git check-ignore supabase/.env` confirma o arquivo fora do git.
+- As três suítes seguem passando: schema 61, rls 69, autenticacao 36.
+
+Faltam só as confirmações do Thiago: as duas contas em "Usuários de teste" e o cliente Android desta máquina. Elas não travam a T04 nem a T05; travam o primeiro login real pelo Google, na T07.
 
 ## Pronto quando
 

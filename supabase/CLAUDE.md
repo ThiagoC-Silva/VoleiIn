@@ -50,3 +50,4 @@ Exigem Docker rodando. Executar da raiz do repositório.
 - Auxiliares de política ficam no schema `privado`, fora da API. Vencimento e janela de falta partem de `privado.encerramento_previsto` (RN04, RN07, RN17).
 - `local`, `quadra` e `horario_funcionamento` são somente leitura para qualquer cliente autenticado: a política nega escrita e só a chave de serviço grava (RN18).
 - A chave de serviço nunca aparece no app nem em arquivo versionado. Segredo de Edge Function fica na função.
+- O segredo do cliente web do Google mora em `supabase/.env` (`SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=...`), fora do git, e o `config.toml` o lê por `env()` no `supabase start`. Quem clona o repositório cria o seu; sem ele, o provedor Google sobe sem segredo e a entrada pelo Google falha.

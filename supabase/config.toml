@@ -360,6 +360,15 @@ skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
 
+# Entrada pelo Google, por ID token (RN21). O client_id é o do cliente web do Google Cloud;
+# o segredo fica em supabase/.env, fora do git.
+[auth.external.google]
+enabled = true
+client_id = "612447030412-5ebk5kbdou3rmrt51d8tp4gn6fjh0age.apps.googleusercontent.com"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+# Exigido pelo Supabase CLI para o Google no local; no remoto, decide-se na T08.
+skip_nonce_check = true
+
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
 [auth.web3.solana]
