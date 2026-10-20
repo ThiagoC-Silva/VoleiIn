@@ -19,9 +19,20 @@ Os itens marcados **[Thiago]** exigem conta, painel ou DNS e são feitos à mão
 - [ ] Configuração do Auth no remoto, pelo painel ou `supabase config push` (conferir o diff antes de aceitar):
   - OTP de 6 dígitos, validade de 300 s;
   - intervalo mínimo de 60 s entre envios; teto de 30 e-mails por hora;
+  - senha mínima de 8 caracteres, sem requisitos de composição; "Leaked password protection" fica desligada, porque é recurso pago;
   - "Secure email change" desligado (`double_confirm_changes = false`);
-  - "Confirm email" **ligado** (`enable_confirmations = true`), senão o perfil nasce antes do código (`docs/stack.md`, Autenticação);
-  - os três modelos e o aviso de e-mail trocado, com os assuntos de `config.toml`.
+  - "Secure password change" **ligado** (`secure_password_change = true`);
+  - "Confirm email" **ligado** (`enable_confirmations = true`). Sem ele, o perfil nasce antes do código e a vinculação do Google entrega a conta de um impostor (`docs/stack.md`, Autenticação);
+  - os modelos de confirmação, redefinição de senha e troca de e-mail, mais os avisos de e-mail trocado e de senha trocada, com os assuntos de `config.toml`. O de magic link fica no padrão do serviço.
+
+### Google
+
+- [ ] **[Thiago]** No painel do Supabase, Authentication → Providers → Google:
+  - ligar o provedor;
+  - Client ID do cliente web da T11, e o do Android também, se o painel pedir a lista;
+  - Client Secret do cliente web;
+  - URL de retorno não precisa: o fluxo é por ID token, sem navegador;
+  - "Skip nonce check" só se a T09 mostrar que o token chega sem nonce e o serviço o recusa.
 
 ### Brevo
 
@@ -36,7 +47,8 @@ Os itens marcados **[Thiago]** exigem conta, painel ou DNS e são feitos à mão
 ## Pronto quando
 
 - `supabase migration list` mostra as cinco migrações nos dois lados.
-- Um pedido de código no remoto chega por e-mail real, com o modelo em português.
+- Um cadastro no remoto recebe o código por e-mail real, com o modelo em português.
+- O provedor Google aparece ligado no painel.
 
 ## Commit
 

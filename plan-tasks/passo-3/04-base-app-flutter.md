@@ -1,10 +1,34 @@
 # T04 — Base do app Flutter
 
-**Estado:** feito · **Depende de:** T01
+**Estado:** parcial (reaberta) · **Depende de:** T01, T11
 
 ## Objetivo
 
-Projeto Flutter Android pronto para os passos seguintes: `applicationId` `br.com.voleiin`, `minSdk` 24, cliente Supabase configurado por `--dart-define`, tema e raiz que escolhe a tela pela sessão.
+Projeto Flutter Android pronto para os passos seguintes: `applicationId` `br.com.voleiin`, `minSdk` 24, cliente Supabase e cliente Google configurados por `--dart-define`, tema e raiz que escolhe a tela pela sessão.
+
+## Reaberta em 2026-10-20 — senha e Google
+
+A entrada pelo Google é nativa, pelo pacote `google_sign_in` (ver as decisões no [README](README.md) e `docs/stack.md`, Autenticação). Depende do cliente web criado na T11.
+
+### O que falta
+
+- [ ] `app/pubspec.yaml`: `google_sign_in`, na versão estável atual. `app/CLAUDE.md` pede justificar pacote novo por custo e tamanho: o custo é zero, a justificativa está em `docs/stack.md`, e o tamanho se mede no APK release antes e depois. Anotar a diferença para a T10.
+- [ ] `app/lib/core/`:
+  - `GOOGLE_WEB_CLIENT_ID` por `String.fromEnvironment`, no padrão de `supabase.dart`: sem o valor, o app falha cedo com a mesma mensagem apontando o `CLAUDE.md`;
+  - `GoogleSignIn.instance.initialize(serverClientId: ...)` no `main.dart`, depois de `iniciarSupabase()`.
+- [ ] `CLAUDE.md` da raiz:
+  - `--dart-define=GOOGLE_WEB_CLIENT_ID=<id do cliente web>` nos dois `flutter run` (emulador e celular físico), dizendo de onde sai o valor (T11);
+  - em "Por aparelho e por máquina, uma vez": cadastrar o SHA-1 da chave de debug da máquina no cliente Android do Google Cloud, com `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`. Sem ele, o login pelo Google falha nos builds daquela máquina, como o pareamento do `adb`;
+  - o APK release também assina com a chave de debug de quem o gera (`signingConfig = debug` em `build.gradle.kts`), até a chave própria do passo 10.
+
+### Pronto quando
+
+- `dart analyze` sem erro.
+- `flutter run` sem `GOOGLE_WEB_CLIENT_ID` falha com a mensagem.
+
+### Commit
+
+`Acrescenta o google_sign_in e o cliente web do Google ao app`
 
 ## O que já existe
 

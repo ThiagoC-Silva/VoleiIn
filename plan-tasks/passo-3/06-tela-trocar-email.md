@@ -6,6 +6,10 @@
 
 Trocar o e-mail a partir da sessão ativa (RF35, RN21): código no endereço novo, aviso no antigo, e as sessões dos outros aparelhos caem ao confirmar; a deste aparelho continua (RNF07). E-mail que já pertence a outra conta bloqueia a troca.
 
+## Reconferida em 2026-10-20 — senha e Google
+
+Sem mudança de código: a troca de e-mail segue por código no endereço novo, para quem entra com senha e para quem entra pelo Google. A T07 confere a troca numa conta que entra só pelo Google (cenário 20).
+
 ## O que já existe
 
 - `app/lib/dados/auth_repositorio.dart` — `pedirTrocaEmail` (`updateUser(email: novo)`) e `confirmarTrocaEmail` (`verifyOTP(type: emailChange)` seguido de `signOut(scope: others)`).

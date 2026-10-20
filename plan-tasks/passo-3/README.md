@@ -2,7 +2,7 @@
 
 Quebra do passo 3 de [`docs/stack.md`](../../docs/stack.md) em tasks menores. Cada task fecha com um commit próprio; o passo fecha na T10, com a entrada em [`docs/progresso.md`](../../docs/progresso.md).
 
-> Projeto Supabase, Brevo como SMTP, código de seis dígitos e cinco minutos, gatilho de criação do perfil, telas de entrar e de trocar o e-mail.
+> Projeto no Supabase, Brevo como SMTP, e-mail e senha com código de seis dígitos e cinco minutos no cadastro, na redefinição e na troca de e-mail, cliente OAuth do Google, gatilhos de criação do perfil e de revogação dos aparelhos, telas de entrar, de redefinir a senha e de trocar o e-mail.
 
 ## Diagnóstico de 2026-10-19
 
@@ -18,22 +18,36 @@ Decisões tomadas na abertura:
 - **O perfil só nasce na confirmação do primeiro código.** A sonda da T02 mostrou que, com a autoconfirmação ligada, conta pedida e nunca confirmada já ficava confirmada e com `pessoa`. Agora `enable_confirmations = true` e o gatilho cria `pessoa` quando `email_confirmed_at` é preenchido; o nome segue conferido no pedido (`docs/stack.md`, Autenticação). Reabre T02 e T03, ajusta T07 e T08.
 - A T07 roda em dois trilhos: um script versionado pela API do Auth (`supabase/testes/autenticacao_api.sh`, reaproveitado na T09) e o celular físico, porque não há emulador nesta máquina.
 
+## Decisões de 2026-10-20 — senha e Google
+
+O acesso deixou de ser por código a cada entrada: passa a ser **e-mail e senha, ou conta Google** (`docs/prd.md`, RF01, RF41 e RN21; `docs/stack.md`, Autenticação; commit `84f20aa`). O motivo foi o atrito de buscar um código a cada entrada, a turma já usar Google no Android e cada entrada gastar cota do SMTP.
+
+- O código de seis dígitos fica só onde prova a posse do e-mail: confirmação do cadastro com senha (uma vez), redefinição de senha e troca de e-mail.
+- **O cadastro com senha confirma por código**, e o perfil só nasce na confirmação. Isso absorve a decisão anterior, ainda não implementada, e ganha um motivo: sem confirmação, a vinculação automática do Google entregaria à dona do e-mail a conta de um impostor com a senha dele valendo.
+- **Google**: nome de exibição vem do Google (`full_name` ou `name`), sem perguntar; a foto não é copiada. Mesmo e-mail é a mesma conta. Nativo, pelo `google_sign_in` e `signInWithIdToken`.
+- **Senha esquecida e troca de senha** são o mesmo caminho, por código no e-mail (RF41). Ao concluir, as outras sessões caem, os aparelhos de push são apagados e o e-mail recebe aviso de senha trocada.
+- Senha de no mínimo 8 caracteres, sem regra de composição; checagem de senha vazada fica fora, por ser paga. `secure_password_change = true`.
+
+Efeito nas tasks: T01 reaberta e fechada no mesmo dia; T02, T03, T04 e T07 a T10 reabertas; T05 reescrita; T06 sem mudança de código; T11 (Google Cloud) e T12 (senha) novas. A numeração antiga fica, porque commits já citam "T05" e "T06".
+
 ## Tasks
 
 | # | Task | Estado | Depende de |
 | --- | --- | --- | --- |
 | [T01](01-documentacao.md) | Fechar a documentação de autenticação | feito | — |
-| [T02](02-config-auth-local.md) | Configuração local do Supabase Auth e modelos de e-mail | parcial | T01 |
+| [T02](02-config-auth-local.md) | Configuração local do Supabase Auth e modelos de e-mail | parcial (reaberta) | T01 |
 | [T03](03-migracao-autenticacao.md) | Migração `autenticacao` e asserções | parcial (reaberta) | T01 |
-| [T04](04-base-app-flutter.md) | Base do app Flutter | feito | T01 |
-| [T05](05-tela-entrar.md) | Tela de entrar (RF01) | feito | T04 |
+| [T04](04-base-app-flutter.md) | Base do app Flutter | parcial (reaberta) | T01, T11 |
+| [T05](05-tela-entrar.md) | Tela de entrar (RF01) | a fazer (reescrita) | T02, T03, T04 |
 | [T06](06-tela-trocar-email.md) | Tela de trocar e-mail (RF35) | feito | T04 |
-| [T07](07-e2e-local.md) | Validação ponta a ponta no Supabase local | a fazer | T02, T03, T05, T06 |
+| [T07](07-e2e-local.md) | Validação ponta a ponta no Supabase local | a fazer | T02, T03, T05, T06, T11, T12 |
 | [T08](08-projeto-remoto-brevo.md) | Projeto Supabase remoto e Brevo como SMTP | a fazer | T07 |
 | [T09](09-e2e-remoto.md) | Validação ponta a ponta no remoto | a fazer | T08 |
 | [T10](10-fechamento.md) | Fechamento do passo | a fazer | T09 |
+| [T11](11-google-cloud.md) | Projeto no Google Cloud e provedor Google local | a fazer | T01 |
+| [T12](12-redefinir-senha.md) | Redefinição e troca de senha (RF41) | a fazer | T05 |
 
-Ordem: T01 → T02 e T03 → T04 → T05 e T06 → T07 → T08 → T09 → T10. A reabertura de T02 e T03 é um commit só e vem antes da T07.
+Ordem: T01 → T02 e T03 → T11 → T04 → T05 → T12 → T07 → T08 → T09 → T10. A reabertura de T02 e T03 é um commit só.
 
 Ao concluir uma task, troque o estado nesta tabela e no cabeçalho do arquivo dela.
 

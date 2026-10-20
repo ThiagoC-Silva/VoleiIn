@@ -14,13 +14,18 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
 - [ ] Decisões de implementação a registrar (o que não está no PRD):
   - `minSdk` 24, porque o Flutter atual já não dá suporte ao Android 6;
   - telas codadas sem especificação; o design será refeito depois;
-  - a chave do Supabase entra no app por `--dart-define` (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`), nunca em arquivo versionado;
+  - a chave do Supabase e o cliente web do Google entram no app por `--dart-define` (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_WEB_CLIENT_ID`), nunca em arquivo versionado;
   - o reenvio de código conta 60 s no app só para evitar um toque que seria recusado; o limite é do servidor;
-  - as escritas em `auth.users` nos testes SQL são feitas como `postgres`; o caminho real pelo Auth foi conferido na T07.
+  - as escritas em `auth.users` nos testes SQL são feitas como `postgres`; o caminho real pelo Auth foi conferido na T07;
+  - a entrada só por código continua aberta no serviço, sem modelo próprio e sem uso pelo app;
+  - um gatilho só revoga os aparelhos de push, na troca de e-mail e na de senha;
+  - na redefinição, a senha nova é pedida junto com o código, porque a sessão nasce na conferência e a raiz troca a tela;
+  - quanto o `google_sign_in` acrescentou ao APK (T04);
+  - o comportamento observado nos cenários 6, 11 e 20 da T07.
 - [ ] "Aberto" a registrar:
   - especificação de telas e design ainda por fazer;
   - `flutter analyze` quebra com o caminho "Área de trabalho"; contorno pelo `dart analyze` (link simbólico não resolve);
-  - resultado do cenário 11 da T07 (perfil criado por cadastro não confirmado), se aconteceu;
+  - chave própria de assinatura do APK distribuído, com o SHA-1 dela no cliente Android do Google (passo 10); até lá, o release assina com a chave de debug de quem o gera;
   - `inicio_tela.dart` é provisória; sair ainda não apaga o aparelho de push (passo 7).
 - [ ] Atualizar o estado de todas as tasks em `plan-tasks/passo-3/README.md`.
 - [ ] Atualizar a memória do projeto: passo 3 fechado e `plan-tasks/` versionado por passo.
