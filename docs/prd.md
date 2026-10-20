@@ -8,7 +8,7 @@ O MVP é um aplicativo Android, feito em Flutter, com layout de celular. O pagam
 
 ### Escopo do MVP
 
-Está dentro: conta por e-mail, grupos com regras próprias, jogos dentro de grupo ou avulsos, confirmação de presença com lista de espera, geração de cobranças, envio e leitura de comprovante, escolha do local em uma lista cadastrada, gestão de membros do grupo, duplicação de jogo anterior, avisos no app e por push, troca de e-mail e exclusão de conta.
+Está dentro: conta por e-mail e senha ou pela conta Google, grupos com regras próprias, jogos dentro de grupo ou avulsos, confirmação de presença com lista de espera, geração de cobranças, envio e leitura de comprovante, escolha do local em uma lista cadastrada, gestão de membros do grupo, duplicação de jogo anterior, avisos no app e por push, troca de e-mail e de senha e exclusão de conta.
 
 Está fora: processamento de pagamento pela plataforma, agenda e reserva de quadra pelo app, cadastro e reivindicação de locais pelos usuários, jogo recorrente automático, reputação de jogadores, chat interno, painel administrativo de locais e aplicativo iOS.
 
@@ -29,11 +29,11 @@ Está fora: processamento de pagamento pela plataforma, agenda e reserva de quad
 
 ## Requisitos funcionais
 
-Trinta e nove requisitos cobrem o MVP. A coluna de regras aponta para as RNxx da seção seguinte. A numeração salta a RF39, retirada quando a manutenção dos locais deixou de ser requisito do produto e virou operação do desenvolvedor (RN18).
+Quarenta requisitos cobrem o MVP. A coluna de regras aponta para as RNxx da seção seguinte. A numeração salta a RF39, retirada quando a manutenção dos locais deixou de ser requisito do produto e virou operação do desenvolvedor (RN18).
 
 | ID   | Descrição                                                                                                            | Regras           |
 | ---- | -------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| RF01 | Criar conta e autenticar por e-mail, com código de seis dígitos                                                      | RN21             |
+| RF01 | Criar conta e entrar com e-mail e senha, ou com a conta Google                                                       | RN21             |
 | RF02 | Editar o próprio perfil: nome, foto, telefone e chave Pix                                                            | RN24             |
 | RF03 | Criar grupo definindo nome, cor e padrões de jogo (local, vagas, custo e prazo de cancelamento) | RN12             |
 | RF04 | Entrar em um grupo por link de convite                                                                               | RN13, RN22       |
@@ -72,6 +72,7 @@ Trinta e nove requisitos cobrem o MVP. A coluna de regras aponta para as RNxx da
 | RF37 | Apagar o próprio comprovante depois da baixa                                                                         | RN19             |
 | RF38 | Receber avisos do sistema no app e, com autorização, por push                                                        | RN29             |
 | RF40 | Listar os próprios avisos e marcá-los como lidos                                                                     | RN29             |
+| RF41 | Redefinir a senha por código enviado ao e-mail, esquecida ou a partir da sessão ativa                                | RN21             |
 
 ## Regras de negócio
 
@@ -161,7 +162,7 @@ A RN13 distribui as operações entre os papéis. Criador é quem criou o jogo, 
 
 | ID | Regra |
 | --- | --- |
-| RN21 | O acesso é por código de seis dígitos enviado ao e-mail informado. O e-mail é a credencial e vive no serviço de autenticação, não na tabela Pessoa; o telefone é contato opcional do perfil, sem unicidade e sem papel de acesso. Não há canal alternativo de entrega, porque o canal já é o e-mail: quem não recebe pede outro código. O primeiro acesso de um e-mail sem conta pede também o nome de exibição, e só ele, porque o perfil não existe sem nome; os demais campos do perfil ficam para depois (RF02). A troca de e-mail (RF35) é feita a partir da sessão ativa, confirmada por código enviado ao endereço novo, com aviso ao endereço antigo, e mantém conta, histórico e cobranças; e-mail que já pertence a outra conta bloqueia a troca |
+| RN21 | O acesso é por e-mail e senha ou pela conta Google, e um e-mail é uma conta só pelos dois caminhos: quem criou a conta com senha e entra pelo Google com o mesmo endereço cai na própria conta, com histórico e cobranças. E-mail, senha e vínculo com o Google são a credencial e vivem no serviço de autenticação, não na tabela Pessoa; o telefone é contato opcional do perfil, sem unicidade e sem papel de acesso. O cadastro com senha pede e-mail, senha e o nome de exibição, porque o perfil não existe sem nome, e só se conclui com o código de seis dígitos enviado ao e-mail, pedido uma única vez, no cadastro. Até lá não existe perfil, e se o dono do endereço entrar pelo Google antes do código, a conta passa a ser dele, com o nome do Google e sem a senha do cadastro. O primeiro acesso pelo Google não pede nada: o nome de exibição vem da conta Google, e a foto não é copiada. Os demais campos do perfil ficam para depois (RF02). A senha é redefinida por código enviado ao e-mail, tanto a esquecida quanto a trocada a partir da sessão ativa (RF41), e é por esse caminho que quem entra só pelo Google cria uma senha. Não há canal alternativo de entrega, porque o canal já é o e-mail: quem não recebe pede outro código. A troca de e-mail (RF35) é feita a partir da sessão ativa, confirmada por código enviado ao endereço novo, com aviso ao endereço antigo, e mantém conta, histórico e cobranças; e-mail que já pertence a outra conta bloqueia a troca |
 | RN22 | O convite de grupo é um link multiuso, sem expiração, que o admin pode revogar preenchendo `revogado_em`; link revogado deixa de aplicar o convite e informa quem o abrir. O convite de jogo é multiuso e expira no início do jogo. Quem entra por convite de jogo participa somente daquele jogo, sem se tornar membro do grupo. Quem abre um convite sem ter conta conclui o cadastro e o convite é aplicado em seguida |
 
 ## Modelo de dados
@@ -170,7 +171,7 @@ Treze entidades. Valores monetários são inteiros em centavos. Todo identificad
 
 ### Pessoa
 
-Quem usa o sistema. A credencial de acesso é o e-mail, guardado pelo serviço de autenticação e fora desta tabela (RN21).
+Quem usa o sistema. A credencial de acesso — e-mail e senha, ou a conta Google — é guardada pelo serviço de autenticação, fora desta tabela (RN21).
 
 | Campo | Tipo | Obrigatório | Descrição |
 | --- | --- | --- | --- |
@@ -369,7 +370,7 @@ Autorização de push de um aparelho. Uma pessoa pode ter vários, um por aparel
 | modelo\_aparelho | texto | não | Identificação do aparelho, para a pessoa reconhecer a sessão |
 | ultimo\_erro\_em | data e hora | não | Marca o token expirado, que a rotina descarta |
 
-A troca de e-mail e a exclusão de conta apagam todos os dispositivos do titular, não os de um aparelho específico: são os dois casos de revogação da RNF07, e em ambos o push deve parar em todo lugar. Na troca, o aparelho onde ela foi confirmada segue conectado e registra a si mesmo de novo. Por isso o modelo não precisa conhecer sessão, que fica como detalhe da stack de autenticação.
+A troca de e-mail, a troca de senha e a exclusão de conta apagam todos os dispositivos do titular, não os de um aparelho específico: são os três casos de revogação da RNF07, e em todos o push deve parar em todo lugar. Nas trocas, o aparelho onde ela foi confirmada segue conectado e registra a si mesmo de novo. Por isso o modelo não precisa conhecer sessão, que fica como detalhe da stack de autenticação.
 
 ## Relacionamentos
 
@@ -391,7 +392,7 @@ O MVP trata dado pessoal e dado bancário de terceiros. Esta seção fixa o que 
 
 | ID | Requisito |
 | --- | --- |
-| RNF01 | São dados pessoais no sistema: e-mail, nome, foto de perfil, chave Pix, comprovante de pagamento e o telefone de quem optar por informá-lo. A base legal é a execução do serviço pedido pelo titular; não há uso para marketing nem compartilhamento com terceiros. A localização do aparelho, usada para ordenar a busca de locais por proximidade (RF28), é lida no momento da consulta, com permissão do sistema, e não é armazenada nem associada à conta. A imagem do comprovante é lida dentro do aparelho (RN09), então nenhum dado bancário de terceiro trafega para serviço de leitura externo |
+| RNF01 | São dados pessoais no sistema: e-mail, nome, foto de perfil, chave Pix, comprovante de pagamento e o telefone de quem optar por informá-lo. A senha existe só como hash, guardada pelo serviço de autenticação. Quem entra pelo Google traz de lá o nome, o e-mail e o endereço da foto, que o serviço de autenticação guarda junto da credencial; o perfil copia só o nome (RN21). A base legal é a execução do serviço pedido pelo titular; não há uso para marketing nem compartilhamento com terceiros. A localização do aparelho, usada para ordenar a busca de locais por proximidade (RF28), é lida no momento da consulta, com permissão do sistema, e não é armazenada nem associada à conta. A imagem do comprovante é lida dentro do aparelho (RN09), então nenhum dado bancário de terceiro trafega para serviço de leitura externo |
 | RNF02 | O comprovante é o dado mais sensível, porque carrega nome, instituição e identificador de transação de duas pessoas. Só o devedor e o credor daquela cobrança o acessam (RN19), por URL assinada de validade curta sobre arquivo privado, nunca por link público |
 | RNF03 | A retenção do comprovante é de um mês após a cobrança deixar de estar ativa, por confirmação, isenção ou cancelamento (RN19), aplicada pela rotina periódica do banco. O descarte apaga o arquivo e esvazia `arquivo_url`, preservando a linha e o `id_transacao`. O devedor pode apagá-lo antes disso, depois da baixa (RF37) |
 | RNF04 | A exclusão de conta anonimiza o titular e preserva o histórico financeiro de terceiros, nos termos da RN27. A anonimização alcança as cópias: a `chave_pix_recebedor` congelada nos jogos do titular é apagada junto, porque dado bancário duplicado não pode sobreviver ao pedido de exclusão |
@@ -401,8 +402,8 @@ O MVP trata dado pessoal e dado bancário de terceiros. Esta seção fixa o que 
 
 | ID | Requisito |
 | --- | --- |
-| RNF06 | O código de seis dígitos vale cinco minutos e só uma vez, com limite de envios por e-mail a cada hora. A exigência é atendida pela configuração do serviço de autenticação, que também é quem guarda o código como hash: o produto não implementa geração, hash nem contagem de tentativas |
-| RNF07 | A sessão é um par de credenciais do serviço de autenticação: um token curto, renovado por um token de validade longa. A troca de e-mail encerra todas as outras sessões do titular, em todo aparelho; a do aparelho onde a troca foi confirmada continua, porque quem está com ele acabou de provar o controle do endereço novo. A exclusão de conta encerra todas |
+| RNF06 | A senha tem no mínimo oito caracteres, sem regra de composição. O código de seis dígitos — da confirmação do cadastro, da redefinição de senha e da troca de e-mail — vale cinco minutos e só uma vez, com limite de envios por e-mail a cada hora. A exigência é atendida pela configuração do serviço de autenticação, que é quem guarda senha e código como hash e limita as tentativas de entrada e de código: o produto não implementa hash, geração de código nem contagem de tentativas |
+| RNF07 | A sessão é um par de credenciais do serviço de autenticação: um token curto, renovado por um token de validade longa. A troca de e-mail e a troca de senha (RF41) encerram todas as outras sessões do titular, em todo aparelho; a do aparelho onde a troca foi confirmada continua, porque quem está com ele acabou de provar, pelo código, o controle do e-mail. A exclusão de conta encerra todas |
 | RNF08 | Toda data e hora de regra usa o horário do servidor em horário de Brasília, nunca o do aparelho (RN02). O armazenamento é em UTC e a conversão acontece na borda |
 | RNF09 | A disputa pela vaga é resolvida no banco, em transação, travando a linha do jogo e contando os confirmados no momento da escrita. Duas confirmações simultâneas para a última vaga não podem gerar dois confirmados; a perdedora cai na lista de espera (RN08) |
 | RNF10 | Confirmar presença, cancelar, dar baixa e enviar comprovante são idempotentes por requisição: o toque repetido, ou o reenvio após falha de rede, não gera segunda participação, segunda cobrança nem segunda baixa |
@@ -415,7 +416,7 @@ A stack está definida: Flutter no cliente, Supabase no servidor, tudo em plano 
 
 | Tema | Decisão | Consequência |
 | --- | --- | --- |
-| Entrega do código de acesso | Código de seis dígitos por e-mail, pelo serviço de autenticação, com SMTP gratuito | Sem conta business, sem template aprovado pela Meta e sem custo por mensagem. Em troca, o e-mail passa a ser a credencial e o telefone deixa de autenticar (RN21) |
+| Código por e-mail | Código de seis dígitos pelo serviço de autenticação, com SMTP gratuito, só no cadastro com senha, na redefinição de senha e na troca de e-mail | Sem conta business, sem template aprovado pela Meta e sem custo por mensagem. Como entrar não envia e-mail, a cota diária do SMTP fica para cadastro, redefinição e troca (RN21) |
 | Avisos do sistema | Sino no app e push de aplicativo, sem WhatsApp | O sino é a fonte de verdade e o push é entrega oportunista; nenhuma regra depende de entrega garantida (RN29) |
 | Leitura do comprovante | Reconhecimento de texto no próprio aparelho, sem modelo de visão | Custo zero por comprovante e imagem que não sai do aparelho para ser lida. Em troca, o que o aparelho não reconhecer entra direto como `ilegivel`, e a classificação é recalculada no servidor para não depender do que o app afirma (RN09) |
 | Regras de dinheiro | Funções no próprio banco, chamadas pelo app | Não existe servidor de aplicação a manter. Cálculo, transição de estado e hora de regra ficam onde está a transação, o que é o que sustenta RNF08, RNF09 e RNF10 |
@@ -450,7 +451,9 @@ A stack está definida: Flutter no cliente, Supabase no servidor, tudo em plano 
 | Avisos | Entidade própria, gravada sempre, com assinatura de push separada | O sino é a fonte de verdade e o push é entrega oportunista, como a RN29 já exigia |
 | Base de locais | Mantida direto nas tabelas, sem painel no produto | A base é pequena e o piloto tem um só administrador; uma tela de cadastro custaria mais trabalho do que o erro de digitação que evitaria. As checagens da RN15 ficam no banco, onde valem para qualquer caminho de escrita |
 | Plataforma | Aplicativo Android nativo em Flutter, sem iOS no piloto | O iOS exigiria anuidade de desenvolvedor e um Mac para compilar, para alcançar a minoria da turma inicial. A decisão é revisível sem mexer em regra nenhuma |
-| Credencial | E-mail com código de seis dígitos, em vez de telefone por WhatsApp | A mensagem de WhatsApp cobra por envio e exige conta business verificada; o e-mail é gratuito nas cotas que o piloto usa. O telefone continua no perfil, mas como contato |
+| Credencial | E-mail e senha, ou conta Google; o código por e-mail ficou só para provar a posse do endereço | Buscar um código no e-mail a cada entrada, a cada aparelho novo e a cada sessão perdida pesava mais que lembrar uma senha; a turma já tem conta Google no Android, onde entrar é um toque; e cada entrada gastava uma das 300 mensagens diárias do SMTP. Antes do código, o telefone por WhatsApp já tinha saído, porque a mensagem cobra por envio e exige conta business verificada. O telefone continua no perfil, mas como contato |
+| Cadastro com senha | Confirmado por código, uma única vez | Sem confirmação, quem cadastrasse primeiro o e-mail de outra pessoa ficaria com acesso à conta dela: quando o dono entrasse pelo Google, o serviço vincularia o acesso à conta já confirmada do impostor, com a senha dele valendo. Com a conta ainda não confirmada, o serviço descarta essa senha sozinho na vinculação. De quebra, e-mail digitado errado não vira conta que ninguém recupera |
+| Troca de senha | Mesmo caminho da senha esquecida, por código no e-mail, encerrando as outras sessões | Um fluxo só, que serve também a quem entra só pelo Google e não tem senha atual para informar. Quem troca a senha por desconfiar de acesso alheio tira o outro aparelho da conta na mesma hora, e o aviso de senha trocada chega ao e-mail |
 | Troca de e-mail | Código só ao endereço novo, com aviso ao antigo | O serviço de autenticação, no fluxo por código, conclui a troca com qualquer um dos dois códigos sozinho, então pedir os dois seria só aparência; exigir os dois de verdade obrigaria o produto a gerar e conferir código, o que a RNF06 exclui. O aviso faz o titular saber na hora de uma troca que não pediu, como a de quem pega o celular desbloqueado, e a recuperação nesse caso é pelo desenvolvedor, no painel do serviço |
 | Leitura do comprovante | Reconhecimento de texto no aparelho, sem modelo de visão | Era o último custo por evento. Ler no aparelho também mantém a imagem, que é o dado mais sensível do sistema, fora de serviço de terceiro |
 
@@ -472,6 +475,6 @@ Chat interno. O WhatsApp segue sendo o canal de conversa; o app entra pelo link 
 
 Aplicativo iOS. O piloto roda em Android, porque publicar na App Store custa uma anuidade e exige um Mac para compilar. Nada no modelo nem nas regras depende da plataforma, então entrar no iOS é trabalho de empacotamento, não de produto. Enquanto isso, quem tem iPhone acompanha pelo grupo de WhatsApp da turma, como hoje.
 
-WhatsApp como canal do sistema, para o código de acesso ou para os avisos. Sai por custo por mensagem e por exigir conta business verificada. Volta à mesa se a entrega por e-mail se mostrar ruim no piloto: o modelo não muda, porque a credencial é um campo do serviço de autenticação e o aviso já é entidade própria (RN29).
+WhatsApp como canal do sistema, para os códigos de confirmação ou para os avisos. Sai por custo por mensagem e por exigir conta business verificada. Volta à mesa se a entrega por e-mail se mostrar ruim no piloto: o modelo não muda, porque a credencial é um campo do serviço de autenticação e o aviso já é entidade própria (RN29).
 
 Painel administrativo de locais. A manutenção da base é feita pelo desenvolvedor direto nas tabelas (RN18). Uma tela própria só se justifica quando existir mais de um administrador ou o perfil de dono de local.

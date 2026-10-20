@@ -5,7 +5,7 @@ Representação completa das treze entidades do MVP, seus campos e seus relacion
 Convenções que valem para todas as entidades:
 
 - Todo identificador é UUID.
-- `Pessoa.id` espelha o id do usuário no serviço de autenticação, que é onde vive a credencial (RN21).
+- `Pessoa.id` espelha o id do usuário no serviço de autenticação, que é onde vive a credencial: e-mail e senha, ou o vínculo com a conta Google (RN21).
 - Valores monetários são inteiros em centavos.
 - `criado_em` e `atualizado_em` existem em todas as tabelas e estão omitidos do diagrama para não poluí-lo.
 - Datas e horas são gravadas em UTC; a conversão para horário de Brasília acontece na borda (RNF08).
@@ -276,7 +276,7 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | Convite preenche exatamente um entre `grupo_id` e `jogo_id`, conforme o `tipo` | RN22 |
 | Convite com `revogado_em` preenchido não aplica mais o convite, mesmo dentro do prazo | RF32, RN22 |
 | A exclusão de conta apaga o usuário no serviço de autenticação e preserva a linha de Pessoa, anonimizada; nenhuma coluna do perfil guarda credencial | RN21, RN27 |
-| A troca de e-mail e a exclusão de conta apagam todos os DispositivoPush do titular, não os de um aparelho | RNF07, RN27 |
+| A troca de e-mail, a troca de senha e a exclusão de conta apagam todos os DispositivoPush do titular, não os de um aparelho | RNF07, RN27 |
 | `DispositivoPush.token_fcm` pertence a quem o registrou por último: registrar um token que já existe transfere a linha, em vez de criar outra | RN29 |
 | `Participacao.posicao_espera` só é preenchido enquanto o status for `lista_espera` | RN08 |
 | `Cobranca` só sai de `pendente` por ato de pessoa depois do jogo encerrado | RN07 |
