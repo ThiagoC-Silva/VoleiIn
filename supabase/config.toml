@@ -180,7 +180,8 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+# Oito, sem regra de composição (RNF06).
+minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
@@ -224,9 +225,12 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = false
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+# Ligado: o cadastro com senha fica pendente até o código, e só então nasce o perfil; sem isso,
+# a vinculação do Google entregaria a conta de um impostor (docs/stack.md, Autenticação).
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = false
+# Ligado: sessão com mais de 24 horas não troca a senha sem código (RF41).
+secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "60s"
 # Number of characters used in the email OTP.
@@ -244,14 +248,16 @@ otp_expiry = 300
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Modelos em português, com o código no lugar do link (RN21, RNF06).
+# Modelos em português, com o código no lugar do link (RN21, RNF06): confirmação do cadastro,
+# redefinição de senha e troca de e-mail. A entrada só por código não tem modelo próprio,
+# porque o app não a usa.
 [auth.email.template.confirmation]
-subject = "Seu código de acesso ao VoleiIn"
+subject = "Confirme seu cadastro no VoleiIn"
 content_path = "./supabase/templates/confirmacao.html"
 
-[auth.email.template.magic_link]
-subject = "Seu código de acesso ao VoleiIn"
-content_path = "./supabase/templates/codigo_acesso.html"
+[auth.email.template.recovery]
+subject = "Seu código para redefinir a senha do VoleiIn"
+content_path = "./supabase/templates/redefinicao_senha.html"
 
 [auth.email.template.email_change]
 subject = "Confirme a troca de e-mail no VoleiIn"
@@ -263,16 +269,16 @@ enabled = true
 subject = "O e-mail da sua conta no VoleiIn foi trocado"
 content_path = "./supabase/templates/aviso_troca_email.html"
 
+# Aviso quando a senha é trocada, esquecida ou pela sessão ativa (RF41).
+[auth.email.notification.password_changed]
+enabled = true
+subject = "A senha da sua conta no VoleiIn foi trocada"
+content_path = "./supabase/templates/aviso_troca_senha.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
-
-# Uncomment to customize notification email template
-# [auth.email.notification.password_changed]
-# enabled = true
-# subject = "Your password has been changed"
-# content_path = "./supabase/templates/password_changed_notification.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

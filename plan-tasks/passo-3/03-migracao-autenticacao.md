@@ -1,6 +1,6 @@
 # T03 — Migração `autenticacao` e asserções
 
-**Estado:** parcial (reaberta) · **Depende de:** T01
+**Estado:** feito · **Depende de:** T01
 
 ## Objetivo
 
@@ -16,15 +16,15 @@ Ver as decisões no [README](README.md). A migração continua **editada no luga
 
 ### O que falta
 
-- [ ] Em `supabase/migrations/20261019194705_autenticacao.sql`:
-  - auxiliar em `privado` que devolve o nome dos metadados: o primeiro preenchido entre `nome`, `full_name` e `name`, sem espaços nas pontas, ou `null`;
-  - nova `privado.conferir_nome()`, gatilho `before insert on auth.users`: com a auxiliar nula, erro próprio do gatilho, e o cadastro é recusado no pedido. Vale para senha e para Google: conta Google sem nome também é recusada;
+- [x] Em `supabase/migrations/20261019194705_autenticacao.sql`:
+  - auxiliar `privado.nome_dos_metadados(jsonb)`, que devolve o nome dos metadados: o primeiro preenchido entre `nome`, `full_name` e `name`, sem espaços nas pontas, ou `null`;
+  - nova `privado.conferir_nome()`, gatilho `before insert on auth.users`: com a auxiliar nula, erro próprio do gatilho (`23502`, com `constraint = 'conferir_nome'` para as asserções o distinguirem do `not null` de `pessoa.nome`), e o cadastro é recusado no pedido. Vale para senha e para Google: conta Google sem nome também é recusada;
   - `privado.criar_pessoa()` usa a auxiliar e dispara em dois gatilhos:
-    - `after insert ... when (new.email_confirmed_at is not null)`, para Google e Studio;
-    - `after update of email_confirmed_at ... when (old.email_confirmed_at is null and new.email_confirmed_at is not null)`, para o código do cadastro e para o Google vinculado a um cadastro pendente;
+    - `criar_pessoa_no_cadastro`, `after insert ... when (new.email_confirmed_at is not null)`, para Google e Studio;
+    - `criar_pessoa_na_confirmacao`, `after update of email_confirmed_at ... when (old.email_confirmed_at is null and new.email_confirmed_at is not null)`, para o código do cadastro e para o Google vinculado a um cadastro pendente;
   - `privado.apagar_dispositivos_na_troca()` passa a disparar em `after update of email, encrypted_password on auth.users`, `when (old.email is distinct from new.email or old.encrypted_password is distinct from new.encrypted_password)`;
   - `revoke execute` em todas as funções; comentários de acordo com `docs/stack.md`.
-- [ ] `supabase/testes/autenticacao.sql`, refeito:
+- [x] `supabase/testes/autenticacao.sql`, refeito, com 36 asserções. A conta Google sem nome também entrou:
   - cadastro com senha não confirmado → existe `auth.users`, **não** existe `pessoa`;
   - confirmar (`email_confirmed_at = now()`) → `pessoa` com o mesmo id e o nome sem espaços;
   - insert sem nome, sem metadados ou só com espaços → recusado mesmo sem confirmação, conferindo o erro do gatilho novo em vez do `not null` de `pessoa.nome`;
@@ -34,8 +34,10 @@ Ver as decisões no [README](README.md). A migração continua **editada no luga
   - novo update de `email_confirmed_at` em quem já é confirmado, e a troca de e-mail, não criam segunda `pessoa`;
   - troca de senha (`encrypted_password` muda) apaga todos os aparelhos do titular; `update` que regrava o mesmo hash não apaga; aparelhos de outra pessoa ficam;
   - as asserções de `dispositivo_push` na troca de e-mail seguem como estão, com a Carla confirmada antes.
-- [ ] `supabase/CLAUDE.md`, linha de `autenticacao.sql`: "criação do perfil na confirmação do e-mail e limpeza dos aparelhos na troca de e-mail e de senha".
-- [ ] `supabase db reset` e as três suítes; atualizar a contagem de `autenticacao` abaixo.
+- [x] `supabase/CLAUDE.md`, linha de `autenticacao.sql`: "conferência do nome no cadastro, criação do perfil na confirmação do e-mail e limpeza dos aparelhos na troca de e-mail e de senha".
+- [x] `supabase db reset` e as três suítes: schema 61, rls 69, autenticacao 36.
+
+O caminho real pelo Auth, do cadastro até a `pessoa`, foi conferido na sonda da T02. O impostor com o Google real fica para a T07 (cenário 19).
 
 ## Primeira reabertura, em 2026-10-20 (absorvida)
 
@@ -66,11 +68,11 @@ A sonda da T02 mostrou que, com `enable_confirmations = false`, o Auth confirma 
 supabase db reset
 docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/schema.sql        # SUCESSO: 61
 docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/rls.sql           # SUCESSO: 69
-docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/autenticacao.sql  # SUCESSO: N
+docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/autenticacao.sql  # SUCESSO: 36
 ```
 
 `grep -rn "dupla\|duas confirmações\|dois endereços" supabase/migrations supabase/testes` não acha nada. O grep fica fora de `supabase/CLAUDE.md` porque a linha de `confirmar_presenca` ("duas confirmações simultâneas") trata de presença, não de e-mail.
 
 ## Commit
 
-A migração e o teste já entraram em `69656e0` e `51b3b35`; a linha de comando, em `a28c2cf`. A reabertura vai junto com a da T02, em `Cria o perfil na confirmação do cadastro e aceita senha e Google`, porque um sem o outro não resolve: com o gatilho novo e a autoconfirmação ligada, o usuário já nasce confirmado e o perfil sai no insert de novo.
+A migração e o teste já entraram em `69656e0` e `51b3b35`; a linha de comando, em `a28c2cf`. A reabertura foi junto com a da T02, em `Cria o perfil na confirmação do cadastro e aceita senha e Google`, porque um sem o outro não resolve: com o gatilho novo e a autoconfirmação ligada, o usuário já nasce confirmado e o perfil sai no insert de novo.

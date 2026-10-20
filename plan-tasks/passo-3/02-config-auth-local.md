@@ -1,6 +1,6 @@
 # T02 — Configuração local do Supabase Auth e modelos de e-mail
 
-**Estado:** parcial (reaberta) · **Depende de:** T01
+**Estado:** feito · **Depende de:** T01
 
 ## Objetivo
 
@@ -30,9 +30,33 @@ Commitado em `e5f7f0c`:
 - `GOTRUE_RATE_LIMIT_EMAIL_SENT=360000`: sem SMTP próprio, o CLI ignora `email_sent = 30`. **O teto de 30/h só se verifica no remoto**, na T09.
 - Conta nova com `enable_confirmations = false`: o pedido devolve 200 vazio, o usuário já nasce com `email_confirmed_at`, `pessoa` é criada antes do código, e o e-mail que chega é o **de acesso** (`codigo_acesso.html`), não `confirmacao.html`. Por isso: confirmação ligada e perfil só na confirmação (`docs/stack.md`, Autenticação; reabertura da T03).
 
+## Sonda da reabertura, 2026-10-20
+
+Depois de `supabase stop && supabase start`, o `docker inspect supabase_auth_VoleiIn` mostrou a configuração carregada:
+- `GOTRUE_MAILER_AUTOCONFIRM=false`;
+- `GOTRUE_PASSWORD_MIN_LENGTH=8` e `GOTRUE_PASSWORD_REQUIRED_CHARACTERS` vazio;
+- `GOTRUE_SECURITY_UPDATE_PASSWORD_REQUIRE_REAUTHENTICATION=true`;
+- `GOTRUE_MAILER_NOTIFICATIONS_PASSWORD_CHANGED_ENABLED=true`;
+- os assuntos novos de confirmação, redefinição e aviso de senha.
+
+Pela API do Auth, com `curl`:
+- **Cadastro com senha.**
+  - Senha de 7 caracteres: `weak_password`.
+  - Cadastro aceito: volta sem sessão e fica sem `email_confirmed_at` e sem `pessoa`.
+  - Entrar antes do código: `email_not_confirmed`. Reenviar antes de 60 s: `over_email_send_rate_limit`.
+  - O código do e-mail de confirmação, em `verifyOTP(type: email)`, devolve sessão e cria `pessoa` com o nome aparado e `avatar_url` nulo.
+  - Depois disso, entrar com a senha funciona, e a senha errada dá `invalid_credentials`.
+- **Cadastro repetido** num e-mail já confirmado: o serviço responde o erro `user_already_exists`, e não um usuário sem `identities`, como `docs/stack.md` dizia. Provavelmente porque o CLI deixa a autoconfirmação de SMS ligada (`GOTRUE_SMS_AUTOCONFIRM=true`), e com ela o serviço não esconde a conta. O `stack.md` e a T05 passaram a tratar as duas respostas, e a T09 anota qual o remoto dá.
+- **Redefinição.**
+  - O pedido devolve 200 também para e-mail sem conta, sem enviar nada.
+  - O código do e-mail de redefinição, em `verifyOTP(type: recovery)`, dá sessão.
+  - `updateUser(password)` com essa sessão passa e dispara o aviso de senha trocada.
+- **Troca de e-mail.** O código chega só ao endereço novo, e o aviso ao antigo, com os dois endereços preenchidos.
+- **Entrada só por código.** `/otp` com `create_user: false` continua respondendo e manda o modelo padrão do serviço, em inglês e com link. A única chave que existe é `GOTRUE_EXTERNAL_EMAIL_ENABLED`, que desligaria todo o e-mail, inclusive a senha. Isso confirma o que `docs/stack.md` diz.
+
 ## O que falta
 
-- [ ] `supabase/config.toml`:
+- [x] `supabase/config.toml`:
   - `[auth]`: `minimum_password_length = 8`; `password_requirements = ""` fica.
   - `[auth.email]`: `enable_confirmations = true` e `secure_password_change = true`.
   - Sai `[auth.email.template.magic_link]`, e `supabase/templates/codigo_acesso.html` é apagado. Conferir que o Auth não tem chave para desligar só a entrada por código: `docs/stack.md` diz que não tem, e, se tiver, desligar e corrigir o stack.
@@ -40,7 +64,7 @@ Commitado em `e5f7f0c`:
   - Novo `[auth.email.template.recovery]`: assunto "Seu código para redefinir a senha do VoleiIn", `content_path = "./supabase/templates/redefinicao_senha.html"`.
   - Novo `[auth.email.notification.password_changed]`: `enabled = true`, assunto "A senha da sua conta no VoleiIn foi trocada", `content_path = "./supabase/templates/aviso_troca_senha.html"`.
   - Comentário dos modelos: os que mostram o código são confirmação, redefinição e troca de e-mail.
-- [ ] `supabase/templates/`:
+- [x] `supabase/templates/`:
   - `confirmacao.html`: o texto fala em confirmar o e-mail e concluir o cadastro, e não mais em acesso.
   - `redefinicao_senha.html`, novo:
     - o código (`{{ .Token }}`), válido por 5 minutos e uma vez só;
@@ -48,20 +72,20 @@ Commitado em `e5f7f0c`:
   - `aviso_troca_senha.html`, novo, sem código:
     - diz que a senha da conta de `{{ .Email }}` foi trocada e que os outros aparelhos saíram da conta;
     - se não foi você, use "Esqueci a senha" na tela de entrar, que troca a senha de novo e tira da conta quem estiver nela.
-- [ ] `supabase stop && supabase start`: o `db reset` não recarrega o Auth. No `docker inspect supabase_auth_VoleiIn`, conferir:
+- [x] `supabase stop && supabase start`: o `db reset` não recarrega o Auth. No `docker inspect supabase_auth_VoleiIn`, conferir:
   - autoconfirmação desligada (`MAILER_AUTOCONFIRM=false`);
   - senha mínima 8;
   - reautenticação para troca de senha ligada;
   - assuntos novos e aviso de senha ligado.
 
   O nome exato de cada variável depende da versão do CLI; o que vale é o valor.
-- [ ] Conferir que a conta nova recebe `confirmacao.html`, fica sem `email_confirmed_at` e sem `pessoa` até o código, e ganha `pessoa` ao confirmá-lo.
-- [ ] Disparar os cinco e-mails e conferir no Mailpit, em `http://127.0.0.1:54324`. Pode ser durante a T07.
+- [x] Conferir que a conta nova recebe `confirmacao.html`, fica sem `email_confirmed_at` e sem `pessoa` até o código, e ganha `pessoa` ao confirmá-lo.
+- [x] Disparar os cinco e-mails e conferir no Mailpit, em `http://127.0.0.1:54324`.
   - Assunto e corpo em português.
   - Confirmação, redefinição e troca de e-mail mostram o código de 6 dígitos, sem link.
   - O aviso de troca de e-mail chega ao endereço **antigo** e mostra `{{ .OldEmail }}` e `{{ .Email }}` preenchidos.
   - O aviso de senha trocada chega depois da redefinição.
-- [ ] Confirmar que nenhum segredo entrou no `config.toml`. O SMTP do Brevo é só remoto (T08), e o segredo do Google mora em `supabase/.env` (T11).
+- [x] Confirmar que nenhum segredo entrou no `config.toml`. O SMTP do Brevo é só remoto (T08), e o segredo do Google mora em `supabase/.env` (T11).
 
 ## Pronto quando
 
@@ -71,4 +95,4 @@ Commitado em `e5f7f0c`:
 
 ## Commit
 
-A configuração inicial entrou em `e5f7f0c`. A reabertura vai no mesmo commit da T03, `Cria o perfil na confirmação do cadastro e aceita senha e Google`, porque um sem o outro não resolve.
+A configuração inicial entrou em `e5f7f0c`. A reabertura foi no mesmo commit da T03, `Cria o perfil na confirmação do cadastro e aceita senha e Google`, porque um sem o outro não resolve.
