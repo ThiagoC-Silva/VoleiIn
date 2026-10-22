@@ -82,17 +82,10 @@ class _CampoTextoState extends State<CampoTexto> {
           style: tema.textTheme.bodyLarge,
           onChanged: widget.aoMudar,
           onSubmitted: widget.aoEnviar,
+          // A decoração só pinta a borda de erro: a dica e a mensagem ficam abaixo, fora do
+          // campo, para alinharem com o rótulo e não com o texto de dentro.
           decoration: InputDecoration(
-            helperText: widget.dica,
-            error: erro == null
-                ? null
-                : Row(
-                    children: [
-                      Icon(Symbols.error_rounded, size: 16, color: tema.colorScheme.error),
-                      const SizedBox(width: 4),
-                      Flexible(child: Text(erro, style: tema.inputDecorationTheme.errorStyle)),
-                    ],
-                  ),
+            error: erro == null ? null : const SizedBox.shrink(),
             suffixIcon: widget.senha
                 ? IconButton(
                     tooltip: _oculto ? 'Mostrar senha' : 'Ocultar senha',
@@ -102,6 +95,19 @@ class _CampoTextoState extends State<CampoTexto> {
                 : null,
           ),
         ),
+        if (erro != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Symbols.error_rounded, size: 16, color: tema.colorScheme.error),
+              const SizedBox(width: 4),
+              Flexible(child: Text(erro, style: tema.inputDecorationTheme.errorStyle)),
+            ],
+          ),
+        ] else if (widget.dica != null) ...[
+          const SizedBox(height: 8),
+          Text(widget.dica!, style: tema.inputDecorationTheme.helperStyle),
+        ],
       ],
     );
   }

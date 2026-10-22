@@ -100,14 +100,15 @@ const _textos = TextTheme(
   displayMedium: TextStyle(fontFamily: 'BebasNeue', letterSpacing: 0.3, height: 1, fontSize: 56),
   displaySmall: TextStyle(fontFamily: 'BebasNeue', letterSpacing: 0.3, height: 1, fontSize: 40),
   headlineSmall: TextStyle(fontFamily: 'BebasNeue', letterSpacing: 0.3, height: 1, fontSize: 26),
-  headlineLarge: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w800, fontSize: 28),
-  headlineMedium: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w800, fontSize: 22),
-  titleLarge: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w700, fontSize: 18),
-  titleMedium: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w700, fontSize: 15),
-  bodyLarge: TextStyle(fontSize: 16, height: 1.5),
-  bodyMedium: TextStyle(fontSize: 14, height: 20 / 14),
-  bodySmall: TextStyle(fontSize: 12, height: 16 / 12),
-  labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+  headlineLarge: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: 0),
+  headlineMedium: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: 0),
+  titleLarge: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: 0),
+  titleMedium: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0),
+  // O Material 3 abre o espaçamento entre letras do texto (0,5 no bodyLarge); o design não.
+  bodyLarge: TextStyle(fontSize: 16, height: 1.5, letterSpacing: 0),
+  bodyMedium: TextStyle(fontSize: 14, height: 20 / 14, letterSpacing: 0),
+  bodySmall: TextStyle(fontSize: 12, height: 16 / 12, letterSpacing: 0),
+  labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0),
 );
 
 const _pilula = StadiumBorder();
@@ -132,6 +133,7 @@ final temaVoleiIn = ThemeData(
     onSurface: _texto,
     onSurfaceVariant: _textoSecundario,
     outline: _superficieAlta,
+    outlineVariant: _superficieAlta,
     error: _erro,
     onError: _navy,
   ),
