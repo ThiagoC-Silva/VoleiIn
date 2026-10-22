@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../dados/auth_repositorio.dart';
 import '../../dados/pessoa_repositorio.dart';
+import '../auth/redefinir_senha_tela.dart';
 import '../perfil/trocar_email_tela.dart';
 
 /// Tela inicial provisória do passo 3; o feed do passo 5 toma o lugar dela.
@@ -35,6 +36,13 @@ class InicioTela extends ConsumerWidget {
                 MaterialPageRoute<void>(builder: (_) => const TrocarEmailTela()),
               ),
               child: const Text('Trocar e-mail'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => RedefinirSenhaTela(email: email, daSessao: true)),
+              ),
+              child: const Text('Trocar senha'),
             ),
             const SizedBox(height: 8),
             TextButton(

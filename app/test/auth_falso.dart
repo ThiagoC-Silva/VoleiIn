@@ -23,7 +23,7 @@ class AuthFalso implements AuthRepositorio {
   final FalhaAuth? falhaAoEntrar;
   final FalhaAuth? falhaAoCriarConta;
 
-  /// Recusa do código na confirmação do cadastro.
+  /// Recusa do código, na confirmação do cadastro e na redefinição de senha.
   final FalhaAuth? falhaNoCodigo;
   final FalhaAuth? falhaAoPedirTrocaEmail;
   final chamadas = <String>[];
@@ -55,6 +55,15 @@ class AuthFalso implements AuthRepositorio {
 
   @override
   Future<void> entrarComGoogle() async => chamadas.add('entrarComGoogle');
+
+  @override
+  Future<void> pedirRedefinicao(String email) async => chamadas.add('pedirRedefinicao $email');
+
+  @override
+  Future<void> redefinirSenha(String email, String codigo, String nova) async {
+    chamadas.add('redefinirSenha $email $codigo $nova');
+    if (falhaNoCodigo != null) throw falhaNoCodigo!;
+  }
 
   @override
   Future<void> pedirTrocaEmail(String novo) async {

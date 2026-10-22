@@ -312,7 +312,7 @@ Os estados e os textos exatos estão nas imagens de `telas/`, sob o mesmo id. A 
 
 | Grupo | Telas | PNG | Arquivos atuais |
 | --- | --- | --- | --- |
-| **A · Acesso** | A1 Entrar (e-mail, senha, Google, "Esqueci a senha", topo amarelo com logo) · A2 Criar conta (nome obrigatório) · A3 Confirmar e-mail (seis casas, reenvio com contagem) · A4 Redefinir senha (RF41) | `telas/01-acesso/` (4) | `entrar_tela.dart`, `etapa_codigo.dart` |
+| **A · Acesso** | A1 Entrar (e-mail, senha, Google, "Esqueci a senha", topo amarelo com logo) · A2 Criar conta (nome obrigatório) · A3 Confirmar e-mail (seis casas, reenvio com contagem) · A4 Redefinir senha (RF41) | `telas/01-acesso/` (4) | `entrar_tela.dart`, `criar_conta_tela.dart`, `confirmar_email_tela.dart`, `redefinir_senha_tela.dart` |
 | **B · Jogos e presença** | B1 Feed (herói do próximo jogo, blocos A pagar e A receber, lista da semana, filtro por grupo) · B2 Jogo antes de confirmar · B3 Jogo confirmado (cancelar, convidar) · B4 Sheet de cancelamento fora do prazo, com o custo em reais (RN02, RN03, RN05) · B5 Lista de espera (posição, sem cobrança) · B6 Vaga liberada (RF17, RN08) · B7 Marcar faltas (RF18, RN04) | `telas/02-jogos/` (7) | `inicio_tela.dart` |
 | **C · Criar, editar e duplicar jogo** | C1 grupo, local, quadra, data, início, duração · C2 vagas, custo, valor por vaga ao vivo (arredonda para cima, mostra a sobra), prazo sem multa, quem recebe · C3 jogo avulso com chave Pix faltando (erro) · C4 editar (avisa N confirmados) · C5 duplicar (só data e horário) | `telas/03-criar-jogo/` (5) | — |
 | **D · Grupos** | D1 lista · D2 grupo (regras, próximos jogos) · D3 membros (menu promover e remover, marca de débito só para admin) · D4 novo grupo · D5 editar regras | `telas/04-grupos/` (5) | — |

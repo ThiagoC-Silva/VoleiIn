@@ -11,8 +11,10 @@ import '../../dados/auth_repositorio.dart';
 import 'confirmar_email_tela.dart';
 import 'criar_conta_tela.dart';
 import 'execucao_auth.dart';
+import 'redefinir_senha_tela.dart';
 
-/// A1 — Entrar (RF01, RN21): e-mail e senha, ou a conta Google. Criar conta abre a A2.
+/// A1 — Entrar (RF01, RN21): e-mail e senha, ou a conta Google. Criar conta abre a A2,
+/// e "Esqueci a senha", a A4.
 /// Ao entrar, a sessão muda e a raiz troca a tela sozinha.
 class EntrarTela extends ConsumerStatefulWidget {
   const EntrarTela({super.key});
@@ -94,7 +96,15 @@ class _EntrarTelaState extends ConsumerState<EntrarTela> with ExecucaoAuth {
                         aoMudar: (_) => setState(() => _erroSenha = null),
                         aoEnviar: (_) => _entrar(),
                       ),
-                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                          onPressed: ocupado ? null : () => _abrir(RedefinirSenhaTela(email: _emailDigitado)),
+                          child: const Text('Esqueci a senha'),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       if (erro != null) ...[
                         MensagemErro(erro!),
                         const SizedBox(height: 16),

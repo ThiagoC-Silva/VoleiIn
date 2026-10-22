@@ -20,7 +20,8 @@ class FalhaAuth implements Exception {
 }
 
 /// Acesso por e-mail e senha ou pela conta Google (RF01, RN21). O código de seis dígitos
-/// só aparece onde prova a posse do e-mail: confirmação do cadastro e troca de e-mail.
+/// só aparece onde prova a posse do e-mail: confirmação do cadastro, redefinição de senha
+/// (RF41) e troca de e-mail.
 /// Senha, código, validade e limite de envios são do Supabase Auth; aqui só se pede e se
 /// confirma. Detalhes em docs/stack.md, seção Autenticação.
 class AuthRepositorio {
@@ -81,6 +82,20 @@ class AuthRepositorio {
     if (idToken == null) throw const FalhaAuth(_falhaGoogle);
     await _executar(() => _auth.signInWithIdToken(provider: OAuthProvider.google, idToken: idToken));
   }
+
+  /// Envia o código de redefinição. Para e-mail sem conta, o serviço responde igual e não
+  /// envia nada, então a tela não afirma que o código foi enviado.
+  Future<void> pedirRedefinicao(String email) => _executar(() => _auth.resetPasswordForEmail(email));
+
+  /// Redefine a senha, esquecida ou trocada a partir da sessão (RF41), e derruba as sessões
+  /// dos outros aparelhos; a deste continua (RNF07). A conferência do código cria a sessão,
+  /// e por isso a senha nova chega junto com ele. Os aparelhos de push são apagados pelo
+  /// gatilho do banco, e o aviso de senha trocada sai pelo serviço.
+  Future<void> redefinirSenha(String email, String codigo, String nova) => _executar(() async {
+        await _auth.verifyOTP(type: OtpType.recovery, email: email, token: codigo);
+        await _auth.updateUser(UserAttributes(password: nova));
+        await _auth.signOut(scope: SignOutScope.others);
+      });
 
   /// Envia o código ao endereço novo; o antigo só recebe o aviso quando a troca se concluir.
   Future<void> pedirTrocaEmail(String novo) =>

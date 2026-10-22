@@ -78,4 +78,17 @@ void main() {
     expect(find.text('Como a turma vai te ver?'), findsOneWidget);
     expect(textoDoCampo(tester, 'campo-email'), 'bruno@exemplo.com');
   });
+
+  testWidgets('esqueci a senha abre a redefinição com o e-mail já digitado', (tester) async {
+    await montar(tester, AuthFalso(), const EntrarTela());
+
+    await tester.enterText(find.byKey(const Key('campo-email')), 'Carla@Exemplo.com ');
+    await tester.ensureVisible(find.text('Esqueci a senha'));
+    await tester.pump();
+    await tester.tap(find.text('Esqueci a senha'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Redefinir senha'), findsOneWidget);
+    expect(textoDoCampo(tester, 'campo-email'), 'carla@exemplo.com');
+  });
 }
