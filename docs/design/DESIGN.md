@@ -2,16 +2,9 @@
 
 Design system do app Android, versão 2. Vale para toda tela nova e para a reescrita das telas do passo 3 em diante. Substitui o tema atual de `app/lib/core/tema.dart` (`colorSchemeSeed: 0xFF1E88E5`, Material 3 padrão).
 
-Este documento é a versão textual e normativa do handoff desta pasta. Os `.dc.html` daqui são **referências visuais** feitas em HTML. Mostram cada tela com o id usado aqui (A1, B3, F2…) e os textos exatos. As telas são recriadas em Flutter, nunca copiadas do HTML.
+Este documento é a versão textual e normativa do design. As imagens de `telas/` são **referências visuais**: mostram cada tela com o id usado aqui (A1, B3, F2…) e os textos exatos. As telas são recriadas em Flutter a partir delas e deste documento.
 
-| Arquivo | Conteúdo |
-| --- | --- |
-| `VoleiIn Design System.dc.html` | Princípios, cores, tipografia, forma, componentes, mapa de status, escrita, tema Flutter |
-| `VoleiIn Telas 1 - Acesso e Jogos.dc.html` | A1–A4 acesso · B1–B7 jogos e presença · C1–C5 criar, editar e duplicar |
-| `VoleiIn Telas 2 - Grupos e Locais.dc.html` | D1–D9 grupos e convites · E1–E2 locais |
-| `VoleiIn Telas 3 - Cobrancas e Conta.dc.html` | F1–F7 cobranças e comprovante · G1 avisos · H1–H4 perfil e conta · X1–X3 modo claro |
-| `VoleiIn Modo Claro.dc.html` | 12 telas-chave no tema claro |
-| `android-frame.jsx`, `support.js` | Suporte para abrir os HTMLs. Não se implementam |
+As imagens seguem o padrão `telas/<grupo>/<id>-<nome>.png`, uma tela por imagem, no tema escuro (ex.: `telas/acesso/a1-acesso.png`). A pasta é preenchida aos poucos, grupo a grupo; a cobertura atual está na tabela de [Telas](#telas).
 
 **Fidelidade alta.** Cores, tipografia, raios, espaçamentos e textos são finais. Nomes, valores e datas das telas são exemplos.
 
@@ -315,19 +308,19 @@ Ainda não existe. Até o passo 10, usa-se um espaço reservado tracejado com o 
 
 ## Telas
 
-Os estados e os textos exatos estão nos HTMLs, sob o mesmo id.
+Os estados e os textos exatos estão nas imagens de `telas/`, sob o mesmo id. A coluna PNG indica os grupos que já têm imagem.
 
-| Grupo | Telas | Arquivos atuais |
-| --- | --- | --- |
-| **A · Acesso** | A1 Entrar (e-mail, senha, Google, "Esqueci a senha", topo amarelo com logo) · A2 Criar conta (nome obrigatório) · A3 Confirmar e-mail (seis casas, reenvio com contagem) · A4 Redefinir senha (RF41) | `entrar_tela.dart`, `etapa_codigo.dart` |
-| **B · Jogos e presença** | B1 Feed (herói do próximo jogo, blocos A pagar e A receber, lista da semana, filtro por grupo) · B2 Jogo antes de confirmar · B3 Jogo confirmado (cancelar, convidar) · B4 Sheet de cancelamento fora do prazo, com o custo em reais (RN02, RN03, RN05) · B5 Lista de espera (posição, sem cobrança) · B6 Vaga liberada (RF17, RN08) · B7 Marcar faltas (RF18, RN04) | `inicio_tela.dart` |
-| **C · Criar, editar e duplicar jogo** | C1 grupo, local, quadra, data, início, duração · C2 vagas, custo, valor por vaga ao vivo (arredonda para cima, mostra a sobra), prazo sem multa, quem recebe · C3 jogo avulso com chave Pix faltando (erro) · C4 editar (avisa N confirmados) · C5 duplicar (só data e horário) | — |
-| **D · Grupos e convites** | D1 lista · D2 grupo (regras, próximos jogos) · D3 membros (menu promover e remover, marca de débito só para admin) · D4 novo grupo · D5 editar regras · D6 convite (link multiuso, revogar) · D7 abrir convite · D8 convite revogado · D9 convite de jogo | — |
-| **E · Locais** | E1 busca e lista por proximidade · E2 detalhes (quadras, horários) | — |
-| **F · Cobranças** | F1 a pagar (pagar agora, aguardando o jogo, resolvidas) · F2 pagar (valor grande, chave Pix copiável, rateio) · F3 enviar comprovante (campos lidos no aparelho) · F4 comprovante já usado (RN10) · F5 enviado · F6 a receber · F7 revisar comprovante (triagem automática, dar baixa ou isentar, só após o encerramento) | — |
-| **G · Avisos** | G1 lista. O sino é a fonte de verdade; o push só entrega | — |
-| **H · Perfil e conta** | H1 perfil, com a linha "Aparência" (Escuro ou Claro), que não está no desenho · H2 editar (nome, telefone, chave Pix) · H3 trocar e-mail · H4 excluir conta bloqueada por cobranças em aberto (RN27) | `trocar_email_tela.dart` |
-| **X · Modo claro** | X1–X3 e as 12 telas de `VoleiIn Modo Claro.dc.html` | — |
+| Grupo | Telas | PNG | Arquivos atuais |
+| --- | --- | --- | --- |
+| **A · Acesso** | A1 Entrar (e-mail, senha, Google, "Esqueci a senha", topo amarelo com logo) · A2 Criar conta (nome obrigatório) · A3 Confirmar e-mail (seis casas, reenvio com contagem) · A4 Redefinir senha (RF41) | `telas/acesso/`: `a1-acesso.png`, `a2-criar_conta.png`, `a3-confirma_email.png`, `a4-redefinir_senha.png` | `entrar_tela.dart`, `etapa_codigo.dart` |
+| **B · Jogos e presença** | B1 Feed (herói do próximo jogo, blocos A pagar e A receber, lista da semana, filtro por grupo) · B2 Jogo antes de confirmar · B3 Jogo confirmado (cancelar, convidar) · B4 Sheet de cancelamento fora do prazo, com o custo em reais (RN02, RN03, RN05) · B5 Lista de espera (posição, sem cobrança) · B6 Vaga liberada (RF17, RN08) · B7 Marcar faltas (RF18, RN04) | — | `inicio_tela.dart` |
+| **C · Criar, editar e duplicar jogo** | C1 grupo, local, quadra, data, início, duração · C2 vagas, custo, valor por vaga ao vivo (arredonda para cima, mostra a sobra), prazo sem multa, quem recebe · C3 jogo avulso com chave Pix faltando (erro) · C4 editar (avisa N confirmados) · C5 duplicar (só data e horário) | — | — |
+| **D · Grupos e convites** | D1 lista · D2 grupo (regras, próximos jogos) · D3 membros (menu promover e remover, marca de débito só para admin) · D4 novo grupo · D5 editar regras · D6 convite (link multiuso, revogar) · D7 abrir convite · D8 convite revogado · D9 convite de jogo | — | — |
+| **E · Locais** | E1 busca e lista por proximidade · E2 detalhes (quadras, horários) | — | — |
+| **F · Cobranças** | F1 a pagar (pagar agora, aguardando o jogo, resolvidas) · F2 pagar (valor grande, chave Pix copiável, rateio) · F3 enviar comprovante (campos lidos no aparelho) · F4 comprovante já usado (RN10) · F5 enviado · F6 a receber · F7 revisar comprovante (triagem automática, dar baixa ou isentar, só após o encerramento) | — | — |
+| **G · Avisos** | G1 lista. O sino é a fonte de verdade; o push só entrega | — | — |
+| **H · Perfil e conta** | H1 perfil, com a linha "Aparência" (Escuro ou Claro), que não está no desenho · H2 editar (nome, telefone, chave Pix) · H3 trocar e-mail · H4 excluir conta bloqueada por cobranças em aberto (RN27) | — | `trocar_email_tela.dart` |
+| **X · Modo claro** | X1–X3 e 12 telas-chave no tema claro | — | — |
 
 ## Comportamento que o design pressupõe
 
@@ -373,7 +366,7 @@ scaffoldBackgroundColor: Color(0xFF0F1833)
 
 ## Decisões de implementação · 2026-10-21
 
-O handoff deixava quatro pontos em aberto. Nenhum deles era respondido pelos HTMLs, que carregam fontes e ícones do CDN do Google, recurso que só existe no navegador, nem pelo PRD. Foram fechados assim:
+O handoff deixava quatro pontos em aberto. Nenhum deles era respondido pela referência visual, que pressupunha fontes e ícones vindos do CDN do Google, recurso que só existe no navegador, nem pelo PRD. Foram fechados assim:
 
 - **Fontes em assets locais.** Os `.ttf` de Montserrat (700 e 800) e Bebas Neue ficam em `app/assets/fonts/`, declarados no `pubspec.yaml`. O motivo é funcionar offline desde a primeira abertura, sem pacote novo. Roboto é a fonte do sistema e não entra como asset. O `google_fonts` fica fora.
 - **Ícones pelo pacote `material_symbols_icons`.** Ele é gratuito e traz Material Symbols Rounded com o eixo de preenchimento, o que dá o `FILL 1` do item ativo da navegação igual ao design. Os `Icons.*` nativos não são usados nas telas novas.
