@@ -1,14 +1,14 @@
 # Design — VoleiIn
 
-Design system do app Android, versão 2. Vale para toda tela nova e para a reescrita das telas do passo 3 em diante. Substitui o tema atual de `app/lib/core/tema.dart` (`colorSchemeSeed: 0xFF1E88E5`, Material 3 padrão).
+Design system do app Android. Vale para toda tela nova e para a reescrita das telas do passo 3 em diante. Substitui o tema atual de `app/lib/core/tema.dart` (`colorSchemeSeed: 0xFF1E88E5`, Material 3 padrão).
 
 Este documento é a versão textual e normativa do design. As imagens de `telas/` são **referências visuais**: mostram cada tela com o id usado aqui (A1, B3, F2…) e os textos exatos. As telas são recriadas em Flutter a partir delas e deste documento.
 
-As imagens seguem o padrão `telas/<grupo>/<id>-<nome>.png`, uma tela por imagem, no tema escuro (ex.: `telas/acesso/a1-acesso.png`). A pasta é preenchida aos poucos, grupo a grupo; a cobertura atual está na tabela de [Telas](#telas).
+As imagens seguem o padrão `telas/<nn>-<grupo>/<ID>-<nome>.png`, uma tela por imagem, no tema escuro (ex.: `telas/01-acesso/A1-entrar.png`). As nove pastas estão completas: as 38 telas dos grupos A a H têm imagem. Só o grupo X (modo claro) não tem, porque é o mesmo desenho com a base clara — ver a tabela de [Telas](#telas).
 
 **Fidelidade alta.** Cores, tipografia, raios, espaçamentos e textos são finais. Nomes, valores e datas das telas são exemplos.
 
-**Precedência.** O design decide aparência e texto. Ele não decide regra. Se uma tela mostra um comportamento que diverge do [PRD](../prd.md), vale o PRD, e a divergência é registrada em "Decisões de implementação" no fim deste documento.
+**Precedência.** O design decide aparência e texto. Ele não decide regra. Se uma tela mostra um comportamento que diverge do [PRD](../prd.md), vale o PRD, e a divergência é registrada em ../`telas/<grupo_correspondente>/implementacao.md` 
 
 ## Princípios
 
@@ -308,19 +308,20 @@ Ainda não existe. Até o passo 10, usa-se um espaço reservado tracejado com o 
 
 ## Telas
 
-Os estados e os textos exatos estão nas imagens de `telas/`, sob o mesmo id. A coluna PNG indica os grupos que já têm imagem.
+Os estados e os textos exatos estão nas imagens de `telas/`, sob o mesmo id. A coluna PNG dá a pasta do grupo; dentro dela cada arquivo é `<ID>-<nome>.png`.
 
 | Grupo | Telas | PNG | Arquivos atuais |
 | --- | --- | --- | --- |
-| **A · Acesso** | A1 Entrar (e-mail, senha, Google, "Esqueci a senha", topo amarelo com logo) · A2 Criar conta (nome obrigatório) · A3 Confirmar e-mail (seis casas, reenvio com contagem) · A4 Redefinir senha (RF41) | `telas/acesso/`: `a1-acesso.png`, `a2-criar_conta.png`, `a3-confirma_email.png`, `a4-redefinir_senha.png` | `entrar_tela.dart`, `etapa_codigo.dart` |
-| **B · Jogos e presença** | B1 Feed (herói do próximo jogo, blocos A pagar e A receber, lista da semana, filtro por grupo) · B2 Jogo antes de confirmar · B3 Jogo confirmado (cancelar, convidar) · B4 Sheet de cancelamento fora do prazo, com o custo em reais (RN02, RN03, RN05) · B5 Lista de espera (posição, sem cobrança) · B6 Vaga liberada (RF17, RN08) · B7 Marcar faltas (RF18, RN04) | — | `inicio_tela.dart` |
-| **C · Criar, editar e duplicar jogo** | C1 grupo, local, quadra, data, início, duração · C2 vagas, custo, valor por vaga ao vivo (arredonda para cima, mostra a sobra), prazo sem multa, quem recebe · C3 jogo avulso com chave Pix faltando (erro) · C4 editar (avisa N confirmados) · C5 duplicar (só data e horário) | — | — |
-| **D · Grupos e convites** | D1 lista · D2 grupo (regras, próximos jogos) · D3 membros (menu promover e remover, marca de débito só para admin) · D4 novo grupo · D5 editar regras · D6 convite (link multiuso, revogar) · D7 abrir convite · D8 convite revogado · D9 convite de jogo | — | — |
-| **E · Locais** | E1 busca e lista por proximidade · E2 detalhes (quadras, horários) | — | — |
-| **F · Cobranças** | F1 a pagar (pagar agora, aguardando o jogo, resolvidas) · F2 pagar (valor grande, chave Pix copiável, rateio) · F3 enviar comprovante (campos lidos no aparelho) · F4 comprovante já usado (RN10) · F5 enviado · F6 a receber · F7 revisar comprovante (triagem automática, dar baixa ou isentar, só após o encerramento) | — | — |
-| **G · Avisos** | G1 lista. O sino é a fonte de verdade; o push só entrega | — | — |
-| **H · Perfil e conta** | H1 perfil, com a linha "Aparência" (Escuro ou Claro), que não está no desenho · H2 editar (nome, telefone, chave Pix) · H3 trocar e-mail · H4 excluir conta bloqueada por cobranças em aberto (RN27) | — | `trocar_email_tela.dart` |
-| **X · Modo claro** | X1–X3 e 12 telas-chave no tema claro | — | — |
+| **A · Acesso** | A1 Entrar (e-mail, senha, Google, "Esqueci a senha", topo amarelo com logo) · A2 Criar conta (nome obrigatório) · A3 Confirmar e-mail (seis casas, reenvio com contagem) · A4 Redefinir senha (RF41) | `telas/01-acesso/` (4) | `entrar_tela.dart`, `etapa_codigo.dart` |
+| **B · Jogos e presença** | B1 Feed (herói do próximo jogo, blocos A pagar e A receber, lista da semana, filtro por grupo) · B2 Jogo antes de confirmar · B3 Jogo confirmado (cancelar, convidar) · B4 Sheet de cancelamento fora do prazo, com o custo em reais (RN02, RN03, RN05) · B5 Lista de espera (posição, sem cobrança) · B6 Vaga liberada (RF17, RN08) · B7 Marcar faltas (RF18, RN04) | `telas/02-jogos/` (7) | `inicio_tela.dart` |
+| **C · Criar, editar e duplicar jogo** | C1 grupo, local, quadra, data, início, duração · C2 vagas, custo, valor por vaga ao vivo (arredonda para cima, mostra a sobra), prazo sem multa, quem recebe · C3 jogo avulso com chave Pix faltando (erro) · C4 editar (avisa N confirmados) · C5 duplicar (só data e horário) | `telas/03-criar-jogo/` (5) | — |
+| **D · Grupos** | D1 lista · D2 grupo (regras, próximos jogos) · D3 membros (menu promover e remover, marca de débito só para admin) · D4 novo grupo · D5 editar regras | `telas/04-grupos/` (5) | — |
+| **D · Convites** | D6 convite do grupo (link multiuso, revogar) · D7 abrir convite · D8 convite revogado · D9 convite de jogo | `telas/05-convites/` (4) | — |
+| **E · Locais** | E1 busca e lista por proximidade · E2 detalhes (quadras, horários) | `telas/06-locais/` (2) | — |
+| **F · Cobranças** | F1 a pagar (pagar agora, aguardando o jogo, resolvidas) · F2 pagar (valor grande, chave Pix copiável, rateio) · F3 enviar comprovante (campos lidos no aparelho) · F4 comprovante já usado (RN10) · F5 enviado · F6 a receber · F7 revisar comprovante (triagem automática, dar baixa ou isentar, só após o encerramento) | `telas/07-cobrancas/` (7) | — |
+| **G · Avisos** | G1 lista. O sino é a fonte de verdade; o push só entrega | `telas/08-avisos/` (1) | — |
+| **H · Perfil e conta** | H1 perfil, com a linha "Aparência" (Escuro ou Claro), que não está no desenho · H2 editar (nome, telefone, chave Pix) · H3 trocar e-mail · H4 excluir conta bloqueada por cobranças em aberto (RN27) | `telas/09-perfil/` (4) | `trocar_email_tela.dart` |
+| **X · Modo claro** | Sem imagem própria. Toda tela de A a H roda nas duas bases; o claro sai das regras da seção [Base clara](#base-clara) aplicadas ao PNG escuro do mesmo id | — | — |
 
 ## Comportamento que o design pressupõe
 
