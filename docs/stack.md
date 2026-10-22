@@ -124,7 +124,8 @@ supabase/
   seed.sql      locais, quadras e horários do piloto
   functions/enviar-push/
 app/            projeto Flutter
-  lib/core/     cliente Supabase, tema, rotas, fuso
+  lib/core/     cliente Supabase, cliente Google, tema, rotas, fuso; em widgets/,
+                as peças do design system que as telas repetem
   lib/dados/    modelos e repositórios, um por agregado, chamando as funções
   lib/features/ auth, feed, jogo, grupo, cobranca, comprovante, perfil, avisos
   assets/fonts/ Montserrat e Bebas Neue (docs/design/DESIGN.md)

@@ -11,6 +11,7 @@ Toda mutação é uma chamada RPC a uma função do banco. Leitura é consulta d
 ## Estrutura
 
 - `lib/core/` — cliente Supabase, cliente Google, tema, rotas, fuso.
+- `lib/core/widgets/` — peças do design system que as telas repetem (campo, código de seis casas, botão primário, avisos, barra interna). Cor e texto vêm do tema (`Theme.of`, `VoleiCores`), nunca de hex solto.
 - `lib/dados/` — modelos e repositórios, um por agregado, chamando as funções.
 - `lib/features/` — `auth`, `feed`, `jogo`, `grupo`, `cobranca`, `comprovante`, `perfil`, `avisos`.
 
