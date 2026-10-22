@@ -127,10 +127,11 @@ app/            projeto Flutter
   lib/core/     cliente Supabase, tema, rotas, fuso
   lib/dados/    modelos e repositórios, um por agregado, chamando as funções
   lib/features/ auth, feed, jogo, grupo, cobranca, comprovante, perfil, avisos
+  assets/fonts/ Montserrat e Bebas Neue (docs/design/DESIGN.md)
 web-convite/    página estática do GitHub Pages
 ```
 
-Pacotes do app, todos gratuitos: `supabase_flutter`, `google_sign_in`, `firebase_core`, `firebase_messaging`, `google_mlkit_text_recognition`, `image_picker`, `flutter_image_compress`, `geolocator`, `app_links`, `intl`, `flutter_riverpod`.
+Pacotes do app, todos gratuitos: `supabase_flutter`, `google_sign_in`, `firebase_core`, `firebase_messaging`, `google_mlkit_text_recognition`, `image_picker`, `flutter_image_compress`, `geolocator`, `app_links`, `intl`, `flutter_riverpod`, `material_symbols_icons` e `shared_preferences`. Os dois últimos vêm do design system ([`docs/design/DESIGN.md`](design/DESIGN.md)): os ícones Material Symbols Rounded e a escolha do modo claro, guardada no aparelho.
 
 O convite tem dois caminhos para a mesma coisa (RN22): um código curto que a pessoa cola na tela de entrar, e um link que a página do GitHub Pages redireciona para o app. O código existe porque é o que funciona quando o link não abre.
 
