@@ -3,7 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'auth_repositorio.dart';
 
-/// Leitura do próprio perfil. A linha nasce no primeiro acesso, pelo gatilho do banco.
+/// Leitura do próprio perfil. A linha nasce pelo gatilho do banco, na confirmação do
+/// cadastro com senha ou no primeiro acesso pelo Google.
 class PessoaRepositorio {
   PessoaRepositorio(this._cliente);
 

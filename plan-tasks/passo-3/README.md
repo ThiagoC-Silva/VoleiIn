@@ -42,7 +42,7 @@ O Google recusou publicar a tela de consentimento sem página inicial e Polític
 | [T02](02-config-auth-local.md) | Configuração local do Supabase Auth e modelos de e-mail | feito | T01 |
 | [T03](03-migracao-autenticacao.md) | Migração `autenticacao` e asserções | feito | T01 |
 | [T04](04-base-app-flutter.md) | Base do app Flutter | feito | T01, T11 |
-| [T05](05-tela-entrar.md) | Tela de entrar (RF01) | a fazer (reescrita) | T02, T03, T04 |
+| [T05](05-tela-entrar.md) | Tela de entrar (RF01) | feito | T02, T03, T04 |
 | [T06](06-tela-trocar-email.md) | Tela de trocar e-mail (RF35) | feito | T04 |
 | [T07](07-e2e-local.md) | Validação ponta a ponta no Supabase local | a fazer | T02, T03, T05, T06, T11, T12 |
 | [T08](08-projeto-remoto-brevo.md) | Projeto Supabase remoto e Brevo como SMTP | a fazer | T07 |

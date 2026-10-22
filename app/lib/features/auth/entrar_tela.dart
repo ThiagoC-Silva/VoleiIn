@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
+import '../../core/tema.dart';
+import '../../core/widgets/botao_primario.dart';
+import '../../core/widgets/campo_texto.dart';
+import '../../core/widgets/mensagem_erro.dart';
 import '../../dados/auth_repositorio.dart';
-import 'etapa_codigo.dart';
+import 'confirmar_email_tela.dart';
+import 'criar_conta_tela.dart';
+import 'execucao_auth.dart';
 
-enum _Etapa { email, nome, codigo }
-
-/// Entrar e criar conta numa tela só (RF01, RN21): e-mail, nome só quando o e-mail
-/// ainda não tem conta, e o código. Ao confirmar, a sessão muda e a raiz troca a tela.
+/// A1 — Entrar (RF01, RN21): e-mail e senha, ou a conta Google. Criar conta abre a A2.
+/// Ao entrar, a sessão muda e a raiz troca a tela sozinha.
 class EntrarTela extends ConsumerStatefulWidget {
   const EntrarTela({super.key});
 
@@ -15,163 +21,258 @@ class EntrarTela extends ConsumerStatefulWidget {
   ConsumerState<EntrarTela> createState() => _EntrarTelaState();
 }
 
-class _EntrarTelaState extends ConsumerState<EntrarTela> {
+class _EntrarTelaState extends ConsumerState<EntrarTela> with ExecucaoAuth {
   final _email = TextEditingController();
-  final _nome = TextEditingController();
-  var _etapa = _Etapa.email;
-  var _contaNova = false;
-  var _ocupado = false;
-  String? _erro;
+  final _senha = TextEditingController();
+  String? _erroEmail;
+  String? _erroSenha;
 
   @override
   void dispose() {
     _email.dispose();
-    _nome.dispose();
+    _senha.dispose();
     super.dispose();
   }
 
   String get _emailDigitado => _email.text.trim().toLowerCase();
 
-  Future<void> _executar(Future<void> Function(AuthRepositorio repositorio) acao) async {
+  void _abrir(Widget tela) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => tela));
+
+  void _entrar() {
     setState(() {
-      _ocupado = true;
-      _erro = null;
+      _erroEmail = _emailDigitado.contains('@') ? null : 'Confira o e-mail digitado.';
+      _erroSenha = _senha.text.length >= tamanhoMinimoSenha
+          ? null
+          : 'A senha precisa de pelo menos $tamanhoMinimoSenha caracteres.';
+      erro = null;
     });
-    try {
-      await acao(ref.read(authRepositorioProvider));
-    } on FalhaAuth catch (falha) {
-      if (mounted) setState(() => _erro = falha.mensagem);
-    } finally {
-      if (mounted) setState(() => _ocupado = false);
-    }
-  }
-
-  void _continuarEmail() {
-    if (!_emailDigitado.contains('@')) {
-      setState(() => _erro = 'Confira o e-mail digitado.');
-      return;
-    }
-    _executar((repositorio) async {
-      final existe = await repositorio.pedirCodigo(_emailDigitado);
-      setState(() {
-        _contaNova = !existe;
-        _etapa = existe ? _Etapa.codigo : _Etapa.nome;
-      });
+    if (_erroEmail != null || _erroSenha != null) return;
+    final email = _emailDigitado;
+    executar((repositorio) async {
+      final confirmado = await repositorio.entrar(email, _senha.text);
+      if (!confirmado && mounted) _abrir(ConfirmarEmailTela(email: email));
     });
   }
-
-  void _continuarNome() {
-    if (_nome.text.trim().isEmpty) {
-      setState(() => _erro = 'Informe como a turma vai te ver.');
-      return;
-    }
-    _executar((repositorio) async {
-      await repositorio.criarConta(_emailDigitado, _nome.text.trim());
-      setState(() => _etapa = _Etapa.codigo);
-    });
-  }
-
-  Future<void> _reenviar() => _executar((repositorio) async {
-        if (_contaNova) {
-          await repositorio.criarConta(_emailDigitado, _nome.text.trim());
-        } else {
-          await repositorio.pedirCodigo(_emailDigitado);
-        }
-      });
-
-  void _voltar() => setState(() {
-        _etapa = _Etapa.email;
-        _erro = null;
-      });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Entrar no VoleiIn'),
-        leading: _etapa == _Etapa.email
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.arrow_back),
-                tooltip: 'Trocar e-mail',
-                onPressed: _ocupado ? null : _voltar,
-              ),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            switch (_etapa) {
-              _Etapa.email => _etapaEmail(),
-              _Etapa.nome => _etapaNome(),
-              _Etapa.codigo => EtapaCodigo(
-                  destino: _emailDigitado,
-                  ocupado: _ocupado,
-                  aoConfirmar: (codigo) => _executar(
-                    (repositorio) => repositorio.confirmarCodigo(_emailDigitado, codigo),
+    final tema = Theme.of(context);
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            const SliverToBoxAdapter(child: _Topo()),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              sliver: SliverToBoxAdapter(
+                child: AutofillGroup(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      CampoTexto(
+                        rotulo: 'E-mail',
+                        chave: const Key('campo-email'),
+                        controller: _email,
+                        habilitado: !ocupado,
+                        teclado: TextInputType.emailAddress,
+                        preenchimento: const [AutofillHints.email],
+                        acao: TextInputAction.next,
+                        erro: _erroEmail,
+                        aoMudar: (_) => setState(() => _erroEmail = null),
+                      ),
+                      const SizedBox(height: 16),
+                      CampoTexto(
+                        rotulo: 'Senha',
+                        chave: const Key('campo-senha'),
+                        controller: _senha,
+                        senha: true,
+                        habilitado: !ocupado,
+                        preenchimento: const [AutofillHints.password],
+                        acao: TextInputAction.done,
+                        erro: _erroSenha,
+                        aoMudar: (_) => setState(() => _erroSenha = null),
+                        aoEnviar: (_) => _entrar(),
+                      ),
+                      const SizedBox(height: 24),
+                      if (erro != null) ...[
+                        MensagemErro(erro!),
+                        const SizedBox(height: 16),
+                      ],
+                      BotaoPrimario(texto: 'Entrar', ocupado: ocupado, aoTocar: _entrar),
+                      const SizedBox(height: 16),
+                      const _Ou(),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: ocupado ? null : () => executar((repositorio) => repositorio.entrarComGoogle()),
+                        icon: const Icon(Symbols.account_circle_rounded),
+                        label: const Text('Entrar com Google'),
+                      ),
+                    ],
                   ),
-                  aoReenviar: _reenviar,
                 ),
-            },
-            if (_erro != null) ...[
-              const SizedBox(height: 16),
-              Text(_erro!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ],
-            if (_ocupado) ...[
-              const SizedBox(height: 16),
-              const Center(child: CircularProgressIndicator()),
-            ],
+              ),
+            ),
+            // O rodapé desce até o fim da tela quando sobra espaço e segue o formulário
+            // quando não sobra, como com o teclado aberto.
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'Ainda não tem conta?',
+                          style: tema.textTheme.bodyLarge!.copyWith(color: tema.colorScheme.onSurfaceVariant),
+                        ),
+                        TextButton(
+                          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6)),
+                          onPressed: ocupado ? null : () => _abrir(CriarContaTela(email: _emailDigitado)),
+                          child: const Text('Criar conta'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _etapaEmail() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text('Informe seu e-mail. Vamos enviar um código para você entrar.'),
-        const SizedBox(height: 16),
-        TextField(
-          key: const Key('campo-email'),
-          controller: _email,
-          autofocus: true,
-          enabled: !_ocupado,
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          decoration: const InputDecoration(labelText: 'E-mail'),
-          onSubmitted: (_) => _continuarEmail(),
+/// Topo amarelo com o logo, o título e o círculo de decoração.
+class _Topo extends StatelessWidget {
+  const _Topo();
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final cores = VoleiCores.of(context);
+    final navy = cores.sobreBloco;
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+      child: ColoredBox(
+        color: cores.jogo,
+        child: Stack(
+          children: [
+            Positioned(
+              top: 48,
+              right: -24,
+              child: Container(
+                width: 190,
+                height: 190,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: navy.withValues(alpha: 0.08), width: 30),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(24, MediaQuery.paddingOf(context).top + 28, 24, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Logo(cor: navy),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Entrar no VoleiIn',
+                    style: tema.textTheme.headlineLarge!.copyWith(fontSize: 36, height: 1.15, color: navy),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Use seu e-mail e senha ou a conta Google.',
+                    style: tema.textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w500, color: navy),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        FilledButton(
-          onPressed: _ocupado ? null : _continuarEmail,
-          child: const Text('Continuar'),
-        ),
-      ],
+      ),
     );
   }
+}
 
-  Widget _etapaNome() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+/// Espaço reservado do logo, tracejado, até o logo existir (passo 10).
+class _Logo extends StatelessWidget {
+  const _Logo({required this.cor});
+
+  final Color cor;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _Tracejado(cor),
+      child: SizedBox.square(
+        dimension: 58,
+        child: Center(
+          child: Text(
+            'LOGO',
+            style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                  color: cor,
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Tracejado extends CustomPainter {
+  const _Tracejado(this.cor);
+
+  final Color cor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pincel = Paint()
+      ..color = cor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final contorno = Path()
+      ..addRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(16)));
+    const traco = 6.0;
+    const vao = 4.0;
+    for (final medida in contorno.computeMetrics()) {
+      for (var inicio = 0.0; inicio < medida.length; inicio += traco + vao) {
+        canvas.drawPath(medida.extractPath(inicio, inicio + traco), pincel);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Tracejado anterior) => anterior.cor != cor;
+}
+
+class _Ou extends StatelessWidget {
+  const _Ou();
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return Row(
       children: [
-        Text('$_emailDigitado ainda não tem conta. Como a turma vai te ver?'),
-        const SizedBox(height: 16),
-        TextField(
-          key: const Key('campo-nome'),
-          controller: _nome,
-          autofocus: true,
-          enabled: !_ocupado,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Nome'),
-          onSubmitted: (_) => _continuarNome(),
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'ou',
+            style: tema.textTheme.bodyLarge!.copyWith(color: tema.colorScheme.onSurfaceVariant),
+          ),
         ),
-        const SizedBox(height: 8),
-        FilledButton(
-          onPressed: _ocupado ? null : _continuarNome,
-          child: const Text('Criar conta'),
-        ),
+        const Expanded(child: Divider()),
       ],
     );
   }

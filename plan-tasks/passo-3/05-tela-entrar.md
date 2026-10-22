@@ -1,6 +1,6 @@
 # T05 — Tela de entrar (RF01)
 
-**Estado:** a fazer (reescrita) · **Depende de:** T02, T03, T04
+**Estado:** feito · **Depende de:** T02, T03, T04
 
 ## Objetivo
 
@@ -16,7 +16,7 @@ A tela entregue pedia o código a cada entrada. Ela entrou em `a9a99cf` e os tes
 
 ## O que falta
 
-- [ ] `app/lib/dados/auth_repositorio.dart`:
+- [x] `app/lib/dados/auth_repositorio.dart`:
   - saem `pedirCodigo` e o `criarConta` por `signInWithOtp`.
   - `entrar(email, senha)` — `signInWithPassword`.
     - Devolve `false` quando o serviço responde `email_not_confirmed`, depois de reenviar o código (`resend(type: OtpType.signup)`), para a tela ir à etapa do código.
@@ -33,7 +33,7 @@ A tela entregue pedia o código a cada entrada. Ela entrou em `a9a99cf` e os tes
     - os demais ficam;
     - os códigos reais se conferem na T07.
   - Comentário da classe de acordo: senha ou Google; código só no cadastro, na redefinição e na troca.
-- [ ] `app/lib/features/auth/entrar_tela.dart`:
+- [x] `app/lib/features/auth/entrar_tela.dart`:
   - etapas:
     - `entrar`: e-mail, senha, "Entrar", "Entrar com Google" e "Criar conta";
     - `cadastro`: nome, e-mail e senha;
@@ -41,8 +41,8 @@ A tela entregue pedia o código a cada entrada. Ela entrou em `a9a99cf` e os tes
   - `entrar` que devolve `false` vai direto ao código;
   - senha com `obscureText`; menos de 8 caracteres é recusada na tela, sem chamar o serviço;
   - voltar do cadastro e do código para `entrar`.
-- [ ] `app/lib/dados/pessoa_repositorio.dart`: comentário. A linha nasce na confirmação do cadastro ou no primeiro acesso pelo Google.
-- [ ] `app/test/auth_falso.dart` com os métodos novos, e `app/test/features/auth/entrar_tela_test.dart` refeito:
+- [x] `app/lib/dados/pessoa_repositorio.dart`: comentário. A linha nasce na confirmação do cadastro ou no primeiro acesso pelo Google.
+- [x] `app/test/auth_falso.dart` com os métodos novos, e `app/test/features/auth/entrar_tela_test.dart` refeito:
   - senha certa chama `entrar` com o e-mail aparado e minúsculo;
   - senha errada mostra a mensagem e fica na etapa;
   - conta não confirmada vai ao código; confirmar chama `confirmarCadastro`; reenvio depois de 60 s chama `reenviarConfirmacao`;
@@ -51,6 +51,18 @@ A tela entregue pedia o código a cada entrada. Ela entrou em `a9a99cf` e os tes
   - e-mail que já tem conta mostra a mensagem e não avança;
   - "Entrar com Google" chama `entrarComGoogle`;
   - voltar do código para `entrar`.
+
+## Feito em 2026-10-22
+
+As telas saíram com o design de `docs/design/telas/01-acesso/` (A1 Entrar, A2 Criar conta, A3 Confirmar e-mail), sobre a base escura do design system criada no commit anterior. Isso derruba o "sem especificação de tela" que a T10 ia registrar como aberto.
+
+- As três etapas viraram três rotas, como no desenho: a A1 é a raiz sem sessão; a A2 abre por cima e dá lugar à A3 (`pushReplacement`), então voltar do código leva à entrada. Ao confirmar o código, a A3 desfaz a pilha até a raiz, porque a `Raiz` troca a entrada pelo início por baixo dela.
+- O código usa as seis casas do design (`app/lib/core/widgets/campo_codigo.dart`), e a `etapa_codigo.dart` saiu: a contagem de 60 s foi para `reenvio_codigo.dart`.
+- `entrar` que encontra `over_email_send_rate_limit` ao reenviar o código de um cadastro pendente segue para a A3 mesmo assim: o código enviado há menos de um minuto continua valendo.
+- Os erros do `google_sign_in` já têm mensagem por código (`interrupted`/`uiUnavailable`, `clientConfigurationError`/`providerConfigurationError`, demais). O código real do SHA-1 ausente se confere na T07, cenário 22.
+- O `AuthRepositorio` recebe o `GoogleSignIn` no construtor, junto do `GoTrueClient`.
+- "Esqueci a senha" na A1 entra com a T12.
+- `dart analyze` sem erro; `flutter test` com 17 testes (A1, A2, A3 e troca de e-mail).
 
 ## O que já existe
 

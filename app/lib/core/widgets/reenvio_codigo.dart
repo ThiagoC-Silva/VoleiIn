@@ -67,28 +67,26 @@ class _ReenvioCodigoState extends State<ReenvioCodigo> {
             children: [
               Icon(contando ? Symbols.schedule_rounded : Symbols.refresh_rounded, size: 20, color: cor),
               const SizedBox(width: 8),
-              if (contando)
-                Text.rich(
-                  TextSpan(
-                    text: 'Reenviar código em ',
-                    children: [
-                      TextSpan(
-                        text: '$_segundos s',
-                        style: tema.textTheme.headlineSmall!.copyWith(
-                          fontSize: 22,
-                          color: tema.colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  style: estilo,
-                )
-              else
-                Text('Reenviar código', style: estilo),
+              Flexible(child: _texto(contando, estilo, tema)),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _texto(bool contando, TextStyle estilo, ThemeData tema) => contando
+      ? Text.rich(
+          TextSpan(
+            text: 'Reenviar código em ',
+            children: [
+              TextSpan(
+                text: '$_segundos s',
+                style: tema.textTheme.headlineSmall!.copyWith(fontSize: 22, color: tema.colorScheme.primary),
+              ),
+            ],
+          ),
+          style: estilo,
+        )
+      : Text('Reenviar código', style: estilo);
 }
