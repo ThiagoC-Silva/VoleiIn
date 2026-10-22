@@ -27,7 +27,7 @@ class InicioTela extends ConsumerWidget {
                 loading: () => 'Carregando…',
                 error: (_, _) => 'Não foi possível carregar o perfil.',
               ),
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
             Text(email),
             const SizedBox(height: 24),

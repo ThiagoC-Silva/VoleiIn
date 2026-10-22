@@ -82,7 +82,7 @@ class _ReenvioCodigoState extends State<ReenvioCodigo> {
             children: [
               TextSpan(
                 text: '$_segundos s',
-                style: tema.textTheme.headlineSmall!.copyWith(fontSize: 22, color: tema.colorScheme.primary),
+                style: tema.textTheme.displaySmall!.copyWith(fontSize: 22, color: tema.colorScheme.primary),
               ),
             ],
           ),

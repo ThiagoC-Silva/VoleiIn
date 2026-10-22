@@ -88,8 +88,9 @@ class VoleiCores extends ThemeExtension<VoleiCores> {
 }
 
 // Tokens de tipografia de DESIGN.md mapeados no TextTheme:
-//   display*      number.hero / xl / lg — Bebas Neue, só números
-//   headlineSmall number.md
+//   display*      number.hero / xl / lg — Bebas Neue, só números; number.md sai do
+//                 displaySmall com copyWith. Bebas fica fora dos headline*, que o
+//                 Material usa para texto, como o título dos diálogos.
 //   headlineLarge title.xl · headlineMedium title.lg — Montserrat 800
 //   titleLarge    barra interna · titleMedium title.md — Montserrat 700
 //   body*         body.lg / body.md / caption — Roboto
@@ -99,7 +100,6 @@ const _textos = TextTheme(
   displayLarge: TextStyle(fontFamily: 'BebasNeue', letterSpacing: 0.3, height: 1, fontSize: 84),
   displayMedium: TextStyle(fontFamily: 'BebasNeue', letterSpacing: 0.3, height: 1, fontSize: 56),
   displaySmall: TextStyle(fontFamily: 'BebasNeue', letterSpacing: 0.3, height: 1, fontSize: 40),
-  headlineSmall: TextStyle(fontFamily: 'BebasNeue', letterSpacing: 0.3, height: 1, fontSize: 26),
   headlineLarge: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: 0),
   headlineMedium: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: 0),
   titleLarge: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: 0),

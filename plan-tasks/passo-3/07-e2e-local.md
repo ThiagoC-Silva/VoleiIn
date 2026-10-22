@@ -76,6 +76,7 @@ Dois trilhos:
 ## Anotar para a T10
 
 - O código real que o Auth devolve em cada erro. Ajustar `_traduzir` (T05 e T12) se diferir.
+- O teclado das seis casas do código (A3 e A4). No emulador, em 2026-10-22, o Gboard entrou em modo de teclado físico depois de teclas injetadas por `adb input` e passou a abrir recolhido em qualquer campo, inclusive nos de texto da A1, mesmo depois de reiniciado; o editor chegava numérico (`inputType=0x2`). No celular, conferir que o teclado numérico abre inteiro ao chegar na A3 e ao tocar nas casas, e que colar o código funciona.
 - Cenários 6, 11 e 20: o comportamento observado vai para "Decisões de implementação" no `progresso.md`.
 - Cenário 19: se a senha do impostor sobreviver à vinculação, isso contraria a RN21 e é a premissa do cadastro confirmado por código (`docs/prd.md`, decisão Cadastro com senha). Parar e reabrir a decisão antes de seguir.
 - Se um cadastro não confirmado criar `pessoa`, é defeito da T02/T03, não decisão aberta.
