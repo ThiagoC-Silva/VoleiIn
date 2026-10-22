@@ -4,13 +4,26 @@ Aplicativo Android em Flutter que substitui a organização de jogos de vôlei f
 
 ## Fonte de verdade
 
-Os três documentos de `docs/` estão fechados. Leia o que for relevante antes de implementar.
+Os documentos de `docs/` estão fechados. Leia o que for relevante antes de implementar.
 
 - `docs/prd.md` — **normativo**: requisitos (RF01–RF40), regras de negócio (RN01–RN30), requisitos não funcionais (RNF01–RNF12), decisões tomadas e o que ficou fora do MVP. Em qualquer divergência, o PRD vence.
 - `docs/modelo-de-dados.md` — as treze entidades, com diagrama, chaves estrangeiras, unicidades, catálogo de enums e as invariantes que o diagrama não expressa.
 - `docs/stack.md` — onde cada regra mora, as funções previstas, a estrutura de pastas e a ordem de implementação.
+- `docs/design/DESIGN.md` — **normativo para aparência e texto** (cores, tipografia, componentes, textos exatos), com as telas de referência em `docs/design/telas/`. Não decide regra: em comportamento, o PRD vence.
 
 IMPORTANT: se uma regra parecer ausente, ambígua ou contraditória, pergunte. Não invente regra, campo, enum nem entidade que não esteja nos documentos — lacuna aqui é decisão de produto, não de código.
+
+## Telas
+
+IMPORTANT: ao criar ou editar qualquer tela, widget visual ou o tema, siga este fluxo antes de escrever código:
+
+1. Leia `docs/design/DESIGN.md` inteiro.
+2. Ache o id da tela (A1, B3, F2…) na tabela "Telas" do `DESIGN.md`. Se o pedido não deixar claro qual é, pergunte.
+3. Abra o PNG com `Read`: `docs/design/telas/<pasta-do-grupo>/<ID>-*.png`. Os textos exatos e os estados estão na imagem, não só no documento.
+4. Leia `docs/design/telas/<pasta-do-grupo>/implementacao.md`, se existir: ele registra onde o app diverge da imagem ou completa o que ela não mostra.
+5. Se a imagem contradisser o PRD, vale o PRD; registre a divergência no `implementacao.md` do grupo (crie-o se faltar).
+
+Sem PNG (modo claro, carregamento, vazio, erro), valem as regras do `DESIGN.md` e o `implementacao.md` do grupo; se nenhum cobrir o caso, pergunte em vez de inventar. Detalhes de código (widgets, tema, ícones) estão em `app/CLAUDE.md`.
 
 ## Arquitetura em três peças
 

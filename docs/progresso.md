@@ -74,4 +74,6 @@ O que foi entregue, em duas ou três linhas.
 **Arquivos:** os caminhos principais, não a lista completa.
 **Decisões de implementação:** o que foi escolhido aqui e não está no PRD, com o motivo.
 **Aberto:** o que ficou pendente e por quê.
+
+Ao fechar uma tela: divergência em relação ao desenho vai para `docs/design/telas/<grupo>/implementacao.md`, não para cá.
 -->

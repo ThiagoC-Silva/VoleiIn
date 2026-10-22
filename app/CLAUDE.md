@@ -15,6 +15,15 @@ Toda mutação é uma chamada RPC a uma função do banco. Leitura é consulta d
 - `lib/dados/` — modelos e repositórios, um por agregado, chamando as funções.
 - `lib/features/` — `auth`, `feed`, `jogo`, `grupo`, `cobranca`, `comprovante`, `perfil`, `avisos`.
 
+## Telas e design
+
+- Antes de criar ou editar tela, siga o fluxo da seção "Telas" do `CLAUDE.md` da raiz: `docs/design/DESIGN.md`, o PNG da tela em `docs/design/telas/` e o `implementacao.md` do grupo.
+- Reutilize os widgets de `lib/core/widgets/` antes de criar um novo; se uma peça se repetir em duas telas, ela vai para lá.
+- Cor e estilo de texto vêm de `Theme.of` e `VoleiCores` (`lib/core/tema.dart`), nunca de hex solto.
+- Ícones só de `material_symbols_icons`; `Icons.*` do Material não entra nas telas novas.
+- Bebas Neue só para números; texto em frase usa Montserrat ou Roboto (`DESIGN.md`, Tipografia).
+- Toda tela roda nos dois modos, escuro e claro.
+
 ## Convenções
 
 - Estado com `flutter_riverpod`.
