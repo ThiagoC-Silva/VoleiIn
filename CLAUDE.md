@@ -46,11 +46,17 @@ Documentação antes de código: não comece a implementar enquanto uma decisão
 
 ## Comandos
 
-Os comandos do Supabase estão em `supabase/CLAUDE.md`. Os do Flutter rodam a partir de `app/`:
+Os comandos do Supabase estão em `supabase/CLAUDE.md`. Os do Flutter rodam a partir de `app/`.
+
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `GOOGLE_WEB_CLIENT_ID` são resolvidos na compilação, não em tempo de execução (ver `app/lib/core/supabase.dart` e `app/lib/core/google.dart`), e ficam em `app/dart_defines.json`. Esse arquivo é local e fica fora do git, porque o endereço muda com a rede e a chave muda com o Supabase local de cada máquina. Numa máquina nova, copie `app/dart_defines.example.json` para `app/dart_defines.json` e preencha:
+- `SUPABASE_URL`: `http://<ip-da-máquina>:54321`, com o IP de agora (ver abaixo);
+- `SUPABASE_PUBLISHABLE_KEY`: a chave pública de `supabase status`;
+- `GOOGLE_WEB_CLIENT_ID`: o id do cliente web do Google, o mesmo `client_id` de `[auth.external.google]` em `supabase/config.toml`.
 
 | Comando | O que faz |
 | --- | --- |
-| `flutter run --dart-define=SUPABASE_URL=http://10.0.2.2:54321 --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave> --dart-define=GOOGLE_WEB_CLIENT_ID=<id>` | Roda no emulador falando com o Supabase local; a chave sai de `supabase status`, `10.0.2.2` é o host visto de dentro do emulador, e o id é o do cliente web do Google, o mesmo `client_id` de `[auth.external.google]` em `supabase/config.toml` |
+| `flutter run --dart-define-from-file=dart_defines.json` | Roda no aparelho conectado falando com o Supabase local |
+| `flutter run --dart-define-from-file=dart_defines.json --dart-define=SUPABASE_URL=http://10.0.2.2:54321` | Roda no emulador; `10.0.2.2` é o host visto de dentro dele, e o `--dart-define` vence o valor do arquivo |
 | `flutter test` | Testes de widget |
 | `dart analyze` | Análise estática, com as mesmas regras de `analysis_options.yaml` |
 
@@ -58,7 +64,7 @@ Não use `flutter analyze`: ele fala com o servidor de análise por LSP, e o "Á
 
 ### Celular físico, por depuração sem fio
 
-`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `GOOGLE_WEB_CLIENT_ID` são resolvidos na compilação, não em tempo de execução (ver `app/lib/core/supabase.dart` e `app/lib/core/google.dart`): cada `flutter run` precisa dos três, e o endereço depende da rede em uso no momento, não da máquina. Isso vale tanto trocando de rede (residencial ou da empresa) quanto trocando de máquina (de casa ou da empresa).
+O endereço em `SUPABASE_URL` depende da rede em uso no momento, não da máquina. Isso vale tanto trocando de rede (residencial ou da empresa) quanto trocando de máquina (de casa ou da empresa).
 
 Por aparelho e por máquina, uma vez:
 1. No celular, Opções do desenvolvedor → Depuração sem fio → parear com código.
@@ -74,7 +80,7 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 
 O APK release também assina com a chave de debug de quem o gera (`signingConfig = debug` em `app/android/app/build.gradle.kts`), até a chave própria do passo 10.
 
-A cada troca de rede (inclusive religando o Wi-Fi), o IP da máquina muda e precisa ser pego de novo:
+A cada troca de rede (inclusive religando o Wi-Fi), o IP da máquina muda e precisa ser pego de novo e atualizado em `SUPABASE_URL` no `app/dart_defines.json`:
 
 ```
 hostname -I | awk '{print $1}'
@@ -83,10 +89,7 @@ hostname -I | awk '{print $1}'
 A chave pública não muda com a rede — só se o Supabase local for recriado do zero (`supabase status` mostra a atual). O comando completo:
 
 ```
-flutter run -d <id-do-aparelho-em-'flutter devices'> \
-  --dart-define=SUPABASE_URL=http://<ip-da-máquina-agora>:54321 \
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave-de-supabase-status> \
-  --dart-define=GOOGLE_WEB_CLIENT_ID=<client_id-de-auth.external.google-no-config.toml>
+flutter run -d <id-do-aparelho-em-'flutter devices'> --dart-define-from-file=dart_defines.json
 ```
 
 Pré-requisito em qualquer rede: celular e máquina não podem estar isolados um do outro. Redes residenciais costumam deixar isso livre; redes de empresa costumam isolar ou bloquear porta fora do padrão por política — teste abrindo `http://<ip-da-máquina>:54321` no navegador do celular antes de insistir no `flutter run`. Se não abrir, é a rede, não o app.

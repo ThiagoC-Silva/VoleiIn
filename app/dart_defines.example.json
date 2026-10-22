@@ -1,0 +1,5 @@
+{
+  "SUPABASE_URL": "http://<ip-da-máquina-agora>:54321",
+  "SUPABASE_PUBLISHABLE_KEY": "<chave-de-supabase-status>",
+  "GOOGLE_WEB_CLIENT_ID": "<client_id-de-auth.external.google-no-config.toml>"
+}
