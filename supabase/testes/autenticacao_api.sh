@@ -96,28 +96,44 @@ novas() {  # <email> [assunto]
     grep -vxF -f "$LIDAS"
 }
 
-# Seis casas do e-mail mais novo ainda não lido. Use como `c=$(codigo_de …) || exit 1`.
-codigo_de() {  # <email> <assunto>
-  local codigo
-  if [[ -z $MAILPIT_URL ]]; then
-    read -rp "Código de \"$2\" enviado a $1: " codigo </dev/tty
-    echo "$codigo"
-    return
-  fi
+# Espera por até 10 s o e-mail mais novo ainda não lido, marca-o como lido e devolve o id.
+# Use como `id=$(chegou …) || exit 1`.
+chegou() {  # <email> <assunto>
   local ids i
   for ((i = 0; i < 20; i++)); do
     ids=$(novas "$1" "$2")
     if [[ -n $ids ]]; then
       echo "$ids" >>"$LIDAS"
-      codigo=$(curl -sf "$MAILPIT_URL/api/v1/message/$(head -n1 <<<"$ids")" |
-        jq -r .Text | grep -oE '\b[0-9]{6}\b' | head -n1)
-      [[ -n $codigo ]] || falha "\"$2\" para $1 chegou sem código de seis casas"
-      echo "$codigo"
+      head -n1 <<<"$ids"
       return
     fi
     sleep 0.5
   done
   falha "\"$2\" não chegou a $1 em 10 s"
+}
+
+# Seis casas do e-mail mais novo ainda não lido. Use como `c=$(codigo_de …) || exit 1`.
+codigo_de() {  # <email> <assunto>
+  local codigo id
+  if [[ -z $MAILPIT_URL ]]; then
+    read -rp "Código de \"$2\" enviado a $1: " codigo </dev/tty
+    echo "$codigo"
+    return
+  fi
+  id=$(chegou "$1" "$2") || exit 1
+  codigo=$(curl -sf "$MAILPIT_URL/api/v1/message/$id" |
+    jq -r .Text | grep -oE '\b[0-9]{6}\b' | head -n1)
+  [[ -n $codigo ]] || falha "\"$2\" para $1 chegou sem código de seis casas"
+  echo "$codigo"
+}
+
+# Confere que o aviso chegou; sem MAILPIT_URL, conta como pulada.
+espera_aviso() {  # <email> <assunto>
+  if [[ -z $MAILPIT_URL ]]; then
+    PULADAS=$((PULADAS + 1))
+    return
+  fi
+  chegou "$1" "$2" >/dev/null || exit 1
 }
 
 sem_email() {  # <email> [assunto]; assunto vazio vale para qualquer e-mail
@@ -163,8 +179,8 @@ json_entrada() {  # <email> <senha>
 
 # --- Cenários ---------------------------------------------------------------------------
 # Cada cenário que envia e-mail tem a sua pessoa, para nenhum esperar os 60 s de envio de
-# outro. A Carla do cenário 1 serve a 2, 3 e 5, que não enviam nada; se o 1 não foi pedido,
-# ela é criada do mesmo jeito. O Fábio, pendente, serve a 8 e 7 do mesmo modo.
+# outro. A Carla do cenário 1 serve a 2, 3 e 5, que não enviam nada, e ao 12; se o 1 não foi
+# pedido, ela é criada do mesmo jeito. O Fábio, pendente, serve a 8 e 7 do mesmo modo.
 
 CARLA=
 CARLA_ID=
@@ -382,6 +398,158 @@ cenario_7() {  # Código errado, código certo, o mesmo código de novo e, opcio
   anota 7 "código depois de 301 s: $STATUS $(campo .error_code)"
 }
 
+json_email() {  # <email>
+  jq -n --arg e "$1" '{email: $e}'
+}
+
+json_senha() {  # <senha>
+  jq -n --arg s "$1" '{password: $s}'
+}
+
+json_renovacao() {  # <refresh_token>
+  jq -n --arg r "$1" '{refresh_token: $r}'
+}
+
+ASSUNTO_REDEFINICAO='Seu código para redefinir a senha do VoleiIn'
+ASSUNTO_SENHA_TROCADA='A senha da sua conta no VoleiIn foi trocada'
+
+# Cadastro e confirmação, sem as conferências do cenário 1. Deixa o id em CONFIRMADO_ID.
+cadastro_confirmado() {  # <email> <senha> <nome> <cenário>
+  local codigo
+  chamar POST /signup "$(json_cadastro "$1" "$2" "$3")"
+  espera_status "$4: cadastro de $3" 200
+  CONFIRMADO_ID=$(campo '.id // .user.id')
+  codigo=$(codigo_de "$1" 'Confirme seu cadastro no VoleiIn') || exit 1
+  chamar POST /verify "$(json_codigo email "$1" "$codigo")"
+  espera_status "$4: confirmação de $3" 200
+}
+
+# O começo do `redefinirSenha` do app: pede o código e o confere, o que cria a sessão A.
+# Deixa SESSAO_TOKEN e SESSAO_RENOVACAO, e o corpo do /recover em RESPOSTA_RECUPERACAO,
+# que o cenário 10 compara. O /recover logo depois do cadastro passa: os 60 s entre
+# envios contam por tipo de e-mail, não por usuário.
+redefinicao() {  # <email> <cenário>
+  local codigo
+  chamar POST /recover "$(json_email "$1")"
+  espera_status "$2: pedido de redefinição" 200
+  RESPOSTA_RECUPERACAO=$RESPOSTA
+  codigo=$(codigo_de "$1" "$ASSUNTO_REDEFINICAO") || exit 1
+  chamar POST /verify "$(json_codigo recovery "$1" "$codigo")"
+  espera_status "$2: conferência do código de redefinição" 200
+  SESSAO_TOKEN=$(campo .access_token)
+  SESSAO_RENOVACAO=$(campo .refresh_token)
+  [[ -n $SESSAO_TOKEN ]] || falha "$2: código de redefinição sem sessão — $RESPOSTA"
+}
+
+renovacao_recusada() {  # <descrição> <refresh_token> <cenário>
+  chamar POST '/token?grant_type=refresh_token' "$(json_renovacao "$2")"
+  [[ $STATUS == 2* ]] && falha "$3: $1 renovou o token — $RESPOSTA"
+  anota "$3" "$1: $STATUS $(campo .error_code)"
+}
+
+cenario_9() {  # Bruno redefine a senha com outras duas sessões abertas e aparelhos de push
+  local bruno bruno_id senha=senha-do-bruno nova=senha-nova-do-bruno b c
+  bruno=$(email_unico bruno)
+  cadastro_confirmado "$bruno" "$senha" Bruno 9
+  bruno_id=$CONFIRMADO_ID
+
+  # B e C: entradas por senha, como em outros dois aparelhos.
+  chamar POST '/token?grant_type=password' "$(json_entrada "$bruno" "$senha")"
+  espera_status '9: entrada da sessão B' 200
+  b=$(campo .refresh_token)
+  chamar POST '/token?grant_type=password' "$(json_entrada "$bruno" "$senha")"
+  espera_status '9: entrada da sessão C' 200
+  c=$(campo .refresh_token)
+  if [[ -n $PSQL ]]; then
+    banco "insert into public.dispositivo_push (pessoa_id, token_fcm)
+           values ('$bruno_id', 'fcm-inventado-1-$EPOCA'), ('$bruno_id', 'fcm-inventado-2-$EPOCA')" \
+      >/dev/null || exit 1
+  fi
+  confere_banco '9: aparelhos antes da troca' \
+    "select count(*) from public.dispositivo_push where pessoa_id = '$bruno_id'" 2
+
+  redefinicao "$bruno" 9
+  chamar PUT /user "$(json_senha "$nova")" "$SESSAO_TOKEN"
+  espera_status '9: troca da senha' 200
+  # Só anota: diz se a troca sozinha já derruba as outras sessões, antes do logout do app.
+  chamar POST '/token?grant_type=refresh_token' "$(json_renovacao "$c")"
+  anota 9 "renovação de C depois da troca e antes do logout: $STATUS $(campo .error_code)"
+  [[ $STATUS == 200 ]] && c=$(campo .refresh_token)
+  chamar POST '/logout?scope=others' '' "$SESSAO_TOKEN"
+  espera_status '9: saída das outras sessões' 204
+
+  renovacao_recusada 'renovação de B depois do logout' "$b" 9
+  renovacao_recusada 'renovação de C depois do logout' "$c" 9
+  chamar POST '/token?grant_type=refresh_token' "$(json_renovacao "$SESSAO_RENOVACAO")"
+  espera_status '9: renovação da sessão A' 200
+  confere_banco '9: aparelhos depois da troca' \
+    "select count(*) from public.dispositivo_push where pessoa_id = '$bruno_id'" 0
+  espera_aviso "$bruno" "$ASSUNTO_SENHA_TROCADA"
+
+  chamar POST '/token?grant_type=password' "$(json_entrada "$bruno" "$senha")"
+  espera_status '9: senha antiga' 400
+  espera_erro '9: senha antiga' invalid_credentials
+  chamar POST '/token?grant_type=password' "$(json_entrada "$bruno" "$nova")"
+  espera_status '9: senha nova' 200
+}
+
+cenario_10() {  # Redefinição para e-mail sem conta
+  # Compara com o /recover mais recente da rodada; sozinho, pede um para a Carla.
+  if [[ -z ${RESPOSTA_RECUPERACAO:-} ]]; then
+    carla_confirmada
+    chamar POST /recover "$(json_email "$CARLA")"
+    espera_status '10: pedido de redefinição da Carla' 200
+    RESPOSTA_RECUPERACAO=$RESPOSTA
+  fi
+  local ninguem
+  ninguem=$(email_unico ninguem)
+  chamar POST /recover "$(json_email "$ninguem")"
+  espera_status '10: pedido para e-mail sem conta' 200
+  espera_igual '10: corpo igual ao de e-mail com conta' "$RESPOSTA" "$RESPOSTA_RECUPERACAO"
+  sem_email "$ninguem"
+}
+
+cenario_11() {  # Senha nova igual à atual
+  local gil senha=senha-do-gil
+  gil=$(email_unico gil)
+  cadastro_confirmado "$gil" "$senha" Gil 11
+  redefinicao "$gil" 11
+  chamar PUT /user "$(json_senha "$senha")" "$SESSAO_TOKEN"
+  espera_status '11: senha igual à atual' 422
+  espera_erro '11: senha igual à atual' same_password
+  chamar GET /user '' "$SESSAO_TOKEN"
+  anota 11 "sessão do código depois do same_password, GET /user: $STATUS $(campo .error_code)"
+  chamar POST '/token?grant_type=refresh_token' "$(json_renovacao "$SESSAO_RENOVACAO")"
+  anota 11 "sessão do código depois do same_password, renovação: $STATUS $(campo .error_code)"
+  sem_email "$gil" "$ASSUNTO_SENHA_TROCADA"
+}
+
+cenario_12() {  # Troca de senha sem código, por sessão com mais de 24 h
+  local nova=senha-nova-da-carla
+  carla_confirmada
+  if [[ -n $PSQL ]]; then
+    chamar POST '/token?grant_type=password' "$(json_entrada "$CARLA" "$CARLA_SENHA")"
+    espera_status '12: entrada da Carla' 200
+    local token
+    token=$(campo .access_token)
+    banco "update auth.sessions set created_at = now() - interval '25 hours'
+           where user_id = '$CARLA_ID'" >/dev/null || exit 1
+    chamar PUT /user "$(json_senha "$nova")" "$token"
+    espera_status '12: troca por sessão de 25 h' 400
+    espera_erro '12: troca por sessão de 25 h' reauthentication_needed
+  else
+    PULADAS=$((PULADAS + 1))
+  fi
+
+  # O caminho do app: o código de redefinição cria sessão nova, e a troca passa sem
+  # reautenticação. Por isso o app não tem tela de reautenticação.
+  redefinicao "$CARLA" 12
+  chamar PUT /user "$(json_senha "$nova")" "$SESSAO_TOKEN"
+  espera_status '12: troca pela sessão do código' 200
+  CARLA_SENHA=$nova
+  espera_aviso "$CARLA" "$ASSUNTO_SENHA_TROCADA"
+}
+
 roda() {  # <cenário>
   [[ -z $SO || $SO == *",$1,"* ]] || return 0
   "cenario_$1"
@@ -399,6 +567,11 @@ roda 6
 # O 8 reenvia ao Fábio antes da confirmação que o 7 faz.
 roda 8
 roda 7
+roda 9
+roda 11
+roda 12
+# O 10 compara com o /recover de 9, 11 ou 12.
+roda 10
 
 ((CENARIOS)) || falha "nenhum cenário com --so ${SO:1:-1}"
 if [[ -s $ANOTACOES ]]; then
