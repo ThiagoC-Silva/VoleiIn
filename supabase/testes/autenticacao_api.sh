@@ -164,7 +164,7 @@ json_entrada() {  # <email> <senha>
 # --- Cenários ---------------------------------------------------------------------------
 # Cada cenário que envia e-mail tem a sua pessoa, para nenhum esperar os 60 s de envio de
 # outro. A Carla do cenário 1 serve a 2, 3 e 5, que não enviam nada; se o 1 não foi pedido,
-# ela é criada do mesmo jeito.
+# ela é criada do mesmo jeito. O Fábio, pendente, serve a 8 e 7 do mesmo modo.
 
 CARLA=
 CARLA_ID=
@@ -185,7 +185,7 @@ cenario_1() {  # Carla cria conta com senha
 
   local codigo
   codigo=$(codigo_de "$CARLA" 'Confirme seu cadastro no VoleiIn') || exit 1
-  chamar POST /verify "$(jq -n --arg e "$CARLA" --arg t "$codigo" '{type: "email", email: $e, token: $t}')"
+  chamar POST /verify "$(json_codigo email "$CARLA" "$codigo")"
   espera_status '1: confirmação do código' 200
   [[ -n $(campo .access_token) ]] || falha "1: confirmação sem sessão — $RESPOSTA"
   espera_igual '1: usuário da sessão' "$(campo .user.id)" "$CARLA_ID"
@@ -243,6 +243,145 @@ cenario_invalido() {  # Cadastro com e-mail inválido
   esac
 }
 
+json_codigo() {  # <tipo> <email> <código>
+  jq -n --arg y "$1" --arg e "$2" --arg t "$3" '{type: $y, email: $e, token: $t}'
+}
+
+json_reenvio() {  # <email>
+  jq -n --arg e "$1" '{type: "signup", email: $e}'
+}
+
+ate_passar() {  # <segundos> <epoch em s>; dorme até <segundos> depois do instante dado
+  local falta=$(($2 + $1 - $(date +%s)))
+  ((falta > 0)) && sleep "$falta"
+}
+
+cenario_6() {  # Eva cadastra e não confirma; depois entra com a senha
+  local eva eva_id senha=senha-da-eva enviado codigo
+  eva=$(email_unico eva)
+  chamar POST /signup "$(json_cadastro "$eva" "$senha" Eva)"
+  espera_status '6: cadastro' 200
+  enviado=$(date +%s)
+  eva_id=$(campo '.id // .user.id')
+  # Consome o primeiro código, para o reenvio não ser confundido com ele.
+  codigo_de "$eva" 'Confirme seu cadastro no VoleiIn' >/dev/null || exit 1
+
+  chamar POST '/token?grant_type=password' "$(json_entrada "$eva" "$senha")"
+  espera_status '6: entrada sem confirmar' 400
+  espera_erro '6: entrada sem confirmar' email_not_confirmed
+
+  # É o reenvio que o `entrar` do app engole: o código de menos de um minuto vale.
+  chamar POST /resend "$(json_reenvio "$eva")"
+  espera_status '6: reenvio logo depois' 429
+  espera_erro '6: reenvio logo depois' over_email_send_rate_limit
+
+  # Os 61 s correm junto com os da eva2, que se cadastra de novo antes e depois deles.
+  cadastro_duplo_antes
+
+  ate_passar 61 "$enviado"
+  chamar POST /resend "$(json_reenvio "$eva")"
+  espera_status '6: reenvio depois de 61 s' 200
+  codigo=$(codigo_de "$eva" 'Confirme seu cadastro no VoleiIn') || exit 1
+  chamar POST /verify "$(json_codigo email "$eva" "$codigo")"
+  espera_status '6: confirmação do código reenviado' 200
+  espera_igual '6: usuário da sessão' "$(campo .user.id)" "$eva_id"
+
+  cadastro_duplo_depois
+}
+
+# A eva2 repete o /signup com outra senha antes de confirmar, uma vez antes de 60 s e
+# outra depois, cada vez com outro nome. Só anota: a resposta, se veio código novo e qual
+# senha e qual nome valem no fim.
+EVA2=
+EVA2_CODIGO=
+EVA2_SENHAS=(senha-primeira senha-segunda senha-terceira)
+
+cadastro_de_novo() {  # <senha> <nome> <quando>
+  local resposta
+  chamar POST /signup "$(json_cadastro "$EVA2" "$1" "$2")"
+  resposta="$STATUS $(campo .error_code)"
+  [[ $STATUS == 200 ]] && resposta+=" (mesmo id: $([[ $(campo '.id // .user.id') == "$EVA2_ID" ]] && echo sim || echo não))"
+  sleep 5
+  if [[ -n $(novas "$EVA2" || true) ]]; then
+    EVA2_CODIGO=$(codigo_de "$EVA2" 'Confirme seu cadastro no VoleiIn') || exit 1
+    anota 6 "segundo cadastro $3: $resposta; enviou código novo"
+  else
+    anota 6 "segundo cadastro $3: $resposta; nenhum código novo"
+  fi
+}
+
+cadastro_duplo_antes() {
+  EVA2=$(email_unico eva2)
+  chamar POST /signup "$(json_cadastro "$EVA2" "${EVA2_SENHAS[0]}" 'Eva Primeira')"
+  espera_status '6: cadastro da eva2' 200
+  EVA2_ID=$(campo '.id // .user.id')
+  EVA2_ENVIADO=$(date +%s)
+  EVA2_CODIGO=$(codigo_de "$EVA2" 'Confirme seu cadastro no VoleiIn') || exit 1
+  cadastro_de_novo "${EVA2_SENHAS[1]}" 'Eva Segunda' 'antes de 60 s'
+}
+
+cadastro_duplo_depois() {
+  local senha
+  ate_passar 61 "$EVA2_ENVIADO"
+  cadastro_de_novo "${EVA2_SENHAS[2]}" 'Eva Terceira' 'depois de 60 s'
+  chamar POST /verify "$(json_codigo email "$EVA2" "$EVA2_CODIGO")"
+  anota 6 "confirmação da eva2 com o código mais novo: $STATUS $(campo .error_code)"
+  for senha in "${EVA2_SENHAS[@]}"; do
+    chamar POST '/token?grant_type=password' "$(json_entrada "$EVA2" "$senha")"
+    anota 6 "depois de confirmar, $senha: $STATUS $(campo .error_code)"
+  done
+  [[ -n $PSQL ]] &&
+    anota 6 "pessoa.nome da eva2: $(banco "select nome from public.pessoa where id = '$EVA2_ID'")"
+}
+
+FABIO=
+FABIO_CODIGO=
+
+fabio_pendente() {  # Fábio cadastrado, com o código recebido e sem confirmar
+  [[ -z $FABIO ]] || return 0
+  FABIO=$(email_unico fabio)
+  chamar POST /signup "$(json_cadastro "$FABIO" senha-do-fabio Fábio)"
+  espera_status 'Fábio: cadastro' 200
+  FABIO_CODIGO=$(codigo_de "$FABIO" 'Confirme seu cadastro no VoleiIn') || exit 1
+}
+
+cenario_8() {  # Reenvio antes de 60 s do cadastro
+  fabio_pendente
+  chamar POST /resend "$(json_reenvio "$FABIO")"
+  espera_status '8: reenvio antes de 60 s' 429
+  espera_erro '8: reenvio antes de 60 s' over_email_send_rate_limit
+}
+
+cenario_7() {  # Código errado, código certo, o mesmo código de novo e, opcional, vencido
+  fabio_pendente
+  local errado=000000
+  [[ $FABIO_CODIGO == "$errado" ]] && errado=111111
+  chamar POST /verify "$(json_codigo email "$FABIO" "$errado")"
+  [[ $STATUS == 2* ]] && falha "7: código errado aceito — $RESPOSTA"
+  anota 7 "código errado: $STATUS $(campo .error_code)"
+
+  chamar POST /verify "$(json_codigo email "$FABIO" "$FABIO_CODIGO")"
+  espera_status '7: código certo' 200
+  [[ -n $(campo .access_token) ]] || falha "7: confirmação sem sessão — $RESPOSTA"
+
+  chamar POST /verify "$(json_codigo email "$FABIO" "$FABIO_CODIGO")"
+  [[ $STATUS == 2* ]] && falha "7: código usado aceito de novo — $RESPOSTA"
+  anota 7 "código usado de novo: $STATUS $(campo .error_code)"
+
+  ((COM_EXPIRACAO)) || return 0
+  local heitor enviado codigo
+  heitor=$(email_unico heitor)
+  chamar POST /signup "$(json_cadastro "$heitor" senha-do-heitor Heitor)"
+  espera_status '7: cadastro do Heitor' 200
+  enviado=$(date +%s)
+  codigo=$(codigo_de "$heitor" 'Confirme seu cadastro no VoleiIn') || exit 1
+  echo "7: esperando o código do Heitor vencer (301 s)…"
+  ate_passar 301 "$enviado"
+  chamar POST /verify "$(json_codigo email "$heitor" "$codigo")"
+  [[ $STATUS == 2* ]] && falha "7: código de mais de 5 min aceito — $RESPOSTA"
+  anota 7 "código depois de 301 s: $STATUS $(campo .error_code)"
+}
+
 roda() {  # <cenário>
   [[ -z $SO || $SO == *",$1,"* ]] || return 0
   "cenario_$1"
@@ -256,6 +395,10 @@ roda 3
 roda 4
 roda 5
 roda invalido
+roda 6
+# O 8 reenvia ao Fábio antes da confirmação que o 7 faz.
+roda 8
+roda 7
 
 ((CENARIOS)) || falha "nenhum cenário com --so ${SO:1:-1}"
 if [[ -s $ANOTACOES ]]; then
