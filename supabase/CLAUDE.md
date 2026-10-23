@@ -16,6 +16,7 @@ Exigem Docker rodando. Executar da raiz do repositório.
 | `docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/schema.sql` | Roda as asserções de schema numa transação desfeita; imprime `SUCESSO: N asserções` ou para no primeiro `FALHOU` |
 | `docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/rls.sql` | Roda as asserções de acesso, simulando cada usuário como a API faz |
 | `docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/autenticacao.sql` | Roda as asserções dos gatilhos de `auth.users`: conferência do nome no cadastro, criação do perfil na confirmação do e-mail e limpeza dos aparelhos na troca de e-mail e de senha |
+| `CHAVE=<chave pública> supabase/testes/autenticacao_api.sh [--so 1,2] [--com-expiracao]` | Roda os cenários de autenticação pela API do Auth, lendo os códigos no Mailpit; imprime `SUCESSO: N cenários` ou para no primeiro `FALHOU`. A chave é a pública de `supabase status`; outros parâmetros no topo do script |
 | `supabase db push` | Aplica no projeto remoto as migrações que faltam |
 | `supabase functions deploy enviar-push` | Publica a Edge Function |
 
