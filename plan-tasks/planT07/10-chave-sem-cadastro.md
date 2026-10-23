@@ -43,4 +43,4 @@ O código real está anotado, a tela mostra uma mensagem que leva ao problema (o
 
 ## Commit
 
-`Trata a chave sem cadastro na entrada pelo Google`, se houver correção; senão, a linha do `CLAUDE.md` entra na T07.11.
+`Trata a chave sem cadastro na entrada pelo Google`, se houver correção; senão, a linha do `CLAUDE.md` entra na T07.11. Em qualquer caso, um commit com o registro da task.

@@ -20,8 +20,8 @@ O "Resultado" preenchido em cada task desta pasta.
   - o comportamento dos cenários 6, 11 e 20, que vai para "Decisões de implementação" do `progresso.md`;
   - o teclado e o colar (T07.7);
   - o cenário 22 (T07.10);
-  - se o reinício do Auth zera o limite de e-mails.
-- [ ] `plan-tasks/passo-3/09-e2e-remoto.md`: levar o que o local não respondeu e o remoto pode responder diferente (usuário sem `identities` no cadastro repetido, tempo e destino dos e-mails).
+  - que o local não tem limite de e-mails (`GOTRUE_RATE_LIMIT_EMAIL_SENT=360000` sem SMTP próprio, T07.6).
+- [ ] `plan-tasks/passo-3/09-e2e-remoto.md`: levar o que o local não respondeu e o remoto pode responder diferente (usuário sem `identities` no cadastro repetido, `email_address_invalid`, o teto de 30 e-mails por hora, tempo e destino dos e-mails).
 - [ ] `plan-tasks/passo-3/README.md`: T07 "feito".
 - [ ] Esta pasta: todas as tasks "feito" no [README](README.md).
 - [ ] Se o Gboard do celular ficou em modo de teclado físico, avisar o Thiago de como voltar (T07.7).

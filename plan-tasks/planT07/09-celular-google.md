@@ -43,4 +43,4 @@ Os cinco cenários rodaram, o 19 confirmou a RN21, e o comportamento do 20 está
 
 ## Commit
 
-Um por correção que algum cenário exigir. Sem correção, sem commit.
+Um por correção que algum cenário exigir, e um último com o registro da task.

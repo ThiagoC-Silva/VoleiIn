@@ -1,6 +1,6 @@
 # Plano da T07 — Validação ponta a ponta no Supabase local
 
-Quebra de [T07](../passo-3/07-e2e-local.md) em tasks executadas **uma por vez**: a seguinte só começa quando a anterior está feita, com o estado trocado nesta tabela e no cabeçalho do arquivo dela. Cada task fecha com um commit próprio, salvo quando o arquivo diz que não há.
+Quebra de [T07](../passo-3/07-e2e-local.md) em tasks executadas **uma por vez**: a seguinte só começa quando a anterior está feita, com o estado trocado nesta tabela e no cabeçalho do arquivo dela. Cada task fecha com um commit próprio. Quando a task não muda código, o commit leva só o registro dela: o "Resultado", o estado e o que mais tiver mudado nos documentos do plano. Assim nenhuma anotação fica esperando a T07.11.
 
 O roteiro dos 22 cenários continua em [`07-e2e-local.md`](../passo-3/07-e2e-local.md); aqui fica só a ordem de execução e o que cada rodada entrega.
 
@@ -16,7 +16,7 @@ O roteiro dos 22 cenários continua em [`07-e2e-local.md`](../passo-3/07-e2e-loc
 
 - **Gmail reaproveitado.** Há dois Gmails na lista de usuários de teste do Google (T11). O de teste fica com a Diana (cenários 17, 20, 21); o do Thiago serve ao impostor (19) e, depois de apagada a conta por `psql`, ao Bruno (18).
 - **Cenário 22 por chave descartável.** O APK de debug é reassinado com uma keystore criada no scratchpad, sem tocar em `build.gradle.kts` nem em `~/.android/debug.keystore`. O que se quer saber: se a chave sem cadastro no Google chega como `canceled`, o app volta sem mensagem e a pessoa fica sem pista.
-- **Limite de 30 e-mails por hora no local.** Se travar, reinicia-se só o contêiner do Auth; o `config.toml` não muda, porque tem de seguir igual ao remoto.
+- ~~**Limite de 30 e-mails por hora no local.**~~ Não vale no local: sem SMTP próprio, o CLI ignora `email_sent` (conferido na T07.6). O `config.toml` continua sem mudar, porque tem de seguir igual ao remoto.
 - **O celular é operado pelo Claude**, pelo `adb`: toques com `input tap`, elementos por `uiautomator dump`, conferência por `screencap`. Ficam com o Thiago:
   - a conferência do teclado das seis casas e do colar, com o dedo, antes de qualquer tecla injetada pelo `adb`;
   - adicionar ao aparelho as contas Google que faltarem;
@@ -38,8 +38,8 @@ O roteiro dos 22 cenários continua em [`07-e2e-local.md`](../passo-3/07-e2e-loc
 | [T07.3](03-script-confirmacao.md) | Script: confirmação, códigos e reenvio (6 a 8) | feito | T07.2 |
 | [T07.4](04-script-senha.md) | Script: redefinição e troca de senha (9 a 12) | feito | T07.3 |
 | [T07.5](05-script-troca-email.md) | Script: troca de e-mail, modelos e impostor (13 a 16) | feito | T07.4 |
-| [T07.6](06-rodada-completa.md) | Rodada completa e correção das mensagens | a fazer | T07.5 |
-| [T07.7](07-preparar-celular.md) | Preparar o celular e conferir o teclado | a fazer | T07.6 |
+| [T07.6](06-rodada-completa.md) | Rodada completa e correção das mensagens | feito | T07.5 |
+| [T07.7](07-preparar-celular.md) | Preparar o celular e conferir o teclado | feito | T07.6 |
 | [T07.8](08-celular-senha.md) | Celular: cenários de e-mail e senha | a fazer | T07.7 |
 | [T07.9](09-celular-google.md) | Celular: cenários do Google (17 a 21) | a fazer | T07.8 |
 | [T07.10](10-chave-sem-cadastro.md) | Celular: build com chave sem cadastro (22) | a fazer | T07.9 |

@@ -39,4 +39,4 @@ Os dez itens acima rodaram, cada um com o resultado anotado, e as divergências 
 
 ## Commit
 
-Um por correção que algum cenário exigir. Sem correção, sem commit.
+Um por correção que algum cenário exigir, e um último com o registro da task.

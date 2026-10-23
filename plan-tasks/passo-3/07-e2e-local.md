@@ -43,7 +43,7 @@ Dois trilhos:
 
 O `config.toml` não muda para caber nos testes: tem de seguir igual ao remoto.
 
-- **E-mails**: `email_sent = 30` por hora, e uma rodada inteira do script gasta de 13 a 15. Cabem uma ou duas rodadas por hora; para repetir só o que falhou, `--so <n,…>`. Se travar, reiniciar só o contêiner do Auth: `sg docker -c 'docker restart supabase_auth_VoleiIn'` (a T07.6 confere se isso zera o contador; se não zerar, o contorno é esperar a hora).
+- **E-mails**: sem limite no local. `email_sent = 30` exige SMTP próprio, e sem ele o CLI sobe o Auth com `GOTRUE_RATE_LIMIT_EMAIL_SENT=360000` (já anotado na T03): na T07.6, 38 e-mails numa hora chegaram todos ao Mailpit. Uma rodada inteira gasta 16, e o teto de 30 por hora só se verifica no remoto, na T09.
 - **Por IP**: uma rodada faz cerca de 17 chamadas contadas em `sign_in_sign_ups`, com teto de 30 a cada cinco minutos. Duas rodadas seguidas podem esbarrar nele; entre uma e outra, esperar cinco minutos.
 
 ## Preparação
