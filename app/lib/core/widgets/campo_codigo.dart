@@ -24,12 +24,27 @@ class CampoCodigo extends StatefulWidget {
 
 class _CampoCodigoState extends State<CampoCodigo> {
   final _foco = FocusNode();
+  var _tinhaFoco = false;
 
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_aoMudar);
     _foco.addListener(_aoMudar);
+  }
+
+  // Travar o campo durante a chamada tira o foco dele, e destravar não devolve: sem isto,
+  // depois de um código recusado ou de um reenvio, o teclado fecha e o que se digita se
+  // perde. O foco volta depois do quadro, quando o campo já aceita recebê-lo.
+  @override
+  void didUpdateWidget(CampoCodigo anterior) {
+    super.didUpdateWidget(anterior);
+    if (anterior.habilitado && !widget.habilitado) _tinhaFoco = _foco.hasFocus;
+    if (!anterior.habilitado && widget.habilitado && _tinhaFoco) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.habilitado) _foco.requestFocus();
+      });
+    }
   }
 
   @override
