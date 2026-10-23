@@ -18,6 +18,7 @@ O "Resultado" preenchido em cada task desta pasta.
 - [ ] "Anotar para a T10" em `07-e2e-local.md`, pronto para a `10-fechamento.md` usar:
   - os códigos reais e as correções do `_traduzir` (T07.6);
   - o comportamento dos cenários 6, 11 e 20, que vai para "Decisões de implementação" do `progresso.md`;
+  - o segundo cadastro pendente do cenário 6 (vale o nome e a senha do primeiro, sem aviso; ver [T07.8](08-celular-senha.md)) é **decisão de produto aberta**: levar ao Thiago com as opções e registrar o que ele decidir, não só o comportamento;
   - o teclado e o colar (T07.7);
   - o cenário 22 (T07.10);
   - que o local não tem limite de e-mails (`GOTRUE_RATE_LIMIT_EMAIL_SENT=360000` sem SMTP próprio, T07.6).

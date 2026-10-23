@@ -11,6 +11,7 @@ Provar a entrada pelo Google com conta real e o seletor do Android: perfil com o
 - O provedor Google ligado no local (`[auth.external.google]`, `skip_nonce_check = true`) e o segredo em `supabase/.env`.
 - Os dois Gmails na lista de usuários de teste e adicionados ao aparelho (T07.7).
 - `--impostor` no script (T07.5) e o SQL de limpeza em `07-e2e-local.md` (T07.1).
+- O que a T07.8 aprendeu sobre operar o app pelo `adb` (espera antes de digitar, como limpar campo, o "voltar" que sai do app, nós que faltam no dump): seção "Para a T07.9" de [08-celular-senha.md](08-celular-senha.md).
 
 ## O que falta
 
