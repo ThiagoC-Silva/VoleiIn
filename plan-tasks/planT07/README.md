@@ -37,7 +37,7 @@ O roteiro dos 22 cenários continua em [`07-e2e-local.md`](../passo-3/07-e2e-loc
 | [T07.2](02-script-base.md) | Base do script e cenários 1 a 5 | feito | T07.1 |
 | [T07.3](03-script-confirmacao.md) | Script: confirmação, códigos e reenvio (6 a 8) | feito | T07.2 |
 | [T07.4](04-script-senha.md) | Script: redefinição e troca de senha (9 a 12) | feito | T07.3 |
-| [T07.5](05-script-troca-email.md) | Script: troca de e-mail, modelos e impostor (13 a 16) | a fazer | T07.4 |
+| [T07.5](05-script-troca-email.md) | Script: troca de e-mail, modelos e impostor (13 a 16) | feito | T07.4 |
 | [T07.6](06-rodada-completa.md) | Rodada completa e correção das mensagens | a fazer | T07.5 |
 | [T07.7](07-preparar-celular.md) | Preparar o celular e conferir o teclado | a fazer | T07.6 |
 | [T07.8](08-celular-senha.md) | Celular: cenários de e-mail e senha | a fazer | T07.7 |

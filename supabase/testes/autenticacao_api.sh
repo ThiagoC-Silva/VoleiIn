@@ -4,6 +4,10 @@
 # plan-tasks/passo-3/07-e2e-local.md; este script cobre a parte de servidor deles.
 #
 # Uso: CHAVE=<chave pública> supabase/testes/autenticacao_api.sh [--so 1,2] [--com-expiracao]
+#      CHAVE=<chave pública> supabase/testes/autenticacao_api.sh --impostor <gmail>
+#
+# --impostor só cria o cadastro pendente do cenário 19, com senha e nome "Impostor", e
+# imprime o id; o resto do cenário é no celular (T07.9).
 #
 # Parâmetros por ambiente, com padrão para o local:
 #   AUTH_URL     http://127.0.0.1:54321/auth/v1
@@ -30,11 +34,12 @@ fi
 
 SO=
 COM_EXPIRACAO=0
+IMPOSTOR=
 while (($#)); do
   case $1 in
     --so) SO=",${2:?--so pede a lista de cenários, como 1,2},"; shift 2 ;;
     --com-expiracao) COM_EXPIRACAO=1; shift ;;
-    --impostor) echo '--impostor chega na T07.5.' >&2; exit 2 ;;
+    --impostor) IMPOSTOR=${2:?--impostor pede o Gmail}; shift 2 ;;
     *) echo "Opção desconhecida: $1" >&2; exit 2 ;;
   esac
 done
@@ -178,9 +183,27 @@ json_entrada() {  # <email> <senha>
 }
 
 # --- Cenários ---------------------------------------------------------------------------
+# Os assuntos de `config.toml`, com o modelo de que cada um sai e se leva código.
+
+ASSUNTO_CADASTRO='Confirme seu cadastro no VoleiIn'
+ASSUNTO_REDEFINICAO='Seu código para redefinir a senha do VoleiIn'
+ASSUNTO_TROCA_EMAIL='Confirme a troca de e-mail no VoleiIn'
+ASSUNTO_EMAIL_TROCADO='O e-mail da sua conta no VoleiIn foi trocado'
+ASSUNTO_SENHA_TROCADA='A senha da sua conta no VoleiIn foi trocada'
+
+MODELOS=(
+  "$ASSUNTO_CADASTRO|confirmacao.html|código"
+  "$ASSUNTO_REDEFINICAO|redefinicao_senha.html|código"
+  "$ASSUNTO_TROCA_EMAIL|troca_email.html|código"
+  "$ASSUNTO_EMAIL_TROCADO|aviso_troca_email.html|aviso"
+  "$ASSUNTO_SENHA_TROCADA|aviso_troca_senha.html|aviso"
+)
+TEMPLATES=$(dirname "${BASH_SOURCE[0]}")/../templates
+
 # Cada cenário que envia e-mail tem a sua pessoa, para nenhum esperar os 60 s de envio de
-# outro. A Carla do cenário 1 serve a 2, 3 e 5, que não enviam nada, e ao 12; se o 1 não foi
-# pedido, ela é criada do mesmo jeito. O Fábio, pendente, serve a 8 e 7 do mesmo modo.
+# outro. A Carla do cenário 1 serve a 2, 3 e 5, que não enviam nada, e a 12, 13 a 15 e 16;
+# se o 1 não foi pedido, ela é criada do mesmo jeito. O Fábio, pendente, serve a 8 e 7 do
+# mesmo modo.
 
 CARLA=
 CARLA_ID=
@@ -200,7 +223,7 @@ cenario_1() {  # Carla cria conta com senha
     "select count(*) from public.pessoa where id = '$CARLA_ID'" 0
 
   local codigo
-  codigo=$(codigo_de "$CARLA" 'Confirme seu cadastro no VoleiIn') || exit 1
+  codigo=$(codigo_de "$CARLA" "$ASSUNTO_CADASTRO") || exit 1
   chamar POST /verify "$(json_codigo email "$CARLA" "$codigo")"
   espera_status '1: confirmação do código' 200
   [[ -n $(campo .access_token) ]] || falha "1: confirmação sem sessão — $RESPOSTA"
@@ -280,7 +303,7 @@ cenario_6() {  # Eva cadastra e não confirma; depois entra com a senha
   enviado=$(date +%s)
   eva_id=$(campo '.id // .user.id')
   # Consome o primeiro código, para o reenvio não ser confundido com ele.
-  codigo_de "$eva" 'Confirme seu cadastro no VoleiIn' >/dev/null || exit 1
+  codigo_de "$eva" "$ASSUNTO_CADASTRO" >/dev/null || exit 1
 
   chamar POST '/token?grant_type=password' "$(json_entrada "$eva" "$senha")"
   espera_status '6: entrada sem confirmar' 400
@@ -297,7 +320,7 @@ cenario_6() {  # Eva cadastra e não confirma; depois entra com a senha
   ate_passar 61 "$enviado"
   chamar POST /resend "$(json_reenvio "$eva")"
   espera_status '6: reenvio depois de 61 s' 200
-  codigo=$(codigo_de "$eva" 'Confirme seu cadastro no VoleiIn') || exit 1
+  codigo=$(codigo_de "$eva" "$ASSUNTO_CADASTRO") || exit 1
   chamar POST /verify "$(json_codigo email "$eva" "$codigo")"
   espera_status '6: confirmação do código reenviado' 200
   espera_igual '6: usuário da sessão' "$(campo .user.id)" "$eva_id"
@@ -319,7 +342,7 @@ cadastro_de_novo() {  # <senha> <nome> <quando>
   [[ $STATUS == 200 ]] && resposta+=" (mesmo id: $([[ $(campo '.id // .user.id') == "$EVA2_ID" ]] && echo sim || echo não))"
   sleep 5
   if [[ -n $(novas "$EVA2" || true) ]]; then
-    EVA2_CODIGO=$(codigo_de "$EVA2" 'Confirme seu cadastro no VoleiIn') || exit 1
+    EVA2_CODIGO=$(codigo_de "$EVA2" "$ASSUNTO_CADASTRO") || exit 1
     anota 6 "segundo cadastro $3: $resposta; enviou código novo"
   else
     anota 6 "segundo cadastro $3: $resposta; nenhum código novo"
@@ -332,7 +355,7 @@ cadastro_duplo_antes() {
   espera_status '6: cadastro da eva2' 200
   EVA2_ID=$(campo '.id // .user.id')
   EVA2_ENVIADO=$(date +%s)
-  EVA2_CODIGO=$(codigo_de "$EVA2" 'Confirme seu cadastro no VoleiIn') || exit 1
+  EVA2_CODIGO=$(codigo_de "$EVA2" "$ASSUNTO_CADASTRO") || exit 1
   cadastro_de_novo "${EVA2_SENHAS[1]}" 'Eva Segunda' 'antes de 60 s'
 }
 
@@ -358,7 +381,7 @@ fabio_pendente() {  # Fábio cadastrado, com o código recebido e sem confirmar
   FABIO=$(email_unico fabio)
   chamar POST /signup "$(json_cadastro "$FABIO" senha-do-fabio Fábio)"
   espera_status 'Fábio: cadastro' 200
-  FABIO_CODIGO=$(codigo_de "$FABIO" 'Confirme seu cadastro no VoleiIn') || exit 1
+  FABIO_CODIGO=$(codigo_de "$FABIO" "$ASSUNTO_CADASTRO") || exit 1
 }
 
 cenario_8() {  # Reenvio antes de 60 s do cadastro
@@ -390,7 +413,7 @@ cenario_7() {  # Código errado, código certo, o mesmo código de novo e, opcio
   chamar POST /signup "$(json_cadastro "$heitor" senha-do-heitor Heitor)"
   espera_status '7: cadastro do Heitor' 200
   enviado=$(date +%s)
-  codigo=$(codigo_de "$heitor" 'Confirme seu cadastro no VoleiIn') || exit 1
+  codigo=$(codigo_de "$heitor" "$ASSUNTO_CADASTRO") || exit 1
   echo "7: esperando o código do Heitor vencer (301 s)…"
   ate_passar 301 "$enviado"
   chamar POST /verify "$(json_codigo email "$heitor" "$codigo")"
@@ -410,16 +433,13 @@ json_renovacao() {  # <refresh_token>
   jq -n --arg r "$1" '{refresh_token: $r}'
 }
 
-ASSUNTO_REDEFINICAO='Seu código para redefinir a senha do VoleiIn'
-ASSUNTO_SENHA_TROCADA='A senha da sua conta no VoleiIn foi trocada'
-
 # Cadastro e confirmação, sem as conferências do cenário 1. Deixa o id em CONFIRMADO_ID.
 cadastro_confirmado() {  # <email> <senha> <nome> <cenário>
   local codigo
   chamar POST /signup "$(json_cadastro "$1" "$2" "$3")"
   espera_status "$4: cadastro de $3" 200
   CONFIRMADO_ID=$(campo '.id // .user.id')
-  codigo=$(codigo_de "$1" 'Confirme seu cadastro no VoleiIn') || exit 1
+  codigo=$(codigo_de "$1" "$ASSUNTO_CADASTRO") || exit 1
   chamar POST /verify "$(json_codigo email "$1" "$codigo")"
   espera_status "$4: confirmação de $3" 200
 }
@@ -447,28 +467,41 @@ renovacao_recusada() {  # <descrição> <refresh_token> <cenário>
   anota "$3" "$1: $STATUS $(campo .error_code)"
 }
 
+# Duas linhas em `dispositivo_push` com token inventado, como de dois aparelhos.
+aparelhos_inventados() {  # <pessoa_id> <cenário>
+  if [[ -n $PSQL ]]; then
+    banco "insert into public.dispositivo_push (pessoa_id, token_fcm)
+           values ('$1', 'fcm-inventado-1-$1'), ('$1', 'fcm-inventado-2-$1')" >/dev/null || exit 1
+  fi
+  confere_banco "$2: aparelhos antes da troca" \
+    "select count(*) from public.dispositivo_push where pessoa_id = '$1'" 2
+}
+
+# O Bruno do cenário 9 serve ao 16; se o 9 não foi pedido, ele é criado sem as conferências.
+BRUNO=
+
+bruno_confirmado() {
+  [[ -n $BRUNO ]] && return 0
+  BRUNO=$(email_unico bruno)
+  cadastro_confirmado "$BRUNO" senha-do-bruno Bruno 16
+}
+
 cenario_9() {  # Bruno redefine a senha com outras duas sessões abertas e aparelhos de push
-  local bruno bruno_id senha=senha-do-bruno nova=senha-nova-do-bruno b c
-  bruno=$(email_unico bruno)
-  cadastro_confirmado "$bruno" "$senha" Bruno 9
+  local bruno_id senha=senha-do-bruno nova=senha-nova-do-bruno b c
+  BRUNO=$(email_unico bruno)
+  cadastro_confirmado "$BRUNO" "$senha" Bruno 9
   bruno_id=$CONFIRMADO_ID
 
   # B e C: entradas por senha, como em outros dois aparelhos.
-  chamar POST '/token?grant_type=password' "$(json_entrada "$bruno" "$senha")"
+  chamar POST '/token?grant_type=password' "$(json_entrada "$BRUNO" "$senha")"
   espera_status '9: entrada da sessão B' 200
   b=$(campo .refresh_token)
-  chamar POST '/token?grant_type=password' "$(json_entrada "$bruno" "$senha")"
+  chamar POST '/token?grant_type=password' "$(json_entrada "$BRUNO" "$senha")"
   espera_status '9: entrada da sessão C' 200
   c=$(campo .refresh_token)
-  if [[ -n $PSQL ]]; then
-    banco "insert into public.dispositivo_push (pessoa_id, token_fcm)
-           values ('$bruno_id', 'fcm-inventado-1-$EPOCA'), ('$bruno_id', 'fcm-inventado-2-$EPOCA')" \
-      >/dev/null || exit 1
-  fi
-  confere_banco '9: aparelhos antes da troca' \
-    "select count(*) from public.dispositivo_push where pessoa_id = '$bruno_id'" 2
+  aparelhos_inventados "$bruno_id" 9
 
-  redefinicao "$bruno" 9
+  redefinicao "$BRUNO" 9
   chamar PUT /user "$(json_senha "$nova")" "$SESSAO_TOKEN"
   espera_status '9: troca da senha' 200
   # Só anota: diz se a troca sozinha já derruba as outras sessões, antes do logout do app.
@@ -484,12 +517,12 @@ cenario_9() {  # Bruno redefine a senha com outras duas sessões abertas e apare
   espera_status '9: renovação da sessão A' 200
   confere_banco '9: aparelhos depois da troca' \
     "select count(*) from public.dispositivo_push where pessoa_id = '$bruno_id'" 0
-  espera_aviso "$bruno" "$ASSUNTO_SENHA_TROCADA"
+  espera_aviso "$BRUNO" "$ASSUNTO_SENHA_TROCADA"
 
-  chamar POST '/token?grant_type=password' "$(json_entrada "$bruno" "$senha")"
+  chamar POST '/token?grant_type=password' "$(json_entrada "$BRUNO" "$senha")"
   espera_status '9: senha antiga' 400
   espera_erro '9: senha antiga' invalid_credentials
-  chamar POST '/token?grant_type=password' "$(json_entrada "$bruno" "$nova")"
+  chamar POST '/token?grant_type=password' "$(json_entrada "$BRUNO" "$nova")"
   espera_status '9: senha nova' 200
 }
 
@@ -550,6 +583,150 @@ cenario_12() {  # Troca de senha sem código, por sessão com mais de 24 h
   espera_aviso "$CARLA" "$ASSUNTO_SENHA_TROCADA"
 }
 
+# A troca de e-mail da Carla serve aos três cenários e roda uma vez só, pedida por qualquer
+# um deles: sessões A e B abertas e dois aparelhos; A pede a troca para carla2.
+TROCA_FEITA=0
+
+troca_de_email() {
+  ((TROCA_FEITA)) && return 0
+  TROCA_FEITA=1
+  local novo a renovacao_a b codigo token renovacao
+  carla_confirmada
+  novo=$(email_unico carla2)
+
+  chamar POST '/token?grant_type=password' "$(json_entrada "$CARLA" "$CARLA_SENHA")"
+  espera_status '13: entrada da sessão A' 200
+  a=$(campo .access_token)
+  renovacao_a=$(campo .refresh_token)
+  chamar POST '/token?grant_type=password' "$(json_entrada "$CARLA" "$CARLA_SENHA")"
+  espera_status '14: entrada da sessão B' 200
+  b=$(campo .refresh_token)
+  aparelhos_inventados "$CARLA_ID" 15
+
+  chamar PUT /user "$(json_email "$novo")" "$a"
+  espera_status '13: pedido da troca' 200
+  espera_igual '13: e-mail da conta antes de confirmar' "$(campo .email)" "$CARLA"
+  codigo=$(codigo_de "$novo" "$ASSUNTO_TROCA_EMAIL") || exit 1
+  sem_email "$CARLA"
+  confere_banco '15: aparelhos depois do pedido' \
+    "select count(*) from public.dispositivo_push where pessoa_id = '$CARLA_ID'" 2
+
+  # Como o `confirmarTrocaEmail` do app: o /verify devolve uma sessão nova, que o verifyOTP
+  # põe no lugar da A, e é dela que sai o signOut(others).
+  chamar POST /verify "$(json_codigo email_change "$novo" "$codigo")"
+  espera_status '13: confirmação da troca' 200
+  token=$(campo .access_token)
+  renovacao=$(campo .refresh_token)
+  [[ -n $token ]] || falha "13: confirmação da troca sem sessão — $RESPOSTA"
+  # Só anota: diz se a troca sozinha já derruba as outras sessões, antes do logout do app.
+  chamar POST '/token?grant_type=refresh_token' "$(json_renovacao "$b")"
+  anota 14 "renovação de B depois da troca e antes do logout: $STATUS $(campo .error_code)"
+  [[ $STATUS == 200 ]] && b=$(campo .refresh_token)
+  chamar POST '/logout?scope=others' '' "$token"
+  espera_status '13: saída das outras sessões' 204
+
+  chamar GET /user '' "$token"
+  espera_status '13: usuário da sessão do aparelho' 200
+  espera_igual '13: e-mail da sessão do aparelho' "$(campo .email)" "$novo"
+  chamar POST '/token?grant_type=refresh_token' "$(json_renovacao "$renovacao")"
+  espera_status '13: renovação da sessão do aparelho' 200
+  chamar POST '/token?grant_type=refresh_token' "$(json_renovacao "$renovacao_a")"
+  anota 13 "renovação da sessão A, substituída no aparelho pela do código: $STATUS $(campo .error_code)"
+  renovacao_recusada 'renovação de B depois do logout' "$b" 14
+  confere_banco '15: aparelhos depois da confirmação' \
+    "select count(*) from public.dispositivo_push where pessoa_id = '$CARLA_ID'" 0
+  espera_aviso "$CARLA" "$ASSUNTO_EMAIL_TROCADO"
+  CARLA=$novo
+}
+
+cenario_13() {  # Carla troca para carla2: código só no novo, aviso no antigo, logada no novo
+  troca_de_email
+}
+
+cenario_14() {  # Carla com segunda sessão aberta ao trocar o e-mail
+  troca_de_email
+}
+
+cenario_15() {  # Carla com aparelhos de push ao trocar o e-mail
+  troca_de_email
+}
+
+cenario_16() {  # Troca para o e-mail do Bruno, que já tem conta
+  carla_confirmada
+  bruno_confirmado
+  chamar POST '/token?grant_type=password' "$(json_entrada "$CARLA" "$CARLA_SENHA")"
+  espera_status '16: entrada da Carla' 200
+  chamar PUT /user "$(json_email "$BRUNO")" "$(campo .access_token)"
+  espera_status '16: troca para e-mail com conta' 422
+  espera_erro '16: troca para e-mail com conta' email_exists
+  sem_email "$BRUNO"
+  sem_email "$CARLA"
+}
+
+# Para cada modelo, a mensagem lida na rodada com o assunto exato: o título do modelo no
+# corpo, que é o que prova o texto em português no lugar do padrão do Supabase, nenhuma
+# variável sem preencher e, nos de código, as seis casas. Sem MAILPIT_URL, pulada.
+confere_modelos() {
+  if [[ -z $MAILPIT_URL ]]; then
+    PULADAS=$((PULADAS + 1))
+    return
+  fi
+  local id modelo assunto arquivo tipo titulo texto vistos=0 faltam=()
+  mkdir -p "$TMP/mensagens"
+  while read -r id; do
+    curl -sf "$MAILPIT_URL/api/v1/message/$id" >"$TMP/mensagens/$id.json" ||
+      falha "modelos: mensagem $id sumiu do Mailpit"
+  done < <(sort -u "$LIDAS")
+
+  for modelo in "${MODELOS[@]}"; do
+    IFS='|' read -r assunto arquivo tipo <<<"$modelo"
+    texto=$(jq -rs --arg a "$assunto" 'map(select(.Subject == $a))[0].Text // empty' \
+      "$TMP/mensagens"/*.json 2>/dev/null)
+    if [[ -z $texto ]]; then
+      faltam+=("$assunto")
+      continue
+    fi
+    titulo=$(sed -n 's:.*<h2>\(.*\)</h2>.*:\1:p' "$TEMPLATES/$arquivo")
+    [[ -n $titulo ]] || falha "modelos: $arquivo sem <h2>"
+    [[ $texto == *"$titulo"* ]] || falha "modelos: \"$assunto\" sem o título \"$titulo\" — $texto"
+    [[ $texto != *'{{'* ]] || falha "modelos: \"$assunto\" com variável sem preencher — $texto"
+    if [[ $tipo == código ]]; then
+      grep -qE '\b[0-9]{6}\b' <<<"$texto" || falha "modelos: \"$assunto\" sem código de seis casas"
+    fi
+    vistos=$((vistos + 1))
+  done
+
+  # A rodada inteira passa pelos cinco; com --so, falta o que os cenários pedidos não enviam.
+  if ((${#faltam[@]})); then
+    [[ -n $SO ]] || falha "modelos: nenhuma mensagem lida com o assunto \"${faltam[0]}\""
+    for assunto in "${faltam[@]}"; do
+      anota modelos "sem mensagem nesta rodada: \"$assunto\""
+    done
+  fi
+  echo "ok: modelos ($vistos de ${#MODELOS[@]})"
+}
+
+# Cadastro pendente do cenário 19, fora da contagem: o dono do Gmail entra pelo Google
+# depois, no celular, e a senha daqui tem de deixar de valer.
+impostor() {  # <gmail>
+  local senha=senha-do-impostor id
+  chamar POST /signup "$(json_cadastro "$1" "$senha" Impostor)"
+  if [[ $STATUS == 422 && $(campo .error_code) == user_already_exists ]] ||
+    [[ $STATUS == 200 && $(campo '(.identities // .user.identities) | length') == 0 ]]; then
+    falha "impostor: $1 já tem conta confirmada; apague-a pelo SQL de plan-tasks/passo-3/07-e2e-local.md"
+  fi
+  espera_status 'impostor: cadastro' 200
+  id=$(campo '.id // .user.id')
+  [[ -n $id ]] || falha "impostor: cadastro sem id de usuário — $RESPOSTA"
+  confere_banco 'impostor: pessoa sem a linha' \
+    "select count(*) from public.pessoa where id = '$id'" 0
+  echo "Impostor pendente: id $id, senha $senha"
+  ((PULADAS)) && echo "Conferências puladas por falta de PSQL: $PULADAS"
+  exit 0
+}
+
+[[ -n $IMPOSTOR ]] && impostor "$IMPOSTOR"
+
 roda() {  # <cenário>
   [[ -z $SO || $SO == *",$1,"* ]] || return 0
   "cenario_$1"
@@ -570,10 +747,17 @@ roda 7
 roda 9
 roda 11
 roda 12
-# O 10 compara com o /recover de 9, 11 ou 12.
+# O 13 troca o e-mail da Carla depois de o 12 trocar a senha; o 16 usa o Bruno do 9.
+roda 13
+roda 14
+roda 15
+roda 16
+# O 10 compara com o /recover de 9, 11 ou 12, e vem por último: sozinho, ele pede um
+# para a Carla, que ninguém lê e que o "nada no antigo" do 13 acusaria.
 roda 10
 
 ((CENARIOS)) || falha "nenhum cenário com --so ${SO:1:-1}"
+confere_modelos
 if [[ -s $ANOTACOES ]]; then
   echo
   echo 'Para anotar:'
