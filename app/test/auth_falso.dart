@@ -13,6 +13,7 @@ class AuthFalso implements AuthRepositorio {
     this.falhaAoCriarConta,
     this.falhaNoCodigo,
     this.falhaAoPedirTrocaEmail,
+    this.falhaAoSalvarSenha,
   });
 
   @override
@@ -26,6 +27,9 @@ class AuthFalso implements AuthRepositorio {
   /// Recusa do código, na confirmação do cadastro e na redefinição de senha.
   final FalhaAuth? falhaNoCodigo;
   final FalhaAuth? falhaAoPedirTrocaEmail;
+
+  /// Recusa da senha nova depois do código conferido, só na primeira tentativa.
+  FalhaAuth? falhaAoSalvarSenha;
   final chamadas = <String>[];
 
   @override
@@ -60,9 +64,17 @@ class AuthFalso implements AuthRepositorio {
   Future<void> pedirRedefinicao(String email) async => chamadas.add('pedirRedefinicao $email');
 
   @override
-  Future<void> redefinirSenha(String email, String codigo, String nova) async {
-    chamadas.add('redefinirSenha $email $codigo $nova');
+  Future<void> conferirCodigoRedefinicao(String email, String codigo) async {
+    chamadas.add('conferirCodigoRedefinicao $email $codigo');
     if (falhaNoCodigo != null) throw falhaNoCodigo!;
+  }
+
+  @override
+  Future<void> salvarSenhaNova(String nova) async {
+    chamadas.add('salvarSenhaNova $nova');
+    final falha = falhaAoSalvarSenha;
+    falhaAoSalvarSenha = null;
+    if (falha != null) throw falha;
   }
 
   @override

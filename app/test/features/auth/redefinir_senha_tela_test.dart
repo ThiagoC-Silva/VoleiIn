@@ -59,8 +59,37 @@ void main() {
     await _tocarSalvar(tester);
     await tester.pumpAndSettle();
 
-    expect(auth.chamadas.last, 'redefinirSenha carla@exemplo.com 123456 novaSenha1');
+    expect(auth.chamadas.skip(1), [
+      'conferirCodigoRedefinicao carla@exemplo.com 123456',
+      'salvarSenhaNova novaSenha1',
+    ]);
     expect(find.text('Senha trocada. Os outros aparelhos foram desconectados.'), findsOneWidget);
+    expect(find.byKey(const Key('abrir')), findsOneWidget);
+  });
+
+  // Visto no celular (T07.8): a conferência gasta o código, e conferi-lo de novo depois
+  // de uma senha recusada dava "código inválido".
+  testWidgets('senha recusada depois do código conferido: a nova tentativa não confere o código de novo',
+      (tester) async {
+    const igual = 'A senha nova precisa ser diferente da atual.';
+    final auth = AuthFalso(falhaAoSalvarSenha: const FalhaAuth(igual));
+    await montar(tester, auth, const RedefinirSenhaTela(), empilhada: true);
+    await _pedirCodigo(tester, 'carla@exemplo.com');
+
+    await _preencher(tester, '123456', 'senhaAtual1');
+    await _tocarSalvar(tester);
+    await tester.pumpAndSettle();
+    expect(find.text(igual), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('campo-senha-nova')), 'outraSenha2');
+    await _tocarSalvar(tester);
+    await tester.pumpAndSettle();
+
+    expect(auth.chamadas.skip(1), [
+      'conferirCodigoRedefinicao carla@exemplo.com 123456',
+      'salvarSenhaNova senhaAtual1',
+      'salvarSenhaNova outraSenha2',
+    ]);
     expect(find.byKey(const Key('abrir')), findsOneWidget);
   });
 

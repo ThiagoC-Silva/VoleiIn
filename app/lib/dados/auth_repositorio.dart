@@ -87,12 +87,15 @@ class AuthRepositorio {
   /// envia nada, então a tela não afirma que o código foi enviado.
   Future<void> pedirRedefinicao(String email) => _executar(() => _auth.resetPasswordForEmail(email));
 
-  /// Redefine a senha, esquecida ou trocada a partir da sessão (RF41), e derruba as sessões
-  /// dos outros aparelhos; a deste continua (RNF07). A conferência do código cria a sessão,
-  /// e por isso a senha nova chega junto com ele. Os aparelhos de push são apagados pelo
+  /// Confere o código de redefinição (RF41). A conferência cria a sessão e gasta o código:
+  /// se a senha nova for recusada depois dela, a nova tentativa vai direto a [salvarSenhaNova].
+  Future<void> conferirCodigoRedefinicao(String email, String codigo) =>
+      _executar(() => _auth.verifyOTP(type: OtpType.recovery, email: email, token: codigo));
+
+  /// Grava a senha, esquecida ou trocada a partir da sessão, e derruba as sessões dos
+  /// outros aparelhos; a deste continua (RNF07). Os aparelhos de push são apagados pelo
   /// gatilho do banco, e o aviso de senha trocada sai pelo serviço.
-  Future<void> redefinirSenha(String email, String codigo, String nova) => _executar(() async {
-        await _auth.verifyOTP(type: OtpType.recovery, email: email, token: codigo);
+  Future<void> salvarSenhaNova(String nova) => _executar(() async {
         await _auth.updateUser(UserAttributes(password: nova));
         await _auth.signOut(scope: SignOutScope.others);
       });

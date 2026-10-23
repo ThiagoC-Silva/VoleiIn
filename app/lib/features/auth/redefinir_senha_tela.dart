@@ -35,6 +35,7 @@ class _RedefinirSenhaTelaState extends ConsumerState<RedefinirSenhaTela> with Ex
   final _codigo = TextEditingController();
   final _senha = TextEditingController();
   var _codigoEnviado = false;
+  var _codigoConferido = false;
   String? _erroEmail;
 
   @override
@@ -67,14 +68,20 @@ class _RedefinirSenhaTelaState extends ConsumerState<RedefinirSenhaTela> with Ex
     }
   }
 
+  // O código é conferido uma vez só: a conferência o gasta, e uma senha nova recusada
+  // depois dela (igual à atual, por exemplo) seria seguida de "código inválido".
   // Sem sessão anterior, a raiz já trocou a entrada pelo início por baixo desta tela;
   // com sessão, o início está logo abaixo. Nos dois casos, volta-se à raiz.
   void _salvar() async {
     if (!_podeSalvar) return;
-    if (!await executar((repositorio) => repositorio.redefinirSenha(_emailDigitado, _codigo.text, _senha.text)) ||
-        !mounted) {
-      return;
-    }
+    final salvou = await executar((repositorio) async {
+      if (!_codigoConferido) {
+        await repositorio.conferirCodigoRedefinicao(_emailDigitado, _codigo.text);
+        _codigoConferido = true;
+      }
+      await repositorio.salvarSenhaNova(_senha.text);
+    });
+    if (!salvou || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Senha trocada. Os outros aparelhos foram desconectados.')),
     );
