@@ -41,7 +41,7 @@ O roteiro dos 22 cenários continua em [`07-e2e-local.md`](../passo-3/07-e2e-loc
 | [T07.6](06-rodada-completa.md) | Rodada completa e correção das mensagens | feito | T07.5 |
 | [T07.7](07-preparar-celular.md) | Preparar o celular e conferir o teclado | feito | T07.6 |
 | [T07.8](08-celular-senha.md) | Celular: cenários de e-mail e senha | feito | T07.7 |
-| [T07.9](09-celular-google.md) | Celular: cenários do Google (17 a 21) | a fazer | T07.8 |
+| [T07.9](09-celular-google.md) | Celular: cenários do Google (17 a 21) | feito | T07.8 |
 | [T07.10](10-chave-sem-cadastro.md) | Celular: build com chave sem cadastro (22) | a fazer | T07.9 |
 | [T07.11](11-registro.md) | Registro dos resultados e fechamento da T07 | a fazer | T07.10 |
 
