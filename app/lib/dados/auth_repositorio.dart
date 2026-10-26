@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -75,8 +76,9 @@ class AuthRepositorio {
     try {
       conta = await _google.authenticate();
     } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) return;
-      throw _traduzirGoogle(e);
+      final falha = traduzirGoogle(e);
+      if (falha == null) return;
+      throw falha;
     }
     final idToken = conta.authentication.idToken;
     if (idToken == null) throw const FalhaAuth(_falhaGoogle);
@@ -142,17 +144,27 @@ class AuthRepositorio {
       _ => 'Não foi possível concluir agora. Tente de novo.',
     });
   }
+}
 
-  // Os códigos do google_sign_in 7.2.0. O de SHA-1 sem cadastro no cliente Android se
-  // confere no aparelho (T07, cenário 22).
-  FalhaAuth _traduzirGoogle(GoogleSignInException e) => FalhaAuth(switch (e.code) {
-        GoogleSignInExceptionCode.interrupted || GoogleSignInExceptionCode.uiUnavailable =>
-          'Não foi possível abrir a tela do Google agora. Tente de novo.',
-        GoogleSignInExceptionCode.clientConfigurationError ||
-        GoogleSignInExceptionCode.providerConfigurationError =>
-          'A entrada pelo Google não está configurada neste aparelho. Entre com e-mail e senha.',
-        _ => _falhaGoogle,
-      });
+/// Traduz a falha do seletor do Google, com os códigos do google_sign_in 7.2.0; nulo é a
+/// pessoa ter fechado o seletor. O APK assinado com chave sem SHA-1 no cliente Android
+/// também chega como `canceled`, e só o texto do Play Services separa os dois casos
+/// (T07, cenário 22). Esse texto não é API: o silêncio fica restrito ao "Cancelled by
+/// user", e qualquer outro `canceled` mostra a falha genérica, para a tela nunca ficar muda.
+@visibleForTesting
+FalhaAuth? traduzirGoogle(GoogleSignInException e) {
+  if (e.code == GoogleSignInExceptionCode.canceled &&
+      (e.description?.contains('Cancelled by user') ?? false)) {
+    return null;
+  }
+  return FalhaAuth(switch (e.code) {
+    GoogleSignInExceptionCode.interrupted || GoogleSignInExceptionCode.uiUnavailable =>
+      'Não foi possível abrir a tela do Google agora. Tente de novo.',
+    GoogleSignInExceptionCode.clientConfigurationError ||
+    GoogleSignInExceptionCode.providerConfigurationError =>
+      'A entrada pelo Google não está configurada neste aparelho. Entre com e-mail e senha.',
+    _ => _falhaGoogle,
+  });
 }
 
 final authRepositorioProvider = Provider<AuthRepositorio>(
