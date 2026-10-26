@@ -85,7 +85,7 @@ Por aparelho e por máquina, uma vez:
 
 A partir daí, com o celular na mesma rede da máquina, `flutter devices` encontra o aparelho sem cabo e sem parear de novo — a identidade do pareamento é por máquina, então uma máquina nova pede o passo acima de novo.
 
-Por máquina, uma vez: cadastrar o SHA-1 da chave de debug dela num cliente Android do Google Cloud, no projeto VoleiIn, com o pacote `br.com.voleiin`. Sem ele, a entrada pelo Google falha nos builds daquela máquina. O SHA-1 sai de:
+Por máquina, uma vez: cadastrar o SHA-1 da chave de debug dela num cliente Android do Google Cloud, no projeto VoleiIn, com o pacote `br.com.voleiin`. Sem ele, a entrada pelo Google falha nos builds daquela máquina: o seletor de contas abre normalmente, a conta é escolhida, e a A1 volta com "Não foi possível entrar com o Google. Entre com e-mail e senha.". O `adb logcat` mostra `This android application is not registered to use OAuth2.0` e `status=UNREGISTERED_ON_API_CONSOLE`. Depois de uma falha, o Play Services guarda esse veredito por alguns minutos, mesmo com o SHA-1 já cadastrado: espere uns dez minutos antes de concluir que o cadastro não pegou. O SHA-1 sai de:
 
 ```
 keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android
