@@ -1,6 +1,6 @@
 # T07 — Validação ponta a ponta no Supabase local
 
-**Estado:** a fazer · **Depende de:** T02, T03, T05, T06, T11, T12
+**Estado:** feito · **Depende de:** T02, T03, T05, T06, T11, T12
 
 Execução quebrada em tasks, uma por vez: [`plan-tasks/planT07/`](../planT07/README.md). Este arquivo guarda o roteiro; lá ficam a ordem, as decisões de 2026-10-23 e o resultado de cada rodada.
 
@@ -109,13 +109,55 @@ delete from auth.users where id = '<id>';  -- identities e sessions vão em casc
 | 21 | Diana usa "Esqueci a senha" | celular | Passa a entrar também com e-mail e senha |
 | 22 | APK assinado com chave sem SHA-1 cadastrado: o de debug reassinado com uma keystore descartável criada no scratchpad, sem tocar em `build.gradle.kts` nem em `~/.android/debug.keystore` | celular | A tela diz que a entrada pelo Google não está configurada neste aparelho. Anotar o código que o `google_sign_in` devolve, para a mensagem da tela e o `CLAUDE.md`. O risco: `_traduzirGoogle` trata `canceled` como seletor fechado e volta sem mensagem; se a chave sem cadastro chegar como `canceled`, o toque não faz nada e a pessoa fica sem pista |
 
+## Resultado
+
+Rodado de 2026-10-23 a 2026-10-26, Auth v2.197.0, no trilho da API (`autenticacao_api.sh --com-expiracao`: `SUCESSO: 17 cenários`, modelos 5 de 5, 6 min 45 s, 16 e-mails) e no celular (Motorola Edge 60 Pro, Android 16). O detalhe de cada rodada está no "Resultado" das tasks de [`planT07/`](../planT07/README.md): API em T07.2 a T07.6, celular em T07.7 a T07.10.
+
+| # | Trilho | Observado | Contra o esperado | `error_code` |
+| --- | --- | --- | --- | --- |
+| 1 | API, celular | `/signup` 200 sem sessão e sem `pessoa`; o código confirma, e `pessoa` nasce com o id de `auth.users` e o nome. No celular, A2 → A3 → "Olá, Carla" | igual | — |
+| 2 | API, celular | Entra com 200; nenhum e-mail em 5 s | igual | — |
+| 3 | API, celular | 400; "E-mail ou senha incorretos." acima do "Entrar", a A1 continua com os campos | igual | `invalid_credentials` |
+| 4 | API | 422 com `reasons: ["length"]`; `auth.users` sem a linha | igual | `weak_password` |
+| 5 | API, celular | 422 e nenhum e-mail; a A2 mostra "Esse e-mail já tem conta. Entre com a senha ou pelo Google." | igual; o local não esconde a conta com usuário sem `identities` | `user_already_exists` |
+| 6 | API, celular | Entrada sem confirmar: 400. Na A1, dentro dos 60 s, o reenvio recusado é engolido e o código anterior vale. Depois dos 60 s, chega código novo, o antigo é recusado, e o novo entra. **Cadastro refeito** antes do código: 429 dentro dos 60 s; depois, 200 com o mesmo id e código novo, mas ficam a senha e o nome do **primeiro** pedido, inclusive o de um impostor | igual no esperado; o cadastro refeito abriu uma tomada de conta, decidida em 2026-10-26 e corrigida na [T13](13-cadastro-refeito.md) | `email_not_confirmed`, `over_email_send_rate_limit` |
+| 7 | API | Código errado, repetido e vencido (301 s): 403 nos três | igual | `otp_expired` nos três |
+| 8 | API | 429 no reenvio antes de 60 s. O limite é por tipo de e-mail, não por usuário: o `/recover` logo depois do cadastro passa | igual | `over_email_send_rate_limit` |
+| 9 | API, celular | A renovação das outras sessões é recusada, as linhas de `dispositivo_push` somem e chega o aviso de senha trocada. A senha antiga é recusada e a nova entra. A troca de senha **sozinha** já derruba as outras sessões, antes do `signOut(others)`. No celular, pela A1 e pela sessão ("Trocar senha"), o snackbar "Senha trocada. Os outros aparelhos foram desconectados." e o início | igual | `refresh_token_not_found`, `invalid_credentials` |
+| 10 | API | 200 `{}`, igual ao de e-mail com conta; nenhum e-mail | igual | — |
+| 11 | API, celular | 422. A sessão criada no `/verify` **continua de pé** e não chega aviso. No app, a segunda tentativa dava "Código inválido ou vencido", porque o código já tinha sido gasto: corrigido (a A4 confere o código uma vez só). "Voltar" na A4 com a senha não trocada leva ao início logado | igual no servidor; o app foi corrigido | `same_password` |
+| 12 | API | 400 com a sessão envelhecida 25 h. Pelo caminho do app (código, sessão nova, `PUT /user`) passa | igual | `reauthentication_needed` |
+| 13 | API, celular | O código chega só no endereço novo, e o aviso chega no antigo. O `/verify` de troca devolve **sessão nova**, e é ela que segue logada com o e-mail novo. No celular, o snackbar "E-mail trocado. Os outros aparelhos foram desconectados." | igual | — |
+| 14 | API | A troca sozinha **não** derruba a segunda sessão; o `signOut(others)` derruba | igual; o `signOut(others)` da troca de e-mail é indispensável | `refresh_token_not_found` |
+| 15 | API | As linhas continuam depois do pedido e somem na confirmação | igual | — |
+| 16 | API, celular | 422 e nenhum e-mail; "Esse e-mail já pertence a outra conta.", e a tela fica na etapa do e-mail | igual | `email_exists` |
+| 17 | celular | Tela de consentimento do Google no primeiro login, depois o início com o nome da conta Google; `avatar_url` nulo; nenhum e-mail | igual | — |
+| 18 | celular | Mesmo `pessoa.id`; o nome continua o do cadastro ("Bruno"); a senha continua entrando | igual | — |
+| 19 | API, celular | Mesmo `auth.users.id`, agora confirmado; `encrypted_password` nulo; a identidade `email` do impostor some; `pessoa.nome` vem do Google; a senha do impostor é recusada. **RN21 confirmada** | igual | `invalid_credentials` |
+| 20 | celular | Troca concluída. O login seguinte pelo Google com o Gmail antigo cai na **mesma conta**, que mantém o e-mail novo: o serviço acha a conta pela identidade `google`, não pelo e-mail atual | o comportamento anotado | — |
+| 21 | celular | Código e aviso no e-mail novo; depois, a conta entra pelo Google e por senha | igual | — |
+| 22 | celular | Antes da correção, a A1 voltava sem mensagem. Depois: "Não foi possível entrar com o Google. Entre com e-mail e senha." | **divergiu**: o esperado era "não está configurada neste aparelho"; o Thiago decidiu pela genérica (T07.10) | `canceled`, com `description` `[16] Account reauth failed.` |
+| e-mail inválido | API | `carla@`: 400 | — | `validation_failed` |
+
+**Correções da T07**, cada uma com teste e conferida de novo no celular:
+- `Devolve o foco às casas do código depois da chamada` (T07.8);
+- `Confere o código da redefinição uma vez só` (T07.8, cenário 11);
+- `Trata a chave sem cadastro na entrada pelo Google` (T07.10, cenário 22).
+
 ## Anotar para a T10
 
-- O código real que o Auth devolve em cada erro. Ajustar `_traduzir` (T05 e T12) se diferir.
-- O teclado das seis casas do código (A3 e A4). No emulador, em 2026-10-22, o Gboard entrou em modo de teclado físico depois de teclas injetadas por `adb input` e passou a abrir recolhido em qualquer campo, inclusive nos de texto da A1, mesmo depois de reiniciado; o editor chegava numérico (`inputType=0x2`). No celular, o Thiago confere com o dedo, antes de qualquer tecla injetada (T07.7), que o teclado numérico abre inteiro ao chegar na A3 e ao tocar nas casas, e que colar o código funciona.
-- Cenários 6, 11 e 20: o comportamento observado vai para "Decisões de implementação" no `progresso.md`.
-- Cenário 19: se a senha do impostor sobreviver à vinculação, isso contraria a RN21 e é a premissa do cadastro confirmado por código (`docs/prd.md`, decisão Cadastro com senha). Parar e reabrir a decisão antes de seguir.
-- Se um cadastro não confirmado criar `pessoa`, é defeito da T02/T03, não decisão aberta.
+Pronto para a [`10-fechamento.md`](10-fechamento.md) levar ao `progresso.md`:
+
+- **Códigos reais**: a tabela acima e a da [T07.6](../planT07/06-rodada-completa.md). Nenhum código observado caiu na mensagem genérica sem motivo registrado, e o `_traduzir` não mudou. `email_address_invalid`, `over_request_rate_limit` e o usuário sem `identities` ficam no `_traduzir`, porque o remoto pode usá-los (T09). A única mudança de tradução foi a do Google: `traduzirGoogle` só silencia o `canceled` cuja `description` contém "Cancelled by user" (T07.10).
+- **Decisões de implementação**, pelo comportamento observado:
+  - cenário 6: na entrada de cadastro pendente, o reenvio recusado nos 60 s é engolido, e o código anterior continua valendo;
+  - cenário 6, cadastro refeito: o serviço fica com a senha e o nome do primeiro pedido. Decisão de produto de 2026-10-26: a A3 aberta pela A2 grava, depois do código, a senha e o nome digitados ([T13](13-cadastro-refeito.md); `docs/prd.md`, RN21; `docs/stack.md`, Autenticação);
+  - cenário 11: a sessão nasce na conferência do código de redefinição e fica de pé depois de `same_password`. Por isso a A4 confere o código uma vez só e, nas tentativas seguintes, só grava a senha. "Voltar" na A4 leva ao início logado, sem brecha, porque a posse do e-mail já foi provada;
+  - cenário 20: o login pelo Google segue a identidade `google`, não o e-mail atual. Quem trocou o e-mail continua entrando pelo Google com o Gmail antigo e cai na mesma conta, com o e-mail novo;
+  - a troca de senha derruba as outras sessões sozinha, e o `signOut(others)` do `salvarSenhaNova` fica redundante, sem prejuízo; na troca de e-mail, é ele que as derruba.
+- **Teclado e colar** (T07.7): no celular, o teclado numérico abre inteiro na A3 e ao tocar nas casas, e o código colado preenche as seis. O Gboard não entrou em modo de teclado físico depois das teclas injetadas pelo `adb` (T07.8); conferido de novo na T07.11, `show_ime_with_hard_keyboard` continua `0`, o valor de antes. Se um dia entrar: Configurações → Sistema → Idiomas e entrada → Teclado físico → "Usar teclado na tela".
+- **Cenário 22** (T07.10): a chave sem SHA-1 cadastrado chega ao app como `canceled`, igual ao seletor fechado. A tela mostra a falha genérica, e o sintoma está no `CLAUDE.md` da raiz, com o aviso de esperar uns dez minutos depois de cadastrar o SHA-1.
+- **E-mails no local**: sem limite. Sem SMTP próprio, o CLI sobe o Auth com `GOTRUE_RATE_LIMIT_EMAIL_SENT=360000`, e `email_sent = 30` só vale no remoto (T07.6).
 
 ## Pronto quando
 

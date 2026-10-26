@@ -21,7 +21,7 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
   - um gatilho só revoga os aparelhos de push, na troca de e-mail e na de senha;
   - na redefinição, a senha nova é pedida junto com o código, porque a sessão nasce na conferência e a raiz troca a tela;
   - quanto o `google_sign_in` acrescentou ao APK (T04: +412 KB), e o `material_symbols_icons` com as fontes Montserrat e Bebas Neue (T05: +507 KB, de 53.144.602 para 53.664.236 bytes);
-  - o comportamento observado nos cenários 6, 11 e 20 da T07.
+  - o comportamento observado nos cenários 6, 11 e 20 da T07, e a correção do cadastro refeito (T13): o que levar está em "Anotar para a T10" de [`07-e2e-local.md`](07-e2e-local.md).
 - [ ] "Aberto" a registrar:
   - a base clara do design system e a escolha de aparência ficam para o grupo H, que tem o botão de trocar; a troca de e-mail usa as casas do código, mas o resto da H3 não foi aplicado;
   - `flutter analyze` quebra com o caminho "Área de trabalho"; contorno pelo `dart analyze` (link simbólico não resolve);

@@ -1,6 +1,6 @@
 # T09 — Validação ponta a ponta no remoto
 
-**Estado:** a fazer · **Depende de:** T08
+**Estado:** a fazer · **Depende de:** T08, T13
 
 ## Objetivo
 
@@ -27,6 +27,12 @@ Repetir no projeto remoto, com e-mail real e aparelho físico, o que só aparece
   - troca de e-mail (13 e 16);
   - Google no primeiro acesso (17);
   - Google em conta com senha (18).
+  - cadastro refeito antes do código, com outra senha e outro nome (6, corrigido na T13): valem os do último pedido.
+- [ ] O que o local não respondeu e o remoto pode responder diferente (T07):
+  - cadastro com e-mail que já tem conta (5): no local, `user_already_exists`. O `_traduzir` também cobre o usuário sem `identities`, que nunca apareceu;
+  - e-mail inválido: no local, 400 `validation_failed`. O `_traduzir` também cobre `email_address_invalid`, que nunca apareceu;
+  - teto de 30 e-mails por hora: no local não há limite (`GOTRUE_RATE_LIMIT_EMAIL_SENT=360000` sem SMTP próprio). A rodada inteira do script gasta 16 e-mails, então cabe uma por hora. Anotar o `error_code` quando o teto for atingido, e se ele chega ao app como "Aguarde um minuto…" ou no genérico;
+  - `autenticacao_api.sh` com `MAILPIT_URL` vazio, que pede os códigos no terminal e nunca foi exercitado.
 - [ ] Para cada e-mail recebido, anotar:
   - quanto tempo levou para chegar;
   - se caiu na caixa de entrada ou no spam;

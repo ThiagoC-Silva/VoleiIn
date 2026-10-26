@@ -34,6 +34,10 @@ Efeito nas tasks: T01 reaberta e fechada no mesmo dia; T02, T03, T04 e T07 a T10
 
 O Google recusou publicar a tela de consentimento sem página inicial e Política de Privacidade, e o VoleiIn ainda não tem nenhuma das duas. Decidido: ela fica **em teste** até o passo 10, com as contas de desenvolvimento como usuárias de teste (até 100). Nos passos 3 a 9 só elas usam o app, e quem não está na lista continua entrando com e-mail e senha. A publicação, com as duas páginas no GitHub Pages, passa a fazer parte do passo 10, antes de o APK chegar à turma (`docs/stack.md`, Autenticação, Riscos e Ordem de implementação). O texto da Política de Privacidade é decisão de produto, a fechar no passo 10.
 
+## Decisões de 2026-10-26 — cadastro refeito
+
+A T07 mostrou que, quando um cadastro pendente é refeito antes do código, o serviço fica com a senha e o nome do primeiro pedido. Se o primeiro pedido for de um impostor, a dona do e-mail confirma pelo código e a senha dele entra na conta dela. É a tomada de conta que o cadastro confirmado por código devia fechar, só que pela tela de criar conta e não pelo Google. Decidido: a A3 aberta pela A2 grava, depois do código, a senha e o nome digitados (`docs/prd.md`, RN21 e decisão "Cadastro com senha"; `docs/stack.md`, Autenticação). A implementação é a T13, antes da T08, para a T09 conferir no remoto.
+
 ## Tasks
 
 | # | Task | Estado | Depende de |
@@ -44,14 +48,15 @@ O Google recusou publicar a tela de consentimento sem página inicial e Polític
 | [T04](04-base-app-flutter.md) | Base do app Flutter | feito | T01, T11 |
 | [T05](05-tela-entrar.md) | Tela de entrar (RF01) | feito | T02, T03, T04 |
 | [T06](06-tela-trocar-email.md) | Tela de trocar e-mail (RF35) | feito | T04 |
-| [T07](07-e2e-local.md) | Validação ponta a ponta no Supabase local | a fazer | T02, T03, T05, T06, T11, T12 |
+| [T07](07-e2e-local.md) | Validação ponta a ponta no Supabase local | feito | T02, T03, T05, T06, T11, T12 |
 | [T08](08-projeto-remoto-brevo.md) | Projeto Supabase remoto e Brevo como SMTP | a fazer | T07 |
-| [T09](09-e2e-remoto.md) | Validação ponta a ponta no remoto | a fazer | T08 |
+| [T09](09-e2e-remoto.md) | Validação ponta a ponta no remoto | a fazer | T08, T13 |
 | [T10](10-fechamento.md) | Fechamento do passo | a fazer | T09 |
 | [T11](11-google-cloud.md) | Projeto no Google Cloud e provedor Google local | feito | T01 |
 | [T12](12-redefinir-senha.md) | Redefinição e troca de senha (RF41) | feito | T05 |
+| [T13](13-cadastro-refeito.md) | Nome e senha do cadastro refeito | a fazer | T07 |
 
-Ordem: T01 → T02 e T03 → T11 → T04 → T05 → T12 → T07 → T08 → T09 → T10. A reabertura de T02 e T03 é um commit só.
+Ordem: T01 → T02 e T03 → T11 → T04 → T05 → T12 → T07 → T13 → T08 → T09 → T10. A reabertura de T02 e T03 é um commit só.
 
 Ao concluir uma task, troque o estado nesta tabela e no cabeçalho do arquivo dela.
 
