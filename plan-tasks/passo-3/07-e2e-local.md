@@ -2,7 +2,7 @@
 
 **Estado:** feito · **Depende de:** T02, T03, T05, T06, T11, T12
 
-Execução quebrada em tasks, uma por vez: [`plan-tasks/planT07/`](../planT07/README.md). Este arquivo guarda o roteiro; lá ficam a ordem, as decisões de 2026-10-23 e o resultado de cada rodada.
+Execução quebrada em tasks, uma por vez, em `plan-tasks/planT07/`. **Essa pasta foi removida depois da T07 concluída** (commit `dcc44d6`), porque o que ela guardava — a ordem, as decisões de 2026-10-23 e o resultado de cada rodada — já está consolidado neste arquivo. As referências a T07.1 a T07.11 abaixo apontam para tasks que só existem no histórico do git.
 
 ## Objetivo
 
@@ -111,7 +111,7 @@ delete from auth.users where id = '<id>';  -- identities e sessions vão em casc
 
 ## Resultado
 
-Rodado de 2026-10-23 a 2026-10-26, Auth v2.197.0, no trilho da API (`autenticacao_api.sh --com-expiracao`: `SUCESSO: 17 cenários`, modelos 5 de 5, 6 min 45 s, 16 e-mails) e no celular (Motorola Edge 60 Pro, Android 16). O detalhe de cada rodada está no "Resultado" das tasks de [`planT07/`](../planT07/README.md): API em T07.2 a T07.6, celular em T07.7 a T07.10.
+Rodado de 2026-10-23 a 2026-10-26, Auth v2.197.0, no trilho da API (`autenticacao_api.sh --com-expiracao`: `SUCESSO: 17 cenários`, modelos 5 de 5, 6 min 45 s, 16 e-mails) e no celular (Motorola Edge 60 Pro, Android 16). O detalhe de cada rodada está no "Resultado" das tasks de `planT07/`, hoje só no histórico: API em T07.2 a T07.6, celular em T07.7 a T07.10.
 
 | # | Trilho | Observado | Contra o esperado | `error_code` |
 | --- | --- | --- | --- | --- |
@@ -148,7 +148,7 @@ Rodado de 2026-10-23 a 2026-10-26, Auth v2.197.0, no trilho da API (`autenticaca
 
 Pronto para a [`10-fechamento.md`](10-fechamento.md) levar ao `progresso.md`:
 
-- **Códigos reais**: a tabela acima e a da [T07.6](../planT07/06-rodada-completa.md). Nenhum código observado caiu na mensagem genérica sem motivo registrado, e o `_traduzir` não mudou. `email_address_invalid`, `over_request_rate_limit` e o usuário sem `identities` ficam no `_traduzir`, porque o remoto pode usá-los (T09). A única mudança de tradução foi a do Google: `traduzirGoogle` só silencia o `canceled` cuja `description` contém "Cancelled by user" (T07.10).
+- **Códigos reais**: a tabela acima e a da T07.6. Nenhum código observado caiu na mensagem genérica sem motivo registrado, e o `_traduzir` não mudou. `email_address_invalid`, `over_request_rate_limit` e o usuário sem `identities` ficam no `_traduzir`, porque o remoto pode usá-los (T09). A única mudança de tradução foi a do Google: `traduzirGoogle` só silencia o `canceled` cuja `description` contém "Cancelled by user" (T07.10).
 - **Decisões de implementação**, pelo comportamento observado:
   - cenário 6: na entrada de cadastro pendente, o reenvio recusado nos 60 s é engolido, e o código anterior continua valendo;
   - cenário 6, cadastro refeito: o serviço fica com a senha e o nome do primeiro pedido. Decisão de produto de 2026-10-26: a A3 aberta pela A2 grava, depois do código, a senha e o nome digitados ([T13](13-cadastro-refeito.md); `docs/prd.md`, RN21; `docs/stack.md`, Autenticação);
@@ -165,4 +165,4 @@ Os 22 cenários rodaram e o resultado de cada um está anotado, com as divergên
 
 ## Commit
 
-Um commit por task de [`planT07/`](../planT07/README.md), com a mensagem dada em cada uma, mais um por correção que algum cenário exigir. A T07.11 registra os resultados e fecha a T07.
+Um commit por task de `planT07/`, com a mensagem dada em cada uma, mais um por correção que algum cenário exigir. A T07.11 registra os resultados e fecha a T07.
