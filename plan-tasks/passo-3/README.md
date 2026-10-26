@@ -2,7 +2,7 @@
 
 Quebra do passo 3 de [`docs/stack.md`](../../docs/stack.md) em tasks menores. Cada task fecha com um commit próprio; o passo fecha na T10, com a entrada em [`docs/progresso.md`](../../docs/progresso.md).
 
-> Projeto no Supabase, Brevo como SMTP, e-mail e senha com código de seis dígitos e cinco minutos no cadastro, na redefinição e na troca de e-mail, cliente OAuth do Google, gatilhos de criação do perfil e de revogação dos aparelhos, telas de entrar, de redefinir a senha e de trocar o e-mail.
+> Projeto no Supabase, Resend como SMTP, e-mail e senha com código de seis dígitos e cinco minutos no cadastro, na redefinição e na troca de e-mail, cliente OAuth do Google, gatilhos de criação do perfil e de revogação dos aparelhos, telas de entrar, de redefinir a senha e de trocar o e-mail.
 
 ## Diagnóstico de 2026-10-19
 
@@ -49,7 +49,7 @@ A T07 mostrou que, quando um cadastro pendente é refeito antes do código, o se
 | [T05](05-tela-entrar.md) | Tela de entrar (RF01) | feito | T02, T03, T04 |
 | [T06](06-tela-trocar-email.md) | Tela de trocar e-mail (RF35) | feito | T04 |
 | [T07](07-e2e-local.md) | Validação ponta a ponta no Supabase local | feito | T02, T03, T05, T06, T11, T12 |
-| [T08](08-projeto-remoto-brevo.md) | Projeto Supabase remoto e Brevo como SMTP | a fazer | T07 |
+| [T08](08-projeto-remoto-resend.md) | Projeto Supabase remoto e Resend como SMTP | a fazer | T07 |
 | [T09](09-e2e-remoto.md) | Validação ponta a ponta no remoto | a fazer | T08, T13 |
 | [T10](10-fechamento.md) | Fechamento do passo | a fazer | T09 |
 | [T11](11-google-cloud.md) | Projeto no Google Cloud e provedor Google local | feito | T01 |

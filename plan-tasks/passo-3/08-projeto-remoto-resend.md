@@ -1,10 +1,12 @@
-# T08 — Projeto Supabase remoto e Brevo como SMTP
+# T08 — Projeto Supabase remoto e Resend como SMTP
 
 **Estado:** a fazer · **Depende de:** T07
 
+Execução quebrada em tasks, uma por vez: [`plan-tasks/planT08/`](../planT08/README.md). Este arquivo guarda o que a T08 entrega; lá ficam a ordem, as decisões abertas e o resultado de cada etapa.
+
 ## Objetivo
 
-Levar o passo 3 ao projeto remoto, em plano gratuito, com o Brevo como SMTP próprio do Supabase Auth: o SMTP embutido do plano gratuito serve só para teste. Custo: R$ 0.
+Levar o passo 3 ao projeto remoto, em plano gratuito, com o Resend como SMTP próprio do Supabase Auth: o SMTP embutido do plano gratuito serve só para teste. Custo: R$ 0 de mensalidade, sobre o domínio `voleiin.com.br` já registrado (R$ 40 por ano).
 
 Os itens marcados **[Thiago]** exigem conta, painel ou DNS e são feitos à mão.
 
@@ -34,22 +36,23 @@ Os itens marcados **[Thiago]** exigem conta, painel ou DNS e são feitos à mão
   - URL de retorno não precisa: o fluxo é por ID token, sem navegador;
   - "Skip nonce check" só se a T09 mostrar que o token chega sem nonce e o serviço o recusa.
 
-### Brevo
+### Resend
 
-- [ ] **[Thiago]** Criar a conta gratuita (300 e-mails por dia). Se exigir aprovação antes de liberar o SMTP, a alternativa é o Resend (3.000 por mês, teto de 100 por dia, pede cartão sem cobrar).
-- [ ] **[Thiago]** Remetente: domínio próprio com SPF e DKIM no DNS, ou endereço verificado. Sem autenticação de domínio, o código tende a cair no spam.
-- [ ] **[Thiago]** No painel do Supabase, Authentication → SMTP: host, porta, usuário e chave SMTP do Brevo, nome do remetente "VoleiIn". A chave não entra no `config.toml` nem em nenhum arquivo versionado.
+- [ ] **[Thiago]** Criar a conta gratuita (3.000 e-mails por mês, teto de 100 por dia).
+- [ ] **[Thiago]** Verificar o domínio do remetente no Resend, publicando no DNS do `voleiin.com.br` os registros que ele gerar. Sem domínio verificado, o Resend só envia para o e-mail do dono da conta.
+- [ ] **[Thiago]** No DNS, afrouxar o `_dmarc` para `p=none` durante a configuração e voltar a `p=reject` depois do envio real passar. O Registro.br publica a zona travada contra envio (`v=spf1 -all`, `MX 0 .`, `p=reject`).
+- [ ] **[Thiago]** No painel do Supabase, Authentication → SMTP: host `smtp.resend.com`, porta, usuário `resend` e a chave de API como senha, nome do remetente "VoleiIn". A chave não entra no `config.toml` nem em nenhum arquivo versionado.
 
 ### Limites
 
-- [ ] Conferir nas páginas de preço do Supabase e do Brevo que os limites de `docs/stack.md` continuam valendo.
+- [ ] Conferir nas páginas de preço do Supabase e do Resend que os limites de `docs/stack.md` continuam valendo.
 
 ## Pronto quando
 
 - `supabase migration list` mostra as cinco migrações nos dois lados.
-- Um cadastro no remoto recebe o código por e-mail real, com o modelo em português.
+- Um cadastro no remoto recebe o código por e-mail real, na caixa de entrada, com o modelo em português, e com SPF e DKIM passando.
 - O provedor Google aparece ligado no painel.
 
 ## Commit
 
-Sem arquivo novo esperado. Se `supabase config push` ou o link mudarem algo versionado, commitar: `Liga o projeto remoto e o SMTP do Brevo`.
+Sem arquivo novo esperado. Se `supabase config push` ou o link mudarem algo versionado, commitar: `Liga o projeto remoto e o SMTP do Resend`.

@@ -37,7 +37,7 @@ Repetir no projeto remoto, com e-mail real e aparelho físico, o que só aparece
   - quanto tempo levou para chegar;
   - se caiu na caixa de entrada ou no spam;
   - se o remetente aparece como "VoleiIn".
-- [ ] Conferir no painel do Brevo o contador de envios do dia.
+- [ ] Conferir nos registros do Resend que os envios aparecem entregues, e quanto do teto diário foi gasto.
 
 ## Pronto quando
 
