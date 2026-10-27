@@ -25,6 +25,7 @@ Confirmadas pelo Thiago na T09.1: `PSQL` vazio, teto baixado no painel, o Thiago
 - **`--com-expiracao` na rodada.** É a única prova de que o código vence em 300 s no remoto, que veio do `config push`. Custa cinco minutos e um e-mail.
 - **O teto por hora se testa baixando-o no painel** (T09.8). Para 3, por alguns minutos, e de volta a 30. A alternativa, atingir os 30 de verdade, gasta cerca de 30 e-mails reais em minutos, quase um terço do dia do Resend, numa caixa só, com um domínio sem histórico.
 - **O Thiago opera o celular com o dedo.** É o uso real, os códigos chegam na caixa dele, e as telas do Google pedem a pessoa. O Claude instala, confere o servidor e registra.
+  - **Mudado na T09.4, a pedido do Thiago:** o Claude opera o celular pelo `adb`, como na T07 e na T09.3, e lê os códigos nas notificações do Gmail do aparelho. Ficam com o Thiago só o que exige a pessoa: telas de consentimento ou verificação do Google, e olhar a caixa de entrada quando um e-mail não notifica.
 - **Senha descartável nas contas de teste**, dita na conversa e fora de arquivo versionado, para o Claude abrir sessões por `curl` (segunda sessão do cenário 9).
 - **No fim, todas as contas de teste saem do remoto** (T09.9), inclusive a `+t087`, para o remoto chegar ao passo 4 sem usuário. `pessoa` não some com `auth.users` (sem chave estrangeira, de propósito), então a ordem do SQL da T07 vale.
 
@@ -60,7 +61,7 @@ Cerca de 31 no dia, mais os 3 de hoje, contra 100 do Resend. Pelo teto de 30 por
 | [T09.1](01-preparacao.md) | Contas, aparelho e estado do remoto | feito | — |
 | [T09.2](02-script-caixa-real.md) | Endereços com `+` no script | feito | — |
 | [T09.3](03-apk-release.md) | APK release apontando para o remoto | feito | T09.1 |
-| [T09.4](04-celular-senha.md) | Celular: cadastro, entrada e redefinição | a fazer | T09.3 |
+| [T09.4](04-celular-senha.md) | Celular: cadastro, entrada e redefinição | feito | T09.3 |
 | [T09.5](05-celular-google.md) | Celular: Google | a fazer | T09.4 |
 | [T09.6](06-celular-outro-provedor.md) | Celular: cadastro refeito e troca de e-mail | a fazer | T09.5 |
 | [T09.7](07-rodada-script.md) | Rodada do script no remoto | a fazer | T09.2, T09.6 |
