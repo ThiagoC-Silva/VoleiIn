@@ -4,6 +4,7 @@ import 'package:voleiin/features/auth/criar_conta_tela.dart';
 
 import '../../auth_falso.dart';
 import '../../montar.dart';
+import '../../pessoa_falsa.dart';
 
 final _botao = find.widgetWithText(FilledButton, 'Criar conta');
 
@@ -42,6 +43,26 @@ void main() {
 
     expect(auth.chamadas, ['criarConta Bruno bruno@exemplo.com segredo123']);
     expect(find.text('Confirmar e-mail'), findsOneWidget);
+  });
+
+  testWidgets('a confirmação do código grava o nome e a senha digitados aqui', (tester) async {
+    final auth = AuthFalso();
+    await montar(tester, auth, const CriarContaTela(), pessoa: PessoaFalsa(auth.chamadas));
+
+    await _preencher(tester, nome: ' Bruno ', email: 'bruno@exemplo.com', senha: 'segredo123');
+    await tester.tap(_botao);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('campo-codigo')), '123456');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Confirmar'));
+    await tester.pumpAndSettle();
+
+    expect(auth.chamadas, [
+      'criarConta Bruno bruno@exemplo.com segredo123',
+      'confirmarCadastro bruno@exemplo.com 123456',
+      'gravarNome Bruno',
+      'gravarSenhaDoCadastro segredo123',
+    ]);
   });
 
   testWidgets('e-mail que já tem conta mostra a mensagem e não avança', (tester) async {

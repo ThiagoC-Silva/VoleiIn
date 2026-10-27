@@ -3,19 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voleiin/core/tema.dart';
 import 'package:voleiin/dados/auth_repositorio.dart';
+import 'package:voleiin/dados/pessoa_repositorio.dart';
 
 import 'auth_falso.dart';
+import 'pessoa_falsa.dart';
 
 /// Monta [tela] num aparelho do tamanho de um celular, com o tema do app e o [auth] falso.
 /// Com [empilhada], ela abre por cima de uma tela com o botão 'abrir', para que voltar e
-/// desfazer a pilha tenham para onde ir.
-Future<void> montar(WidgetTester tester, AuthFalso auth, Widget tela, {bool empilhada = false}) async {
+/// desfazer a pilha tenham para onde ir. A [pessoa] falsa só é preciso onde a tela grava o perfil.
+Future<void> montar(
+  WidgetTester tester,
+  AuthFalso auth,
+  Widget tela, {
+  bool empilhada = false,
+  PessoaFalsa? pessoa,
+}) async {
   tester.view.physicalSize = const Size(1080, 2340);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [authRepositorioProvider.overrideWithValue(auth)],
+      overrides: [
+        authRepositorioProvider.overrideWithValue(auth),
+        if (pessoa != null) pessoaRepositorioProvider.overrideWithValue(pessoa),
+      ],
       child: MaterialApp(
         theme: temaVoleiIn,
         home: empilhada

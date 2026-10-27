@@ -54,7 +54,7 @@ A T07 mostrou que, quando um cadastro pendente é refeito antes do código, o se
 | [T10](10-fechamento.md) | Fechamento do passo | a fazer | T09 |
 | [T11](11-google-cloud.md) | Projeto no Google Cloud e provedor Google local | feito | T01 |
 | [T12](12-redefinir-senha.md) | Redefinição e troca de senha (RF41) | feito | T05 |
-| [T13](13-cadastro-refeito.md) | Nome e senha do cadastro refeito | a fazer | T07 |
+| [T13](13-cadastro-refeito.md) | Nome e senha do cadastro refeito | feito | T07 |
 
 Ordem: T01 → T02 e T03 → T11 → T04 → T05 → T12 → T07 → T13 → T08 → T09 → T10. A reabertura de T02 e T03 é um commit só.
 

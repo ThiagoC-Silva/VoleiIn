@@ -44,11 +44,12 @@ class _CriarContaTelaState extends ConsumerState<CriarContaTela> with ExecucaoAu
   void _criar() {
     if (!_valido) return;
     final email = _emailDigitado;
+    final cadastro = (nome: _nome.text.trim(), senha: _senha.text);
     executar((repositorio) async {
-      await repositorio.criarConta(_nome.text.trim(), email, _senha.text);
+      await repositorio.criarConta(cadastro.nome, email, cadastro.senha);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(builder: (_) => ConfirmarEmailTela(email: email)),
+        MaterialPageRoute<void>(builder: (_) => ConfirmarEmailTela(email: email, cadastro: cadastro)),
       );
     });
   }

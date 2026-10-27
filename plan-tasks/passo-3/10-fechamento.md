@@ -29,6 +29,7 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
   - o domínio `voleiin.com.br` vence em 26/10/2027, com alerta no Google Agenda; vencido, derruba o login inteiro;
   - o `seed.sql` não foi ao remoto, que está sem locais nem quadras (T08.4);
   - uma conta de teste (Gmail secundário com `+t087`) fica no remoto, confirmada e com `pessoa` (T08.7);
+  - cadastro pendente de impostor concluído pela redefinição de senha nasce com o nome do impostor; a senha vale a da dona, e o nome só se troca pela H2 (risco aceito em 2026-10-27; `docs/stack.md`, Riscos);
   - a base clara do design system e a escolha de aparência ficam para o grupo H, que tem o botão de trocar; a troca de e-mail usa as casas do código, mas o resto da H3 não foi aplicado;
   - `flutter analyze` quebra com o caminho "Área de trabalho"; contorno pelo `dart analyze` (link simbólico não resolve);
   - tela de consentimento do Google em teste: só as usuárias de teste entram pelo Google até o passo 10, que publica a tela com página inicial e Política de Privacidade no GitHub Pages;

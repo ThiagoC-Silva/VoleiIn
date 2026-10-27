@@ -4,6 +4,11 @@ Onde o app diverge das imagens A1 a A4, ou completa o que elas não mostram. O P
 
 Telas: `app/lib/features/auth/` — `entrar_tela.dart` (A1), `criar_conta_tela.dart` (A2), `confirmar_email_tela.dart` (A3) e `redefinir_senha_tela.dart` (A4).
 
+## A3 — Confirmar e-mail
+
+- **Aberta pela A2, grava o nome e a senha depois do código** (RN21, cadastro refeito; T13). A tela não muda; a gravação roda sob o mesmo indicador do "Confirmar".
+- **Gravação recusada segura a tela.** O código já foi gasto e a sessão já existe, então as casas e o reenvio ficam travados, o voltar (o do topo e o do sistema) fica bloqueado, e o erro aparece acima do botão. O "Confirmar" seguinte só grava, como a A4 faz com a senha nova. Sem o bloqueio, voltar levaria ao início, com a senha do primeiro pedido valendo.
+
 ## A4 — Redefinir senha
 
 - **A etapa do e-mail não foi desenhada.** A A4 é a segunda etapa: código e senha nova. A primeira pede o e-mail e envia o código ("Enviar código"), no estilo dos campos da A2, com o botão no pé como o "Salvar nova senha". Aberta pela A1 ("Esqueci a senha"), o campo vem com o e-mail já digitado; aberta pela sessão ("Trocar senha"), vem travado no e-mail da conta.

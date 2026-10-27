@@ -72,6 +72,18 @@ chamar() {  # <método> <caminho> [corpo] [token]
   RESPOSTA=$(cat "$TMP/resposta")
 }
 
+# A API de dados mora ao lado da de autenticação. Só o cenário do cadastro refeito a usa,
+# para gravar e ler o nome como o app.
+REST_URL=${AUTH_URL%/auth/v1}/rest/v1
+
+dados() {  # <método> <caminho> <token> [corpo]; como `chamar`, na API de dados
+  local args=(-s -o "$TMP/resposta" -w '%{http_code}' -X "$1" -H "apikey: $CHAVE"
+    -H "Authorization: Bearer $3")
+  [[ -n ${4:-} ]] && args+=(-H 'Content-Type: application/json' -d "$4")
+  STATUS=$(curl "${args[@]}" "$REST_URL$2") || falha "$1 $2: sem resposta de $REST_URL"
+  RESPOSTA=$(cat "$TMP/resposta")
+}
+
 campo() {  # <filtro jq> sobre a última resposta
   jq -r "$1 // empty" <<<"$RESPOSTA" 2>/dev/null
 }
@@ -371,6 +383,42 @@ cadastro_duplo_depois() {
   done
   [[ -n $PSQL ]] &&
     anota 6 "pessoa.nome da eva2: $(banco "select nome from public.pessoa where id = '$EVA2_ID'")"
+}
+
+# A Helena refaz pela A2 o cadastro que um impostor deixou pendente no e-mail dela (T13).
+# O serviço fica com a senha e o nome do primeiro pedido; o app grava os da A2 com a sessão
+# do código, o nome antes da senha. Sem o app, o cenário 6 mostra o que o serviço faz.
+cenario_refeito() {
+  local helena id enviado codigo token
+  helena=$(email_unico helena)
+  chamar POST /signup "$(json_cadastro "$helena" senha-do-impostor Impostor)"
+  espera_status 'refeito: cadastro do impostor' 200
+  id=$(campo '.id // .user.id')
+  enviado=$(date +%s)
+  # O código do impostor chega à caixa da Helena, que não o usa.
+  codigo_de "$helena" "$ASSUNTO_CADASTRO" >/dev/null || exit 1
+
+  ate_passar 61 "$enviado"
+  chamar POST /signup "$(json_cadastro "$helena" senha-da-helena Helena)"
+  espera_status 'refeito: cadastro da Helena' 200
+  espera_igual 'refeito: mesmo usuário' "$(campo '.id // .user.id')" "$id"
+  codigo=$(codigo_de "$helena" "$ASSUNTO_CADASTRO") || exit 1
+  chamar POST /verify "$(json_codigo email "$helena" "$codigo")"
+  espera_status 'refeito: confirmação' 200
+  token=$(campo .access_token)
+
+  dados PATCH "/pessoa?id=eq.$id" "$token" '{"nome": "Helena"}'
+  espera_status 'refeito: nome da A2' 204
+  chamar PUT /user '{"password": "senha-da-helena"}' "$token"
+  espera_status 'refeito: senha da A2' 200
+  espera_aviso "$helena" "$ASSUNTO_SENHA_TROCADA"
+
+  chamar POST '/token?grant_type=password' "$(json_entrada "$helena" senha-do-impostor)"
+  espera_erro 'refeito: senha do impostor' invalid_credentials
+  chamar POST '/token?grant_type=password' "$(json_entrada "$helena" senha-da-helena)"
+  espera_status 'refeito: senha da Helena' 200
+  dados GET "/pessoa?select=nome&id=eq.$id" "$(campo .access_token)"
+  espera_igual 'refeito: nome do perfil' "$(campo '.[0].nome')" Helena
 }
 
 FABIO=
@@ -741,6 +789,7 @@ roda 4
 roda 5
 roda invalido
 roda 6
+roda refeito
 # O 8 reenvia ao Fábio antes da confirmação que o 7 faz.
 roda 8
 roda 7

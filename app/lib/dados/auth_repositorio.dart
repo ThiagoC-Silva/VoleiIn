@@ -10,6 +10,10 @@ const tamanhoMinimoSenha = 8;
 const _jaTemConta = 'Esse e-mail já tem conta. Entre com a senha ou pelo Google.';
 const _falhaGoogle = 'Não foi possível entrar com o Google. Entre com e-mail e senha.';
 
+/// Falha de rede e falha sem tradução própria; o `PessoaRepositorio` usa as mesmas.
+const mensagemSemConexao = 'Sem conexão. Confira a internet e tente de novo.';
+const mensagemGenerica = 'Não foi possível concluir agora. Tente de novo.';
+
 /// Falha do serviço de autenticação, já com a mensagem para a tela.
 class FalhaAuth implements Exception {
   const FalhaAuth(this.mensagem);
@@ -65,6 +69,19 @@ class AuthRepositorio {
 
   Future<void> confirmarCadastro(String email, String codigo) =>
       _executar(() => _auth.verifyOTP(type: OtpType.email, email: email, token: codigo));
+
+  /// Grava, depois do código, a senha digitada na criação da conta. O serviço fica com a
+  /// senha do primeiro pedido quando o cadastro pendente é refeito, e esse pedido pode ser
+  /// de um impostor (RN21; docs/stack.md, Autenticação). No caso comum a senha já é a da
+  /// conta, e o same_password é ignorado. Quando ela muda de fato, o serviço derruba as
+  /// outras sessões e manda o aviso de senha trocada.
+  Future<void> gravarSenhaDoCadastro(String senha) async {
+    try {
+      await _auth.updateUser(UserAttributes(password: senha));
+    } on AuthException catch (e) {
+      if (e.code != 'same_password') throw _traduzir(e);
+    }
+  }
 
   Future<void> reenviarConfirmacao(String email) =>
       _executar(() => _auth.resend(type: OtpType.signup, email: email));
@@ -129,7 +146,7 @@ class AuthRepositorio {
 
   FalhaAuth _traduzir(AuthException e) {
     if (e is AuthRetryableFetchException) {
-      return const FalhaAuth('Sem conexão. Confira a internet e tente de novo.');
+      return const FalhaAuth(mensagemSemConexao);
     }
     return FalhaAuth(switch (e.code) {
       'invalid_credentials' => 'E-mail ou senha incorretos.',
@@ -141,7 +158,7 @@ class AuthRepositorio {
       'otp_expired' => 'Código inválido ou vencido. Confira ou peça outro.',
       'email_exists' => 'Esse e-mail já pertence a outra conta.',
       'email_address_invalid' || 'validation_failed' => 'Confira o e-mail digitado.',
-      _ => 'Não foi possível concluir agora. Tente de novo.',
+      _ => mensagemGenerica,
     });
   }
 }
