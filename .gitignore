@@ -14,3 +14,6 @@ app/android/app/google-services.json
 # Supabase
 supabase/.temp/
 supabase/.branches/
+
+# MCP local
+.mcp.json

@@ -1,6 +1,6 @@
 # T08.3 — Criar o projeto remoto e ligar o CLI
 
-**Estado:** a fazer · **Depende de:** T08.1
+**Estado:** feito · **Depende de:** T08.1
 
 ## Objetivo
 
@@ -25,6 +25,15 @@ Ter o projeto VoleiIn no Supabase, plano gratuito, região São Paulo, e o CLI d
 - [ ] Anotar aqui o ref e a URL do projeto, que não são segredo: vão dentro do APK da T09.
 
 ## Resultado
+
+Feito em 2026-10-27.
+
+- Projeto **VoleiIn**, plano gratuito, região `sa-east-1`, Postgres 17, `ACTIVE_HEALTHY`.
+- **Ref:** `zmokpmovphikmobynssy`. **URL:** `https://zmokpmovphikmobynssy.supabase.co`. Não são segredo: vão dentro do APK da T09.
+- Opções da tela de criação: **Data API marcada**; **exposição automática de tabelas desmarcada**; **RLS automática desmarcada**. Com a exposição desmarcada, tabela nova não ganha privilégio para a API por padrão, o que combina com a migração `rls`; a T08.4 confere os privilégios depois do `db push`.
+- `supabase login` feito em outro terminal, porque o modo `!`/`<bash-input>` do Claude Code não tem TTY. `supabase link --project-ref zmokpmovphikmobynssy` feito; `supabase projects list` mostra `"linked": true`.
+- `git status` sem nada novo do `link`: o ref fica em `supabase/.temp/`, ignorado.
+- Servidor MCP do Supabase registrado em `.mcp.json` (escopo de projeto, com `project_ref`), que entrou no `.gitignore` por ser configuração local.
 
 ## Pronto quando
 
