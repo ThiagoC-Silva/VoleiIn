@@ -15,7 +15,9 @@ Os itens marcados **[Thiago]** exigem conta, painel, caixa de e-mail ou o dedo n
 - **Celular:** Motorola Edge 60 Pro, depuração sem fio pareada com esta máquina (T13). Instalado está o APK de depuração apontando para o Supabase local.
 - **App:** o reenvio do cadastro pendente pela A1 engole `over_email_send_rate_limit` (`auth_repositorio.dart`, na entrada com senha), porque nos 60 s o código anterior ainda vale (T07, cenário 6). Se o teto por hora chegar com o mesmo código, a pessoa espera um código que não vem. A T09.8 confere.
 
-## Proposto — confirmar antes da execução
+## Decidido em 2026-10-27
+
+Confirmadas pelo Thiago na T09.1: `PSQL` vazio, teto baixado no painel, o Thiago no celular, a senha descartável e a limpeza no fim. As outras três (endereços com `+`, MCP só de leitura e `--com-expiracao`) seguem sem objeção dele.
 
 - **Endereços da rodada do script: `+` numa caixa real do Thiago** (T09.2). Um parâmetro novo, `EMAIL_CAIXA`, faz os endereços virarem `<usuario>+<nome>.<época>@<domínio>`. Sem isso, a única forma de rodar no remoto é mandar a domínios que não são nossos, e cada devolução pesa na reputação do `voleiin.com.br`, que é nova.
 - **`PSQL` vazio no remoto.** O script não grava no banco remoto: o 12 (sessão envelhecida) e as linhas inventadas de `dispositivo_push` do 9 e do 15 ficam puladas. O que eles provam é o gatilho e a configuração `secure_password_change`, já conferidos no local (T07) e que vieram ao remoto pela mesma migração e pelo mesmo `config.toml`. A alternativa é apontar o `PSQL` para o banco remoto com a senha dele, o que deixa linhas inventadas lá.
@@ -55,7 +57,7 @@ Cerca de 32 no dia, mais os 3 de hoje, contra 100 do Resend. Pelo teto de 30 por
 
 | # | Task | Estado | Depende de |
 | --- | --- | --- | --- |
-| [T09.1](01-preparacao.md) | Contas, aparelho e estado do remoto | a fazer | — |
+| [T09.1](01-preparacao.md) | Contas, aparelho e estado do remoto | feito | — |
 | [T09.2](02-script-caixa-real.md) | Endereços com `+` no script | a fazer | — |
 | [T09.3](03-apk-release.md) | APK release apontando para o remoto | a fazer | T09.1 |
 | [T09.4](04-celular-senha.md) | Celular: cadastro, entrada e redefinição | a fazer | T09.3 |
