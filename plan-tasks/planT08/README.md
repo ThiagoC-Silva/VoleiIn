@@ -37,7 +37,7 @@ Os itens marcados **[Thiago]** exigem conta, painel, senha ou DNS e são feitos 
 | # | Task | Estado | Depende de |
 | --- | --- | --- | --- |
 | [T08.1](01-limites.md) | Conferir os limites dos planos gratuitos | feito | — |
-| [T08.2](02-conta-resend.md) | Conta no Resend e domínio do remetente | a fazer | T08.1 |
+| [T08.2](02-conta-resend.md) | Conta no Resend e domínio do remetente | feito | T08.1 |
 | [T08.3](03-projeto-e-link.md) | Criar o projeto remoto e ligar o CLI | a fazer | T08.1 |
 | [T08.4](04-migracoes.md) | Aplicar as migrações no remoto | a fazer | T08.3 |
 | [T08.5](05-smtp.md) | SMTP do Resend no painel | a fazer | T08.2, T08.4 |

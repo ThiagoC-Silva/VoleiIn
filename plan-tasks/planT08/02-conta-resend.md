@@ -1,6 +1,6 @@
 # T08.2 — Conta no Resend e domínio do remetente
 
-**Estado:** parcial, esperando a zona do DNS entrar no ar · **Depende de:** T08.1
+**Estado:** feito · **Depende de:** T08.1
 
 ## Objetivo
 
@@ -28,21 +28,22 @@ Ter conta gratuita no Resend com o domínio verificado e uma chave de API guarda
 - [x] **Remetente decidido: o subdomínio `mail.voleiin.com.br`**, como o Resend recomenda. O domínio raiz segue trancado pelo `v=spf1 -all`, que não atrapalha o envio porque SPF não é herdado entre domínio e subdomínio.
 - [x] **[Thiago]** Domínio adicionado no Resend, na região São Paulo (`sa-east-1`), com três registros gerados: um TXT de DKIM e dois CNAME.
 - [x] **[Thiago]** Cinco entradas salvas no painel do Registro.br, incluindo o `_dmarc` em `p=none`.
-- [ ] **[Thiago]** Esperar a verificação aparecer no Resend.
-- [ ] Conferir por consulta de DNS que o publicado bate com o painel, e que o `_dmarc` está em `p=none`.
-- [ ] **[Thiago]** Gerar uma chave de API no Resend e guardá-la fora do repositório: ela é a senha do SMTP.
-- [ ] Anotar aqui o que não é segredo: endereço do remetente, host, porta, usuário e a data da verificação.
+- [x] **[Thiago]** Esperar a verificação aparecer no Resend.
+- [x] Conferir por consulta de DNS que o publicado bate com o painel, e que o `_dmarc` está em `p=none`.
+- [x] **[Thiago]** Gerar uma chave de API no Resend e guardá-la fora do repositório: ela é a senha do SMTP.
+- [x] Anotar aqui o que não é segredo: endereço do remetente, host, porta, usuário e a data da verificação.
 
 O `p=reject` volta na T08.7, depois de um e-mail real passar com SPF e DKIM.
 
 ## Resultado
 
-Em andamento, 26/10/2026.
+Feito em 26/10/2026.
 
 - **Conta no Resend** criada pela conta do GitHub, sem cartão de crédito.
 - **Vencimento do domínio**, 26/10/2027, com alerta no Google Agenda.
 - **Remetente:** subdomínio `mail.voleiin.com.br`, na região **São Paulo (`sa-east-1`)**, a mesma que o projeto do Supabase vai usar. A região aparece como bandeira ao lado do nome do domínio no painel do Resend, e se confirma no alvo do CNAME, que traz `sae1`. Trocá-la depois exigiria apagar o domínio e refazer o DNS.
 - **SMTP a usar na T08.5:** host `smtp.resend.com`, porta 587 com STARTTLS, usuário `resend`, senha é a chave de API.
+- **Chave de API** gerada só com acesso de envio, restrita ao domínio `mail.voleiin.com.br`, e guardada fora do repositório. Se vazar, só manda e-mail por esse domínio; se se perder, gera-se outra e troca-se no painel do Supabase.
 - **Zona salva no painel do Registro.br**, com cinco entradas. O painel não aceita `@` nem `*`, então o domínio raiz vai com o campo de nome em branco, e o DMARC fica sem `rua=mailto:`, que seria recusado:
 
   | Tipo | Nome | Dados | Origem |
@@ -54,11 +55,14 @@ Em andamento, 26/10/2026.
   | CNAME | `send.mail` | `send.forge.rmta.net` | Resend |
 
 - **A chave de DKIM foi conferida**: decodifica como chave pública RSA de 1024 bits, com cabeçalho e expoente 65537 corretos. Não houve truncamento na cópia.
-- **Pendente:** os registros estão salvos no painel mas ainda não publicados. O domínio ficou "em transição" por algumas horas depois do registro, e enquanto isso os servidores `a.auto.dns.br` e `b.auto.dns.br` continuam entregando a zona protetora padrão do Registro.br. Falta a zona entrar no ar, a verificação no Resend passar e a chave de API ser gerada.
+- **Zona no ar** na noite de 26/10/2026, depois de algumas horas "em transição". A delegação trocou de `a.auto.dns.br` e `b.auto.dns.br` para `b.sec.dns.br` e `c.sec.dns.br`. Os servidores antigos seguem respondendo com a zona protetora, mas ninguém mais consulta por eles: conferir sempre nos servidores da delegação (`dig NS voleiin.com.br @a.dns.br`) ou num resolvedor público. Conferido em `b.sec.dns.br`, `c.sec.dns.br`, `8.8.8.8` e `1.1.1.1`: as cinco entradas batem com o painel, a chave de DKIM é idêntica nos quatro, e o `MX 0 .` deixou de existir.
+- **Domínio verificado no Resend** em 26/10/2026: DNS às 22:50 e domínio às 22:51, no horário mostrado pelo painel. O painel mostra ainda "Resend Forge: Enabled", sem efeito na T08.
 
 ### Achado que vale para quem repetir isto
 
 O Registro.br publica sozinho, em domínio sem zona própria, três registros que **impedem** o envio de e-mail: `v=spf1 -all`, `MX 0 .` e `_dmarc` com `p=reject`. Eles não aparecem na tabela do painel e não dá para apagá-los; o jeito é criar as suas entradas por cima. Sem notar isso, o e-mail de cadastro seria rejeitado pelo Gmail, sem nem cair no spam.
+
+Quando a zona própria entra no ar, a delegação muda de servidor (`*.auto.dns.br` para `*.sec.dns.br`), e os servidores antigos continuam respondendo com a zona protetora. Consultá-los diretamente dá a impressão de que nada foi publicado.
 
 ## Pronto quando
 
