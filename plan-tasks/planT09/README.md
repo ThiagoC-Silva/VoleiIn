@@ -40,6 +40,8 @@ Os endereços são pedidos na hora e não entram em arquivo versionado.
 | **Outro provedor** (não Gmail) | celular, cadastro com senha | 6 refeito (T13), 13, 16 |
 | **Gmail 2 com `+`** | script e destino da troca do 13 | a rodada inteira; `+t09` no 13 |
 
+Na T09.4, a conta com senha foi criada no Gmail secundário, e não no principal. Desde a T09.5, os nomes valem pelo papel da tabela, não pela caixa: o Gmail 1 é o secundário, base do `+t087`, e o Gmail 2 é o principal.
+
 Os dois Gmails precisam estar no aparelho e na lista de usuários de teste da tela de consentimento (T11).
 
 ## Orçamento de e-mail
@@ -62,7 +64,7 @@ Cerca de 31 no dia, mais os 3 de hoje, contra 100 do Resend. Pelo teto de 30 por
 | [T09.2](02-script-caixa-real.md) | Endereços com `+` no script | feito | — |
 | [T09.3](03-apk-release.md) | APK release apontando para o remoto | feito | T09.1 |
 | [T09.4](04-celular-senha.md) | Celular: cadastro, entrada e redefinição | feito | T09.3 |
-| [T09.5](05-celular-google.md) | Celular: Google | a fazer | T09.4 |
+| [T09.5](05-celular-google.md) | Celular: Google | feito | T09.4 |
 | [T09.6](06-celular-outro-provedor.md) | Celular: cadastro refeito e troca de e-mail | a fazer | T09.5 |
 | [T09.7](07-rodada-script.md) | Rodada do script no remoto | a fazer | T09.2, T09.6 |
 | [T09.8](08-teto-de-emails.md) | Teto de e-mails por hora | a fazer | T09.7 |
