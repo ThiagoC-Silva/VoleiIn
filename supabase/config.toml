@@ -366,7 +366,7 @@ email_optional = false
 enabled = true
 client_id = "612447030412-5ebk5kbdou3rmrt51d8tp4gn6fjh0age.apps.googleusercontent.com"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
-# Exigido pelo Supabase CLI para o Google no local; no remoto, decide-se na T08.
+# Exigido pelo Supabase CLI para o Google no local, e mantido no remoto (T08.6): o app não manda nonce.
 skip_nonce_check = true
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.

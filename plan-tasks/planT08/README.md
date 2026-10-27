@@ -22,8 +22,12 @@ Os itens marcados **[Thiago]** exigem conta, painel, senha ou DNS e são feitos 
 
 ## A decidir antes da execução
 
-- **`skip_nonce_check` no remoto.** O `config.toml` tem `skip_nonce_check = true`, que o local pede para o Google, e o `config push` levaria isso ao remoto. A T08 dizia ligá-lo no remoto só se a T09 mostrar que é preciso. Decidir na T08.6, antes de aceitar o diff do Google.
 - **`seed.sql` no remoto.** Proposta: não rodar. Ele ainda é provisório, com dois locais fictícios, e o passo 3 não usa local nem quadra. O `db push` não roda o seed sem `--include-seed`.
+
+## Decidido na T08.6
+
+- **`skip_nonce_check = true` também no remoto**, igual ao local. O app não manda nonce, e o `true` é o único caminho validado no celular. Detalhes no [Resultado da T08.6](06-config-auth.md#resultado).
+- **O teto de 30 e-mails por hora mora só no painel**, como o SMTP: o `config push` não gerencia `rate_limit.email_sent`.
 
 ## Para a execução
 
@@ -41,7 +45,7 @@ Os itens marcados **[Thiago]** exigem conta, painel, senha ou DNS e são feitos 
 | [T08.3](03-projeto-e-link.md) | Criar o projeto remoto e ligar o CLI | feito | T08.1 |
 | [T08.4](04-migracoes.md) | Aplicar as migrações no remoto | feito | T08.3 |
 | [T08.5](05-smtp.md) | SMTP do Resend no painel | feito | T08.2, T08.4 |
-| [T08.6](06-config-auth.md) | Configuração do Auth e do Google pelo `config push` | a fazer | T08.5 |
+| [T08.6](06-config-auth.md) | Configuração do Auth e do Google pelo `config push` | feito | T08.5 |
 | [T08.7](07-fumaca-e-registro.md) | Cadastro com e-mail real e fechamento da T08 | a fazer | T08.6 |
 
 ## Modelo de task
