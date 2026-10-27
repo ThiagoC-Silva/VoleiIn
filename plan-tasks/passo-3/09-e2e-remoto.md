@@ -6,6 +6,15 @@
 
 Repetir no projeto remoto, com e-mail real e aparelho físico, o que só aparece fora do ambiente local: entrega do e-mail, filtro de spam e o APK release.
 
+## Da T08
+
+- **Ref:** `zmokpmovphikmobynssy`. **URL:** `https://zmokpmovphikmobynssy.supabase.co`.
+- **Chave pública:** `supabase projects api-keys --project-ref zmokpmovphikmobynssy`, a de tipo `publishable` (`sb_publishable_…`).
+- **`skip_nonce_check = true` no remoto**, igual ao local (T08.6). Conferir no celular que a entrada pelo Google passa; se o serviço recusar o token, a decisão volta.
+- **O Gmail secundário do Thiago com `+t087` já tem conta confirmada no remoto** (T08.7). Não usar nos cenários; os dois Gmails sem sufixo seguem sem conta.
+- **DMARC em `p=reject`.** E-mail que falhar na autenticação não cai no spam: é recusado e não chega. Se um código não chegar, olhar os registros do Resend antes da caixa.
+- O teto de 30 por hora já teve três envios gastos às 14:58, 15:11 e 16:01 de 2026-10-27.
+
 ## O que falta
 
 - [ ] Gerar o APK apontando para o remoto e instalar num celular físico:

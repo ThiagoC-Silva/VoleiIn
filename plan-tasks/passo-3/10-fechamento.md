@@ -21,8 +21,14 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
   - um gatilho só revoga os aparelhos de push, na troca de e-mail e na de senha;
   - na redefinição, a senha nova é pedida junto com o código, porque a sessão nasce na conferência e a raiz troca a tela;
   - quanto o `google_sign_in` acrescentou ao APK (T04: +412 KB), e o `material_symbols_icons` com as fontes Montserrat e Bebas Neue (T05: +507 KB, de 53.144.602 para 53.664.236 bytes);
-  - o comportamento observado nos cenários 6, 11 e 20 da T07, e a correção do cadastro refeito (T13): o que levar está em "Anotar para a T10" de [`07-e2e-local.md`](07-e2e-local.md).
+  - o comportamento observado nos cenários 6, 11 e 20 da T07, e a correção do cadastro refeito (T13): o que levar está em "Anotar para a T10" de [`07-e2e-local.md`](07-e2e-local.md);
+  - o Auth do remoto vem do `config.toml` pelo `supabase config push`; o SMTP e o teto de 30 e-mails por hora (`rate_limit.email_sent`) moram só no painel, porque o `config push` não os gerencia (T08.5, T08.6);
+  - `skip_nonce_check = true` também no remoto, e o `storage.vector` recusado no push, porque o MVP não usa (T08.6);
+  - e-mail pelo Resend, com remetente `nao-responda@mail.voleiin.com.br` na região `sa-east-1`; DMARC do `voleiin.com.br` em `p=reject`, com SPF e DKIM passando (T08.2, T08.7).
 - [ ] "Aberto" a registrar:
+  - o domínio `voleiin.com.br` vence em 26/10/2027, com alerta no Google Agenda; vencido, derruba o login inteiro;
+  - o `seed.sql` não foi ao remoto, que está sem locais nem quadras (T08.4);
+  - uma conta de teste (Gmail secundário com `+t087`) fica no remoto, confirmada e com `pessoa` (T08.7);
   - a base clara do design system e a escolha de aparência ficam para o grupo H, que tem o botão de trocar; a troca de e-mail usa as casas do código, mas o resto da H3 não foi aplicado;
   - `flutter analyze` quebra com o caminho "Área de trabalho"; contorno pelo `dart analyze` (link simbólico não resolve);
   - tela de consentimento do Google em teste: só as usuárias de teste entram pelo Google até o passo 10, que publica a tela com página inicial e Política de Privacidade no GitHub Pages;
