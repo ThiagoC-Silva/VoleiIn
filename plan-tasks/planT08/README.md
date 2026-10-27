@@ -34,7 +34,7 @@ Os itens marcados **[Thiago]** exigem conta, painel, senha ou DNS e são feitos 
 - Senha do banco, chave SMTP e segredo do Google não entram em arquivo versionado nem nesta pasta. O ref do projeto e a URL não são segredo: vão dentro do APK.
 - **Parar** se o `db push` falhar em alguma migração: não editar a migração. Corrigir criando a próxima e decidir com o Thiago.
 - **Parar** se o diff do `config push` trouxer algo que não está na lista da T08.6.
-- O teto de 30 e-mails por hora vale no remoto, dentro das 100 por dia do Resend. A T08.7 gasta um; a T09 precisa do resto.
+- O teto de 30 e-mails por hora vale no remoto, dentro das 100 por dia do Resend. A T08.7 gasta dois (cadastro e redefinição); a T09 precisa do resto.
 
 ## Tasks
 
