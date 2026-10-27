@@ -2,7 +2,7 @@
 
 **Estado:** feito · **Depende de:** T07
 
-Execução quebrada em tasks, uma por vez: [`plan-tasks/planT08/`](../planT08/README.md). Este arquivo guarda o que a T08 entrega; lá ficam a ordem, as decisões abertas e o resultado de cada etapa.
+Execução quebrada em tasks, uma por vez, em `plan-tasks/planT08/`. **Essa pasta foi removida depois da T08 concluída**, porque o que ela guardava já está consolidado neste arquivo, na [T09](09-e2e-remoto.md) e na [T10](10-fechamento.md). As referências a T08.1 a T08.7 apontam para tasks que só existem no histórico do git.
 
 ## Objetivo
 
