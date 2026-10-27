@@ -15,10 +15,20 @@ A decisão: depois do código de um cadastro vindo da A2, o app grava, com a ses
 - `criarConta(nome, email, senha)` e `confirmarCadastro(email, codigo)` em `app/lib/dados/auth_repositorio.dart`; a A3 (`confirmar_email_tela.dart`) é aberta pela A2 (`criar_conta_tela.dart`) e pela A1 (`entrar_tela.dart`, cadastro pendente).
 - A escrita direta em `pessoa.nome` é uma das permitidas ao app (passo 2).
 - A sonda da API: `PUT /user` com a senha da A2, pela sessão do `/verify`, dá 200, a senha do impostor passa a dar `invalid_credentials`, e chega "A senha da sua conta no VoleiIn foi trocada". Com a mesma senha que já vale, 422 `same_password`.
+- Os caminhos que concluem um cadastro pendente, conferidos na revisão de 2026-10-27:
+
+  | Caminho da dona | Resultado | Onde se resolve |
+  | --- | --- | --- |
+  | A1 com a senha dela | `invalid_credentials`; não avança | sem brecha |
+  | Google | o serviço descarta a senha do impostor; nome do Google | serviço (T07, cenário 19) |
+  | A2 de novo → A3 | senha e nome do impostor | **esta task** |
+  | A4, "Esqueci a senha" | o código chega, a conferência confirma a conta; senha da dona, nome do impostor | **fora desta task**: risco aceito pelo Thiago em 2026-10-27, até a H2 (`docs/prd.md`, RN21; `docs/stack.md`, Autenticação e Riscos) |
+
+  A sonda da A4, no local: `/signup` do impostor, `/recover` da dona (chega "Seu código para redefinir a senha do VoleiIn"), `/verify` `recovery` (sessão, `email_confirmed_at` preenchido, `pessoa.nome` = "Impostor"), `PUT /user` com a senha da dona (200); a do impostor dá `invalid_credentials`, e a da dona entra.
 
 ## O que falta
 
-- [ ] A3 aberta pela A2 recebe o nome e a senha. Depois do `verifyOTP`, `update` de `pessoa.nome` quando difere do digitado, e então `updateUser(password)`, ignorando `same_password`. Pela A1 nada muda: a senha digitada ali já é a da conta, porque o serviço responde `invalid_credentials` antes de `email_not_confirmed`.
+- [ ] A3 aberta pela A2 recebe o nome e a senha. Depois do `verifyOTP`, `update` de `pessoa.nome` com o digitado, sempre (comparar exigiria uma leitura a mais e dá o mesmo resultado), e então `updateUser(password)`, ignorando `same_password`. Pela A1 nada muda: a senha digitada ali já é a da conta, porque o serviço responde `invalid_credentials` antes de `email_not_confirmed`.
   - O `same_password` é apanhado antes do `_traduzir`, que o transforma em "A senha nova precisa ser diferente da atual." e o mostraria no caso comum.
   - O `update` de `pessoa` mora no `PessoaRepositorio`, que tem o cliente de dados; o `AuthRepositorio` só tem o `GoTrueClient`.
 - [ ] O nome no início. Conferido na revisão: o `meuNomeProvider` relê a cada emissão de `sessaoProvider`, e o `updateUser` emite `userUpdated`; se a senha fosse gravada antes do nome, a releitura podia pegar o nome antigo. Com `same_password` nada é emitido. Por isso o nome vem antes da senha, e a A3 invalida o `meuNomeProvider` no fim da gravação.
