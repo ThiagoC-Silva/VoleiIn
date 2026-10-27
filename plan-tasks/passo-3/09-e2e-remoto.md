@@ -40,7 +40,7 @@ Repetir no projeto remoto, com e-mail real e aparelho físico, o que só aparece
 - [ ] O que o local não respondeu e o remoto pode responder diferente (T07):
   - cadastro com e-mail que já tem conta (5): no local, `user_already_exists`. O `_traduzir` também cobre o usuário sem `identities`, que nunca apareceu;
   - e-mail inválido: no local, 400 `validation_failed`. O `_traduzir` também cobre `email_address_invalid`, que nunca apareceu;
-  - teto de 30 e-mails por hora: no local não há limite (`GOTRUE_RATE_LIMIT_EMAIL_SENT=360000` sem SMTP próprio). A rodada inteira do script gasta 19 e-mails, então cabe uma por hora. Anotar o `error_code` quando o teto for atingido, e se ele chega ao app como "Aguarde um minuto…" ou no genérico;
+  - teto de 30 e-mails por hora: no local não há limite (`GOTRUE_RATE_LIMIT_EMAIL_SENT=360000` sem SMTP próprio). A rodada inteira do script gasta 18 e-mails (19 com `--com-expiracao`; contados na T09.2), então cabe uma por hora. Anotar o `error_code` quando o teto for atingido, e se ele chega ao app como "Aguarde um minuto…" ou no genérico;
   - `autenticacao_api.sh` com `MAILPIT_URL` vazio, que pede os códigos no terminal e nunca foi exercitado.
 - [ ] Para cada e-mail recebido, anotar:
   - quanto tempo levou para chegar;

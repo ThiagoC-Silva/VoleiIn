@@ -15,6 +15,8 @@
 #   MAILPIT_URL  http://127.0.0.1:54324; vazio pede o código no terminal
 #   PSQL         psql do contêiner do banco; vazio pula as conferências de banco
 #   EMAIL_BASE   exemplo.com
+#   EMAIL_CAIXA  vazio; com uma caixa real (usuario@dominio), todo endereço da rodada vira
+#                usuario+<nome>.<época>@dominio e chega a ela. É o que roda no remoto (T09).
 #
 # Saída como a das suítes SQL: `FALHOU: …` e saída 1 na primeira divergência, ou
 # `SUCESSO: N cenários`.
@@ -26,6 +28,7 @@ CHAVE=${CHAVE:-}
 MAILPIT_URL=${MAILPIT_URL-http://127.0.0.1:54324}
 PSQL=${PSQL-docker exec -i supabase_db_VoleiIn psql -U postgres -tA -v ON_ERROR_STOP=1}
 EMAIL_BASE=${EMAIL_BASE:-exemplo.com}
+EMAIL_CAIXA=${EMAIL_CAIXA:-}
 
 if [[ -z $CHAVE ]]; then
   echo 'Falta CHAVE: a chave pública que `supabase status` mostra.' >&2
@@ -133,7 +136,7 @@ chegou() {  # <email> <assunto>
 codigo_de() {  # <email> <assunto>
   local codigo id
   if [[ -z $MAILPIT_URL ]]; then
-    read -rp "Código de \"$2\" enviado a $1: " codigo </dev/tty
+    read -rp "Código do \"$2\" mais recente enviado a $1: " codigo </dev/tty
     echo "$codigo"
     return
   fi
@@ -142,6 +145,25 @@ codigo_de() {  # <email> <assunto>
     jq -r .Text | grep -oE '\b[0-9]{6}\b' | head -n1)
   [[ -n $codigo ]] || falha "\"$2\" para $1 chegou sem código de seis casas"
   echo "$codigo"
+}
+
+# Marca como lido um e-mail com código que o cenário não usa; sem MAILPIT_URL, não pergunta.
+descarta_codigo() {  # <email> <assunto>
+  [[ -z $MAILPIT_URL ]] && return 0
+  chegou "$1" "$2" >/dev/null || exit 1
+}
+
+# Código de um e-mail que pode ou não ter chegado, ou vazio. Sem MAILPIT_URL, pergunta, e
+# Enter vale como "não chegou". Use como `c=$(codigo_novo_de …) || exit 1`.
+codigo_novo_de() {  # <email> <assunto>
+  local codigo
+  if [[ -z $MAILPIT_URL ]]; then
+    read -rp "Chegou outro \"$2\" a $1? Digite o código, ou Enter se não: " codigo </dev/tty
+    echo "$codigo"
+    return
+  fi
+  [[ -n $(novas "$1" "$2" || true) ]] || return 0
+  codigo_de "$1" "$2"
 }
 
 # Confere que o aviso chegou; sem MAILPIT_URL, conta como pulada.
@@ -179,7 +201,11 @@ confere_banco() {  # <descrição> <sql> <esperado>
 }
 
 email_unico() {  # <nome>
-  echo "$1.$EPOCA@$EMAIL_BASE"
+  if [[ -n $EMAIL_CAIXA ]]; then
+    echo "${EMAIL_CAIXA%@*}+$1.$EPOCA@${EMAIL_CAIXA#*@}"
+  else
+    echo "$1.$EPOCA@$EMAIL_BASE"
+  fi
 }
 
 anota() {  # <cenário> <texto>
@@ -315,7 +341,7 @@ cenario_6() {  # Eva cadastra e não confirma; depois entra com a senha
   enviado=$(date +%s)
   eva_id=$(campo '.id // .user.id')
   # Consome o primeiro código, para o reenvio não ser confundido com ele.
-  codigo_de "$eva" "$ASSUNTO_CADASTRO" >/dev/null || exit 1
+  descarta_codigo "$eva" "$ASSUNTO_CADASTRO"
 
   chamar POST '/token?grant_type=password' "$(json_entrada "$eva" "$senha")"
   espera_status '6: entrada sem confirmar' 400
@@ -348,13 +374,14 @@ EVA2_CODIGO=
 EVA2_SENHAS=(senha-primeira senha-segunda senha-terceira)
 
 cadastro_de_novo() {  # <senha> <nome> <quando>
-  local resposta
+  local resposta codigo
   chamar POST /signup "$(json_cadastro "$EVA2" "$1" "$2")"
   resposta="$STATUS $(campo .error_code)"
   [[ $STATUS == 200 ]] && resposta+=" (mesmo id: $([[ $(campo '.id // .user.id') == "$EVA2_ID" ]] && echo sim || echo não))"
   sleep 5
-  if [[ -n $(novas "$EVA2" || true) ]]; then
-    EVA2_CODIGO=$(codigo_de "$EVA2" "$ASSUNTO_CADASTRO") || exit 1
+  codigo=$(codigo_novo_de "$EVA2" "$ASSUNTO_CADASTRO") || exit 1
+  if [[ -n $codigo ]]; then
+    EVA2_CODIGO=$codigo
     anota 6 "segundo cadastro $3: $resposta; enviou código novo"
   else
     anota 6 "segundo cadastro $3: $resposta; nenhum código novo"
@@ -396,7 +423,7 @@ cenario_refeito() {
   id=$(campo '.id // .user.id')
   enviado=$(date +%s)
   # O código do impostor chega à caixa da Helena, que não o usa.
-  codigo_de "$helena" "$ASSUNTO_CADASTRO" >/dev/null || exit 1
+  descarta_codigo "$helena" "$ASSUNTO_CADASTRO"
 
   ate_passar 61 "$enviado"
   chamar POST /signup "$(json_cadastro "$helena" senha-da-helena Helena)"

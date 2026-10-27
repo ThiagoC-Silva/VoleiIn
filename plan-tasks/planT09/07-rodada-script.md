@@ -9,9 +9,9 @@ A rodada inteira do `autenticacao_api.sh` contra o remoto, com os códigos digit
 ## O que já existe
 
 - O `EMAIL_CAIXA` da T09.2.
-- A rodada local: 18 cenários, 19 e-mails, 2 min 46 s; com `--com-expiracao`, mais um e-mail e mais cinco minutos.
+- A rodada local: 18 cenários, 18 e-mails, 2 min 46 s (contados na T09.2; a T13 anotou 19); com `--com-expiracao`, mais um e-mail e mais cinco minutos.
 - Sem `MAILPIT_URL` ficam pulados: os avisos, o "nenhum e-mail" e os modelos. Sem `PSQL`: o 12 e as conferências de banco, inclusive as linhas de `dispositivo_push` do 9 e do 15. O fim da rodada diz quantas foram puladas.
-- Cada código vale cinco minutos e tem de ser digitado antes disso.
+- Cada código vale cinco minutos e tem de ser digitado antes disso. São 14 perguntas: 13 códigos e uma de "chegou outro?", que pede Enter quando não chegou (T09.2).
 
 ## O que falta
 
@@ -29,7 +29,7 @@ A rodada inteira do `autenticacao_api.sh` contra o remoto, com os códigos digit
   - chegaram os avisos de senha trocada do 9, do refeito e do 12, e o de e-mail trocado do 13;
   - no 13, o endereço antigo (`+carla.…`) não recebeu o código da troca, só o aviso;
   - nada chegou ao `+ninguem.…` do 10, que não tem conta;
-  - o total de mensagens da rodada na caixa é 20.
+  - o total de mensagens da rodada na caixa é 19.
 - [ ] Ler a saída e preencher a tabela do Resultado com o status e o `error_code` de cada cenário, contra a coluna da T07. Em especial: e-mail inválido (`validation_failed` ou `email_address_invalid`), o 5, e o código vencido do 7.
 - [ ] Se a rodada parar num `FALHOU`, **parar**: é divergência entre remoto e local, e se decide com o Thiago antes de mexer em script ou app.
 

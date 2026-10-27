@@ -48,17 +48,17 @@ Os dois Gmails precisam estar no aparelho e na lista de usuários de teste da te
 | T09.4 | 3 | cadastro, redefinição, aviso de senha trocada |
 | T09.5 | 0 | — |
 | T09.6 | 5 | código do impostor, código da A2, aviso de senha trocada, código da troca, aviso de e-mail trocado |
-| T09.7 | 20 | a rodada inteira, com `--com-expiracao` |
+| T09.7 | 19 | a rodada inteira, com `--com-expiracao` |
 | T09.8 | até 4 | o que couber no teto baixado |
 
-Cerca de 32 no dia, mais os 3 de hoje, contra 100 do Resend. Pelo teto de 30 por hora, a **T09.7 só começa uma hora depois do último e-mail da T09.6**: o plano não presume se o serviço conta por janela fixa ou por recarga contínua, e anota o que observar.
+Cerca de 31 no dia, mais os 3 de hoje, contra 100 do Resend. Pelo teto de 30 por hora, a **T09.7 só começa uma hora depois do último e-mail da T09.6**: o plano não presume se o serviço conta por janela fixa ou por recarga contínua, e anota o que observar.
 
 ## Tasks
 
 | # | Task | Estado | Depende de |
 | --- | --- | --- | --- |
 | [T09.1](01-preparacao.md) | Contas, aparelho e estado do remoto | feito | — |
-| [T09.2](02-script-caixa-real.md) | Endereços com `+` no script | a fazer | — |
+| [T09.2](02-script-caixa-real.md) | Endereços com `+` no script | feito | — |
 | [T09.3](03-apk-release.md) | APK release apontando para o remoto | a fazer | T09.1 |
 | [T09.4](04-celular-senha.md) | Celular: cadastro, entrada e redefinição | a fazer | T09.3 |
 | [T09.5](05-celular-google.md) | Celular: Google | a fazer | T09.4 |
