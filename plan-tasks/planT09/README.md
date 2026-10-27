@@ -59,7 +59,7 @@ Cerca de 31 no dia, mais os 3 de hoje, contra 100 do Resend. Pelo teto de 30 por
 | --- | --- | --- | --- |
 | [T09.1](01-preparacao.md) | Contas, aparelho e estado do remoto | feito | — |
 | [T09.2](02-script-caixa-real.md) | Endereços com `+` no script | feito | — |
-| [T09.3](03-apk-release.md) | APK release apontando para o remoto | a fazer | T09.1 |
+| [T09.3](03-apk-release.md) | APK release apontando para o remoto | feito | T09.1 |
 | [T09.4](04-celular-senha.md) | Celular: cadastro, entrada e redefinição | a fazer | T09.3 |
 | [T09.5](05-celular-google.md) | Celular: Google | a fazer | T09.4 |
 | [T09.6](06-celular-outro-provedor.md) | Celular: cadastro refeito e troca de e-mail | a fazer | T09.5 |
