@@ -14,6 +14,8 @@ Conferir as entregas no Resend, tirar as contas de teste do remoto e consolidar 
 
 - Da T09.7: as contas da rodada, todas `+<nome>.1793196422547` no Gmail 2. Carla (hoje no endereço da `+carla2`), Eva, Eva2, Helena, Fábio, Bruno e Gil confirmadas, e Heitor pendente. A tabela de cenários remoto contra local está no Resultado dela.
 
+- Da T09.8: três cadastros pendentes no remoto, `+teto1`, `+teto2` e `+teto3` com `.1793202703` no Gmail 2. E a decisão do Thiago sobre as mensagens do teto (separar pelo `msg` da recusa, com "Muitos códigos enviados agora. Tente de novo em até uma hora."), que vai à T10 como correção a fazer: o texto entra nos documentos antes do código.
+
 ## O que falta
 
 - [ ] **[Thiago]** No Resend: os envios do dia aparecem como "Delivered", sem "Bounced" nem "Complained"; quanto do dia e do mês foi gasto.

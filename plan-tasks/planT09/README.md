@@ -67,7 +67,7 @@ Cerca de 31 no dia, mais os 3 de hoje, contra 100 do Resend. Pelo teto de 30 por
 | [T09.5](05-celular-google.md) | Celular: Google | feito | T09.4 |
 | [T09.6](06-celular-outro-provedor.md) | Celular: cadastro refeito e troca de e-mail | feito | T09.5 |
 | [T09.7](07-rodada-script.md) | Rodada do script no remoto | feito | T09.2, T09.6 |
-| [T09.8](08-teto-de-emails.md) | Teto de e-mails por hora | a fazer | T09.7 |
+| [T09.8](08-teto-de-emails.md) | Teto de e-mails por hora | feito | T09.7 |
 | [T09.9](09-registro-e-limpeza.md) | Resend, limpeza e fechamento da T09 | a fazer | T09.8 |
 
 A T09.2 não envia e-mail nem mexe no celular: pode ser feita antes da T09.3 ou entre as outras, desde que antes da T09.7.
