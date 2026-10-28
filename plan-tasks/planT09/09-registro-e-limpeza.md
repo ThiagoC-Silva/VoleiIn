@@ -10,6 +10,7 @@ Conferir as entregas no Resend, tirar as contas de teste do remoto e consolidar 
 
 - O SQL de exclusão da T07 ("Contas Google" em [`07-e2e-local.md`](../passo-3/07-e2e-local.md)): `dispositivo_push`, depois `pessoa`, depois `auth.users`. `pessoa` não some sozinha, e isso é deliberado.
 - Os resultados da T09.1 à T09.8.
+- Da T09.6: dois *bounced* esperados no Resend (00:13:40 e 00:14:46 UTC de 2026-10-28, endereço do Outlook digitado errado, hoje na lista de supressão) e o cadastro pendente que eles deixaram (id `9abdf4bf…`, sem `pessoa`), que entra na limpeza. E o Outlook mandando os quatro e-mails ao Lixo Eletrônico com SPF, DKIM e DMARC aprovados, que vai à T10 como risco.
 
 ## O que falta
 
