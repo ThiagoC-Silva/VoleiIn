@@ -12,6 +12,8 @@ Conferir as entregas no Resend, tirar as contas de teste do remoto e consolidar 
 - Os resultados da T09.1 à T09.8.
 - Da T09.6: dois *bounced* esperados no Resend (00:13:40 e 00:14:46 UTC de 2026-10-28, endereço do Outlook digitado errado, hoje na lista de supressão) e o cadastro pendente que eles deixaram (id `9abdf4bf…`, sem `pessoa`), que entra na limpeza. E o Outlook mandando os quatro e-mails ao Lixo Eletrônico com SPF, DKIM e DMARC aprovados, que vai à T10 como risco.
 
+- Da T09.7: as contas da rodada, todas `+<nome>.1793196422547` no Gmail 2. Carla (hoje no endereço da `+carla2`), Eva, Eva2, Helena, Fábio, Bruno e Gil confirmadas, e Heitor pendente. A tabela de cenários remoto contra local está no Resultado dela.
+
 ## O que falta
 
 - [ ] **[Thiago]** No Resend: os envios do dia aparecem como "Delivered", sem "Bounced" nem "Complained"; quanto do dia e do mês foi gasto.

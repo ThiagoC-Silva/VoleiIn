@@ -10,6 +10,7 @@ Ver o que o remoto devolve quando o teto de e-mails por hora é atingido, e o qu
 
 - O teto é 30 por hora e mora só no painel: Authentication → Rate Limits (T08.6).
 - No app, `over_email_send_rate_limit` vira "Aguarde um minuto antes de pedir outro código.", que é a mensagem dos 60 s entre envios. `over_request_rate_limit` vira "Muitas tentativas seguidas. Aguarde alguns minutos.".
+- A T09.7 mandou 19 e-mails das 14:07 às 14:22 UTC de 2026-10-28, sem recusa. Para a contagem do teto baixado começar do zero, a T09.8 começa a partir de 15:23 UTC (12:23 em Brasília), uma hora depois do último deles, como a T09.7 fez com a T09.6.
 - Na entrada com senha de cadastro pendente, a A1 reenvia o código e **engole** `over_email_send_rate_limit`, porque nos 60 s o código anterior ainda vale (T07, cenário 6).
 
 ## O que falta
