@@ -6,13 +6,13 @@ O que entra aqui é o que **não se descobre lendo o código**: a decisão tomad
 
 ## Estado
 
-**Passo atual: 3 — Autenticação.**
+**Passo atual: 4 — Núcleo financeiro.**
 
 | Passo | Estado |
 | --- | --- |
 | 1. Schema | feito |
 | 2. Política de linha | feito |
-| 3. Autenticação | a fazer |
+| 3. Autenticação | feito |
 | 4. Núcleo financeiro | a fazer |
 | 5. App | a fazer |
 | 6. Comprovante | a fazer |
