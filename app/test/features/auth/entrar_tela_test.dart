@@ -54,6 +54,17 @@ void main() {
     expect(find.byKey(const Key('campo-codigo')), findsOneWidget);
   });
 
+  testWidgets('conta não confirmada no teto de e-mails mostra a mensagem e fica na tela', (tester) async {
+    const teto = 'Muitos códigos enviados agora. Tente de novo em até uma hora.';
+    final auth = AuthFalso(naoConfirmados: {'carla@exemplo.com'}, falhaAoEntrar: const FalhaAuth(teto));
+    await montar(tester, auth, const EntrarTela());
+
+    await _entrar(tester, 'carla@exemplo.com', 'segredo123');
+
+    expect(find.text(teto), findsOneWidget);
+    expect(find.text('Confirmar e-mail'), findsNothing);
+  });
+
   testWidgets('entrar com Google chama o serviço', (tester) async {
     final auth = AuthFalso();
     await montar(tester, auth, const EntrarTela());

@@ -14,6 +14,15 @@ const _falhaGoogle = 'Não foi possível entrar com o Google. Entre com e-mail e
 const mensagemSemConexao = 'Sem conexão. Confira a internet e tente de novo.';
 const mensagemGenerica = 'Não foi possível concluir agora. Tente de novo.';
 
+/// O intervalo de 60 s entre envios ao mesmo e-mail e o teto de e-mails por hora do projeto
+/// recusam com o mesmo over_email_send_rate_limit, e só o texto do serviço os separa: o do
+/// intervalo diz quantos segundos faltam. Qualquer outro texto conta como teto
+/// (docs/stack.md, Autenticação e Riscos).
+final _textoDoIntervalo = RegExp(r'after \d+ second');
+
+bool _intervaloEntreEnvios(AuthException e) =>
+    e.code == 'over_email_send_rate_limit' && _textoDoIntervalo.hasMatch(e.message);
+
 /// Falha do serviço de autenticação, já com a mensagem para a tela.
 class FalhaAuth implements Exception {
   const FalhaAuth(this.mensagem);
@@ -52,8 +61,9 @@ class AuthRepositorio {
     try {
       await _auth.resend(type: OtpType.signup, email: email);
     } on AuthException catch (e) {
-      // Um código enviado há menos de um minuto continua valendo: segue para ele.
-      if (e.code != 'over_email_send_rate_limit') throw _traduzir(e);
+      // Um código enviado há menos de um minuto continua valendo: segue para ele. No teto
+      // por hora nenhum código saiu, e a recusa fica na tela.
+      if (!_intervaloEntreEnvios(e)) throw _traduzir(e);
     }
     return false;
   }
@@ -153,7 +163,9 @@ class AuthRepositorio {
       'weak_password' => 'A senha precisa de pelo menos $tamanhoMinimoSenha caracteres.',
       'user_already_exists' => _jaTemConta,
       'same_password' => 'A senha nova precisa ser diferente da atual.',
-      'over_email_send_rate_limit' => 'Aguarde um minuto antes de pedir outro código.',
+      'over_email_send_rate_limit' => _intervaloEntreEnvios(e)
+          ? 'Aguarde um minuto antes de pedir outro código.'
+          : 'Muitos códigos enviados agora. Tente de novo em até uma hora.',
       'over_request_rate_limit' => 'Muitas tentativas seguidas. Aguarde alguns minutos.',
       'otp_expired' => 'Código inválido ou vencido. Confira ou peça outro.',
       'email_exists' => 'Esse e-mail já pertence a outra conta.',

@@ -103,6 +103,16 @@ espera_erro() {  # <descrição> <error_code>
     falha "$1: error_code ${real:-nenhum}, esperado $2 (status $STATUS) — $RESPOSTA"
 }
 
+# O intervalo de 60 s e o teto de e-mails por hora recusam com o mesmo código, e o app os
+# separa só pelo texto: o do intervalo diz quantos segundos faltam (docs/stack.md,
+# Autenticação e Riscos). Se o serviço mudar esse texto, o app passa a tratar o intervalo
+# como teto, e é aqui que isso aparece.
+espera_intervalo() {  # <descrição>
+  espera_erro "$1" over_email_send_rate_limit
+  [[ $(campo .msg) =~ after\ [0-9]+\ second ]] ||
+    falha "$1: o texto não diz os segundos que faltam, e o app o trataria como teto — $RESPOSTA"
+}
+
 espera_igual() {  # <descrição> <valor> <esperado>
   [[ $2 == "$3" ]] || falha "$1: veio '$2', esperado '$3'"
 }
@@ -350,7 +360,7 @@ cenario_6() {  # Eva cadastra e não confirma; depois entra com a senha
   # É o reenvio que o `entrar` do app engole: o código de menos de um minuto vale.
   chamar POST /resend "$(json_reenvio "$eva")"
   espera_status '6: reenvio logo depois' 429
-  espera_erro '6: reenvio logo depois' over_email_send_rate_limit
+  espera_intervalo '6: reenvio logo depois'
 
   # Os 61 s correm junto com os da eva2, que se cadastra de novo antes e depois deles.
   cadastro_duplo_antes
@@ -463,7 +473,7 @@ cenario_8() {  # Reenvio antes de 60 s do cadastro
   fabio_pendente
   chamar POST /resend "$(json_reenvio "$FABIO")"
   espera_status '8: reenvio antes de 60 s' 429
-  espera_erro '8: reenvio antes de 60 s' over_email_send_rate_limit
+  espera_intervalo '8: reenvio antes de 60 s'
 }
 
 cenario_7() {  # Código errado, código certo, o mesmo código de novo e, opcional, vencido

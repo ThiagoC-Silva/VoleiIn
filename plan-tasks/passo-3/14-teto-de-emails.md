@@ -1,6 +1,6 @@
 # T14 — Mensagem do teto de e-mails por hora
 
-**Estado:** a fazer · **Depende de:** T09
+**Estado:** feito · **Depende de:** T09
 
 ## Objetivo
 
@@ -42,18 +42,18 @@ Duas rodadas, como manda o `CLAUDE.md`: primeiro o texto nos documentos, com com
 
 ### Rodada 2 — código
 
-- [ ] `auth_repositorio.dart`: uma função que diz se a recusa é o intervalo de 60 s. Ela confere o `code` `over_email_send_rate_limit` e o `message` contendo `after <número> second`, para cobrir também "1 second". Usada em dois lugares:
+- [x] `auth_repositorio.dart`: uma função que diz se a recusa é o intervalo de 60 s. Ela confere o `code` `over_email_send_rate_limit` e o `message` contendo `after <número> second`, para cobrir também "1 second". Usada em dois lugares:
   - `entrar` só engole a recusa quando ela é o intervalo; qualquer outra vai ao `_traduzir`. O comentário diz por quê;
   - `_traduzir`: intervalo → "Aguarde um minuto antes de pedir outro código."; outro `msg` → "Muitos códigos enviados agora. Tente de novo em até uma hora.".
-- [ ] Testes do repositório (`app/test/dados/auth_repositorio_test.dart`), com um `GoTrueClient` falso como o `_AuthRecusaSenha` que já está lá:
+- [x] Testes do repositório (`app/test/dados/auth_repositorio_test.dart`), com um `GoTrueClient` falso como o `_AuthRecusaSenha` que já está lá:
   - `entrar` de cadastro pendente com o `resend` recusado pelo `msg` dos 60 s devolve `false`;
   - o mesmo com "email rate limit exceeded" lança `FalhaAuth` com a mensagem do teto;
   - `reenviarConfirmacao` (ou outra chamada que passe pelo `_traduzir`) com cada `msg` dá a mensagem certa;
   - um `msg` qualquer, que não é nenhum dos dois, cai no teto, e não no intervalo.
-- [ ] Teste de widget da A1: `entrar` falhando com a mensagem do teto mostra o texto e não abre a A3. O `AuthFalso` já tem `falhaAoEntrar`.
-- [ ] `supabase/testes/autenticacao_api.sh`, no 8 e no reenvio do 6: além do `error_code`, o `msg` tem `after <número> second`. É a guarda do custo aceito: se o Supabase mudar o texto, a rodada local falha antes de o app errar em produção. Rodar a suíte local inteira.
-- [ ] `flutter test`, `dart analyze` e as suítes SQL passam.
-- [ ] **No remoto, com um e-mail só.** APK release novo, como na T09.3, e o Claude operando o celular pelo `adb`. Com o teto em 30:
+- [x] Teste de widget da A1: `entrar` falhando com a mensagem do teto mostra o texto e não abre a A3. O `AuthFalso` já tem `falhaAoEntrar`.
+- [x] `supabase/testes/autenticacao_api.sh`, no 8 e no reenvio do 6: além do `error_code`, o `msg` tem `after <número> second`. É a guarda do custo aceito: se o Supabase mudar o texto, a rodada local falha antes de o app errar em produção. Rodar a suíte local inteira.
+- [x] `flutter test`, `dart analyze` e as suítes SQL passam.
+- [x] **No remoto, com um e-mail só.** APK release novo, como na T09.3, e o Claude operando o celular pelo `adb`. Com o teto em 30:
   1. `/signup` por `curl` a um endereço novo com `+` no Gmail 2. É o único e-mail da task.
   2. Em menos de 60 s, A1 com esse endereço e a senha dele: a A3 abre. Isso prova que o `msg` dos 60 s do remoto casa com o padrão, o que até aqui só foi visto no local.
   3. **[Thiago]** Teto de 30 para 1 no painel. O envio do passo 1 já ocupa a hora.
@@ -63,8 +63,8 @@ Duas rodadas, como manda o `CLAUDE.md`: primeiro o texto nos documentos, com com
   7. **[Thiago]** Teto de volta a 30, conferido na tela.
 
   Se o passo 2 não abrir a A3, ou se algum recusado mostrar "Aguarde um minuto", **parar**: o texto do remoto difere do local. Se o reenvio do passo 4 passar, o painel zerou a contagem ao mudar o teto. É um e-mail a mais, a A3 recebe um código, e os passos 5 e 6 seguem valendo.
-- [ ] Limpeza: **[Thiago]** no editor SQL do painel, o SQL que o Claude preparar apaga o cadastro pendente do passo 1, pela ordem da T07. Depois, pelo MCP: `auth.users`, `pessoa` e `dispositivo_push` vazias.
-- [ ] [T10](10-fechamento.md): a correção deixa o "Aberto" e entra nas decisões.
+- [x] Limpeza: **[Thiago]** no editor SQL do painel, o SQL que o Claude preparar apaga o cadastro pendente do passo 1, pela ordem da T07. Depois, pelo MCP: `auth.users`, `pessoa` e `dispositivo_push` vazias.
+- [x] [T10](10-fechamento.md): a correção deixa o "Aberto" e entra nas decisões.
 
 ## Resultado
 
@@ -73,6 +73,32 @@ Duas rodadas, como manda o `CLAUDE.md`: primeiro o texto nos documentos, com com
 - **`docs/stack.md`, Riscos:** uma linha com o custo aceito, tratado pela conferência do texto no roteiro da API.
 - **`implementacao.md` de `01-acesso`, em "Todas":** os dois textos exatos, o comportamento da A1 em cada caso, as telas onde valem (A1 a A4 e a troca de e-mail) e o reenvio que volta a contar 60 s depois de qualquer recusa.
 - **`docs/prd.md` sem mudança:** a RNF06 já prevê o "limite de envios por e-mail a cada hora", e a RN21 diz que quem não recebe pede outro código. O texto da mensagem é de design, não de regra.
+
+**Rodada 2**, em 2026-10-28 e 2026-10-29 (UTC):
+- **App.** Em `auth_repositorio.dart`, `_intervaloEntreEnvios` confere o código `over_email_send_rate_limit` e o texto com `after <número> second`. O `entrar` só ignora a recusa nesse caso, e o `_traduzir` dá "Aguarde um minuto…" ao intervalo e "Muitos códigos enviados agora. Tente de novo em até uma hora." a qualquer outro texto. As telas não mudaram.
+- **Testes:** 41 passando. São quatro novos do repositório (intervalo com 59 s e com 1 s; teto na entrada; o reenvio com cada texto; texto desconhecido cai no teto) e um de widget da A1 (teto com cadastro pendente mostra a mensagem e não abre a A3). Contra o código anterior, três dos quatro do repositório falham; o do intervalo passa nos dois, porque ali nada mudou. O `dart analyze` não acusa nada.
+- **Roteiro:** `espera_intervalo` confere o código e o texto no reenvio do 6 e no 8. Rodada local `SUCESSO: 18 cenários`, em 2 min 47 s. As suítes SQL seguem com 61, 69 e 36.
+- **APK release:** 53.999.223 bytes, o mesmo tamanho da T09.3, com o padrão novo conferido dentro do `libapp.so`. Reinstalado do zero no celular.
+- **Celular:** a depuração sem fio só voltou com os dois na `MillyPhb_Vilma 5G`. Na rede de 2,4 GHz, o roteador não deixa a máquina alcançar o celular: o anúncio da depuração chega, mas o ARP falha. Foi preciso parear de novo.
+
+**No remoto**, com o Claude operando o celular pelo `adb`, e cada linha conferida nos registros do Auth:
+
+| Hora (UTC) | O quê | Auth | Tela |
+| --- | --- | --- | --- |
+| 01:28:31 | `/signup` do `+t14` no Gmail 2, por `curl` | 200 | — |
+| 01:28:32 | A1 com o `+t14`, dentro dos 60 s | `/token` 400 `email_not_confirmed`; `/resend` 429 `over_email_send_rate_limit`, "For security purposes, you can only request this after 56 seconds." | a A3 abre, sem mensagem |
+| 01:29:44 | **[Thiago]** teto de 30 para 1 no painel | — | — |
+| 01:29:54 | "Reenviar código" na A3 | `/resend` 200 | o contador volta a 60 s |
+| 01:31:06 | A2 com o `+t14b` | `/signup` 429 `over_email_send_rate_limit`, "email rate limit exceeded" | "Muitos códigos enviados agora. Tente de novo em até uma hora.", e a A2 fica |
+| 01:31:50 | A1 com o `+t14` de novo | `/token` 400 `email_not_confirmed`; `/resend` 429, "email rate limit exceeded" | a mesma mensagem, e a A1 fica, sem abrir a A3 |
+| depois | **[Thiago]** teto de volta a 30, conferido na tela | — | — |
+
+- **O texto dos 60 s no remoto é igual ao do local**, e o app o trata como intervalo: a A1 continua seguindo para o código válido.
+- **Dois e-mails, e não um.** O reenvio das 01:29:54 passou porque mudar o teto no painel zerou a contagem, como o plano previa. Por isso a A3 não chegou a mostrar a mensagem do teto; ela usa a mesma tradução da A2, coberta pelos testes do repositório.
+- **O cadastro recusado não cria conta:** depois da A2, só o `+t14` existia no remoto.
+- **Folha "Salvar senha" do Google** depois da A2 recusada, como na T09.8. Fechada com voltar.
+- **Limpeza:** o SQL do Claude, rodado pelo Thiago no editor do painel, apagou o `+t14` (pendente, sem `pessoa`). Pelo MCP, `auth.users`, `identities`, `sessions`, `one_time_tokens`, `pessoa` e `dispositivo_push` estão vazias.
+- **T10:** a correção já tinha passado do "Aberto" às decisões no planejamento da T14 (`0ebe603`).
 
 ## Pronto quando
 

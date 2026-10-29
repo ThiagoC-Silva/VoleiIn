@@ -59,7 +59,7 @@ A T09.8 mostrou que o teto de 30 e-mails por hora chega ao app com o mesmo `over
 | [T11](11-google-cloud.md) | Projeto no Google Cloud e provedor Google local | feito | T01 |
 | [T12](12-redefinir-senha.md) | Redefinição e troca de senha (RF41) | feito | T05 |
 | [T13](13-cadastro-refeito.md) | Nome e senha do cadastro refeito | feito | T07 |
-| [T14](14-teto-de-emails.md) | Mensagem do teto de e-mails por hora | a fazer | T09 |
+| [T14](14-teto-de-emails.md) | Mensagem do teto de e-mails por hora | feito | T09 |
 
 Ordem: T01 → T02 e T03 → T11 → T04 → T05 → T12 → T07 → T13 → T08 → T09 → T14 → T10. A reabertura de T02 e T03 é um commit só.
 
