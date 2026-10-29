@@ -32,6 +32,7 @@ São doze itens, de três naturezas: dívida que tem passo marcado, risco que fi
 - [ ] Marcar o passo de resolução onde existe: `seed.sql` e locais reais no piloto, aparência no grupo H, nome do perfil na H2, saída que apaga o aparelho no passo 7, consentimento e chave de assinatura no passo 10.
 - [ ] Separar o que é **desconhecido** (a contagem do teto) do que é **dívida com prazo**: desconhecido não ganha passo, ganha a frase de que não se sabe.
 - [ ] Não repetir em "Aberto" o que já é decisão na T10.2. O teto de e-mails, por exemplo, está **decidido e implementado** (T14): só a contagem por hora continua desconhecida.
+- [ ] Decidir o que fazer com um item do **passo 1**, não do 3: o "Aberto" dele diz que os comandos rodam com `sg docker -c` até a sessão ser reaberta, e na T10.1 o `docker` rodou direto. Riscar lá, com `~~…~~`, ou deixar como está — o que não vale é a entrada do passo 3 falar de um item de outro passo.
 - [ ] Conferir se algum item já caiu desde que a T10 o listou. Se caiu, riscar com `~~…~~` e dizer onde resolveu, como no passo 2.
 
 ## Resultado

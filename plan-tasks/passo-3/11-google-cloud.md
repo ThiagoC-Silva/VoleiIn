@@ -1,6 +1,6 @@
 # T11 — Projeto no Google Cloud e provedor Google local
 
-**Estado:** feito ·  **Depende de:** T01
+**Estado:** feito · **Depende de:** T01
 
 ## Objetivo
 
