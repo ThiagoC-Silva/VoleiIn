@@ -1,6 +1,6 @@
 # T10 — Fechamento do passo 3
 
-**Estado:** a fazer · **Depende de:** T09
+**Estado:** a fazer · **Depende de:** T09, T14
 
 ## Objetivo
 
@@ -28,12 +28,11 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
   - o remoto (Auth v2.197.0, a mesma do local) bate com o local em todos os cenários da T07, com os mesmos códigos de erro; responde `user_already_exists`, e não um usuário sem `identities`, e `validation_failed`, e não `email_address_invalid`; o código vence em 300 s. A tabela está no "Resultado" de [`09-e2e-remoto.md`](09-e2e-remoto.md);
   - o APK release pede `shared_preferences_android` 2.5.4 ou mais nova, porque o R8 quebrava a 2.5.0 na abertura; o release tem 54,0 MB (53.999.223 bytes), contra 107,5 MB do de depuração (T09.3);
   - `autenticacao_api.sh` roda no remoto com `EMAIL_CAIXA`, que manda todos os e-mails a uma caixa real com `+`, e sem Mailpit pede os códigos no terminal (T09.2, `supabase/CLAUDE.md`);
-  - no remoto, o teto por hora devolve 429 `over_email_send_rate_limit`, o mesmo código do intervalo de 60 s, e só o `msg` os separa (T09.8).
+  - no remoto, o teto por hora devolve 429 `over_email_send_rate_limit`, o mesmo código do intervalo de 60 s, e só o `msg` os separa (T09.8). O app os separa pelo `msg`, e o teto mostra "Muitos códigos enviados agora. Tente de novo em até uma hora.", sem a A1 abrir a A3; o custo aceito é depender de um texto em inglês do serviço, conferido a cada rodada do script (T14).
 - [ ] "Aberto" a registrar:
   - o domínio `voleiin.com.br` vence em 26/10/2027, com alerta no Google Agenda; vencido, derruba o login inteiro;
   - o `seed.sql` não foi ao remoto, que está sem locais nem quadras (T08.4);
   - o remoto chega ao passo 4 sem usuário, sem `pessoa` e sem `dispositivo_push`: as contas de teste da T08 e da T09 foram apagadas (T09.9);
-  - **correção a fazer, decidida em 2026-10-28 (T09.8):** o teto de e-mails por hora chega ao app como "Aguarde um minuto antes de pedir outro código.", e a A1 o engole e abre a A3 esperando um código que não vem. O app passa a separar a recusa pelo `msg` do `over_email_send_rate_limit`: o dos 60 s ("…after N seconds") fica como hoje; qualquer outro é o teto, e a A2, a A3 e a A1 mostram "Muitos códigos enviados agora. Tente de novo em até uma hora.", sem a A1 abrir a A3. O texto entra nos documentos antes do código. Custo aceito: depende de um texto em inglês do Supabase Auth;
   - e-mails no Outlook caem no Lixo Eletrônico, com SPF, DKIM e DMARC aprovados (`SCL: 5`): é reputação de um domínio novo, não configuração (T09.6). Quem usa Outlook pode não achar o código. No Gmail, tudo chega na caixa de entrada em até 6 s;
   - no remoto não foram conferidos o `reauthentication_needed` da sessão envelhecida (12) nem as linhas de `dispositivo_push` (9 e 15), porque o script rodou sem `PSQL`; vieram ao remoto pela mesma migração e pelo mesmo `config.toml` conferidos na T07;
   - não se sabe se o teto de e-mails por hora conta por janela fixa ou por recarga contínua (T09.8);

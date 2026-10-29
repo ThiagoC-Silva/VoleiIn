@@ -129,7 +129,7 @@ Os cadastros recusados não criam conta. Não deu para saber se o teto conta por
 - Qualquer outro `msg` é o teto. A A2 e a A3 mostram **"Muitos códigos enviados agora. Tente de novo em até uma hora."**, e a A1 mostra a mesma mensagem e não abre a A3.
 - Custo aceito: a separação depende de um texto em inglês do Supabase Auth.
 
-A correção não entrou na T09: o texto entra nos documentos antes do código (T10, "Aberto").
+A correção não entrou na T09: é a [T14](14-teto-de-emails.md), com o texto nos documentos antes do código.
 
 ### Limpeza
 

@@ -38,6 +38,10 @@ O Google recusou publicar a tela de consentimento sem página inicial e Polític
 
 A T07 mostrou que, quando um cadastro pendente é refeito antes do código, o serviço fica com a senha e o nome do primeiro pedido. Se o primeiro pedido for de um impostor, a dona do e-mail confirma pelo código e a senha dele entra na conta dela. É a tomada de conta que o cadastro confirmado por código devia fechar, só que pela tela de criar conta e não pelo Google. Decidido: a A3 aberta pela A2 grava, depois do código, a senha e o nome digitados (`docs/prd.md`, RN21 e decisão "Cadastro com senha"; `docs/stack.md`, Autenticação). A implementação é a T13, antes da T08, para a T09 conferir no remoto.
 
+## Decisões de 2026-10-28 — teto de e-mails
+
+A T09.8 mostrou que o teto de 30 e-mails por hora chega ao app com o mesmo `over_email_send_rate_limit` do intervalo de 60 s. Os dois viram "Aguarde um minuto…", e a A1 engole a recusa e abre a A3 esperando um código que não vem. Decidido: o app separa os dois pelo `msg`, e o teto ganha a mensagem "Muitos códigos enviados agora. Tente de novo em até uma hora.", sem a A1 abrir a A3. A correção é a T14, antes da T10, para o passo 3 não fechar com um defeito conhecido na autenticação.
+
 ## Tasks
 
 | # | Task | Estado | Depende de |
@@ -51,12 +55,13 @@ A T07 mostrou que, quando um cadastro pendente é refeito antes do código, o se
 | [T07](07-e2e-local.md) | Validação ponta a ponta no Supabase local | feito | T02, T03, T05, T06, T11, T12 |
 | [T08](08-projeto-remoto-resend.md) | Projeto Supabase remoto e Resend como SMTP | feito | T07 |
 | [T09](09-e2e-remoto.md) | Validação ponta a ponta no remoto | feito | T08, T13 |
-| [T10](10-fechamento.md) | Fechamento do passo | a fazer | T09 |
+| [T10](10-fechamento.md) | Fechamento do passo | a fazer | T09, T14 |
 | [T11](11-google-cloud.md) | Projeto no Google Cloud e provedor Google local | feito | T01 |
 | [T12](12-redefinir-senha.md) | Redefinição e troca de senha (RF41) | feito | T05 |
 | [T13](13-cadastro-refeito.md) | Nome e senha do cadastro refeito | feito | T07 |
+| [T14](14-teto-de-emails.md) | Mensagem do teto de e-mails por hora | a fazer | T09 |
 
-Ordem: T01 → T02 e T03 → T11 → T04 → T05 → T12 → T07 → T13 → T08 → T09 → T10. A reabertura de T02 e T03 é um commit só.
+Ordem: T01 → T02 e T03 → T11 → T04 → T05 → T12 → T07 → T13 → T08 → T09 → T14 → T10. A reabertura de T02 e T03 é um commit só.
 
 Ao concluir uma task, troque o estado nesta tabela e no cabeçalho do arquivo dela.
 
