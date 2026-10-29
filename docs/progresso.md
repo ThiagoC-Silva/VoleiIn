@@ -44,7 +44,7 @@ Os dez enums, as treze tabelas com as 27 chaves estrangeiras do modelo, as seis 
 - O seed é provisório (dois locais fictícios); trocar pelos locais, quadras, preços e horários reais do piloto quando existirem.
 - `local.verificado` "sempre falso no MVP" (RN18) não tem `check`: ficou fora da lista do passo. Decidir se entra numa migração futura.
 - Não há índice em `comprovante (cobranca_id)` nem nas chaves estrangeiras que ninguém consulta. Irrelevante no volume do piloto; reavaliar quando o passo 6 definir as consultas do comprovante.
-- O usuário está no grupo `docker`, mas a sessão precisa ser reaberta para valer; até lá, os comandos rodam com `sg docker -c '…'`.
+- ~~O usuário está no grupo `docker`, mas a sessão precisa ser reaberta para valer; até lá, os comandos rodam com `sg docker -c '…'`.~~ — resolvido: na conferência do fechamento do passo 3, o `docker` rodou direto.
 
 ## Passo 2 — Política de linha · 2026-10-19
 
@@ -90,6 +90,20 @@ Projeto no Supabase remoto com o Resend como SMTP, entrada por e-mail e senha ou
 - `autenticacao_api.sh` roda no remoto com `EMAIL_CAIXA`, que manda todos os e-mails a uma caixa real com `+` e poupa a reputação do domínio novo; sem Mailpit, pede cada código no terminal e pula as conferências de aviso e de modelo (T09.2; comando em `supabase/CLAUDE.md`).
 - O APK release pede `shared_preferences_android` 2.5.4 ou mais nova, porque o R8 quebrava a 2.5.0 na abertura: renomeava classes Kotlin chamadas por JNI, sem regra de manutenção. O release tem 54,0 MB (53.999.223 bytes), contra 107,5 MB do de depuração (T09.3).
 - Quanto as bibliotecas acrescentaram ao APK release: o `google_sign_in` +412 KB (T04, de 52.722.572 para 53.144.602 bytes) e o `material_symbols_icons` com as fontes Montserrat e Bebas Neue +507 KB (T05, de 53.144.602 para 53.664.236 bytes).
+
+**Aberto:**
+- O domínio `voleiin.com.br` vence em 26/10/2027, com alerta no Google Agenda. Vencido, derruba o login inteiro, não só o e-mail (`docs/stack.md`, Riscos).
+- O `seed.sql` não foi ao remoto, que está sem locais nem quadras (T08.4). Os locais reais do piloto entram no lugar do seed provisório, como já diz o "Aberto" do passo 1.
+- O remoto chega ao passo 4 sem usuário, sem `pessoa` e sem `dispositivo_push`: as contas de teste da T08, da T09 e da T14 foram apagadas, e a conferência do fechamento confirmou as tabelas vazias.
+- E-mails no Outlook caem no Lixo Eletrônico, com SPF, DKIM e DMARC aprovados (`SCL: 5`): é reputação de um domínio novo, não configuração (T09.6). Quem usa Outlook pode não achar o código. No Gmail, tudo chega na caixa de entrada em até 6 s.
+- No remoto não foram conferidos o `reauthentication_needed` da sessão envelhecida (cenário 12) nem as linhas de `dispositivo_push` (9 e 15), porque o roteiro rodou sem `PSQL`. Vieram ao remoto pela mesma migração e pelo mesmo `config.toml` conferidos na T07.
+- Não se sabe se o teto de e-mails por hora conta por janela fixa ou por recarga contínua (T09.8). A mensagem do app vale nos dois casos.
+- Cadastro pendente de impostor concluído pela redefinição de senha nasce com o nome do impostor. A senha que vale é a da dona, e o nome só se troca pela H2 (risco aceito em 2026-10-27; `docs/stack.md`, Riscos).
+- A base clara do design system e a escolha de aparência ficam para o grupo H, que tem o botão de trocar. A troca de e-mail usa as casas do código, mas o resto da H3 não foi aplicado.
+- A tela de consentimento do Google está em teste: até o passo 10, só as usuárias de teste entram pelo Google. O passo 10 a publica, com página inicial e Política de Privacidade no GitHub Pages.
+- O APK release assina com a chave de debug de quem o gera. A chave própria do APK distribuído, com o SHA-1 dela no cliente Android do Google, entra no passo 10.
+- `inicio_tela.dart` é provisória, e sair ainda não apaga o aparelho de push (passo 7).
+- `flutter analyze` quebra com o caminho "Área de trabalho": a mensagem de abertura do servidor de análise falha com `FormatException`. O contorno é o `dart analyze`; link simbólico não resolve.
 
 <!-- Modelo de entrada, a copiar ao fechar um passo:
 
