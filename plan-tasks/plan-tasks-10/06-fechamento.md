@@ -1,6 +1,6 @@
 # T10.6 — Fechamento da T10 e do passo
 
-**Estado:** a fazer · **Depende de:** T10.5
+**Estado:** feito · **Depende de:** T10.5
 
 ## Objetivo
 
@@ -15,15 +15,24 @@ Fechar a própria T10 e o passo 3: caixas marcadas, estados trocados, `git statu
 
 ## O que falta
 
-- [ ] [`10-fechamento.md`](../passo-3/10-fechamento.md): caixas marcadas, estado → **feito**, e um "Resultado" curto com a data, os totais medidos na T10.1, o que a conferência corrigiu e a nota de que a pasta `plan-tasks/plan-tasks-10/` será removida em commit próprio e fica no histórico.
-- [ ] A linha "Commit" da T10 passa a listar os cinco commits das tasks, em vez de um só.
-- [ ] [README do passo 3](../passo-3/README.md): T10 → **feito**. Com isso, as catorze tasks do passo estão fechadas.
-- [ ] [README deste plano](README.md): as seis tasks → **feito**.
-- [ ] `git status` limpo depois do commit, e `git log --oneline` mostrando a sequência do fechamento.
-- [ ] Conferir uma última vez que `docs/progresso.md` responde em poucas linhas onde o projeto está: passo 4, com o passo 3 registrado.
-- [ ] Não começar o passo 4 nesta task. O passo 4 abre com plano próprio, em `plan-tasks/passo-4/`.
+- [x] [`10-fechamento.md`](../passo-3/10-fechamento.md): caixas marcadas, estado → **feito**, e um "Resultado" curto com a data, os totais medidos na T10.1, o que a conferência corrigiu e a nota de que a pasta `plan-tasks/plan-tasks-10/` será removida em commit próprio e fica no histórico.
+- [x] A linha "Commit" da T10 passa a listar os cinco commits das tasks, em vez de um só.
+- [x] [README do passo 3](../passo-3/README.md): T10 → **feito**. Com isso, as catorze tasks do passo estão fechadas.
+- [x] [README deste plano](README.md): as seis tasks → **feito**.
+- [x] `git status` limpo depois do commit, e `git log --oneline` mostrando a sequência do fechamento.
+- [x] Conferir uma última vez que `docs/progresso.md` responde em poucas linhas onde o projeto está: passo 4, com o passo 3 registrado.
+- [x] Não começar o passo 4 nesta task. O passo 4 abre com plano próprio, em `plan-tasks/passo-4/`.
 
 ## Resultado
+
+Feito em 2026-10-29.
+
+- **T10 (`10-fechamento.md`):** caixas marcadas, estado "feito", Resultado com a data e a linha "Commit" corrigida para as cinco tasks.
+- **README do passo 3:** T10 → feito. As catorze tasks do passo estão fechadas.
+- **README deste plano:** as seis tasks → feito.
+- **`docs/progresso.md`** responde onde o projeto está: passo 4 atual, passo 3 feito com a entrada completa.
+- **Passo 4 não começou.** Abre com plano próprio, em `plan-tasks/passo-4/`.
+- **A pasta `plan-tasks/plan-tasks-10/` não foi removida.** A remoção é o commit seguinte, `Remove o plano da T10, já concluída`, e só sai se o Thiago pedir (memória `fluxo-plan-tasks`).
 
 ## Pronto quando
 

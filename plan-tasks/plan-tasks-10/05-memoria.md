@@ -1,6 +1,6 @@
 # T10.5 — Memória do projeto
 
-**Estado:** a fazer · **Depende de:** T10.4
+**Estado:** feito · **Depende de:** T10.4
 
 ## Objetivo
 
@@ -14,15 +14,21 @@ Deixar na memória do projeto só o que **não está no repositório** e que a p
 
 ## O que falta
 
-- [ ] Avaliar item por item antes de escrever:
+- [x] Avaliar item por item antes de escrever:
   - **"passo 3 fechado" não vira memória.** O `progresso.md` é a fonte de verdade do andamento, e o `CLAUDE.md` da raiz manda lê-lo antes de implementar; uma memória com o passo atual envelhece no primeiro fechamento seguinte e passa a contradizer o arquivo.
   - **O fluxo do `plan-tasks/` vira memória**, na parte que não está em arquivo: o plano do passo mora em `plan-tasks/passo-N/`, a quebra de uma task em subtasks mora numa pasta irmã, e essa pasta é removida em commit próprio quando a task fecha, ficando no histórico. O README do passo 3 diz que `plan-tasks/` é versionado por passo, mas não diz nada da quebra nem da remoção.
-- [ ] Escrever a memória do fluxo em `/home/thiggoc/.claude/projects/-home-thiggoc--rea-de-trabalho-VoleiIn/memory/`, tipo `project`, com **Why** e **How to apply**, ligando às duas existentes se couber.
-- [ ] Acrescentar a linha dela no `MEMORY.md`, uma linha só, com o gancho.
-- [ ] Conferir que as duas memórias existentes continuam verdadeiras depois da T14 (a da rede de 2,4 GHz foi confirmada nela) e corrigir ou apagar o que não estiver.
-- [ ] **[Thiago]** Se ele quiser mesmo a memória do passo atual, apesar do argumento acima, escrevê-la — é preferência dele sobre como o Claude trabalha, não decisão de produto.
+- [x] Escrever a memória do fluxo em `/home/thiggoc/.claude/projects/-home-thiggoc--rea-de-trabalho-VoleiIn/memory/`, tipo `project`, com **Why** e **How to apply**, ligando às duas existentes se couber.
+- [x] Acrescentar a linha dela no `MEMORY.md`, uma linha só, com o gancho.
+- [x] Conferir que as duas memórias existentes continuam verdadeiras depois da T14 (a da rede de 2,4 GHz foi confirmada nela) e corrigir ou apagar o que não estiver.
+- [x] **[Thiago]** Se ele quiser mesmo a memória do passo atual, apesar do argumento acima, escrevê-la — é preferência dele sobre como o Claude trabalha, não decisão de produto.
 
 ## Resultado
+
+Feito em 2026-10-29.
+
+- **"Passo 3 fechado" não virou memória**, pelo argumento da task: o `progresso.md` é a fonte do andamento. O item **[Thiago]** de mandar guardá-lo mesmo assim não foi acionado, e ele não pediu.
+- **Memória nova:** `fluxo-plan-tasks` (tipo `project`), com o fluxo do `plan-tasks/`: plano por passo, quebra numa pasta irmã e remoção em commit próprio. Linha acrescentada ao `MEMORY.md`, ligada a `claude-opera-celular-adb`.
+- **As duas existentes seguem verdadeiras:** a do celular pelo `adb` e a da rede de 2,4 GHz, esta confirmada na T14. Nada corrigido nem apagado.
 
 ## Pronto quando
 

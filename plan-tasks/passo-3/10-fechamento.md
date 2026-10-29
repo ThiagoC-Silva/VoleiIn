@@ -1,6 +1,6 @@
 # T10 — Fechamento do passo 3
 
-**Estado:** a fazer · **Depende de:** T09, T14
+**Estado:** feito · **Depende de:** T09, T14
 
 ## Objetivo
 
@@ -8,10 +8,10 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
 
 ## O que falta
 
-- [ ] `docs/progresso.md`:
+- [x] `docs/progresso.md`:
   - "Passo atual" → 4; na tabela, passo 3 → feito;
   - entrada "Passo 3 — Autenticação", pelo modelo do fim do arquivo.
-- [ ] Decisões de implementação a registrar (o que não está no PRD):
+- [x] Decisões de implementação a registrar (o que não está no PRD):
   - `minSdk` 24, porque o Flutter atual já não dá suporte ao Android 6;
   - as telas de acesso saíram com o design A1–A4 (`docs/design/`), sobre a base escura do design system; as divergências estão em `docs/design/telas/01-acesso/implementacao.md` (T05, T12);
   - a chave do Supabase e o cliente web do Google entram no app por `--dart-define` (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_WEB_CLIENT_ID`), nunca em arquivo versionado;
@@ -29,7 +29,7 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
   - o APK release pede `shared_preferences_android` 2.5.4 ou mais nova, porque o R8 quebrava a 2.5.0 na abertura; o release tem 54,0 MB (53.999.223 bytes), contra 107,5 MB do de depuração (T09.3);
   - `autenticacao_api.sh` roda no remoto com `EMAIL_CAIXA`, que manda todos os e-mails a uma caixa real com `+`, e sem Mailpit pede os códigos no terminal (T09.2, `supabase/CLAUDE.md`);
   - no remoto, o teto por hora devolve 429 `over_email_send_rate_limit`, o mesmo código do intervalo de 60 s, e só o `msg` os separa (T09.8). O app os separa pelo `msg`, e o teto mostra "Muitos códigos enviados agora. Tente de novo em até uma hora.", sem a A1 abrir a A3; o custo aceito é depender de um texto em inglês do serviço, conferido a cada rodada do script (T14).
-- [ ] "Aberto" a registrar:
+- [x] "Aberto" a registrar:
   - o domínio `voleiin.com.br` vence em 26/10/2027, com alerta no Google Agenda; vencido, derruba o login inteiro;
   - o `seed.sql` não foi ao remoto, que está sem locais nem quadras (T08.4);
   - o remoto chega ao passo 4 sem usuário, sem `pessoa` e sem `dispositivo_push`: as contas de teste da T08 e da T09 foram apagadas (T09.9);
@@ -42,8 +42,17 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
   - tela de consentimento do Google em teste: só as usuárias de teste entram pelo Google até o passo 10, que publica a tela com página inicial e Política de Privacidade no GitHub Pages;
   - chave própria de assinatura do APK distribuído, com o SHA-1 dela no cliente Android do Google (passo 10); até lá, o release assina com a chave de debug de quem o gera;
   - `inicio_tela.dart` é provisória; sair ainda não apaga o aparelho de push (passo 7).
-- [ ] Atualizar o estado de todas as tasks em `plan-tasks/passo-3/README.md`.
-- [ ] Atualizar a memória do projeto: passo 3 fechado e `plan-tasks/` versionado por passo.
+- [x] Atualizar o estado de todas as tasks em `plan-tasks/passo-3/README.md`.
+- [x] Atualizar a memória do projeto: passo 3 fechado e `plan-tasks/` versionado por passo.
+
+## Resultado
+
+Feito em 2026-10-29, pelo plano de [`plan-tasks-10/`](../plan-tasks-10/README.md).
+
+- **Entrada "Passo 3 — Autenticação"** em `docs/progresso.md`: resumo, arquivos, 18 linhas de decisão (as 17 da lista, com os cenários da T07 separados do cadastro refeito) e 12 de "Aberto". "Passo atual" → 4, e o passo 3 → feito na tabela.
+- **Conferência (T10.1):** `schema.sql` 61, `rls.sql` 69, `autenticacao.sql` 36 asserções, `flutter test` 41, `dart analyze` limpo; remoto sem usuário e com as cinco migrações; teto em 30. Corrigido o espaço duplo do cabeçalho da T11. Caiu o item do `sg docker` do "Aberto" do passo 1, riscado lá.
+- **Memória:** `fluxo-plan-tasks` criada; "passo 3 fechado" não virou memória, porque o `progresso.md` já é a fonte.
+- A pasta `plan-tasks/plan-tasks-10/` fica no histórico depois de removida em commit próprio, como as de T07 a T09.
 
 ## Pronto quando
 
@@ -52,4 +61,4 @@ Registrar o passo 3 em `docs/progresso.md` e liberar o passo 4.
 
 ## Commit
 
-`Fecha o passo 3 — Autenticação`
+Um commit por task do [plano](../plan-tasks-10/README.md): `Confere o estado do passo 3 antes do fechamento`, `Registra as decisões do passo 3 no progresso`, `Registra o que ficou aberto no passo 3`, `Marca o passo 3 como feito e abre o passo 4` e, no fim, `Fecha o passo 3 — Autenticação`.

@@ -55,7 +55,7 @@ A T09.8 mostrou que o teto de 30 e-mails por hora chega ao app com o mesmo `over
 | [T07](07-e2e-local.md) | Validação ponta a ponta no Supabase local | feito | T02, T03, T05, T06, T11, T12 |
 | [T08](08-projeto-remoto-resend.md) | Projeto Supabase remoto e Resend como SMTP | feito | T07 |
 | [T09](09-e2e-remoto.md) | Validação ponta a ponta no remoto | feito | T08, T13 |
-| [T10](10-fechamento.md) | Fechamento do passo | a fazer | T09, T14 |
+| [T10](10-fechamento.md) | Fechamento do passo | feito | T09, T14 |
 | [T11](11-google-cloud.md) | Projeto no Google Cloud e provedor Google local | feito | T01 |
 | [T12](12-redefinir-senha.md) | Redefinição e troca de senha (RF41) | feito | T05 |
 | [T13](13-cadastro-refeito.md) | Nome e senha do cadastro refeito | feito | T07 |
