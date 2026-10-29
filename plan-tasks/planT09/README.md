@@ -50,9 +50,9 @@ Os dois Gmails precisam estar no aparelho e na lista de usuários de teste da te
 | --- | --- | --- |
 | T09.4 | 3 | cadastro, redefinição, aviso de senha trocada |
 | T09.5 | 0 | — |
-| T09.6 | 5 (gastos 7) | código do impostor, código da A2, aviso de senha trocada, código da troca, aviso de e-mail trocado; mais 2 *bounced* num endereço digitado errado |
+| T09.6 | 5 (gastos 7) | código do impostor, código da A2, aviso de senha trocada, código da troca, aviso de e-mail trocado; mais 2 num endereço digitado errado, 1 *bounced* e 1 *suppressed* (T09.9) |
 | T09.7 | 19 | a rodada inteira, com `--com-expiracao` |
-| T09.8 | até 4 | o que couber no teto baixado |
+| T09.8 | até 4 (gastos 3) | o que couber no teto baixado |
 
 Cerca de 31 no dia, mais os 3 de hoje, contra 100 do Resend. Pelo teto de 30 por hora, a **T09.7 só começa uma hora depois do último e-mail da T09.6**: o plano não presume se o serviço conta por janela fixa ou por recarga contínua, e anota o que observar.
 
@@ -68,7 +68,7 @@ Cerca de 31 no dia, mais os 3 de hoje, contra 100 do Resend. Pelo teto de 30 por
 | [T09.6](06-celular-outro-provedor.md) | Celular: cadastro refeito e troca de e-mail | feito | T09.5 |
 | [T09.7](07-rodada-script.md) | Rodada do script no remoto | feito | T09.2, T09.6 |
 | [T09.8](08-teto-de-emails.md) | Teto de e-mails por hora | feito | T09.7 |
-| [T09.9](09-registro-e-limpeza.md) | Resend, limpeza e fechamento da T09 | a fazer | T09.8 |
+| [T09.9](09-registro-e-limpeza.md) | Resend, limpeza e fechamento da T09 | feito | T09.8 |
 
 A T09.2 não envia e-mail nem mexe no celular: pode ser feita antes da T09.3 ou entre as outras, desde que antes da T09.7.
 
