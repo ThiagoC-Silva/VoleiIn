@@ -34,11 +34,11 @@ Duas rodadas, como manda o `CLAUDE.md`: primeiro o texto nos documentos, com com
 
 ### Rodada 1 — documentos
 
-- [ ] `docs/stack.md`, Autenticação, no parágrafo dos limites: os dois limites recusam com o mesmo `over_email_send_rate_limit`, e só o `msg` os separa. O app trata como intervalo de 60 s a recusa cujo `msg` diz "after N seconds". Nesse caso a A1 segue para a etapa do código, porque o anterior ainda vale. Qualquer outra recusa é o teto, e nenhuma tela segue.
-- [ ] `docs/stack.md`, Riscos: uma linha com o custo aceito. A separação depende do texto em inglês do serviço; se ele mudar, o intervalo de 60 s passa a mostrar a mensagem do teto. O tratamento é o cenário 8 do script, que confere o texto a cada rodada (abaixo).
-- [ ] `docs/design/telas/01-acesso/implementacao.md`, em "Todas": as duas mensagens de limite de envio, com os textos exatos e onde aparecem. A A1 mostra a do teto acima do "Entrar" e não abre a A3. Vale também para a troca de e-mail, que está em "Fora das telas A".
-- [ ] Ler `docs/prd.md` (RNF06 e as decisões de autenticação) e confirmar que nada muda nele. A RNF06 já diz "com limite de envios por e-mail a cada hora", e o texto da mensagem é de design, não de regra. Se algo pedir mudança, parar e perguntar.
-- [ ] Commit: `Documenta a mensagem do teto de e-mails`.
+- [x] `docs/stack.md`, Autenticação, no parágrafo dos limites: os dois limites recusam com o mesmo `over_email_send_rate_limit`, e só o `msg` os separa. O app trata como intervalo de 60 s a recusa cujo `msg` diz "after N seconds". Nesse caso a A1 segue para a etapa do código, porque o anterior ainda vale. Qualquer outra recusa é o teto, e nenhuma tela segue.
+- [x] `docs/stack.md`, Riscos: uma linha com o custo aceito. A separação depende do texto em inglês do serviço; se ele mudar, o intervalo de 60 s passa a mostrar a mensagem do teto. O tratamento é o cenário 8 do script, que confere o texto a cada rodada (abaixo).
+- [x] `docs/design/telas/01-acesso/implementacao.md`, em "Todas": as duas mensagens de limite de envio, com os textos exatos e onde aparecem. A A1 mostra a do teto acima do "Entrar" e não abre a A3. Vale também para a troca de e-mail, que está em "Fora das telas A".
+- [x] Ler `docs/prd.md` (RNF06 e as decisões de autenticação) e confirmar que nada muda nele. A RNF06 já diz "com limite de envios por e-mail a cada hora", e o texto da mensagem é de design, não de regra. Se algo pedir mudança, parar e perguntar.
+- [x] Commit: `Documenta a mensagem do teto de e-mails`.
 
 ### Rodada 2 — código
 
@@ -67,6 +67,12 @@ Duas rodadas, como manda o `CLAUDE.md`: primeiro o texto nos documentos, com com
 - [ ] [T10](10-fechamento.md): a correção deixa o "Aberto" e entra nas decisões.
 
 ## Resultado
+
+**Rodada 1**, em 2026-10-28:
+- **`docs/stack.md`, Autenticação:** a entrada com senha de cadastro pendente segue para o código "a menos que o reenvio esbarre no teto". Um parágrafo novo, logo depois dos limites, diz que os dois recusam com o mesmo código, dá os dois `msg` e diz o que o app faz em cada caso.
+- **`docs/stack.md`, Riscos:** uma linha com o custo aceito, tratado pela conferência do texto no roteiro da API.
+- **`implementacao.md` de `01-acesso`, em "Todas":** os dois textos exatos, o comportamento da A1 em cada caso, as telas onde valem (A1 a A4 e a troca de e-mail) e o reenvio que volta a contar 60 s depois de qualquer recusa.
+- **`docs/prd.md` sem mudança:** a RNF06 já prevê o "limite de envios por e-mail a cada hora", e a RN21 diz que quem não recebe pede outro código. O texto da mensagem é de design, não de regra.
 
 ## Pronto quando
 

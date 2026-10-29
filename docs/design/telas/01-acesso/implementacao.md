@@ -20,6 +20,10 @@ Telas: `app/lib/features/auth/` — `entrar_tela.dart` (A1), `criar_conta_tela.d
 ## Todas
 
 - **Erro do serviço** (senha incorreta, código vencido, e-mail que já tem conta) não foi desenhado. Aparece acima do botão primário, com o ícone `error` e o texto na cor de erro. Erro de um campo (e-mail sem arroba, senha curta na A1) fica no próprio campo, com borda, ícone e mensagem, como manda o componente Campo.
+- **Limite de envio de código** não foi desenhado. São dois limites, e cada um tem sua mensagem, no lugar do erro do serviço. Como o app separa os dois está em `docs/stack.md`, Autenticação.
+  - Intervalo de 60 s entre envios ao mesmo e-mail: "Aguarde um minuto antes de pedir outro código.". Na A1, a entrada com senha de cadastro pendente não mostra nada e abre a A3, porque o código enviado há menos de um minuto ainda vale.
+  - Teto de e-mails por hora do projeto: "Muitos códigos enviados agora. Tente de novo em até uma hora.". A A1 mostra a mensagem e não abre a A3, porque nenhum código saiu.
+  - As duas valem em toda tela que pede código: A1, A2, A3, A4 e a troca de e-mail. O reenvio volta a contar 60 s depois de qualquer recusa, inclusive a do teto.
 - **Carregamento** não foi desenhado. O botão primário troca o texto por um indicador circular, e os campos e o voltar ficam travados durante a chamada.
 - **Foco das casas do código.** Depois de um código recusado ou de um reenvio, as casas continuam com o foco e o teclado aberto, para o código seguinte ser digitado sem tocar nelas.
 - **Título da A1** em Montserrat 800 36, medido na imagem, e não no `title.xl` de 28, que é o da barra de tela-raiz.
