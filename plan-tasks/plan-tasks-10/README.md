@@ -42,7 +42,7 @@ A lista da T10 já enumera os 17 itens de decisão e os 12 de "Aberto". Ela é o
 | # | Task | Estado | Depende de |
 | --- | --- | --- | --- |
 | [T10.1](01-conferencia.md) | Conferência do estado do passo 3 | feito | — |
-| [T10.2](02-decisoes-progresso.md) | Entrada do passo 3: resumo, arquivos e decisões | a fazer | T10.1 |
+| [T10.2](02-decisoes-progresso.md) | Entrada do passo 3: resumo, arquivos e decisões | feito | T10.1 |
 | [T10.3](03-aberto-progresso.md) | "Aberto" da entrada | a fazer | T10.2 |
 | [T10.4](04-estado-e-readme.md) | Passo atual 4 e estado das tasks | a fazer | T10.3 |
 | [T10.5](05-memoria.md) | Memória do projeto | a fazer | T10.4 |

@@ -1,6 +1,6 @@
 # T10.2 — Entrada do passo 3: resumo, arquivos e decisões
 
-**Estado:** a fazer · **Depende de:** T10.1
+**Estado:** feito · **Depende de:** T10.1
 
 ## Objetivo
 
@@ -16,13 +16,13 @@ Escrever em [`docs/progresso.md`](../../docs/progresso.md) a entrada "Passo 3 �
 
 ## O que falta
 
-- [ ] **Resumo**, em duas ou três linhas, cobrindo: projeto no Supabase remoto com Resend como SMTP; entrada por e-mail e senha ou conta Google; código de seis dígitos e cinco minutos na confirmação do cadastro, na redefinição e na troca de e-mail; os gatilhos de criação do perfil e de revogação dos aparelhos; as telas A1 a A4 e a de trocar e-mail; e os totais das suítes medidos na T10.1.
-- [ ] **Arquivos**, só os caminhos principais:
+- [x] **Resumo**, em duas ou três linhas, cobrindo: projeto no Supabase remoto com Resend como SMTP; entrada por e-mail e senha ou conta Google; código de seis dígitos e cinco minutos na confirmação do cadastro, na redefinição e na troca de e-mail; os gatilhos de criação do perfil e de revogação dos aparelhos; as telas A1 a A4 e a de trocar e-mail; e os totais das suítes medidos na T10.1.
+- [x] **Arquivos**, só os caminhos principais:
   - `supabase/migrations/` (`autenticacao`), `supabase/config.toml`, `supabase/templates/` (os cinco modelos de e-mail);
   - `supabase/testes/autenticacao.sql` e `supabase/testes/autenticacao_api.sh`;
   - `app/` inteiro como base nova, citando `app/lib/core/` (`supabase.dart`, `google.dart`, `tema.dart`, `rotas.dart`), `app/lib/dados/auth_repositorio.dart` e `app/lib/features/auth/`;
   - `app/dart_defines.example.json`.
-- [ ] **Decisões de implementação**, os 17 itens da T10, cada um numa linha com o motivo. Agrupar na ordem: plataforma e app → telas → configuração e segredos → comportamento observado → remoto e e-mail → tamanho do APK.
+- [x] **Decisões de implementação**, os 17 itens da T10, cada um numa linha com o motivo. Agrupar na ordem: plataforma e app → telas → configuração e segredos → comportamento observado → remoto e e-mail → tamanho do APK.
   - `minSdk` 24, porque o Flutter atual já não dá suporte ao Android 6;
   - as telas de acesso saíram com o design A1–A4, sobre a base escura do design system, com as divergências em `docs/design/telas/01-acesso/implementacao.md` (T05, T12) — **apontar, não repetir**;
   - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `GOOGLE_WEB_CLIENT_ID` entram por `--dart-define`, nunca em arquivo versionado;
@@ -40,11 +40,20 @@ Escrever em [`docs/progresso.md`](../../docs/progresso.md) a entrada "Passo 3 �
   - `autenticacao_api.sh` roda no remoto com `EMAIL_CAIXA`, e sem Mailpit pede os códigos no terminal (T09.2);
   - o teto por hora e o intervalo de 60 s recusam com o mesmo `over_email_send_rate_limit`, e o app os separa pelo `msg`, com "Muitos códigos enviados agora. Tente de novo em até uma hora." e sem a A1 abrir a A3; o custo aceito é depender de um texto em inglês do serviço, conferido a cada rodada do roteiro (T09.8, T14);
   - quanto as bibliotecas acrescentaram ao APK: `google_sign_in` +412 KB (T04) e `material_symbols_icons` com Montserrat e Bebas Neue +507 KB (T05).
-- [ ] Cada linha com fonte conferida. Linha sem fonte não entra: **parar e perguntar**.
-- [ ] A entrada entra **depois** da do passo 2 e **antes** do comentário do modelo.
-- [ ] O título leva a data do dia em que a entrada é escrita.
+- [x] Cada linha com fonte conferida. Linha sem fonte não entra: **parar e perguntar**.
+- [x] A entrada entra **depois** da do passo 2 e **antes** do comentário do modelo.
+- [x] O título leva a data do dia em que a entrada é escrita.
 
 ## Resultado
+
+Feito em 2026-10-29. A entrada "Passo 3 — Autenticação · 2026-10-29" está em `docs/progresso.md`, depois da do passo 2 e antes do comentário do modelo: resumo, "Arquivos" e 18 linhas de decisão. O "Aberto" não existe ainda, e a seção "Estado" segue com o passo 3 "a fazer".
+
+- **Todas as linhas têm fonte.** Conferidas nas tasks, no `docs/stack.md`, em `supabase/CLAUDE.md` e no comentário de `supabase/testes/autenticacao.sql`. Os totais do resumo (61, 69, 36, 41 e `dart analyze` limpo) são os medidos na T10.1.
+- **18 linhas, e não 17.** O item dos cenários 6, 11 e 20 e o do cadastro refeito (T13) viraram duas linhas: o primeiro é só observação do serviço; o segundo é decisão de comportamento do app.
+- **O +507 KB da T05 só tem fonte na lista da T10**, não no arquivo da T05, que não traz o número. Entrou porque fecha na aritmética (53.664.236 − 53.144.602 = 519.634 B = 507 KiB, como os 412 KiB da T04 com 422.030 B) e porque o `material_symbols_icons` e as duas fontes estão no `pubspec.yaml`.
+- **`sa-east-1` vale para os dois:** o domínio no Resend (T08.2) e o projeto do Supabase (T08.1). A entrada diz "a mesma do projeto".
+- **Motivos acrescentados** onde a lista da T10 não os dava, todos de fonte: `storage.vector` passaria de `false` a `true` (T08.6); o R8 renomeava classes Kotlin chamadas por JNI (T09.3); `EMAIL_CAIXA` poupa a reputação do domínio novo (plano da T09); o gatilho dos aparelhos existe para o app não precisar cooperar (`docs/stack.md`).
+- **Divergências de tela não foram repetidas:** a entrada aponta para o `implementacao.md` de `01-acesso`.
 
 ## Pronto quando
 
