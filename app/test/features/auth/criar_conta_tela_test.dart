@@ -33,6 +33,15 @@ void main() {
     expect(auth.chamadas, isEmpty);
   });
 
+  testWidgets('o campo Nome para em 60 caracteres', (tester) async {
+    await montar(tester, AuthFalso(), const CriarContaTela());
+
+    await tester.enterText(find.byKey(const Key('campo-nome')), 'N' * 70);
+    await tester.pump();
+
+    expect(textoDoCampo(tester, 'campo-nome'), 'N' * 60);
+  });
+
   testWidgets('cadastro manda nome e e-mail aparados e segue para o código', (tester) async {
     final auth = AuthFalso();
     await montar(tester, auth, const CriarContaTela());

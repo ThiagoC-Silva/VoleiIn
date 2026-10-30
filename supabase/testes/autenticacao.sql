@@ -147,6 +147,25 @@ select pg_temp.espera_verdade('full_name vence name',
 select pg_temp.espera_verdade('sem full_name, vale name',
   (select nome from pessoa where id = 'd0000000-0000-0000-0000-000000000004') = 'Fabi Rocha');
 
+-- Nome acima de 60 caracteres (RN21): o gatilho corta, não recusa -------------------------
+
+insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at) values
+  ('d0000000-0000-0000-0000-000000000005', 'longo@gmail.com',
+   jsonb_build_object('full_name', repeat('G', 80)), now()),
+  ('d0000000-0000-0000-0000-000000000007', 'corte@gmail.com',
+   jsonb_build_object('full_name', repeat('H', 59) || ' resto'), now());
+select pg_temp.espera_verdade('nome do Google de 80 caracteres é cortado em 60',
+  (select nome = repeat('G', 60) from pessoa where id = 'd0000000-0000-0000-0000-000000000005'));
+select pg_temp.espera_verdade('o corte não deixa espaço no fim do nome',
+  (select nome = repeat('H', 59) from pessoa where id = 'd0000000-0000-0000-0000-000000000007'));
+
+insert into auth.users (id, email, raw_user_meta_data)
+  values ('d0000000-0000-0000-0000-000000000006', 'longa@exemplo.com',
+          jsonb_build_object('nome', repeat('C', 70)));
+update auth.users set email_confirmed_at = now() where id = 'd0000000-0000-0000-0000-000000000006';
+select pg_temp.espera_verdade('nome do cadastro com senha de 70 caracteres é cortado na confirmação',
+  (select nome = repeat('C', 60) from pessoa where id = 'd0000000-0000-0000-0000-000000000006'));
+
 -- Impostor -------------------------------------------------------------------------------
 
 -- Alguém cadastra com senha o Gmail da Helena e não tem como confirmar. Quando a Helena entra

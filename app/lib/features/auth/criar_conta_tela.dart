@@ -75,6 +75,7 @@ class _CriarContaTelaState extends ConsumerState<CriarContaTela> with ExecucaoAu
                 autofocus: true,
                 habilitado: !ocupado,
                 capitalizacao: TextCapitalization.words,
+                tamanhoMaximo: tamanhoMaximoNome,
                 preenchimento: const [AutofillHints.name],
                 acao: TextInputAction.next,
                 aoMudar: mudou,

@@ -352,6 +352,20 @@ select pg_temp.espera_erro('pessoa sem id', $c$
   insert into pessoa (nome) values ('Sem id')
 $c$, '23502');
 
+-- pessoa.nome: de 1 a 60 caracteres (RN21), para qualquer caminho de escrita
+select pg_temp.espera_ok('nome de 60 caracteres', $c$
+  insert into pessoa (id, nome) values ('00000000-0000-0000-0000-0000000000b1', repeat('a', 60))
+$c$);
+select pg_temp.espera_erro('nome de 61 caracteres', $c$
+  insert into pessoa (id, nome) values ('00000000-0000-0000-0000-0000000000b2', repeat('a', 61))
+$c$, '23514', 'pessoa_nome_tamanho_valido');
+select pg_temp.espera_erro('nome vazio', $c$
+  insert into pessoa (id, nome) values ('00000000-0000-0000-0000-0000000000b3', '')
+$c$, '23514', 'pessoa_nome_tamanho_valido');
+select pg_temp.espera_erro('renomear para mais de 60 caracteres', $c$
+  update pessoa set nome = repeat('b', 61) where id = '00000000-0000-0000-0000-0000000000b1'
+$c$, '23514', 'pessoa_nome_tamanho_valido');
+
 -- Gatilho: dentro de uma transação now() é fixo, então parte de um atualizado_em antigo.
 update pessoa set atualizado_em = '2000-01-01' where id = '00000000-0000-0000-0000-000000000002';
 update pessoa set nome = 'Jogadora renomeada' where id = '00000000-0000-0000-0000-000000000002';

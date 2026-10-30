@@ -40,6 +40,20 @@ class _AuthRecusaReenvio extends Fake implements GoTrueClient {
       throw AuthException(texto, statusCode: '429', code: 'over_email_send_rate_limit');
 }
 
+/// Serviço que só registra o signOut.
+class _AuthSai extends Fake implements GoTrueClient {
+  final chamadas = <String>[];
+
+  @override
+  Future<void> signOut({SignOutScope scope = SignOutScope.local}) async => chamadas.add('signOut');
+}
+
+/// Google que falha ao sair.
+class _GoogleFalha extends Fake implements GoogleSignIn {
+  @override
+  Future<void> signOut() => throw const GoogleSignInException(code: GoogleSignInExceptionCode.interrupted);
+}
+
 void main() {
   // Os textos são os que o Play Services devolveu no aparelho (T07, cenário 22).
   GoogleSignInException cancelada(String descricao) =>
@@ -85,6 +99,33 @@ void main() {
         repositorio('weak_password').gravarSenhaDoCadastro('segredo123'),
         throwsA(isA<FalhaAuth>().having((f) => f.mensagem, 'mensagem', contains('8 caracteres'))),
       );
+    });
+  });
+
+  group('outros códigos do serviço', () {
+    Matcher falha(String mensagem) => throwsA(isA<FalhaAuth>().having((f) => f.mensagem, 'mensagem', mensagem));
+    AuthRepositorio repositorio(String codigo) => AuthRepositorio(_AuthRecusaSenha(codigo), GoogleSignIn.instance);
+
+    test('e-mail que pertence a outra conta', () async {
+      await expectLater(
+        repositorio('email_exists').salvarSenhaNova('segredo123'),
+        falha('Esse e-mail já pertence a outra conta.'),
+      );
+    });
+
+    test('excesso de tentativas por IP', () async {
+      await expectLater(
+        repositorio('over_request_rate_limit').salvarSenhaNova('segredo123'),
+        falha('Muitas tentativas seguidas. Aguarde alguns minutos.'),
+      );
+    });
+  });
+
+  group('sair', () {
+    test('a falha do Google depois do signOut do Auth não é erro', () async {
+      final auth = _AuthSai();
+      await AuthRepositorio(auth, _GoogleFalha()).sair();
+      expect(auth.chamadas, ['signOut']);
     });
   });
 

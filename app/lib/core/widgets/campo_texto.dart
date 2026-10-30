@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 /// Campo do design system: rótulo acima e fora do campo, dica opcional abaixo e erro com
@@ -21,6 +22,7 @@ class CampoTexto extends StatefulWidget {
     this.acao,
     this.aoMudar,
     this.aoEnviar,
+    this.tamanhoMaximo,
   });
 
   final String rotulo;
@@ -42,6 +44,9 @@ class CampoTexto extends StatefulWidget {
   final TextInputAction? acao;
   final ValueChanged<String>? aoMudar;
   final ValueChanged<String>? aoEnviar;
+
+  /// Para o teclado no limite, sem contador nem mensagem.
+  final int? tamanhoMaximo;
 
   @override
   State<CampoTexto> createState() => _CampoTextoState();
@@ -76,6 +81,9 @@ class _CampoTextoState extends State<CampoTexto> {
           enableSuggestions: !widget.senha,
           autocorrect: !widget.senha && widget.teclado != TextInputType.emailAddress,
           keyboardType: widget.teclado,
+          inputFormatters: [
+            if (widget.tamanhoMaximo != null) LengthLimitingTextInputFormatter(widget.tamanhoMaximo),
+          ],
           textCapitalization: widget.capitalizacao,
           autofillHints: widget.preenchimento,
           textInputAction: widget.acao,

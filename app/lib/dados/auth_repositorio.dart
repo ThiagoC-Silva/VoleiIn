@@ -7,6 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// uma chamada que seria recusada.
 const tamanhoMinimoSenha = 8;
 
+/// Limite de Pessoa.nome (RN21), também checado no banco. A tela só para o teclado nele.
+const tamanhoMaximoNome = 60;
+
 const _jaTemConta = 'Esse e-mail já tem conta. Entre com a senha ou pelo Google.';
 const _falhaGoogle = 'Não foi possível entrar com o Google. Entre com e-mail e senha.';
 
@@ -141,9 +144,15 @@ class AuthRepositorio {
       });
 
   /// Sai também do Google, para o seletor de contas voltar a aparecer na próxima entrada.
+  /// A sessão do app já caiu quando o Google é chamado, então a falha dele não é do usuário:
+  /// o pior caso é o seletor lembrar a conta.
   Future<void> sair() => _executar(() async {
         await _auth.signOut();
-        await _google.signOut();
+        try {
+          await _google.signOut();
+        } on GoogleSignInException {
+          // Sessão encerrada; nada a mostrar.
+        }
       });
 
   Future<void> _executar(Future<void> Function() acao) async {
