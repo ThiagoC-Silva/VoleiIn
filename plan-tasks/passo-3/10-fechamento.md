@@ -52,6 +52,12 @@ Feito em 2026-10-29, pelo plano de [`plan-tasks-10/`](../plan-tasks-10/README.md
 - **Entrada "Passo 3 — Autenticação"** em `docs/progresso.md`: resumo, arquivos, 18 linhas de decisão (as 17 da lista, com os cenários da T07 separados do cadastro refeito) e 12 de "Aberto". "Passo atual" → 4, e o passo 3 → feito na tabela.
 - **Conferência (T10.1):** `schema.sql` 61, `rls.sql` 69, `autenticacao.sql` 36 asserções, `flutter test` 41, `dart analyze` limpo; remoto sem usuário e com as cinco migrações; teto em 30. Corrigido o espaço duplo do cabeçalho da T11. Caiu o item do `sg docker` do "Aberto" do passo 1, riscado lá.
 - **Memória:** `fluxo-plan-tasks` criada; "passo 3 fechado" não virou memória, porque o `progresso.md` já é a fonte.
+- **Revisão pós-fechamento, em 2026-10-29/30:** uma análise completa do passo achou 15 pontos, todos tratados:
+  - o limite de 60 caracteres de `Pessoa.nome`, que faltava (documentos em `f0f154b`; migração `limite_nome_pessoa`, restrição, corte no gatilho e campo da A2 em `5a8a274`; aplicada no remoto, conferida pelo MCP);
+  - a seção Remoto de `supabase/CLAUDE.md` e o comando do APK release contra o remoto, que só existiam na T09; o vínculo com o remoto tinha se perdido nesta máquina e foi refeito;
+  - `RF01–RF41` no `CLAUDE.md` da raiz, o tema escuro registrado no `implementacao.md` e o Site URL do remoto (`http://127.0.0.1:3000`, igual ao `config.toml`) no "Aberto";
+  - as referências a subtasks saíram do `progresso.md`, e os fatos superados das tasks T02, T03, T04, T05, T07, T09, T12 e do README foram corrigidos;
+  - testes: a `Raiz`, a tradução de `email_exists` e de `over_request_rate_limit`, o `sair()` e o limite do campo Nome, e o `sair()` deixou de lançar quando o Google falha. Hoje são 65, 69 e 39 asserções e 48 testes.
 - A pasta `plan-tasks/plan-tasks-10/` fica no histórico depois de removida em commit próprio, como as de T07 a T09.
 
 ## Pronto quando
