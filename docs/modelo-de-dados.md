@@ -272,6 +272,7 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | `Jogo.inicio` mais `duracao_minutos` cabem inteiros dentro de uma faixa de HorarioFuncionamento do local | RN15 |
 | Faixa de HorarioFuncionamento com `fecha` menor ou igual a `abre` atravessa a meia-noite e termina no dia seguinte | RN15 |
 | `Jogo.prazo_cancelamento_horas` é obrigatório quando `grupo_id` é vazio | RN12 |
+| `Pessoa.nome` nunca nasce vazio e tem até 60 caracteres; o que o Google informa é cortado no cadastro | RN21 |
 | `Jogo.chave_pix_recebedor` nunca nasce vazio; vem do perfil do recebedor ou é digitado na criação, e só esvazia na anonimização dele | RN24, RN27 |
 | Convite preenche exatamente um entre `grupo_id` e `jogo_id`, conforme o `tipo` | RN22 |
 | Convite com `revogado_em` preenchido não aplica mais o convite, mesmo dentro do prazo | RF32, RN22 |

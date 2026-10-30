@@ -24,6 +24,8 @@ Telas: `app/lib/features/auth/` — `entrar_tela.dart` (A1), `criar_conta_tela.d
   - Intervalo de 60 s entre envios ao mesmo e-mail: "Aguarde um minuto antes de pedir outro código.". Na A1, a entrada com senha de cadastro pendente não mostra nada e abre a A3, porque o código enviado há menos de um minuto ainda vale.
   - Teto de e-mails por hora do projeto: "Muitos códigos enviados agora. Tente de novo em até uma hora.". A A1 mostra a mensagem e não abre a A3, porque nenhum código saiu.
   - As duas valem em toda tela que pede código: A1, A2, A3, A4 e a troca de e-mail. O reenvio volta a contar 60 s depois de qualquer recusa, inclusive a do teto.
+- **Campo Nome da A2** não passa de 60 caracteres (RN21): o teclado para no limite, sem mensagem, porque ninguém digita um nome desse tamanho por engano.
+- **Só no tema escuro.** As quatro telas, e a troca de e-mail, saíram sobre a base escura. A base clara e a escolha de aparência entram no grupo H, com o botão de trocar; até lá, a regra de `app/CLAUDE.md` de rodar nos dois modos não vale para elas.
 - **Carregamento** não foi desenhado. O botão primário troca o texto por um indicador circular, e os campos e o voltar ficam travados durante a chamada.
 - **Foco das casas do código.** Depois de um código recusado ou de um reenvio, as casas continuam com o foco e o teclado aberto, para o código seguinte ser digitado sem tocar nelas.
 - **Título da A1** em Montserrat 800 36, medido na imagem, e não no `title.xl` de 28, que é o da barra de tela-raiz.
