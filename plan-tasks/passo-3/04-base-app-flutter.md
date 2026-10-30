@@ -52,7 +52,7 @@ Commitado em `a9a99cf`:
 - [x] `android:label="voleiin"` → `"VoleiIn"`.
 - [x] `build.gradle.kts`: `minSdk = 24` explícito, no lugar de `flutter.minSdkVersion`, para o build não mudar sozinho quando o Flutter subir o padrão. O TODO já resolvido do `applicationId` saiu junto.
 - [x] `CLAUDE.md` da raiz, seção Comandos: tirar "O projeto Flutter ainda não foi inicializado" e registrar:
-  - `flutter run --dart-define=SUPABASE_URL=http://10.0.2.2:54321 --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave de supabase status>` (emulador falando com o Supabase local);
+  - `flutter run --dart-define=SUPABASE_URL=http://10.0.2.2:54321 --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave de supabase status>` (emulador falando com o Supabase local); hoje os três valores vêm de `--dart-define-from-file=dart_defines.json`, como no `CLAUDE.md` da raiz;
   - `flutter test`;
   - `dart analyze` e o motivo abaixo.
 - [x] Contorno do analyzer: `flutter analyze` quebra com `FormatException` no servidor LSP por causa do "Á" em "Área de trabalho". **O link simbólico previsto não resolve**: o Dart resolve o caminho real e manda o "Á" do mesmo jeito. O contorno é `dart analyze`, que usa outro protocolo, roda do caminho real e aplica o mesmo `analysis_options.yaml` (conferido com um erro proposital). Registrado no `CLAUDE.md` da raiz.

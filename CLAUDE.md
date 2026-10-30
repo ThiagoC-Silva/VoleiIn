@@ -6,7 +6,7 @@ Aplicativo Android em Flutter que substitui a organização de jogos de vôlei f
 
 Os documentos de `docs/` estão fechados. Leia o que for relevante antes de implementar.
 
-- `docs/prd.md` — **normativo**: requisitos (RF01–RF40), regras de negócio (RN01–RN30), requisitos não funcionais (RNF01–RNF12), decisões tomadas e o que ficou fora do MVP. Em qualquer divergência, o PRD vence.
+- `docs/prd.md` — **normativo**: requisitos (RF01–RF41), regras de negócio (RN01–RN30), requisitos não funcionais (RNF01–RNF12), decisões tomadas e o que ficou fora do MVP. Em qualquer divergência, o PRD vence.
 - `docs/modelo-de-dados.md` — as treze entidades, com diagrama, chaves estrangeiras, unicidades, catálogo de enums e as invariantes que o diagrama não expressa.
 - `docs/stack.md` — onde cada regra mora, as funções previstas, a estrutura de pastas e a ordem de implementação.
 - `docs/design/DESIGN.md` — **normativo para aparência e texto** (cores, tipografia, componentes, textos exatos), com as telas de referência em `docs/design/telas/`. Não decide regra: em comportamento, o PRD vence.
@@ -70,6 +70,7 @@ Os comandos do Supabase estão em `supabase/CLAUDE.md`. Os do Flutter rodam a pa
 | --- | --- |
 | `flutter run --dart-define-from-file=dart_defines.json` | Roda no aparelho conectado falando com o Supabase local |
 | `flutter run --dart-define-from-file=dart_defines.json --dart-define=SUPABASE_URL=http://10.0.2.2:54321` | Roda no emulador; `10.0.2.2` é o host visto de dentro dele, e o `--dart-define` vence o valor do arquivo |
+| `flutter build apk --release --dart-define-from-file=dart_defines.json --dart-define=SUPABASE_URL=https://zmokpmovphikmobynssy.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave publishable do remoto>` | Gera o APK que fala com o Supabase remoto; os dois `--dart-define` vencem os valores do arquivo, e a chave sai de `supabase projects api-keys` (ver `supabase/CLAUDE.md`, Remoto). Assina com a chave de debug de quem o gera |
 | `flutter test` | Testes de widget |
 | `dart analyze` | Análise estática, com as mesmas regras de `analysis_options.yaml` |
 

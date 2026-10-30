@@ -2,7 +2,7 @@
 
 **Estado:** feito · **Depende de:** T08, T13
 
-Execução quebrada em tasks, uma por vez, em `plan-tasks/planT09/`. **Essa pasta será removida**, como as da T07 e da T08, porque o que ela guarda está consolidado neste arquivo e na [T10](10-fechamento.md). As referências a T09.1 a T09.9 abaixo passam então a apontar para tasks que só existem no histórico do git.
+Execução quebrada em tasks, uma por vez, em `plan-tasks/planT09/`. **Essa pasta foi removida** (`9441aa3`), como as da T07 e da T08, porque o que ela guardava está consolidado neste arquivo e na [T10](10-fechamento.md). As referências a T09.1 a T09.9 abaixo apontam para tasks que só existem no histórico do git.
 
 ## Objetivo
 
@@ -146,4 +146,4 @@ O código chega na caixa de entrada em menos de um minuto. Se cair no spam, volt
 
 ## Commit
 
-Sem commit próprio.
+O fechamento foi `Fecha a validação ponta a ponta no remoto`; a T09 em si não tem outro commit.

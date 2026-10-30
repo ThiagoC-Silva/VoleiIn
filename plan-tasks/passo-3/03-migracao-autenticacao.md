@@ -50,7 +50,7 @@ A sonda da T02 mostrou que, com `enable_confirmations = false`, o Auth confirma 
   - `privado.apagar_dispositivos_na_troca()`, gatilho `after update of email`, só quando o e-mail muda.
 
   As duas são `security definer`, com `search_path = ''` e sem `execute` para ninguém. Commitada em `69656e0`; comentários corrigidos em `51b3b35`. Aplicada **só no banco local**.
-- `supabase/testes/autenticacao.sql` — 16 asserções, passando.
+- `supabase/testes/autenticacao.sql` — 16 asserções, passando. Hoje são 39, depois da reabertura e do limite do nome.
 
 ## O que falta (primeira rodada, feita)
 
@@ -66,9 +66,9 @@ A sonda da T02 mostrou que, com `enable_confirmations = false`, o Auth confirma 
 
 ```
 supabase db reset
-docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/schema.sql        # SUCESSO: 61
+docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/schema.sql        # SUCESSO: 65 (61 ao fechar a T03)
 docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/rls.sql           # SUCESSO: 69
-docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/autenticacao.sql  # SUCESSO: 36
+docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/autenticacao.sql  # SUCESSO: 39 (36 ao fechar a T03)
 ```
 
 `grep -rn "dupla\|duas confirmações\|dois endereços" supabase/migrations supabase/testes` não acha nada. O grep fica fora de `supabase/CLAUDE.md` porque a linha de `confirmar_presenca` ("duas confirmações simultâneas") trata de presença, não de e-mail.

@@ -23,7 +23,7 @@ Ao concluir:
   - Aberta por dois caminhos:
     - "Esqueci a senha" na `EntrarTela`, com o e-mail já digitado;
     - "Trocar senha" na `InicioTela`, com o e-mail atual travado. Nesse caso, ao concluir, mostra um snackbar e fecha, como a `TrocarEmailTela`.
-- [x] `app/lib/features/auth/etapa_codigo.dart`: campo extra opcional abaixo do código (a senha nova), que entra na condição do botão Confirmar. Os usos atuais não mudam.
+- [x] ~~`etapa_codigo.dart`: campo extra opcional abaixo do código~~ — a `etapa_codigo.dart` saiu na T05; a A4 monta as seis casas, o reenvio e o campo de senha nova lado a lado (ver "Feito em 2026-10-22").
 - [x] `app/lib/features/auth/entrar_tela.dart`: botão "Esqueci a senha" na etapa de entrar.
 - [x] `app/lib/features/feed/inicio_tela.dart`: botão "Trocar senha".
 - [x] `app/test/auth_falso.dart` com os métodos novos, e `app/test/features/auth/redefinir_senha_tela_test.dart`:

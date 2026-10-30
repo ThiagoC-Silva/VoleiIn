@@ -48,8 +48,6 @@ O `config.toml` não muda para caber nos testes: tem de seguir igual ao remoto.
 
 ## Preparação
 
-Até a sessão ser reaberta com o grupo `docker`, os comandos do Docker rodam com `sg docker -c '…'` (`docs/progresso.md`, passo 1).
-
 - `supabase start` e `supabase status` para pegar a chave pública.
 - `supabase/.env` com o segredo do Google (T11).
 - Celular na mesma rede:
@@ -64,7 +62,7 @@ Até a sessão ser reaberta com o grupo `docker`, os comandos do Docker rodam co
 - SHA-1 da chave de debug desta máquina cadastrado no cliente Android (T11).
 - Os dois Gmails da lista de usuários de teste do Google (T11) adicionados ao aparelho; os endereços são pedidos na hora e não entram em arquivo versionado (ver "Contas Google").
 - Mailpit em `http://127.0.0.1:54324` para ler os códigos; no celular, em `http://<ip>:54324`.
-- Conferências no banco: `sg docker -c 'docker exec -it supabase_db_VoleiIn psql -U postgres'`.
+- Conferências no banco: `docker exec -it supabase_db_VoleiIn psql -U postgres`.
 
 ## Contas Google
 

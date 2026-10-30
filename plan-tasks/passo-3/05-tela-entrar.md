@@ -8,7 +8,7 @@ Entrar e criar conta numa tela só (RF01, RN21, RNF06):
 - e-mail e senha, ou Google;
 - cadastro com nome, e-mail e senha, concluído pelo código de seis dígitos, com reenvio depois de 60 s.
 
-O caminho de "Esqueci a senha" entra na T12. Sem especificação de tela: o design será refeito depois.
+O caminho de "Esqueci a senha" entra na T12. As telas seguem o design A1–A4 (ver "Feito em 2026-10-22", abaixo).
 
 ## Reescrita em 2026-10-20 — senha e Google
 
@@ -34,10 +34,10 @@ A tela entregue pedia o código a cada entrada. Ela entrou em `a9a99cf` e os tes
     - os códigos reais se conferem na T07.
   - Comentário da classe de acordo: senha ou Google; código só no cadastro, na redefinição e na troca.
 - [x] `app/lib/features/auth/entrar_tela.dart`:
-  - etapas:
-    - `entrar`: e-mail, senha, "Entrar", "Entrar com Google" e "Criar conta";
-    - `cadastro`: nome, e-mail e senha;
-    - `codigo`: `EtapaCodigo`, com reenvio por `reenviarConfirmacao`;
+  - três telas, e não etapas de uma só (ver "Feito em 2026-10-22"):
+    - A1 `entrar`: e-mail, senha, "Entrar", "Entrar com Google" e "Criar conta";
+    - A2 `cadastro`: nome, e-mail e senha;
+    - A3 `codigo`: as seis casas, com reenvio por `reenviarConfirmacao`;
   - `entrar` que devolve `false` vai direto ao código;
   - senha com `obscureText`; menos de 8 caracteres é recusada na tela, sem chamar o serviço;
   - voltar do cadastro e do código para `entrar`.
@@ -66,7 +66,7 @@ As telas saíram com o design de `docs/design/telas/01-acesso/` (A1 Entrar, A2 C
 
 ## O que já existe
 
-- `app/lib/features/auth/etapa_codigo.dart` — campo de código e contagem de 60 s para o reenvio, reaproveitado aqui, na T06 e na T12.
+- ~~`etapa_codigo.dart`~~ — saiu: o código usa as seis casas de `campo_codigo.dart`, e a contagem de 60 s mora em `reenvio_codigo.dart`, reaproveitados aqui, na T06 e na T12.
 - A tela e os testes por código (`a9a99cf`, `05135b9`), que esta task substitui. A extração do fake para `app/test/auth_falso.dart` continua valendo.
 
 ## Pronto quando

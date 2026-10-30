@@ -10,7 +10,7 @@ Quase todo o código do passo já existia no working tree, sem commit e sem proj
 
 Decisões tomadas na abertura:
 - `minSdk` é **24**, não 23: o Flutter 3.47.7 instalado já não dá suporte ao Android 6. Corrigir `docs/stack.md` e `app/CLAUDE.md` (T01).
-- **Sem especificação de tela** no passo 3: as telas são codadas direto e o design será refeito depois. Registrar como "Aberto" no fechamento (T10).
+- **Telas:** o passo abriu sem especificação, mas, a partir de 2026-10-22, as telas de acesso seguem o design A1–A4 de `docs/design/telas/01-acesso/` (T05, T12). Só existem no tema escuro; o claro entra com o grupo H.
 - `plan-tasks/` fica versionado, com uma subpasta por passo.
 
 ## Decisões de 2026-10-20

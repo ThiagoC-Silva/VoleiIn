@@ -22,6 +22,20 @@ Exigem Docker rodando. Executar da raiz do repositório.
 | `supabase db push` | Aplica no projeto remoto as migrações que faltam |
 | `supabase functions deploy enviar-push` | Publica a Edge Function |
 
+## Remoto
+
+Um projeto só, no plano gratuito, sem segundo ambiente.
+
+- **Projeto:** ref `zmokpmovphikmobynssy`, `https://zmokpmovphikmobynssy.supabase.co`, região São Paulo (`sa-east-1`), Postgres 17. O ref e a URL não são segredo.
+- **Numa máquina nova:** `supabase login` (token da conta, gerado no painel) e `supabase link --project-ref zmokpmovphikmobynssy`. O vínculo fica em `supabase/.temp/`, fora do git, e some quando a pasta é recriada; sem ele, `db push` e `config push` não sabem a que projeto falar.
+- **Migrações:** `supabase db push`. `supabase migration list` mostra os dois lados e tem de bater antes de concluir um passo.
+- **Auth:** `supabase config push` leva o `[auth]` do `config.toml`. Confira o diff antes de aceitar. O `storage.vector` do diff é recusado de propósito (passaria de `false` a `true`, e o MVP não usa).
+- **Site URL e redirecionamentos** vêm do `config.toml` (`site_url`, hoje `http://127.0.0.1:3000`, o do local), e é lá que se muda: um `config push` sobrescreve o painel. A URL real entra no passo 10.
+- **Só pelo painel:** o SMTP (Resend: host `smtp.resend.com`, usuário `resend`, a chave de API como senha) e o teto de e-mails por hora (`rate_limit.email_sent`, 30). O `config push` não os gerencia, então o `email_sent` do `config.toml` não chega ao remoto.
+- **Chave pública:** `supabase projects api-keys --project-ref zmokpmovphikmobynssy`, a de tipo `publishable` (`sb_publishable_…`). A chave de serviço nunca sai do painel.
+- **E-mail:** remetente `nao-responda@mail.voleiin.com.br`, pelo Resend, com o domínio `voleiin.com.br` em `p=reject` no DMARC. O registro do domínio vence em 26/10/2027; vencido, o login inteiro cai.
+- **Conferir o remoto sem o CLI:** o MCP do Supabase lê tabelas, migrações e avisos de segurança; `GET /auth/v1/settings` com a chave pública mostra os provedores ligados. Escrita no remoto é do desenvolvedor, no editor SQL do painel.
+
 ## Migrações
 
 - Crie sempre com `supabase migration new <nome>`, que gera o arquivo já prefixado pelo timestamp UTC. Nunca nomeie à mão: o timestamp é o que define a ordem de execução.

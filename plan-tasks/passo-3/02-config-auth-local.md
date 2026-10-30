@@ -21,8 +21,8 @@ Commitado em `e5f7f0c`:
 - `supabase/config.toml`:
   - `[auth.email]`: `otp_length = 6`, `otp_expiry = 300`, `max_frequency = "60s"`, `double_confirm_changes = false`.
   - `[auth.rate_limit]`: `email_sent = 30`.
-  - `[auth.email.template.confirmation]`, `magic_link`, `email_change` e `[auth.email.notification.email_changed]` com assunto em português e `content_path`.
-- `supabase/templates/`: `confirmacao.html` (primeiro acesso), `codigo_acesso.html` (acesso), `troca_email.html` (código ao endereço novo), `aviso_troca_email.html` (aviso ao antigo, sem código).
+  - `[auth.email.template.confirmation]`, `email_change` e `[auth.email.notification.email_changed]` com assunto em português e `content_path`. O `magic_link` saiu na reabertura.
+- `supabase/templates/`, hoje os cinco: `confirmacao.html` (cadastro), `redefinicao_senha.html`, `troca_email.html` (código ao endereço novo), `aviso_troca_email.html` (aviso ao antigo, sem código) e `aviso_troca_senha.html`. O `codigo_acesso.html` saiu na reabertura.
 
 ## Sonda de 2026-10-20
 
@@ -85,7 +85,7 @@ Pela API do Auth, com `curl`:
   - Confirmação, redefinição e troca de e-mail mostram o código de 6 dígitos, sem link.
   - O aviso de troca de e-mail chega ao endereço **antigo** e mostra `{{ .OldEmail }}` e `{{ .Email }}` preenchidos.
   - O aviso de senha trocada chega depois da redefinição.
-- [x] Confirmar que nenhum segredo entrou no `config.toml`. O SMTP do Brevo é só remoto (T08), e o segredo do Google mora em `supabase/.env` (T11).
+- [x] Confirmar que nenhum segredo entrou no `config.toml`. O SMTP do Resend é só remoto (T08), e o segredo do Google mora em `supabase/.env` (T11).
 
 ## Pronto quando
 
