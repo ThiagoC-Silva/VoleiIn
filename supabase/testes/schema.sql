@@ -378,6 +378,29 @@ select pg_temp.espera_verdade('o gatilho existe nas treze tabelas',
    from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and t.tgname = 'tocar_atualizado_em'));
 
+-- Ajustes do passo 4 (migrações ajustes_funcoes e ajustes_schema)
+select pg_temp.espera_verdade('jogo.cancelamento_livre_ate é timestamptz e anulável (RN20)',
+  (select data_type = 'timestamp with time zone' and is_nullable = 'YES'
+   from information_schema.columns
+   where table_schema = 'public' and table_name = 'jogo' and column_name = 'cancelamento_livre_ate'));
+
+select pg_temp.espera_ok('participação do recebedor no próprio jogo', $c$
+  insert into participacao (id, jogo_id, pessoa_id, status, confirmado_em)
+  values ('50000000-0000-0000-0000-000000000099', '40000000-0000-0000-0000-000000000001',
+          '00000000-0000-0000-0000-000000000001', 'confirmado', now())
+$c$);
+select pg_temp.espera_erro('cobrança do recebedor para ele mesmo (RN07)', $c$
+  insert into cobranca (participacao_id, devedor_id, credor_id, valor, origem, status)
+  values ('50000000-0000-0000-0000-000000000099', '00000000-0000-0000-0000-000000000001',
+          '00000000-0000-0000-0000-000000000001', 1429, 'parte', 'pendente')
+$c$, '23514', 'cobranca_devedor_nao_e_credor');
+
+select pg_temp.espera_verdade('privado.encerramento_previsto é stable',
+  (select provolatile = 's' from pg_proc where oid = 'privado.encerramento_previsto(timestamptz, integer)'::regprocedure));
+
+select pg_temp.espera_verdade('tocar_atualizado_em tem search_path fixo',
+  (select 'search_path=""' = any (proconfig) from pg_proc where oid = 'public.tocar_atualizado_em()'::regprocedure));
+
 do $$
 begin
   raise notice 'SUCESSO: % asserções', currval('assercoes');

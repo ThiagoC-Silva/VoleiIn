@@ -52,7 +52,7 @@ Valem para todas as tasks. O que mudar durante o passo é registrado aqui e, no 
 | # | Task | Estado | Depende de |
 | --- | --- | --- | --- |
 | [T01](01-documentacao-abertura.md) | Documentação de abertura | feito | — |
-| [T02](02-migracoes-ajuste.md) | Migrações de ajuste | a fazer | T01 |
+| [T02](02-migracoes-ajuste.md) | Migrações de ajuste | feito | T01 |
 | [T03](03-rpc-grupo.md) | `rpc_grupo` e a base das funções | a fazer | T02 |
 | [T04](04-criar-duplicar-jogo.md) | `rpc_jogo`: criar e duplicar jogo | a fazer | T03 |
 | [T05](05-confirmar-presenca.md) | `rpc_presenca`: confirmar presença | a fazer | T04 |
