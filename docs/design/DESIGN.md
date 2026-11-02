@@ -8,7 +8,7 @@ As imagens seguem o padrão `telas/<nn>-<grupo>/<ID>-<nome>.png`, uma tela por i
 
 **Fidelidade alta.** Cores, tipografia, raios, espaçamentos e textos são finais. Nomes, valores e datas das telas são exemplos.
 
-**Precedência.** O design decide aparência e texto. Ele não decide regra. Se uma tela mostra um comportamento que diverge do [PRD](../prd.md), vale o PRD, e a divergência é registrada em `telas/<pasta-do-grupo>/implementacao.md`. Esse arquivo nasce com a primeira divergência do grupo; hoje existem os de `01-acesso` e `02-jogos`.
+**Precedência.** O design decide aparência e texto. Ele não decide regra. Se uma tela mostra um comportamento que diverge do [PRD](../prd.md), vale o PRD, e a divergência é registrada em `telas/<pasta-do-grupo>/implementacao.md`. Esse arquivo nasce com a primeira divergência do grupo; hoje existem os de `01-acesso`, `02-jogos` e `08-avisos`.
 
 ## Como usar
 

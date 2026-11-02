@@ -196,7 +196,7 @@ Cada linha é uma referência real no banco. "Obrigatória" indica se a coluna a
 
 | Origem | Coluna | Destino | Obrigatória | Observação |
 | --- | --- | --- | --- | --- |
-| Grupo | `criado_por` | Pessoa | sim | Quem criou é quem promove admins (RN13) |
+| Grupo | `criado_por` | Pessoa | sim | Quem cria entra como admin; promover é de qualquer admin (RN13) |
 | Grupo | `local_padrao_id` | Local | não | Apenas sugestão no formulário (RN12) |
 | MembroGrupo | `grupo_id` | Grupo | sim | — |
 | MembroGrupo | `pessoa_id` | Pessoa | sim | — |
@@ -267,7 +267,8 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | `Cobranca.devedor_id` nunca é igual a `credor_id`: o recebedor confirmado ocupa vaga sem cobrança, e a troca de recebedor cancela a cobrança de quem passa a sê-lo | RN07, RN20 |
 | Toda participação `confirmado` tem cobrança, exceto a do recebedor do jogo; quem cria o jogo, ou o duplica, nasce `confirmado` | RN07, RN24, RN28 |
 | `Jogo.preco_por_vaga` é `custo_total / vagas_total` arredondado para cima no centavo | RN01, RN16 |
-| `Jogo.vagas_total` nunca desce abaixo do número de participações `confirmado`, e só é editável até o início do jogo | RN06, RN20 |
+| `Jogo.vagas_total` nunca desce abaixo do número de participações `confirmado` | RN06, RN20 |
+| `Jogo.vagas_total`, `inicio`, `local_id` e `quadra_id` só são editáveis até o início do jogo | RN06, RN20 |
 | `Jogo.custo_total` e `Jogo.recebedor_id` são editáveis até o encerramento, nunca depois | RN20 |
 | `Jogo.quadra_id` é obrigatória quando o local é `por_quadra` e vazia quando é `por_horario` | RN15 |
 | Dois jogos não ocupam a mesma quadra em horários sobrepostos | RN15 |
@@ -284,9 +285,12 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | Convite com `revogado_em` preenchido não aplica mais o convite, mesmo dentro do prazo | RF32, RN22 |
 | A exclusão de conta apaga o usuário no serviço de autenticação e preserva a linha de Pessoa, anonimizada; nenhuma coluna do perfil guarda credencial | RN21, RN27 |
 | A troca de e-mail, a troca de senha e a exclusão de conta apagam todos os DispositivoPush do titular, não os de um aparelho | RNF07, RN27 |
+| A exclusão de conta é recusada enquanto o titular tiver cobrança `pendente` ou `comprovante_enviado`, como devedor ou credor, ou for `recebedor_id` de jogo `aberto`; feita, ele sai de todos os grupos e a participação dele em `lista_espera` vira `cancelou_no_prazo` | RN27 |
+| Grupo com mais de um membro tem ao menos um MembroGrupo `admin`: o admin único só sai do grupo, ou exclui a conta, depois de promover outro | RN27, RN30 |
 | `DispositivoPush.token_fcm` pertence a quem o registrou por último: registrar um token que já existe transfere a linha, em vez de criar outra | RN29 |
 | `Participacao.posicao_espera` só é preenchido enquanto o status for `lista_espera`, e é renumerado sem buracos quando alguém sai da lista | RN08 |
 | Cancelar no prazo leva a cobrança a `cancelada`; sair da lista de espera é sempre `cancelou_no_prazo` e não tem cobrança | RN02, RN08 |
+| Cancelar presença e sair da lista de espera só acontecem antes do início do jogo; depois dele, a ausência de quem confirmou é falta | RN02, RN04 |
 | Cada confirmação isenta no máximo uma multa `pendente` de `cancelamento_tardio`, a do cancelante mais antigo; a reconfirmação do próprio cancelante não isenta a de outro | RN05, RN25 |
 | Reconfirmar reabre a cobrança existente da participação como `pendente` de origem `parte`, com o valor por vaga atual, em vez de criar outra | RN25 |
 | `Cobranca` só sai de `pendente` por ato de pessoa depois do jogo encerrado | RN07 |

@@ -41,7 +41,7 @@ Um projeto só, no plano gratuito, sem segundo ambiente.
 ## Migrações
 
 - Crie sempre com `supabase migration new <nome>`, que gera o arquivo já prefixado pelo timestamp UTC. Nunca nomeie à mão: o timestamp é o que define a ordem de execução.
-- A sequência prevista está em `docs/stack.md`: `enums`, `tabelas`, `indices`, `rls`, `autenticacao`, `rpc_grupo`, `rpc_jogo`, `rpc_presenca`, `rpc_cobranca`, `storage`, `avisos`, `rotinas_cron`, `rpc_convite`.
+- A sequência prevista está em `docs/stack.md`: `enums`, `tabelas`, `indices`, `rls`, `autenticacao`, `ajustes_funcoes`, `ajustes_schema`, `rpc_grupo`, `rpc_jogo`, `rpc_presenca`, `rpc_cobranca`, `rpc_conta`, `visoes`, `storage`, `avisos`, `rotinas_cron`, `rpc_convite`.
 - **Nunca edite uma migração já aplicada.** Corrija criando a próxima. O banco remoto não roda de novo um arquivo que já rodou, então editar faz local e remoto divergirem em silêncio.
 - Valide com `supabase db reset`, que recria o banco local do zero, roda todas as migrações em ordem e aplica o `seed.sql`. Se isso passa de um banco vazio, a sequência está consistente.
 - `seed.sql` guarda os locais, quadras e horários do piloto. São dados mantidos pelo desenvolvedor, não escritos pelo app (RN18).

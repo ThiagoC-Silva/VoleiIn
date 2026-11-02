@@ -49,27 +49,27 @@ As funções previstas, uma por operação que muda estado:
 | --- | --- |
 | `criar_jogo`, `duplicar_jogo` | RN15 (quadra e funcionamento, com a fila por local abaixo), RN24 (chave do recebedor; quem cria nasce confirmado, sem cobrança se for o recebedor), RN13 (no grupo, qualquer membro cria), RN01 e RN16 (preço por vaga), RN28 |
 | `confirmar_presenca` | RNF09 (trava e contagem), RN13 (quem confirma: membro, criador, recebedor ou quem já tem participação), RN08 (fila; a vaga é de quem confirmar primeiro), RN05 (isenção da multa mais antiga), RN25 (reconfirmação, reabrindo a cobrança), RN07 (nascimento da cobrança, nunca para o recebedor). A lógica fica numa função interna em `privado`, que a `aplicar_convite` também chama (RN22) |
-| `cancelar_presenca` | RN02 e RN03 (prazo e multa, com `cancelamento_livre_ate`; no prazo, a cobrança vai a `cancelada`), RN08 (anúncio da vaga; saída da fila e renumeração) |
-| `editar_jogo` | RN20 (janelas de edição; remarcação grava `cancelamento_livre_ate` e cancela as multas; troca de recebedor), RN15 (fila por local), RN01 (recálculo), RN06, RN11 e RN29 (avisos) |
+| `cancelar_presenca` | RN02 (só até o início do jogo) e RN03 (prazo e multa, com `cancelamento_livre_ate`; no prazo, a cobrança vai a `cancelada`), RN08 (anúncio da vaga; saída da fila e renumeração) |
+| `editar_jogo` | RN20 (janelas de edição: vagas, data, horário, local e quadra até o início; custo e recebedor até o encerramento; remarcação grava `cancelamento_livre_ate` e cancela as multas; troca de recebedor), RN15 (fila por local), RN01 (recálculo), RN06, RN11 e RN29 (avisos) |
 | `cancelar_jogo`, `encerrar_jogo` | RN23, RN17 e RN13 (encerrar à mão: criador e admins, a partir do fim reservado), RN07 (liberação do pagamento). O encerramento fica numa função interna em `privado`, que a rotina de minuto também chama (passo 8) |
 | `marcar_falta` | RN04 (só com o jogo encerrado), RN13 (quem pode) |
 | `dar_baixa`, `isentar_cobranca` | RN07 (congelamento), RN13 (só o credor) |
 | `enviar_comprovante` | RN09 (classificação no servidor), RN10 (unicidade do identificador) |
 | `apagar_comprovante` | RF37, RN19 (só o devedor, só depois da baixa; esvazia `arquivo_url` e preserva a linha) |
 | `criar_grupo` | RF03, RN12 (padrões do grupo); quem cria entra como admin (RN13, RN30) |
-| `editar_grupo` | RF06, RN11 (vale de imediato nos jogos abertos, aviso aos confirmados), RN13 (só admins) |
-| `promover_admin` | RF31, RN13 (só quem criou o grupo), RN29 (aviso) |
-| `remover_membro`, `sair_grupo` | RF29, RF30, RN30 (participações e cobranças ficam; quem criou só sai depois de promover outro admin), RN13 (remoção só por admin), RN29 (aviso ao removido) |
+| `editar_grupo` | RF06, RN11 (vale de imediato nos jogos abertos; aviso só quando o prazo muda, aos confirmados dos jogos abertos que seguem o prazo do grupo), RN13 (só admins) |
+| `promover_admin` | RF31, RN13 (qualquer admin do grupo), RN29 (aviso) |
+| `remover_membro`, `sair_grupo` | RF29, RF30, RN30 (participações e cobranças ficam; o admin único de grupo com outros membros só sai depois de promover outro admin; o último membro sai livre), RN13 (remoção só por admin), RN29 (aviso ao removido) |
 | `gerar_convite`, `revogar_convite` | RF09, RF32, RN22 (convite de jogo expira no início; o de grupo, só por revogação), RN13 (grupo: só admins; jogo: qualquer confirmado) |
 | `aplicar_convite` | RF04, RN22 (expiração e revogação), RN13 |
 | `registrar_dispositivo` | RF38, RN29; token já registrado por outra conta passa a quem registra agora (seção Política de linha) |
 | `listar_participantes` | RN26 (a marca de débito vencido só aparece para criador, recebedor e admins) |
-| `excluir_conta` | RN27 (bloqueio por pendência, admin único, anonimização, remoção do usuário) |
+| `excluir_conta` | RN27 (bloqueio por pendência, por admin único e por ser recebedor de jogo aberto; saída de todos os grupos e da lista de espera; anonimização, remoção do usuário) |
 | `rotinas_minuto` | O que a linha de `pg_cron` acima descreve |
 
 Três cuidados valem para todas as funções acima:
 
-- **Avisos.** A função que dispara um aviso previsto na regra (RN01, RN07, RN08, RN11, RN20, RN23, RN29) grava a linha de `notificacao` na própria transação, já no passo 4. O passo 7 só acrescenta a entrega: gatilho, Edge Function e FCM.
+- **Avisos.** A função que dispara um aviso previsto na regra (RN01, RN07, RN08, RN11, RN20, RN23, RN29) grava a linha de `notificacao` na própria transação, já no passo 4. Título, corpo e destinatários de cada tipo estão em [`docs/design/telas/08-avisos/implementacao.md`](design/telas/08-avisos/implementacao.md). O passo 7 só acrescenta a entrega: gatilho, Edge Function e FCM.
 - **Fila por local (RN15).** A trava da linha do jogo (RNF09) não alcança dois jogos que ainda não existem. `criar_jogo`, `duplicar_jogo` e `editar_jogo` pegam `pg_advisory_xact_lock` com o `local_id` antes de checar quadra e capacidade: quem chega no mesmo instante espera, checa depois que o primeiro gravou e recebe a recusa. Só se enfileiram criações no mesmo local.
 - **Idempotência (RNF10).** É por estado, não por chave de requisição: as unicidades de participação e de cobrança e a checagem do status atual dentro da transação fazem o pedido repetido não ter efeito. Confirmar quem já está confirmado, ou dar baixa numa cobrança já confirmada, devolve o estado atual sem mudar nada. O limite aceito é que um confirmar atrasado, chegando depois de um cancelamento, vale como reconfirmação (RN25).
 

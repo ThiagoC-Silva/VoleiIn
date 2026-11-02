@@ -1,6 +1,6 @@
 # T01 — Documentação de abertura
 
-**Estado:** a fazer · **Depende de:** —
+**Estado:** feito · **Depende de:** —
 
 ## Objetivo
 
@@ -19,7 +19,7 @@ Gravar nos documentos as sete decisões tomadas ao planejar o passo (ver [README
 
 ## O que falta
 
-- [ ] `docs/prd.md`:
+- [x] `docs/prd.md`:
   - RN02: cancelar presença só até o início do jogo; depois dele, a ausência é falta (RN04);
   - RN20: data, horário, local e quadra editáveis até o início;
   - RN13, tabela de papéis: "Promover membro a admin | Qualquer admin do grupo";
@@ -27,16 +27,16 @@ Gravar nos documentos as sete decisões tomadas ao planejar o passo (ver [README
   - RN27: recusa também enquanto o titular for recebedor de jogo `aberto`; na exclusão ele sai de todos os grupos, e a participação em lista de espera vira `cancelou_no_prazo`;
   - RN11: o aviso vai só quando o prazo muda, aos confirmados de jogos abertos que seguem o prazo do grupo;
   - Decisões tomadas: linhas para cancelamento após o início, promoção por qualquer admin e admin único.
-- [ ] `docs/modelo-de-dados.md`, invariantes: cancelar e remarcar só antes do início; grupo com mais de um membro tem ao menos um admin; exclusão recusada com recebedor de jogo aberto.
-- [ ] Criar `docs/design/telas/08-avisos/implementacao.md`, no formato de `01-acesso/implementacao.md`, com uma linha por tipo de `notificacao_tipo` (14): título, corpo, destinatários e a função que grava.
+- [x] `docs/modelo-de-dados.md`, invariantes: cancelar e remarcar só antes do início; grupo com mais de um membro tem ao menos um admin; exclusão recusada com recebedor de jogo aberto.
+- [x] Criar `docs/design/telas/08-avisos/implementacao.md`, no formato de `01-acesso/implementacao.md`, com uma linha por tipo de `notificacao_tipo` (14): título, corpo, destinatários e a função que grava.
   - Os 5 do G1 como estão.
   - Propor os 9 que faltam no mesmo tom: `jogo_editado` (remarcação, inclusive a quem teve a multa cancelada), `jogo_cancelado` (proposta de destinatários: confirmados e lista de espera), `regra_grupo_alterada`, `cobranca_confirmada`, `cobranca_isenta` (manual e automática da RN05), `falta_marcada`, `removido_do_grupo`, `promovido_a_admin`, `comprovante_recusado` (este usado só no passo 6).
   - Como o jogo aparece nos textos: o nome do grupo, como no G1; no avulso, proposta: o nome do local ("Arena Beira-Mar").
   - **Mostrar os textos ao usuário e só seguir com a aprovação dele.**
-- [ ] Atualizar em `DESIGN.md` (Precedência) a lista de `implementacao.md` existentes.
-- [ ] Abrir `docs/design/telas/04-grupos/D3-membros.png` e conferir o menu "promover": se a imagem limitar a quem criou o grupo, registrar em `04-grupos/implementacao.md` que vale para qualquer admin.
-- [ ] `supabase/CLAUDE.md`, seção Migrações: a sequência de `docs/stack.md` (com `ajustes_funcoes`, `ajustes_schema`, `rpc_conta`, `visoes`).
-- [ ] `grep` das RNs alteradas (RN02, RN11, RN13, RN20, RN27, RN30) nos três documentos sem texto contraditório; contagem de RN (30) e RF intacta.
+- [x] Atualizar em `DESIGN.md` (Precedência) a lista de `implementacao.md` existentes.
+- [x] Abrir `docs/design/telas/04-grupos/D3-membros.png` e conferir o menu "promover": se a imagem limitar a quem criou o grupo, registrar em `04-grupos/implementacao.md` que vale para qualquer admin.
+- [x] `supabase/CLAUDE.md`, seção Migrações: a sequência de `docs/stack.md` (com `ajustes_funcoes`, `ajustes_schema`, `rpc_conta`, `visoes`).
+- [x] `grep` das RNs alteradas (RN02, RN11, RN13, RN20, RN27, RN30) nos três documentos sem texto contraditório; contagem de RN (30) e RF intacta.
 
 ## Pronto quando
 
