@@ -1,0 +1,499 @@
+-- Cenários de criar e duplicar jogo (migração rpc_jogo): preço por vaga (RN01, RN16), o
+-- criador confirmado (RN24), a chave do recebedor (RN24, RN28), o papel de quem cria
+-- (RN13) e as checagens de quadra e funcionamento (RN15). Roda numa transação desfeita,
+-- a partir do banco recém-resetado com o seed.sql aplicado.
+--
+-- docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/rpc_jogo.sql
+--
+-- Locais do seed: Arena Beira-Mar (10…01, por_quadra, Quadras 1 e 2, seg a sex 18h–23h,
+-- sáb 20h–2h) e Ginásio Municipal (10…02, por_horario, capacidade 2, todo dia 7h–22h,
+-- sex também 19h–0h).
+
+-- Só os avisos interessam; o resultado de cada select vai para o lixo.
+\o /dev/null
+
+begin;
+
+create temp sequence assercoes;
+
+-- Executa o comando e exige que falhe com o sqlstate e, quando dada, a restrição esperados.
+create function pg_temp.espera_erro(descricao text, comando text, estado text, restricao text default null)
+returns void
+language plpgsql
+as $$
+declare
+  v_estado text;
+  v_restricao text;
+begin
+  perform nextval('assercoes');
+  begin
+    execute comando;
+  exception when others then
+    get stacked diagnostics v_estado = returned_sqlstate, v_restricao = constraint_name;
+    if v_estado <> estado or (restricao is not null and v_restricao is distinct from restricao) then
+      raise exception 'FALHOU: % — esperava % %, veio % % (%)',
+        descricao, estado, coalesce(restricao, ''), v_estado, coalesce(v_restricao, ''), sqlerrm;
+    end if;
+    return;
+  end;
+  raise exception 'FALHOU: % — o comando passou, mas deveria ser recusado', descricao;
+end;
+$$;
+
+-- Executa o comando e exige a recusa de uma função: o sqlstate (P0001 para regra
+-- violada, 42501 para falta de papel) e o código estável na mensagem.
+create function pg_temp.espera_recusa(descricao text, comando text, codigo text, estado text default 'P0001')
+returns void
+language plpgsql
+as $$
+begin
+  perform nextval('assercoes');
+  begin
+    execute comando;
+  exception when others then
+    if sqlstate <> estado or sqlerrm <> codigo then
+      raise exception 'FALHOU: % — esperava % %, veio % %', descricao, estado, codigo, sqlstate, sqlerrm;
+    end if;
+    return;
+  end;
+  raise exception 'FALHOU: % — o comando passou, mas deveria ser recusado com %', descricao, codigo;
+end;
+$$;
+
+-- Executa o comando e exige que passe. O efeito fica na transação.
+create function pg_temp.espera_ok(descricao text, comando text)
+returns void
+language plpgsql
+as $$
+begin
+  perform nextval('assercoes');
+  execute comando;
+exception when others then
+  raise exception 'FALHOU: % — esperava sucesso, veio % (%)', descricao, sqlstate, sqlerrm;
+end;
+$$;
+
+-- Exige que a condição seja verdadeira.
+create function pg_temp.espera_verdade(descricao text, condicao boolean)
+returns void
+language plpgsql
+as $$
+begin
+  perform nextval('assercoes');
+  if condicao is not true then
+    raise exception 'FALHOU: %', descricao;
+  end if;
+end;
+$$;
+
+-- Passa a agir como a pessoa, do jeito que a API do Supabase faz: papel authenticated
+-- e o id no JWT, lido por auth.uid(). Sem pessoa, age como anon. "reset role" volta ao postgres.
+create function pg_temp.como(p_pessoa uuid)
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('role', case when p_pessoa is null then 'anon' else 'authenticated' end, true);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', p_pessoa, 'role', case when p_pessoa is null then 'anon' else 'authenticated' end)::text,
+    true);
+end;
+$$;
+
+-- O arnês é do postgres; os papéis do app precisam alcançá-lo depois da troca.
+grant usage on sequence assercoes to authenticated, anon;
+grant execute on function
+  pg_temp.espera_erro(text, text, text, text),
+  pg_temp.espera_recusa(text, text, text, text),
+  pg_temp.espera_ok(text, text),
+  pg_temp.espera_verdade(text, boolean),
+  pg_temp.como(uuid)
+to authenticated, anon;
+
+
+-- Próximo dia da semana (0 é domingo) à hora dada em Brasília, sempre de amanhã em
+-- diante, para a suíte passar em qualquer dia.
+create function pg_temp.proximo(p_dia integer, p_hora time)
+returns timestamptz
+language sql
+stable
+as $$
+  select ((hoje + (((p_dia - extract(dow from hoje)::int + 6) % 7) + 1)) + p_hora)
+         at time zone 'America/Sao_Paulo'
+  from (select (now() at time zone 'America/Sao_Paulo')::date as hoje) h;
+$$;
+
+-- Ids dos jogos criados pelas funções, guardados para os cenários seguintes.
+create temp table ids (nome text primary key, id uuid not null);
+grant select, insert on ids to authenticated;
+grant execute on function pg_temp.proximo(integer, time) to authenticated;
+
+-- Atalhos para o local e as quadras do seed.
+create function pg_temp.arena() returns uuid language sql immutable as $$ select '10000000-0000-0000-0000-000000000001'::uuid $$;
+create function pg_temp.ginasio() returns uuid language sql immutable as $$ select '10000000-0000-0000-0000-000000000002'::uuid $$;
+create function pg_temp.q1() returns uuid language sql immutable as $$ select '20000000-0000-0000-0000-000000000001'::uuid $$;
+create function pg_temp.q2() returns uuid language sql immutable as $$ select '20000000-0000-0000-0000-000000000002'::uuid $$;
+create function pg_temp.jogo(p_nome text) returns uuid language sql stable as $$ select id from ids where nome = p_nome $$;
+grant execute on function pg_temp.arena(), pg_temp.ginasio(), pg_temp.q1(), pg_temp.q2(), pg_temp.jogo(text)
+to authenticated;
+
+-- Elenco, inserido como postgres. Bruno e Carlos entram em Sábado direto em membro_grupo,
+-- porque o convite de grupo só chega no passo 9.
+--   Ana    a0…  cria Sábado (prazo 3 h); tem chave
+--   Bruno  b0…  membro de Sábado, sem chave
+--   Carlos c0…  membro de Sábado, com chave
+--   Dani   d0…  de fora, com chave; cria avulso
+insert into pessoa (id, nome, chave_pix) values
+  ('a0000000-0000-0000-0000-000000000001', 'Ana Souza', 'ana@pix'),
+  ('b0000000-0000-0000-0000-000000000001', 'Bruno Lima', null),
+  ('c0000000-0000-0000-0000-000000000001', 'Carlos', 'carlos@pix'),
+  ('d0000000-0000-0000-0000-000000000001', 'Dani', 'dani@pix');
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+insert into ids values ('sabado', criar_grupo('Areia de Sábado', '#3B6FE0', 3));
+reset role;
+
+insert into membro_grupo (grupo_id, pessoa_id, papel)
+select pg_temp.jogo('sabado'), p, 'membro'
+from unnest(array['b0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001']::uuid[]) p;
+
+-- Criar no grupo: preço, criador confirmado e recebedor (RN01, RN16, RN24).
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_ok('Ana cria J1: segunda 19h, Quadra 1, 2 h, R$ 100,00 em 7 vagas',
+  $$insert into ids values ('j1', criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(),
+      pg_temp.proximo(1, '19:00'), 120, 7, 10000, null))$$);
+select pg_temp.espera_ok('Ana cria J2 na quadra vizinha, no mesmo horário: R$ 100,00 em 10 vagas',
+  $$insert into ids values ('j2', criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(),
+      pg_temp.proximo(1, '19:00'), 60, 10, 10000, 4))$$);
+
+reset role;
+
+select pg_temp.espera_verdade('10000 em 7 vagas dá 1429', (select preco_por_vaga from jogo where id = pg_temp.jogo('j1')) = 1429);
+select pg_temp.espera_verdade('10000 em 10 vagas dá 1000', (select preco_por_vaga from jogo where id = pg_temp.jogo('j2')) = 1000);
+select pg_temp.espera_verdade('J1 nasce aberto, de Ana, com a chave do perfil dela e o prazo do grupo',
+  exists (select 1 from jogo where id = pg_temp.jogo('j1') and status = 'aberto'
+            and grupo_id = pg_temp.jogo('sabado')
+            and criador_id = 'a0000000-0000-0000-0000-000000000001'
+            and recebedor_id = 'a0000000-0000-0000-0000-000000000001'
+            and chave_pix_recebedor = 'ana@pix'
+            and prazo_cancelamento_horas is null and cancelamento_livre_ate is null));
+select pg_temp.espera_verdade('criadora recebedora nasce confirmada, sem cobrança',
+  (select array_agg(pessoa_id::text || ':' || status) from participacao where jogo_id = pg_temp.jogo('j1'))
+    = array['a0000000-0000-0000-0000-000000000001:confirmado']
+  and (select confirmado_em from participacao where jogo_id = pg_temp.jogo('j1')) = now()
+  and not exists (select 1 from cobranca c join participacao p on p.id = c.participacao_id
+                  where p.jogo_id = pg_temp.jogo('j1')));
+select pg_temp.espera_verdade('prazo sem multa de J1: início menos as 3 h do grupo',
+  privado.prazo_sem_multa(pg_temp.jogo('j1')) = pg_temp.proximo(1, '19:00') - interval '3 hours');
+select pg_temp.espera_verdade('prazo sem multa de J2: início menos as 4 h do próprio jogo',
+  privado.prazo_sem_multa(pg_temp.jogo('j2')) = pg_temp.proximo(1, '19:00') - interval '4 hours');
+
+select pg_temp.como('b0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_ok('Bruno cria J3 com Ana recebendo: terça 19h, Quadra 1',
+  $$insert into ids values ('j3', criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(),
+      pg_temp.proximo(2, '19:00'), 120, 7, 10000, null, 'a0000000-0000-0000-0000-000000000001'))$$);
+select pg_temp.espera_recusa('Bruno recebendo, sem chave no perfil e sem chave digitada',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(),
+      pg_temp.proximo(2, '19:00'), 120, 10, 10000, null)$$, 'recebedor_sem_chave');
+select pg_temp.espera_recusa('chave digitada só de espaços conta como vazia',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(),
+      pg_temp.proximo(2, '19:00'), 120, 10, 10000, null, null, '   ')$$, 'recebedor_sem_chave');
+select pg_temp.espera_ok('Bruno recebendo, com a chave digitada: J4, terça 19h, Quadra 2',
+  $$insert into ids values ('j4', criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(),
+      pg_temp.proximo(2, '19:00'), 120, 10, 10000, null, null, 'bruno-digitada'))$$);
+
+reset role;
+
+select pg_temp.espera_verdade('criador com outro recebedor nasce confirmado com cobrança de parte',
+  exists (select 1 from participacao p join cobranca c on c.participacao_id = p.id
+          where p.jogo_id = pg_temp.jogo('j3') and p.pessoa_id = 'b0000000-0000-0000-0000-000000000001'
+            and p.status = 'confirmado'
+            and c.devedor_id = 'b0000000-0000-0000-0000-000000000001'
+            and c.credor_id = 'a0000000-0000-0000-0000-000000000001'
+            and c.valor = 1429 and c.origem = 'parte' and c.status = 'pendente'
+            and c.confirmado_por is null and c.confirmado_em is null)
+  and (select chave_pix_recebedor from jogo where id = pg_temp.jogo('j3')) = 'ana@pix');
+select pg_temp.espera_verdade('J4 guarda a chave digitada, e o perfil de Bruno segue sem chave',
+  (select chave_pix_recebedor from jogo where id = pg_temp.jogo('j4')) = 'bruno-digitada'
+  and (select chave_pix from pessoa where id = 'b0000000-0000-0000-0000-000000000001') is null
+  and not exists (select 1 from cobranca c join participacao p on p.id = c.participacao_id
+                  where p.jogo_id = pg_temp.jogo('j4')));
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_ok('Ana cria J5 com Carlos recebendo e outra chave digitada: quarta 19h',
+  $$insert into ids values ('j5', criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(),
+      pg_temp.proximo(3, '19:00'), 60, 10, 10000, null, 'c0000000-0000-0000-0000-000000000001', 'carlos-outra'))$$);
+select pg_temp.espera_recusa('recebedor que a criadora não conhece',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(),
+      pg_temp.proximo(3, '19:00'), 60, 10, 10000, null, 'd0000000-0000-0000-0000-000000000001')$$,
+  'recebedor_desconhecido');
+select pg_temp.espera_recusa('recebedor que não existe',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(),
+      pg_temp.proximo(3, '19:00'), 60, 10, 10000, null, 'f0000000-0000-0000-0000-000000000001')$$,
+  'recebedor_desconhecido');
+
+reset role;
+
+select pg_temp.espera_verdade('a chave digitada para Carlos não altera o perfil dele',
+  (select chave_pix_recebedor from jogo where id = pg_temp.jogo('j5')) = 'carlos-outra'
+  and (select chave_pix from pessoa where id = 'c0000000-0000-0000-0000-000000000001') = 'carlos@pix');
+
+select pg_temp.espera_verdade('Ana, criadora de J5 sem ser a recebedora, deve a parte dela a Carlos',
+  exists (select 1 from participacao p join cobranca c on c.participacao_id = p.id
+          where p.jogo_id = pg_temp.jogo('j5') and p.pessoa_id = 'a0000000-0000-0000-0000-000000000001'
+            and c.credor_id = 'c0000000-0000-0000-0000-000000000001' and c.valor = 1000));
+
+-- Papel e campos (RN12, RN13).
+
+select pg_temp.como('d0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_recusa('quem não é membro não cria no grupo',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), null,
+      pg_temp.proximo(0, '10:00'), 60, 10, 10000, null)$$, 'sem_permissao', '42501');
+select pg_temp.espera_recusa('avulso sem prazo',
+  $$select criar_jogo(null, pg_temp.ginasio(), null, pg_temp.proximo(0, '10:00'), 60, 10, 10000, null)$$,
+  'prazo_invalido');
+select pg_temp.espera_recusa('prazo negativo',
+  $$select criar_jogo(null, pg_temp.ginasio(), null, pg_temp.proximo(0, '10:00'), 60, 10, 10000, -1)$$,
+  'prazo_invalido');
+select pg_temp.espera_recusa('início no passado',
+  $$select criar_jogo(null, pg_temp.ginasio(), null, now() - interval '1 hour', 60, 10, 10000, 2)$$,
+  'inicio_no_passado');
+select pg_temp.espera_recusa('vagas zero',
+  $$select criar_jogo(null, pg_temp.ginasio(), null, pg_temp.proximo(0, '10:00'), 60, 0, 10000, 2)$$,
+  'vagas_invalidas');
+select pg_temp.espera_recusa('duração zero',
+  $$select criar_jogo(null, pg_temp.ginasio(), null, pg_temp.proximo(0, '10:00'), 0, 10, 10000, 2)$$,
+  'duracao_invalida');
+select pg_temp.espera_recusa('custo negativo',
+  $$select criar_jogo(null, pg_temp.ginasio(), null, pg_temp.proximo(0, '10:00'), 60, 10, -1, 2)$$,
+  'custo_invalido');
+select pg_temp.espera_ok('qualquer pessoa cria avulso: Dani, domingo 10h no Ginásio, custo zero',
+  $$insert into ids values ('avulso', criar_jogo(null, pg_temp.ginasio(), null,
+      pg_temp.proximo(0, '10:00'), 60, 10, 0, 2))$$);
+
+reset role;
+
+select pg_temp.espera_verdade('o avulso guarda o próprio prazo e não tem grupo',
+  exists (select 1 from jogo where id = pg_temp.jogo('avulso') and grupo_id is null
+            and prazo_cancelamento_horas = 2 and preco_por_vaga = 0 and chave_pix_recebedor = 'dani@pix')
+  and privado.prazo_sem_multa(pg_temp.jogo('avulso')) = pg_temp.proximo(0, '10:00') - interval '2 hours');
+
+-- RN15: quadra, ocupação e funcionamento.
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_recusa('Arena exige quadra',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), null, pg_temp.proximo(4, '19:00'), 60, 10, 10000, null)$$,
+  'quadra_obrigatoria');
+select pg_temp.espera_recusa('Ginásio não aceita quadra',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), pg_temp.q1(), pg_temp.proximo(4, '10:00'), 60, 10, 10000, null)$$,
+  'quadra_invalida');
+select pg_temp.espera_recusa('local que não existe',
+  $$select criar_jogo(pg_temp.jogo('sabado'), '10000000-0000-0000-0000-0000000000ff', null, pg_temp.proximo(4, '10:00'), 60, 10, 10000, null)$$,
+  'local_invalido');
+select pg_temp.espera_recusa('mesma quadra, horário sobreposto',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(), pg_temp.proximo(1, '20:00'), 60, 10, 10000, null)$$,
+  'quadra_ocupada');
+select pg_temp.espera_recusa('mesma quadra, começando antes e terminando dentro',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(), pg_temp.proximo(1, '18:00'), 90, 10, 10000, null)$$,
+  'quadra_ocupada');
+select pg_temp.espera_ok('mesma quadra, começando quando o outro termina',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(), pg_temp.proximo(1, '21:00'), 60, 10, 10000, null)$$);
+select pg_temp.espera_recusa('fora da faixa: segunda das 22h à 0h, com a Arena fechando às 23h',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(), pg_temp.proximo(1, '22:00'), 120, 10, 10000, null)$$,
+  'fora_do_funcionamento');
+select pg_temp.espera_recusa('fora da faixa: domingo, sem faixa na Arena',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(), pg_temp.proximo(0, '19:00'), 60, 10, 10000, null)$$,
+  'fora_do_funcionamento');
+select pg_temp.espera_ok('sábado das 23h à 1h na Arena, atravessando a meia-noite',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(), pg_temp.proximo(6, '23:00'), 120, 10, 10000, null)$$);
+select pg_temp.espera_ok('domingo da 1h às 2h na Arena, ainda na faixa de sábado',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(), pg_temp.proximo(0, '01:00'), 60, 10, 10000, null)$$);
+select pg_temp.espera_recusa('domingo da 1h às 3h na Arena passa do fim da faixa de sábado',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(), pg_temp.proximo(0, '01:00'), 120, 10, 10000, null)$$,
+  'fora_do_funcionamento');
+select pg_temp.espera_ok('sexta das 22h à 0h no Ginásio, na faixa que fecha à meia-noite',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), null, pg_temp.proximo(5, '22:00'), 120, 10, 10000, null)$$);
+select pg_temp.espera_recusa('sexta das 23h à 1h no Ginásio passa da meia-noite',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), null, pg_temp.proximo(5, '23:00'), 120, 10, 10000, null)$$,
+  'fora_do_funcionamento');
+select pg_temp.espera_recusa('sábado das 21h às 23h no Ginásio, que fecha às 22h',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), null, pg_temp.proximo(6, '21:00'), 120, 10, 10000, null)$$,
+  'fora_do_funcionamento');
+
+-- Ginásio: capacidade 2.
+select pg_temp.espera_ok('Ginásio, quarta 10h às 11h',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), null, pg_temp.proximo(3, '10:00'), 60, 10, 10000, null)$$);
+select pg_temp.espera_ok('Ginásio, quarta 10h30 às 11h30: dois simultâneos',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), null, pg_temp.proximo(3, '10:30'), 60, 10, 10000, null)$$);
+select pg_temp.espera_recusa('Ginásio, quarta 10h15 às 10h45: o terceiro',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), null, pg_temp.proximo(3, '10:15'), 30, 10, 10000, null)$$,
+  'local_lotado');
+select pg_temp.espera_recusa('Ginásio, quarta 9h às 10h45: livre no início, lotado quando o segundo começa',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), null, pg_temp.proximo(3, '09:00'), 105, 10, 10000, null)$$,
+  'local_lotado');
+select pg_temp.espera_ok('Ginásio, quarta 11h às 12h: o das 10h já terminou',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.ginasio(), null, pg_temp.proximo(3, '11:00'), 60, 10, 10000, null)$$);
+
+reset role;
+
+-- Jogo cancelado não ocupa; encerrado ocupa. O status é mudado como postgres, porque
+-- cancelar e encerrar chegam na T08.
+update jogo set status = 'cancelado' where id = pg_temp.jogo('j3');
+update jogo set status = 'encerrado' where id = pg_temp.jogo('j2');
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_ok('a quadra de um jogo cancelado está livre',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(), pg_temp.proximo(2, '19:00'), 120, 10, 10000, null)$$);
+select pg_temp.espera_recusa('a quadra de um jogo encerrado segue ocupada',
+  $$select criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(), pg_temp.proximo(1, '19:30'), 60, 10, 10000, null)$$,
+  'quadra_ocupada');
+
+reset role;
+
+select pg_temp.espera_verdade('as recusas não deixaram jogo, participação nem cobrança pela metade',
+  (select count(*) from jogo) = 14
+  and (select count(*) from participacao) = 14
+  and (select count(*) from cobranca) = 2);
+
+-- Duplicar (RN28).
+
+-- A chave de Ana mudou depois de J1; Carlos joga J1.
+update pessoa set chave_pix = 'ana-nova' where id = 'a0000000-0000-0000-0000-000000000001';
+insert into participacao (jogo_id, pessoa_id, status, confirmado_em)
+values (pg_temp.jogo('j1'), 'c0000000-0000-0000-0000-000000000001', 'confirmado', now());
+
+select pg_temp.como('b0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_ok('Bruno, membro, duplica J1 para a semana seguinte',
+  $$insert into ids values ('j1b', duplicar_jogo(pg_temp.jogo('j1'), pg_temp.proximo(1, '19:00') + interval '7 days'))$$);
+select pg_temp.espera_recusa('duplicar no horário da origem esbarra na própria origem',
+  $$select duplicar_jogo(pg_temp.jogo('j1'), pg_temp.proximo(1, '19:00'))$$, 'quadra_ocupada');
+select pg_temp.espera_recusa('duplicar para o passado',
+  $$select duplicar_jogo(pg_temp.jogo('j1'), now() - interval '1 day')$$, 'inicio_no_passado');
+select pg_temp.espera_recusa('a chave digitada da origem não é copiada: Bruno segue sem chave no perfil',
+  $$select duplicar_jogo(pg_temp.jogo('j4'), pg_temp.proximo(2, '19:00') + interval '7 days')$$, 'recebedor_sem_chave');
+select pg_temp.espera_ok('com a chave digitada de novo, duplica',
+  $$insert into ids values ('j4b', duplicar_jogo(pg_temp.jogo('j4'), pg_temp.proximo(2, '19:00') + interval '7 days', 'bruno-de-novo'))$$);
+select pg_temp.espera_recusa('duplicar jogo que não existe',
+  $$select duplicar_jogo('40000000-0000-0000-0000-0000000000ff', pg_temp.proximo(2, '19:00'))$$,
+  'sem_permissao', '42501');
+
+reset role;
+
+select pg_temp.espera_verdade('J1b copia grupo, local, quadra, duração, vagas, custo, recebedor e prazo',
+  exists (select 1 from jogo n join jogo o on o.id = pg_temp.jogo('j1')
+          where n.id = pg_temp.jogo('j1b')
+            and n.grupo_id = o.grupo_id and n.local_id = o.local_id and n.quadra_id = o.quadra_id
+            and n.duracao_minutos = o.duracao_minutos and n.vagas_total = o.vagas_total
+            and n.custo_total = o.custo_total and n.preco_por_vaga = o.preco_por_vaga
+            and n.recebedor_id = o.recebedor_id
+            and n.prazo_cancelamento_horas is not distinct from o.prazo_cancelamento_horas
+            and n.inicio = o.inicio + interval '7 days'
+            and n.status = 'aberto' and n.cancelamento_livre_ate is null));
+select pg_temp.espera_verdade('quem duplica é o criador do jogo novo',
+  (select criador_id from jogo where id = pg_temp.jogo('j1b')) = 'b0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_verdade('a chave vem do perfil atual de Ana, não da origem',
+  (select chave_pix_recebedor from jogo where id = pg_temp.jogo('j1b')) = 'ana-nova'
+  and (select chave_pix_recebedor from jogo where id = pg_temp.jogo('j1')) = 'ana@pix');
+select pg_temp.espera_verdade('nenhuma participação copiada: só Bruno, confirmado, devendo a Ana',
+  (select array_agg(p.pessoa_id::text || ':' || p.status || ':' || c.valor || ':' || c.credor_id)
+   from participacao p left join cobranca c on c.participacao_id = p.id
+   where p.jogo_id = pg_temp.jogo('j1b'))
+  = array['b0000000-0000-0000-0000-000000000001:confirmado:1429:a0000000-0000-0000-0000-000000000001']);
+select pg_temp.espera_verdade('J4b guarda a chave digitada agora',
+  (select chave_pix_recebedor from jogo where id = pg_temp.jogo('j4b')) = 'bruno-de-novo');
+
+select pg_temp.como('d0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_recusa('quem não é membro não duplica jogo do grupo',
+  $$select duplicar_jogo(pg_temp.jogo('j1'), pg_temp.proximo(1, '19:00') + interval '14 days')$$,
+  'sem_permissao', '42501');
+select pg_temp.espera_ok('Dani duplica o próprio avulso',
+  $$insert into ids values ('avulso_b', duplicar_jogo(pg_temp.jogo('avulso'), pg_temp.proximo(0, '10:00') + interval '7 days'))$$);
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_recusa('quem não criou o avulso não o duplica',
+  $$select duplicar_jogo(pg_temp.jogo('avulso'), pg_temp.proximo(0, '10:00') + interval '14 days')$$,
+  'sem_permissao', '42501');
+
+reset role;
+
+select pg_temp.espera_verdade('o avulso duplicado segue sem grupo e com o prazo da origem',
+  exists (select 1 from jogo where id = pg_temp.jogo('avulso_b') and grupo_id is null
+            and prazo_cancelamento_horas = 2 and criador_id = 'd0000000-0000-0000-0000-000000000001'));
+
+-- Auxiliares.
+
+update jogo set cancelamento_livre_ate = inicio where id = pg_temp.jogo('j1');
+
+select pg_temp.espera_verdade('remarcado, o prazo sem multa é o cancelamento_livre_ate, mais tardio que o normal',
+  privado.prazo_sem_multa(pg_temp.jogo('j1')) = (select inicio from jogo where id = pg_temp.jogo('j1')));
+
+-- RN25: a cobrança cancelada é reaberta, a mesma, com o valor por vaga atual.
+create temp table antes as
+select c.id, c.participacao_id from cobranca c join participacao p on p.id = c.participacao_id
+where p.jogo_id = pg_temp.jogo('j1b');
+
+update cobranca set status = 'cancelada' where id = (select id from antes);
+update jogo set custo_total = 12000, preco_por_vaga = 1715 where id = pg_temp.jogo('j1b');
+
+create temp table reaberta as select privado.nascer_cobranca((select participacao_id from antes)) as id;
+
+select pg_temp.espera_verdade('nascer_cobranca reabre a mesma cobrança, pendente de parte, com o valor atual',
+  (select id from reaberta) = (select id from antes)
+  and (select count(*) from cobranca where participacao_id = (select participacao_id from antes)) = 1
+  and exists (select 1 from cobranca where id = (select id from antes)
+                and status = 'pendente' and origem = 'parte' and valor = 1715));
+
+select pg_temp.espera_erro('nascer_cobranca do recebedor é barrada pelo check',
+  $$select privado.nascer_cobranca((select id from participacao where jogo_id = pg_temp.jogo('j1')
+      and pessoa_id = 'a0000000-0000-0000-0000-000000000001'))$$,
+  '23514', 'cobranca_devedor_nao_e_credor');
+
+-- Privilégios.
+
+select pg_temp.espera_verdade('anon não executa criar nem duplicar',
+  not has_function_privilege('anon', 'public.criar_jogo(uuid, uuid, uuid, timestamptz, integer, integer, integer, integer, uuid, text)', 'execute')
+  and not has_function_privilege('anon', 'public.duplicar_jogo(uuid, timestamptz, text)', 'execute'));
+select pg_temp.espera_verdade('authenticated executa criar e duplicar',
+  has_function_privilege('authenticated', 'public.criar_jogo(uuid, uuid, uuid, timestamptz, integer, integer, integer, integer, uuid, text)', 'execute')
+  and has_function_privilege('authenticated', 'public.duplicar_jogo(uuid, timestamptz, text)', 'execute'));
+select pg_temp.espera_verdade('authenticated não executa as auxiliares de privado',
+  not has_function_privilege('authenticated', 'privado.prazo_sem_multa(uuid)', 'execute')
+  and not has_function_privilege('authenticated', 'privado.checar_rn15(uuid, uuid, timestamptz, integer, uuid)', 'execute')
+  and not has_function_privilege('authenticated', 'privado.nascer_cobranca(uuid)', 'execute')
+  and not has_function_privilege('authenticated', 'privado.chave_do_recebedor(uuid, text)', 'execute')
+  and not has_function_privilege('authenticated', 'privado.nascer_jogo(uuid, uuid, uuid, timestamptz, integer, integer, integer, integer, uuid, text)', 'execute'));
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+
+select pg_temp.espera_erro('authenticated chamando privado.nascer_cobranca é barrado',
+  $$select privado.nascer_cobranca('00000000-0000-0000-0000-000000000000')$$, '42501');
+select pg_temp.espera_erro('authenticated não insere jogo direto',
+  $$insert into jogo (criador_id, recebedor_id, local_id, inicio, duracao_minutos, vagas_total, custo_total,
+      preco_por_vaga, prazo_cancelamento_horas, status)
+    values ('a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', pg_temp.ginasio(),
+      now() + interval '1 day', 60, 10, 0, 0, 2, 'aberto')$$, '42501');
+
+select pg_temp.como(null);
+
+select pg_temp.espera_erro('anon chamando criar_jogo é barrado',
+  $$select criar_jogo(null, '10000000-0000-0000-0000-000000000002', null, now() + interval '1 day', 60, 10, 0, 2)$$, '42501');
+
+reset role;
+
+do $$
+begin
+  raise notice 'SUCESSO: % asserções', currval('assercoes');
+end;
+$$;
+
+rollback;
