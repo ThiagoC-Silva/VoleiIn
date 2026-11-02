@@ -47,12 +47,12 @@ As funções previstas, uma por operação que muda estado:
 
 | Função | Regras que ela carrega |
 | --- | --- |
-| `criar_jogo`, `duplicar_jogo` | RN15 (quadra e funcionamento), RN24 (chave do recebedor), RN01 e RN16 (preço por vaga), RN28 |
-| `confirmar_presenca` | RNF09 (trava e contagem), RN08 (fila), RN25 (reconfirmação), RN07 (nascimento da cobrança) |
-| `cancelar_presenca` | RN02 e RN03 (prazo e multa), RN05 (isenção do substituído), RN08 (promoção da fila) |
-| `editar_jogo` | RN20 (janelas de edição), RN01 (recálculo), RN06, RN11 e RN29 (avisos) |
-| `cancelar_jogo`, `encerrar_jogo` | RN23, RN17, RN07 (liberação do pagamento) |
-| `marcar_falta` | RN04, RN13 (quem pode) |
+| `criar_jogo`, `duplicar_jogo` | RN15 (quadra e funcionamento, com a fila por local abaixo), RN24 (chave do recebedor; quem cria nasce confirmado, sem cobrança se for o recebedor), RN13 (no grupo, qualquer membro cria), RN01 e RN16 (preço por vaga), RN28 |
+| `confirmar_presenca` | RNF09 (trava e contagem), RN13 (quem confirma: membro, criador, recebedor ou quem já tem participação), RN08 (fila; a vaga é de quem confirmar primeiro), RN05 (isenção da multa mais antiga), RN25 (reconfirmação, reabrindo a cobrança), RN07 (nascimento da cobrança, nunca para o recebedor). A lógica fica numa função interna em `privado`, que a `aplicar_convite` também chama (RN22) |
+| `cancelar_presenca` | RN02 e RN03 (prazo e multa, com `cancelamento_livre_ate`; no prazo, a cobrança vai a `cancelada`), RN08 (anúncio da vaga; saída da fila e renumeração) |
+| `editar_jogo` | RN20 (janelas de edição; remarcação grava `cancelamento_livre_ate` e cancela as multas; troca de recebedor), RN15 (fila por local), RN01 (recálculo), RN06, RN11 e RN29 (avisos) |
+| `cancelar_jogo`, `encerrar_jogo` | RN23, RN17 e RN13 (encerrar à mão: criador e admins, a partir do fim reservado), RN07 (liberação do pagamento). O encerramento fica numa função interna em `privado`, que a rotina de minuto também chama (passo 8) |
+| `marcar_falta` | RN04 (só com o jogo encerrado), RN13 (quem pode) |
 | `dar_baixa`, `isentar_cobranca` | RN07 (congelamento), RN13 (só o credor) |
 | `enviar_comprovante` | RN09 (classificação no servidor), RN10 (unicidade do identificador) |
 | `apagar_comprovante` | RF37, RN19 (só o devedor, só depois da baixa; esvazia `arquivo_url` e preserva a linha) |
@@ -64,8 +64,14 @@ As funções previstas, uma por operação que muda estado:
 | `aplicar_convite` | RF04, RN22 (expiração e revogação), RN13 |
 | `registrar_dispositivo` | RF38, RN29; token já registrado por outra conta passa a quem registra agora (seção Política de linha) |
 | `listar_participantes` | RN26 (a marca de débito vencido só aparece para criador, recebedor e admins) |
-| `excluir_conta` | RN27 (bloqueio por pendência, anonimização, remoção do usuário) |
+| `excluir_conta` | RN27 (bloqueio por pendência, admin único, anonimização, remoção do usuário) |
 | `rotinas_minuto` | O que a linha de `pg_cron` acima descreve |
+
+Três cuidados valem para todas as funções acima:
+
+- **Avisos.** A função que dispara um aviso previsto na regra (RN01, RN07, RN08, RN11, RN20, RN23, RN29) grava a linha de `notificacao` na própria transação, já no passo 4. O passo 7 só acrescenta a entrega: gatilho, Edge Function e FCM.
+- **Fila por local (RN15).** A trava da linha do jogo (RNF09) não alcança dois jogos que ainda não existem. `criar_jogo`, `duplicar_jogo` e `editar_jogo` pegam `pg_advisory_xact_lock` com o `local_id` antes de checar quadra e capacidade: quem chega no mesmo instante espera, checa depois que o primeiro gravou e recebe a recusa. Só se enfileiram criações no mesmo local.
+- **Idempotência (RNF10).** É por estado, não por chave de requisição: as unicidades de participação e de cobrança e a checagem do status atual dentro da transação fazem o pedido repetido não ter efeito. Confirmar quem já está confirmado, ou dar baixa numa cobrança já confirmada, devolve o estado atual sem mudar nada. O limite aceito é que um confirmar atrasado, chegando depois de um cancelamento, vale como reconfirmação (RN25).
 
 ## Política de linha
 
@@ -128,8 +134,9 @@ As funções de gatilho ficam no schema `privado`, na migração `autenticacao`,
 supabase/
   migrations/   criadas com `supabase migration new <nome>`, que prefixa o
                 timestamp UTC. Na ordem dos passos: enums, tabelas, indices,
-                rls, autenticacao, rpc_grupo, rpc_jogo, rpc_presenca, rpc_cobranca, storage,
-                avisos, rotinas_cron, rpc_convite
+                rls, autenticacao, ajustes_funcoes, rpc_grupo, rpc_jogo, rpc_presenca,
+                rpc_cobranca, rpc_conta, visoes, storage, avisos, rotinas_cron,
+                rpc_convite
   seed.sql      locais, quadras e horários do piloto
   functions/enviar-push/
 app/            projeto Flutter
@@ -152,11 +159,11 @@ Cada passo fecha antes do seguinte começar.
 1. **Schema.** Enums, tabelas, índices e unicidades. Atenção ao índice único de `id_transacao`, que precisa ser parcial: vários comprovantes ilegíveis entram sem identificador e não disputam entre si (RN10).
 2. **Política de linha.** Uma política por tabela, mais a negação de escrita em Local, Quadra e HorarioFuncionamento, e a função `listar_participantes`.
 3. **Autenticação.** Projeto no Supabase, Resend como SMTP, e-mail e senha com código de seis dígitos e cinco minutos no cadastro, na redefinição e na troca de e-mail, cliente OAuth do Google, gatilhos de criação do perfil e de revogação dos aparelhos, telas de entrar, de redefinir a senha e de trocar o e-mail.
-4. **Núcleo financeiro.** As funções de grupo (`criar_grupo`, `editar_grupo`, `promover_admin`, `remover_membro`, `sair_grupo`), de jogo, presença e cobrança, com um script SQL de cenários rodando contra o Supabase local. As de grupo vêm primeiro, para os cenários criarem grupos pelo caminho real, com quem cria entrando como admin.
-5. **App.** Feed com selo de grupo, tela de jogo, confirmação e cancelamento, painel de débitos e painel de recebimentos.
+4. **Núcleo financeiro.** Primeiro, a migração `ajustes_funcoes`: `privado.encerramento_previsto` de `immutable` para `stable` e `search_path` fixo em `tocar_atualizado_em`. Depois, as funções de grupo (`criar_grupo`, `editar_grupo`, `promover_admin`, `remover_membro`, `sair_grupo`), de jogo (`rpc_jogo`, com `cancelar_jogo`, `encerrar_jogo` e a função interna de encerramento), de presença (`rpc_presenca`, com `marcar_falta`), de cobrança (`rpc_cobranca`) e a `excluir_conta` (`rpc_conta`), todas gravando os próprios avisos, com um script SQL de cenários rodando contra o Supabase local. As de grupo vêm primeiro, para os cenários criarem grupos pelo caminho real, com quem cria entrando como admin. Os cenários simulam a passagem do tempo movendo `inicio` por SQL, e conferem que nenhuma função altera cobrança inativa depois do encerramento, salvo a falta (âncora da retenção, `docs/modelo-de-dados.md`).
+5. **App.** Feed com selo de grupo, tela de jogo, criação de jogo, confirmação e cancelamento, painel de débitos e painel de recebimentos, e as telas de perfil H1, H2 e H4. Feed e painéis leem direto das tabelas, pela política de linha; a marca de cobrança vencida vem de uma visão com `security_invoker` (migração `visoes`), calculada com a hora do servidor, não do aparelho. A busca de locais por nome ou proximidade (RF28) é feita no app sobre a lista fechada: filtra pelo nome e ordena pela distância da localização do aparelho, sem função no banco.
 6. **Comprovante.** Captura, compressão, reconhecimento de texto, upload para o espaço privado, função de envio, `apagar_comprovante` e URL assinada na leitura.
-7. **Avisos.** Tabela, gatilho, Edge Function, FCM no aparelho, `registrar_dispositivo`, sino e marcação de lido.
-8. **Rotinas.** A função de minuto e o agendamento em `pg_cron`.
+7. **Avisos.** A entrega do que o passo 4 já grava em `notificacao`: gatilho, Edge Function, FCM no aparelho, `registrar_dispositivo`, sino e marcação de lido.
+8. **Rotinas.** A função de minuto, que chama a mesma função interna de encerramento do passo 4, e o agendamento em `pg_cron`.
 9. **Convites.** `gerar_convite`, `revogar_convite` e `aplicar_convite`, tela de entrar com código, página do GitHub Pages e `app_links`.
 10. **Distribuição.** Página inicial e Política de Privacidade no GitHub Pages, publicação da tela de consentimento do Google, Firebase App Distribution e um workflow diário no GitHub Actions para o projeto não pausar.
 

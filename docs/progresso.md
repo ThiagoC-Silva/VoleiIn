@@ -107,6 +107,21 @@ Projeto no Supabase remoto com o Resend como SMTP, entrada por e-mail e senha ou
 - O Site URL do remoto é `http://127.0.0.1:3000`, o `site_url` do `config.toml` que o `config push` levou (conferido no painel em 2026-10-29). O fluxo por código não usa link, então nada quebra hoje; a URL real, a página do GitHub Pages, só existe no passo 10. A mudança se faz no `config.toml`, porque um `config push` sobrescreve o painel.
 - `flutter analyze` quebra com o caminho "Área de trabalho": a mensagem de abertura do servidor de análise falha com `FormatException`. O contorno é o `dart analyze`; link simbólico não resolve.
 
+## Decisões de produto antes do passo 4 · 2026-11-01
+
+A análise de 2026-10-29 achou regras abertas que o passo 4 teria de inventar. Foram fechadas em rodadas de perguntas (`plan-tasks/resolve-before-step4.md`) e gravadas no [PRD](prd.md), no [modelo de dados](modelo-de-dados.md) e no [stack](stack.md). O texto normativo está lá; aqui fica só o índice.
+
+- **Remarcação (RN20, RN02):** campo novo `jogo.cancelamento_livre_ate`; cancelar não gera multa até o novo início, e as multas de cancelamento tardio já existentes são canceladas.
+- **Recebedor que joga (RN07, RN20):** ocupa vaga sem cobrança; a troca de recebedor ajusta as cobranças de quem entra e de quem sai.
+- **Criação (RN13, RN24, RN28):** qualquer membro cria no grupo; quem cria ou duplica nasce confirmado e cancela como qualquer participante.
+- **Convidado (RN22, RN13):** aplicar o convite de jogo confirma presença ou põe na lista de espera; confirmar exige ser membro, criador, recebedor ou já ter participação.
+- **Fila e isenção (RN05, RN08):** a vaga livre é de quem confirmar primeiro, da lista ou não; cada confirmação isenta a multa mais antiga, e a reconfirmação do próprio cancelante não isenta a de outro; sair da lista é `cancelou_no_prazo`, com renumeração.
+- **Cancelar no prazo e reconfirmar (RN02, RN25):** a cobrança vai a `cancelada` e é reaberta na reconfirmação, com o valor atual.
+- **Ciclo (RN17, RN04):** encerrar à mão a partir do fim reservado, por criador e admins; falta só com o jogo encerrado.
+- **Retenção e idempotência (RN19, RNF10):** o mês conta de `cobranca.atualizado_em`; idempotência por estado, com o limite do pedido atrasado documentado.
+- **Plano (stack.md):** avisos gravados já no passo 4; encerramento numa função interna única; `excluir_conta` no passo 4 (`rpc_conta`); feed e painéis por leitura direta, com a marca de vencida numa visão no passo 5; busca de locais no app; fila por local (`pg_advisory_xact_lock`) contra a corrida da RN15; migração `ajustes_funcoes` abrindo o passo 4.
+- **Design:** a B4 troca o texto da isenção e há um aberto para a B3 do recebedor (`docs/design/telas/02-jogos/implementacao.md`).
+
 <!-- Modelo de entrada, a copiar ao fechar um passo:
 
 ## Passo N — Nome · 2026-00-00

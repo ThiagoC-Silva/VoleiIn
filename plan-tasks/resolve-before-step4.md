@@ -17,12 +17,12 @@ Regras para a execução:
 
 | Rodada | Tema | Estado |
 | --- | --- | --- |
-| R1 | Dinheiro, remarcação e acesso ao jogo | a fazer |
-| R2 | Fila de espera e cancelamento | a fazer |
-| R3 | Ciclo do jogo, falta, retenção e idempotência | a fazer |
-| R4 | Plano do `stack.md` | a fazer |
-| R5 | Pequenos desencontros | a fazer |
-| R6 | Aplicar nos documentos e fechar | a fazer |
+| R1 | Dinheiro, remarcação e acesso ao jogo | feita (2026-11-01) |
+| R2 | Fila de espera e cancelamento | feita (2026-11-01) |
+| R3 | Ciclo do jogo, falta, retenção e idempotência | feita (2026-11-01) |
+| R4 | Plano do `stack.md` | feita (2026-11-01) |
+| R5 | Pequenos desencontros | feita (2026-11-01) |
+| R6 | Aplicar nos documentos e fechar | feita (2026-11-01) |
 
 ## T0 — Preparação
 
@@ -51,6 +51,15 @@ Regras para a execução:
 - Só admins criam jogo.
 - Criador entra confirmado automaticamente.
 
+### Respostas da R1 — 2026-11-01
+
+- **Q1.1 Remarcação:** campo novo anulável `jogo.cancelamento_livre_ate`, gravado por `editar_jogo` ao mudar data, horário, local ou quadra (= novo `inicio`); vale o maior entre ele e o prazo normal. **Além disso, a multa anterior é cancelada:** as cobranças `cancelamento_tardio` existentes no momento da remarcação passam a `cancelada`, porque a vaga deixada era a do horário antigo.
+- **Q1.2 Recebedor joga:** sim, confirma e ocupa vaga, mas não gera cobrança (`check devedor_id <> credor_id`). Na troca de recebedor, a cobrança do novo recebedor que já é participante passa a `cancelada`; o antigo recebedor, se confirmado, ganha cobrança. Ex.: R$ 100 / 10 vagas com o recebedor jogando → 9 cobranças de R$ 10, R$ 90 a receber.
+- **Q1.3 Convidado:** `aplicar_convite` de jogo cria a participação (confirmada ou em espera) pela mesma função interna de `confirmar_presenca`; `confirmar_presenca` só aceita membro do grupo, criador, recebedor ou quem já tem participação.
+- **Q1.4 Criação** (resposta "Outra", texto do usuário): *"Qualquer membro (recomendado) mas o criador já é considerada confirmado"*. Qualquer membro cria no grupo; jogo avulso, qualquer pessoa; o criador nasce `confirmado`.
+  - Desdobramento: o criador cancela a própria presença como qualquer um (RN02/RN03; sem cobrança se for o recebedor) e segue criador.
+  - Desdobramento: na duplicação (RN28), quem duplica também nasce `confirmado`; a RN28 ganha a ressalva de que só a participação do criador nasce.
+
 ## R2 — Fila de espera e cancelamento
 
 **Q2.1 Substituição com vários cancelantes tardios (RN05).** Qual cobrança é isentada quando uma pessoa da espera confirma?
@@ -70,6 +79,13 @@ Regras para a execução:
 - (Recomendada) Cancelar no prazo leva a cobrança a `cancelada`; reconfirmar depois reabre a mesma cobrança como `pendente`/`parte` com o valor atual (estende a RN25 a `cancelou_no_prazo`).
 - Apagar a cobrança ao cancelar no prazo (exige exceção à unicidade/histórico — desaconselhada).
 
+### Respostas da R2 — 2026-11-01
+
+- **Q2.1 Isenção:** isenta a multa do cancelante tardio mais antigo ainda `pendente`; cada confirmação nova isenta uma multa, na ordem do cancelamento.
+- **Q2.2 Vaga livre:** a vaga é de quem confirmar primeiro, da fila ou não; qualquer confirmação que ocupe a vaga isenta a multa — a RN05 troca "alguém da lista de espera" por "alguém".
+- **Q2.3 Sair da fila:** quem sai de `lista_espera` vira `cancelou_no_prazo`, sem cobrança e sem multa em qualquer momento; as posições seguintes são renumeradas (só exibição).
+- **Q2.4 Cancelar no prazo:** a cobrança passa a `cancelada`; reconfirmando, a mesma cobrança volta a `pendente` de origem `parte` com o valor atual — a RN25 passa a valer também para `cancelou_no_prazo`.
+
 ## R3 — Ciclo do jogo, falta, retenção e idempotência
 
 **Q3.1 Encerrar à mão (RN17, RN13, RF33).** "A partir desse fim" e quem pode.
@@ -87,6 +103,13 @@ Regras para a execução:
 **Q3.4 Idempotência (RNF10).**
 - (Recomendada) Idempotência por estado (unicidades + checagem de status); documentar o limite: toque repetido não duplica, e o reenvio atrasado de `confirmar` após cancelamento é uma reconfirmação válida.
 - Chave de requisição enviada pelo app (campo/tabela novos).
+
+### Respostas da R3 — 2026-11-01
+
+- **Q3.1 Encerrar à mão:** a partir do fim do horário reservado (`inicio + duracao_minutos`), pelo criador e pelos admins do grupo; no avulso, só o criador. A RN13 vence e a RN17 é corrigida.
+- **Q3.2 Falta:** só com o jogo `encerrado`, até `encerramento_previsto + 24 h`.
+- **Q3.3 Retenção:** o mês conta de `cobranca.atualizado_em`. Comprovante só existe após o encerramento e, daí em diante, nada altera cobrança inativa, exceto marcar falta numa cobrança já paga dentro das 24 h, o que atrasa o descarte em até um dia. Documentar no modelo e testar no passo 4.
+- **Q3.4 Idempotência:** por estado (unicidades + checagem de status); documentar o limite: toque repetido não duplica, e o reenvio atrasado de `confirmar` após cancelamento vale como reconfirmação.
 
 ## R4 — Plano do `stack.md`
 
@@ -108,6 +131,16 @@ Regras para a execução:
 - (Recomendada) Lock consultivo por quadra/local dentro de `criar_jogo`/`editar_jogo`, além da trava do jogo (RNF09).
 - Restrição de exclusão (`btree_gist`) na quadra; capacidade continua por lock.
 
+### Respostas da R4 — 2026-11-01
+
+- **Q4.1 Avisos:** já no passo 4 — as funções inserem em `notificacao` na mesma transação, e os cenários conferem; o passo 7 acrescenta só gatilho, Edge Function, FCM, `registrar_dispositivo` e o sino. Ajustar o texto do passo 7.
+- **Q4.2 Encerramento:** função interna única em `privado` (status, liberação do pagamento, aviso), chamada por `encerrar_jogo` no passo 4 e pela rotina de minuto no passo 8; os cenários simulam o tempo movendo `inicio` por SQL.
+- **Q4.3a Conta:** `excluir_conta` no passo 4, em migração própria `rpc_conta` depois de `rpc_cobranca`; as telas H1, H2 e H4 entram no passo 5.
+- **Q4.3b Busca de locais (RF28):** no app, passo 5 — filtra pelo nome e ordena pela distância da localização do aparelho; sem função SQL.
+- **Q4.3c Feed e painéis:** leitura direta com política de linha; uma visão `security_invoker`, criada no passo 5, devolve a marca `vencida` calculada com a hora do servidor. Sem RPC.
+- **Q4.3d Migrações:** `cancelar_jogo`, `encerrar_jogo` e a função interna de encerramento em `rpc_jogo`; `marcar_falta` em `rpc_presenca`.
+- **Q4.4 Trava da RN15:** lock consultivo por local (`pg_advisory_xact_lock` com o `local_id`) em `criar_jogo`, `duplicar_jogo` e `editar_jogo`, antes de checar; cobre quadra e capacidade.
+
 ## R5 — Pequenos desencontros
 
 Pergunta única de confirmação em bloco (multiSelect), cada item com a correção proposta:
@@ -115,6 +148,19 @@ Pergunta única de confirmação em bloco (multiSelect), cada item com a correç
 - `plan-tasks/plan-tasks-10/README.md` diz "cinco migrações" → seis; e remover a pasta em commit próprio.
 - Primeiro cadastro de local no remoto exige `pessoa` sem `auth.users` → documentar o procedimento em `supabase/CLAUDE.md`.
 - `privado.encerramento_previsto` declarada `immutable` → trocar para `stable` e `tocar_atualizado_em` sem `search_path` fixo → migração `ajustes_funcoes` (só se o usuário aprovar; é código, não documento).
+
+### Respostas da R5 — 2026-11-01
+
+- `README.md`: escrever descrição curta (o que é, as três peças, onde estão os documentos).
+- `plan-tasks/plan-tasks-10/`: já removida no commit `081e743`; item sem efeito.
+- Locais no remoto: documentar em `supabase/CLAUDE.md` que o desenvolvedor cria a própria conta pelo app e usa o próprio id em `local.criado_por`, inserindo pelo editor SQL do painel; nenhuma pessoa sem conta no remoto.
+- Migração `ajustes_funcoes` (`encerramento_previsto` para `stable`, `search_path` fixo em `tocar_atualizado_em`): aprovada como primeira tarefa do passo 4, fora do commit de documentação.
+
+### Decisões tomadas durante a R6 — 2026-11-01
+
+- A reconfirmação do próprio cancelante tardio converte a multa dele em parte e **não** isenta a multa de outro cancelante.
+- Texto da B4: "Se outra pessoa confirmar presença depois de você, sua cobrança pode ser isenta." (registrado em `docs/design/telas/02-jogos/implementacao.md`).
+- Aberto para o passo 5: o que a B3 mostra em "Sua parte" para o recebedor confirmado.
 
 ## R6 — Aplicar e fechar
 

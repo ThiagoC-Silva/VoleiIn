@@ -132,6 +132,7 @@ erDiagram
         int custo_total "centavos"
         int preco_por_vaga "centavos; derivado RN01 RN16"
         int prazo_cancelamento_horas "opcional; vazio herda do grupo RN12"
+        datetime cancelamento_livre_ate "opcional; gravado na remarcacao RN20"
         enum status "aberto cancelado ou encerrado"
     }
 
@@ -148,7 +149,7 @@ erDiagram
     Cobranca {
         uuid id PK
         uuid participacao_id FK "Participacao; unico"
-        uuid devedor_id FK "Pessoa"
+        uuid devedor_id FK "Pessoa; nunca o recebedor RN07"
         uuid credor_id FK "Pessoa; o recebedor do jogo"
         int valor "centavos"
         enum origem "parte cancelamento_tardio ou falta"
@@ -263,6 +264,8 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | --- | --- |
 | `Cobranca.devedor_id` é igual ao `pessoa_id` da participação referenciada | Modelo |
 | `Cobranca.credor_id` é igual ao `recebedor_id` do jogo e migra quando o recebedor é trocado | RN20 |
+| `Cobranca.devedor_id` nunca é igual a `credor_id`: o recebedor confirmado ocupa vaga sem cobrança, e a troca de recebedor cancela a cobrança de quem passa a sê-lo | RN07, RN20 |
+| Toda participação `confirmado` tem cobrança, exceto a do recebedor do jogo; quem cria o jogo, ou o duplica, nasce `confirmado` | RN07, RN24, RN28 |
 | `Jogo.preco_por_vaga` é `custo_total / vagas_total` arredondado para cima no centavo | RN01, RN16 |
 | `Jogo.vagas_total` nunca desce abaixo do número de participações `confirmado`, e só é editável até o início do jogo | RN06, RN20 |
 | `Jogo.custo_total` e `Jogo.recebedor_id` são editáveis até o encerramento, nunca depois | RN20 |
@@ -272,6 +275,9 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | `Jogo.inicio` mais `duracao_minutos` cabem inteiros dentro de uma faixa de HorarioFuncionamento do local | RN15 |
 | Faixa de HorarioFuncionamento com `fecha` menor ou igual a `abre` atravessa a meia-noite e termina no dia seguinte | RN15 |
 | `Jogo.prazo_cancelamento_horas` é obrigatório quando `grupo_id` é vazio | RN12 |
+| `Jogo.cancelamento_livre_ate` só é gravado na remarcação (data, horário, local ou quadra), com o novo `inicio`; o prazo sem multa é o mais tardio entre ele e `inicio − prazo_cancelamento_horas` | RN02, RN20 |
+| A remarcação leva a `cancelada` toda cobrança de origem `cancelamento_tardio` ainda ativa no jogo | RN20 |
+| Dois jogos não são criados nem remarcados ao mesmo tempo no mesmo local: as funções que checam a RN15 se enfileiram por local antes de checar | RN15 |
 | `Pessoa.nome` nunca nasce vazio e tem até 60 caracteres; o que o Google informa é cortado no cadastro | RN21 |
 | `Jogo.chave_pix_recebedor` nunca nasce vazio; vem do perfil do recebedor ou é digitado na criação, e só esvazia na anonimização dele | RN24, RN27 |
 | Convite preenche exatamente um entre `grupo_id` e `jogo_id`, conforme o `tipo` | RN22 |
@@ -279,21 +285,25 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | A exclusão de conta apaga o usuário no serviço de autenticação e preserva a linha de Pessoa, anonimizada; nenhuma coluna do perfil guarda credencial | RN21, RN27 |
 | A troca de e-mail, a troca de senha e a exclusão de conta apagam todos os DispositivoPush do titular, não os de um aparelho | RNF07, RN27 |
 | `DispositivoPush.token_fcm` pertence a quem o registrou por último: registrar um token que já existe transfere a linha, em vez de criar outra | RN29 |
-| `Participacao.posicao_espera` só é preenchido enquanto o status for `lista_espera` | RN08 |
+| `Participacao.posicao_espera` só é preenchido enquanto o status for `lista_espera`, e é renumerado sem buracos quando alguém sai da lista | RN08 |
+| Cancelar no prazo leva a cobrança a `cancelada`; sair da lista de espera é sempre `cancelou_no_prazo` e não tem cobrança | RN02, RN08 |
+| Cada confirmação isenta no máximo uma multa `pendente` de `cancelamento_tardio`, a do cancelante mais antigo; a reconfirmação do próprio cancelante não isenta a de outro | RN05, RN25 |
+| Reconfirmar reabre a cobrança existente da participação como `pendente` de origem `parte`, com o valor por vaga atual, em vez de criar outra | RN25 |
 | `Cobranca` só sai de `pendente` por ato de pessoa depois do jogo encerrado | RN07 |
 | `Cobranca.confirmado_por` e `confirmado_em` são preenchidos juntos ou ficam ambos vazios: a baixa e a isenção manual registram o par, e a transição automática o deixa vazio | RN07 |
 | `Comprovante` só é aceito depois do encerramento do jogo | RN07 |
 | `Comprovante.resultado` é derivado no servidor a partir dos campos lidos e dos dados da cobrança, nunca informado pelo app | RN09 |
 | O descarte do comprovante esvazia `arquivo_url` mas preserva a linha, porque `id_transacao` segue bloqueando reenvio | RN10, RN19 |
-| `Participacao` passa a `faltou` junto com a mudança da cobrança para origem `falta` | RN04 |
+| `Participacao` passa a `faltou` junto com a mudança da cobrança para origem `falta`, só com o jogo `encerrado` | RN04, RN17 |
 | A cobrança vence e a janela de falta fecha 24 horas após o encerramento previsto, `inicio + duracao_minutos + 1h`, mesmo quando o jogo foi encerrado antes à mão | RN04, RN07, RN17 |
 | `Local.verificado` é sempre falso no MVP | RN18 |
 | Local, Quadra e HorarioFuncionamento são somente leitura para todo cliente autenticado; só a chave de serviço escreve | RN18 |
 | Só o devedor e o credor da cobrança leem o `arquivo_url` do comprovante | RN19, RNF02 |
+| A retenção do comprovante conta de `Cobranca.atualizado_em`: depois do encerramento, nenhuma função altera cobrança que deixou de estar ativa, exceto a marcação de falta numa cobrança já confirmada, dentro das 24 horas | RN04, RN19, RNF03 |
 
 ## Notas de leitura
 
-O prazo de cancelamento sem multa não é armazenado em lugar nenhum: resulta de `Jogo.inicio` menos `prazo_cancelamento_horas` — do jogo quando preenchido, do grupo quando vazio. As regras do grupo são consultadas no grupo, não copiadas no jogo, o que faz uma alteração valer de imediato nos jogos abertos (RN11).
+O prazo de cancelamento sem multa não é armazenado em lugar nenhum: resulta de `Jogo.inicio` menos `prazo_cancelamento_horas` — do jogo quando preenchido, do grupo quando vazio. A única exceção é a remarcação, que grava o novo início em `Jogo.cancelamento_livre_ate` (RN20); o prazo que vale é o mais tardio dos dois. As regras do grupo são consultadas no grupo, não copiadas no jogo, o que faz uma alteração valer de imediato nos jogos abertos (RN11).
 
 `Jogo.chave_pix_recebedor` é a exceção deliberada a esse princípio: ela é copiada, não consultada. O motivo é que o devedor precisa ver a mesma chave que existia quando confirmou, mesmo que o recebedor edite o perfil depois, e porque o criador pode informar a chave de um recebedor que ainda não a tem cadastrada (RN24). A cópia tem um preço: ela é dado bancário duplicado, e por isso a anonimização da RN27 precisa alcançá-la explicitamente. A duplicação de jogo (RN28) relê a chave do perfil em vez de copiar a do jogo antigo, pelo mesmo motivo.
 
@@ -302,5 +312,7 @@ A faixa de funcionamento que atravessa a meia-noite é a única convenção impl
 Os campos lidos do Comprovante — `valor_lido`, `data_lida`, `destinatario_lido` e `id_transacao` — chegam do reconhecimento de texto feito no próprio aparelho, antes do upload. Já `resultado` é calculado no servidor a partir deles: o app informa o que leu, nunca o veredito. É o que impede que um devedor declare o próprio comprovante consistente.
 
 Notificacao e DispositivoPush pendem apenas de Pessoa e não participam do rateio. O aviso é sempre gravado, mesmo sem push autorizado ou com falha no envio: o sino é a fonte de verdade e o push é entrega oportunista (RN29).
+
+A retenção do comprovante (RN19) conta de `Cobranca.atualizado_em`, sem um campo próprio para o momento em que a cobrança deixou de estar ativa. Isso só é exato porque comprovante só existe depois do encerramento, e daí em diante nenhuma função toca cobrança inativa. A única exceção é marcar falta numa cobrança já confirmada, dentro das 24 horas da RN04, que atrasa o descarte em até um dia. Uma função nova que altere cobrança inativa depois do encerramento quebra essa conta, e os cenários do passo 4 conferem isso.
 
 `Local.dono_id` e `Local.verificado` existem sem uso, à espera do perfil de dono de local, que está fora do MVP (RN18).

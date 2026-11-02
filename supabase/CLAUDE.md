@@ -35,6 +35,7 @@ Um projeto só, no plano gratuito, sem segundo ambiente.
 - **Só pelo painel:** o SMTP (Resend: host `smtp.resend.com`, usuário `resend`, a chave de API como senha) e o teto de e-mails por hora (`rate_limit.email_sent`, 30). O `config push` não os gerencia, então o `email_sent` do `config.toml` não chega ao remoto.
 - **Chave pública:** `supabase projects api-keys --project-ref zmokpmovphikmobynssy`, a de tipo `publishable` (`sb_publishable_…`). A chave de serviço nunca sai do painel.
 - **E-mail:** remetente `nao-responda@mail.voleiin.com.br`, pelo Resend, com o domínio `voleiin.com.br` em `p=reject` no DMARC. O registro do domínio vence em 26/10/2027; vencido, o login inteiro cai.
+- **Locais no remoto:** o `seed.sql` não roda lá, e `local.criado_por` exige uma `pessoa`. O desenvolvedor cria a própria conta pelo app, apontado para o remoto, e usa o próprio id em `criado_por`, inserindo local, quadras e horários pelo editor SQL do painel. Não se cria `pessoa` sem conta no remoto, como a "Desenvolvedor" do seed local.
 - **Conferir o remoto sem o CLI:** o MCP do Supabase lê tabelas, migrações e avisos de segurança; `GET /auth/v1/settings` com a chave pública mostra os provedores ligados. Escrita no remoto é do desenvolvedor, no editor SQL do painel.
 
 ## Migrações
