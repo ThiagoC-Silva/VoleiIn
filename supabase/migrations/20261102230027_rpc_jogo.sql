@@ -270,7 +270,39 @@ begin
 end;
 $$;
 
+-- RN08: a vaga liberada é anunciada a todos da lista ao mesmo tempo, e fica com quem
+-- confirmar primeiro. Chamada por cancelar_presenca e, quando as vagas aumentam, por
+-- editar_jogo (T07). Lista vazia: ninguém é avisado.
+create function privado.anunciar_vaga(p_jogo uuid)
+returns void
+language plpgsql
+volatile
+set search_path = ''
+as $$
+declare
+  v_jogo public.jogo;
+  v_pessoa uuid;
+begin
+  select * into v_jogo from public.jogo where id = p_jogo;
+
+  for v_pessoa in
+    select pessoa_id from public.participacao
+    where jogo_id = p_jogo and status = 'lista_espera'
+    order by posicao_espera
+  loop
+    perform privado.avisar(
+      v_pessoa,
+      'vaga_liberada',
+      format('Abriu uma vaga em %s', privado.nome_jogo(p_jogo)),
+      format('%s · %s. Fica com quem confirmar primeiro.',
+             privado.data_curta(v_jogo.inicio), privado.hora(v_jogo.inicio)),
+      p_jogo);
+  end loop;
+end;
+$$;
+
 revoke execute on function
+  privado.anunciar_vaga(uuid),
   privado.reais(integer),
   privado.nome_jogo(uuid),
   privado.prazo_sem_multa(uuid),

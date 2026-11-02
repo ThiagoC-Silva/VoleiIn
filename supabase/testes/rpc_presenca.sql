@@ -1,11 +1,12 @@
--- Cenários de confirmar presença (migração rpc_presenca): papel (RN13), cobrança (RN07),
+-- Cenários de confirmar e cancelar presença (migração rpc_presenca): papel (RN13), cobrança (RN07),
 -- fila (RN08), isenção do cancelante tardio (RN05), reconfirmação (RN25), trava (RNF09) e
 -- o aviso de prazo de editar_grupo (RN11), que precisa de confirmados. Roda numa
 -- transação desfeita, a partir do banco recém-resetado com o seed.sql aplicado.
 --
 -- docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/rpc_presenca.sql
 --
--- Até a T06 existir, os cancelamentos são montados como postgres, direto nas tabelas.
+-- O cancelamento tardio dos cenários da RN05 aproxima o início do jogo de now(), como se o
+-- tempo tivesse passado, e o devolve depois, para os cancelamentos no prazo seguintes.
 
 -- Só os avisos interessam; o resultado de cada select vai para o lixo.
 \o /dev/null
@@ -147,19 +148,24 @@ begin
   reset role;
 end;
 $$;
--- Monta um cancelamento como postgres, até a T06: tardio vira multa pendente; no prazo,
--- cobrança cancelada.
-create function pg_temp.cancela(p_pessoa uuid, p_jogo text, p_tardio boolean, p_quando timestamptz)
-returns void language sql as $$
-  update participacao
-  set status = case when p_tardio then 'cancelou_fora_do_prazo' else 'cancelou_no_prazo' end::participacao_status,
-      cancelado_em = p_quando
-  where jogo_id = pg_temp.id(p_jogo) and pessoa_id = p_pessoa;
-  update cobranca c
-  set origem = case when p_tardio then 'cancelamento_tardio' else c.origem end::cobranca_origem,
-      status = case when p_tardio then 'pendente' else 'cancelada' end::cobranca_status
-  from participacao p
-  where p.id = c.participacao_id and p.jogo_id = pg_temp.id(p_jogo) and p.pessoa_id = p_pessoa;
+-- Cancela como a pessoa e guarda o status devolvido. Dentro da transação, now() é o
+-- mesmo em todo comando: quando a ordem dos cancelamentos importa (RN05), p_quando
+-- move cancelado_em para trás, como postgres.
+create function pg_temp.cancela(p_pessoa uuid, p_jogo text, p_quando timestamptz default null)
+returns void language plpgsql as $$
+begin
+  perform pg_temp.como(p_pessoa);
+  insert into devolvido values (p_pessoa, p_jogo, cancelar_presenca(pg_temp.id(p_jogo)));
+  reset role;
+  if p_quando is not null then
+    update participacao set cancelado_em = p_quando
+    where jogo_id = pg_temp.id(p_jogo) and pessoa_id = p_pessoa;
+  end if;
+end;
+$$;
+-- Move o início do jogo, como postgres: é assim que o tempo passa nos cenários.
+create function pg_temp.inicio(p_jogo text, p_inicio timestamptz) returns void language sql as $$
+  update jogo set inicio = p_inicio where id = pg_temp.id(p_jogo);
 $$;
 
 grant select, insert on ids, devolvido to authenticated;
@@ -298,7 +304,7 @@ select pg_temp.espera_verdade('posições 1, 2 e 3, sem cobrança, e a repetiç�
   and (select array_agg(status) from devolvido where pessoa = pg_temp.m(10)) = array['lista_espera', 'lista_espera']::participacao_status[]);
 
 -- Abre uma vaga: Membro 5 cancela no prazo.
-select pg_temp.cancela(pg_temp.m(5), 'dez', false, now());
+select pg_temp.cancela(pg_temp.m(5), 'dez');
 
 select pg_temp.espera_ok('vaga livre com fila: Membro 13, de fora da lista, confirma primeiro',
   $$select pg_temp.confirma(pg_temp.m(13), 'dez')$$);
@@ -309,7 +315,7 @@ select pg_temp.espera_verdade('a vaga fica com Membro 13, e a lista segue igual'
   and pg_temp.situacao('dez', pg_temp.m(12)) = 'lista_espera:3');
 
 -- Outra vaga: Membro 6 cancela no prazo, e quem pega é o segundo da lista.
-select pg_temp.cancela(pg_temp.m(6), 'dez', false, now());
+select pg_temp.cancela(pg_temp.m(6), 'dez');
 
 select pg_temp.espera_ok('Membro 11, segundo da lista, confirma primeiro', $$select pg_temp.confirma(pg_temp.m(11), 'dez')$$);
 select pg_temp.espera_verdade('Membro 11 sai da lista com cobrança, e o terceiro sobe para segundo',
@@ -326,7 +332,7 @@ select pg_temp.espera_verdade('sem vaga, a reconfirmação cai no fim da lista, 
   pg_temp.situacao('dez', pg_temp.m(5)) = 'lista_espera:3'
   and pg_temp.cobranca('dez', pg_temp.m(5)) = 'cancelada:parte:1000');
 
-select pg_temp.cancela(pg_temp.m(7), 'dez', false, now());
+select pg_temp.cancela(pg_temp.m(7), 'dez');
 create temp table cobranca_m5 as
 select c.id from cobranca c join participacao p on p.id = c.participacao_id
 where p.jogo_id = pg_temp.id('dez') and p.pessoa_id = pg_temp.m(5);
@@ -346,8 +352,10 @@ select pg_temp.espera_ok('rn05b: Bruno e Carlos confirmam e lotam o jogo de 3 va
   $$select pg_temp.confirma(p, 'rn05b') from unnest(array['b0000000-0000-0000-0000-000000000001',
       'c0000000-0000-0000-0000-000000000001']::uuid[]) p$$);
 -- Bruno cancela tarde primeiro; Carlos, depois.
-select pg_temp.cancela('b0000000-0000-0000-0000-000000000001', 'rn05b', true, now() - interval '2 hours');
-select pg_temp.cancela('c0000000-0000-0000-0000-000000000001', 'rn05b', true, now() - interval '1 hour');
+select pg_temp.inicio('rn05b', now() + interval '1 hour');
+select pg_temp.cancela('b0000000-0000-0000-0000-000000000001', 'rn05b', now() - interval '2 hours');
+select pg_temp.cancela('c0000000-0000-0000-0000-000000000001', 'rn05b', now() - interval '1 hour');
+select pg_temp.inicio('rn05b', pg_temp.proximo(2, '19:00'));
 
 select pg_temp.espera_ok('Eva confirma', $$select pg_temp.confirma('e0000000-0000-0000-0000-000000000001', 'rn05b')$$);
 select pg_temp.espera_verdade('a primeira confirmação isenta a multa de Bruno, sem autor, e só a dele',
@@ -379,7 +387,7 @@ select pg_temp.espera_verdade('Bruno vai para a lista, e a multa dele segue isen
   pg_temp.situacao('rn05b', 'b0000000-0000-0000-0000-000000000001') = 'lista_espera:1'
   and pg_temp.cobranca('rn05b', 'b0000000-0000-0000-0000-000000000001') = 'isenta:cancelamento_tardio:1000');
 
-select pg_temp.cancela('f0000000-0000-0000-0000-000000000001', 'rn05b', false, now());
+select pg_temp.cancela('f0000000-0000-0000-0000-000000000001', 'rn05b');
 
 select pg_temp.espera_ok('com vaga, Bruno confirma', $$select pg_temp.confirma('b0000000-0000-0000-0000-000000000001', 'rn05b')$$);
 select pg_temp.espera_verdade('a cobrança isenta de Bruno é reaberta como pendente de parte',
@@ -392,8 +400,10 @@ select pg_temp.espera_verdade('a cobrança isenta de Bruno é reaberta como pend
 select pg_temp.espera_ok('rn05a: Bruno e Carlos confirmam',
   $$select pg_temp.confirma(p, 'rn05a') from unnest(array['b0000000-0000-0000-0000-000000000001',
       'c0000000-0000-0000-0000-000000000001']::uuid[]) p$$);
-select pg_temp.cancela('b0000000-0000-0000-0000-000000000001', 'rn05a', true, now() - interval '2 hours');
-select pg_temp.cancela('c0000000-0000-0000-0000-000000000001', 'rn05a', true, now() - interval '1 hour');
+select pg_temp.inicio('rn05a', now() + interval '1 hour');
+select pg_temp.cancela('b0000000-0000-0000-0000-000000000001', 'rn05a', now() - interval '2 hours');
+select pg_temp.cancela('c0000000-0000-0000-0000-000000000001', 'rn05a', now() - interval '1 hour');
+select pg_temp.inicio('rn05a', pg_temp.proximo(2, '19:00'));
 
 select pg_temp.espera_ok('Bruno, cancelante tardio, reconfirma', $$select pg_temp.confirma('b0000000-0000-0000-0000-000000000001', 'rn05a')$$);
 select pg_temp.espera_verdade('a multa de Bruno vira parte, e a de Carlos segue pendente',
@@ -408,18 +418,167 @@ select pg_temp.espera_verdade('agora a de Carlos é isenta',
 -- Cancelante tardio que passou pela lista: ao pegar a vaga, ainda não isenta o outro.
 select pg_temp.espera_ok('Carlos, isento, reconfirma com rn05a cheio', $$select pg_temp.confirma('c0000000-0000-0000-0000-000000000001', 'rn05a')$$);
 select pg_temp.espera_verdade('Carlos vai para a lista', pg_temp.situacao('rn05a', 'c0000000-0000-0000-0000-000000000001') = 'lista_espera:1');
-select pg_temp.cancela('e0000000-0000-0000-0000-000000000001', 'rn05a', true, now());
+select pg_temp.inicio('rn05a', now() + interval '1 hour');
+select pg_temp.cancela('e0000000-0000-0000-0000-000000000001', 'rn05a');
+select pg_temp.inicio('rn05a', pg_temp.proximo(2, '19:00'));
 select pg_temp.espera_ok('Eva cancela tarde, e Carlos confirma da lista', $$select pg_temp.confirma('c0000000-0000-0000-0000-000000000001', 'rn05a')$$);
 select pg_temp.espera_verdade('a volta de Carlos reabre a cobrança dele como parte e não isenta a multa pendente de Eva',
   pg_temp.situacao('rn05a', 'c0000000-0000-0000-0000-000000000001') = 'confirmado'
   and pg_temp.cobranca('rn05a', 'c0000000-0000-0000-0000-000000000001') = 'pendente:parte:1000'
   and pg_temp.cobranca('rn05a', 'e0000000-0000-0000-0000-000000000001') = 'pendente:cancelamento_tardio:1000');
 
-select pg_temp.cancela('b0000000-0000-0000-0000-000000000001', 'rn05a', false, now());
+select pg_temp.cancela('b0000000-0000-0000-0000-000000000001', 'rn05a');
 select pg_temp.espera_ok('Bruno cancela no prazo, e Fabi, de fora da lista, ocupa a vaga', $$select pg_temp.confirma('f0000000-0000-0000-0000-000000000001', 'rn05a')$$);
 select pg_temp.espera_verdade('a confirmação de Fabi isenta a multa de Eva',
   pg_temp.cobranca('rn05a', 'e0000000-0000-0000-0000-000000000001') = 'isenta:cancelamento_tardio:1000'
   and (select count(*) from notificacao where tipo = 'cobranca_isenta') = 4);
+
+-- Cancelar presença (RF15): prazo, multa, lista de espera e vaga liberada.
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+insert into ids values
+  -- Segue o prazo do grupo, 3 h.
+  ('c_grupo', criar_jogo(pg_temp.id('sabado'), '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001',
+                         pg_temp.proximo(5, '19:00'), 120, 10, 10000, null)),
+  -- Prazo próprio de 1 h, que vence o do grupo.
+  ('c_proprio', criar_jogo(pg_temp.id('sabado'), '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002',
+                           pg_temp.proximo(5, '19:00'), 120, 10, 10000, 1)),
+  -- Prazo de 500 h: nasce com o prazo sem multa vencido (RN02).
+  ('c_vencido', criar_jogo(pg_temp.id('sabado'), '10000000-0000-0000-0000-000000000002', null,
+                           pg_temp.proximo(6, '10:00'), 60, 10, 10000, 500)),
+  -- Idem, mas remarcado: cancelamento_livre_ate no futuro.
+  ('c_livre', criar_jogo(pg_temp.id('sabado'), '10000000-0000-0000-0000-000000000002', null,
+                         pg_temp.proximo(6, '12:00'), 60, 10, 10000, 500)),
+  -- Duas vagas, para a fila.
+  ('c_fila', criar_jogo(pg_temp.id('sabado'), '10000000-0000-0000-0000-000000000002', null,
+                        pg_temp.proximo(0, '12:00'), 60, 2, 10000, null));
+reset role;
+
+-- No prazo (RN02) e reconfirmação (RN25).
+select pg_temp.confirma(pg_temp.m(3), 'c_grupo');
+create temp table cobranca_c_grupo as
+select c.id from cobranca c join participacao p on p.id = c.participacao_id
+where p.jogo_id = pg_temp.id('c_grupo') and p.pessoa_id = pg_temp.m(3);
+
+select pg_temp.espera_ok('Membro 3 cancela no prazo', $$select pg_temp.cancela(pg_temp.m(3), 'c_grupo')$$);
+select pg_temp.espera_verdade('no prazo: cancelou_no_prazo, agora, e a cobrança cancelada',
+  pg_temp.situacao('c_grupo', pg_temp.m(3)) = 'cancelou_no_prazo'
+  and (select cancelado_em from participacao where jogo_id = pg_temp.id('c_grupo') and pessoa_id = pg_temp.m(3)) = now()
+  and pg_temp.cobranca('c_grupo', pg_temp.m(3)) = 'cancelada:parte:1000'
+  and (select status from devolvido where pessoa = pg_temp.m(3) and jogo = 'c_grupo' order by ctid desc limit 1) = 'cancelou_no_prazo');
+select pg_temp.espera_ok('cancelar de novo', $$select pg_temp.cancela(pg_temp.m(3), 'c_grupo')$$);
+select pg_temp.espera_verdade('cancelar duas vezes não muda nada e devolve o status atual',
+  pg_temp.situacao('c_grupo', pg_temp.m(3)) = 'cancelou_no_prazo'
+  and pg_temp.cobranca('c_grupo', pg_temp.m(3)) = 'cancelada:parte:1000'
+  and (select status from devolvido where pessoa = pg_temp.m(3) and jogo = 'c_grupo' order by ctid desc limit 1) = 'cancelou_no_prazo');
+select pg_temp.espera_ok('Membro 3 reconfirma', $$select pg_temp.confirma(pg_temp.m(3), 'c_grupo')$$);
+select pg_temp.espera_verdade('reconfirmar reabre a mesma cobrança, pendente de parte',
+  pg_temp.situacao('c_grupo', pg_temp.m(3)) = 'confirmado'
+  and pg_temp.cobranca('c_grupo', pg_temp.m(3)) = 'pendente:parte:1000'
+  and (select c.id from cobranca c join participacao p on p.id = c.participacao_id
+       where p.jogo_id = pg_temp.id('c_grupo') and p.pessoa_id = pg_temp.m(3)) = (select id from cobranca_c_grupo));
+
+select pg_temp.como(pg_temp.m(4));
+select pg_temp.espera_verdade('quem não participa cancela sem efeito e recebe vazio',
+  cancelar_presenca(pg_temp.id('c_grupo')) is null);
+select pg_temp.como('d0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('quem não vê o jogo é recusado',
+  $$select cancelar_presenca(pg_temp.id('c_grupo'))$$, 'sem_permissao', '42501');
+reset role;
+
+-- Fora do prazo (RN03): o prazo do grupo vale quando o jogo não tem o próprio; o do jogo vence.
+select pg_temp.confirma(pg_temp.m(4), 'c_proprio');
+select pg_temp.inicio('c_grupo', now() + interval '2 hours');
+select pg_temp.inicio('c_proprio', now() + interval '2 hours');
+
+select pg_temp.espera_ok('a 2 h do início, Membro 3 cancela no jogo que segue as 3 h do grupo',
+  $$select pg_temp.cancela(pg_temp.m(3), 'c_grupo')$$);
+select pg_temp.espera_verdade('fora do prazo: cancelou_fora_do_prazo e multa de cancelamento_tardio pelo mesmo valor',
+  pg_temp.situacao('c_grupo', pg_temp.m(3)) = 'cancelou_fora_do_prazo'
+  and pg_temp.cobranca('c_grupo', pg_temp.m(3)) = 'pendente:cancelamento_tardio:1000'
+  and (select status from devolvido where pessoa = pg_temp.m(3) and jogo = 'c_grupo' order by ctid desc limit 1) = 'cancelou_fora_do_prazo');
+select pg_temp.espera_ok('a 2 h do início, Membro 4 cancela no jogo de prazo próprio de 1 h',
+  $$select pg_temp.cancela(pg_temp.m(4), 'c_proprio')$$);
+select pg_temp.espera_verdade('o prazo do jogo vence o do grupo: no prazo',
+  pg_temp.situacao('c_proprio', pg_temp.m(4)) = 'cancelou_no_prazo'
+  and pg_temp.cobranca('c_proprio', pg_temp.m(4)) = 'cancelada:parte:1000');
+
+-- Jogo criado com o prazo já vencido (RN02).
+select pg_temp.confirma(pg_temp.m(8), 'c_vencido');
+select pg_temp.espera_ok('Membro 8 cancela no jogo que nasceu com o prazo vencido',
+  $$select pg_temp.cancela(pg_temp.m(8), 'c_vencido')$$);
+select pg_temp.espera_verdade('o primeiro cancelamento já é tardio',
+  pg_temp.situacao('c_vencido', pg_temp.m(8)) = 'cancelou_fora_do_prazo'
+  and pg_temp.cobranca('c_vencido', pg_temp.m(8)) = 'pendente:cancelamento_tardio:1000');
+select pg_temp.espera_ok('Ana, a recebedora, cancela tarde', $$select pg_temp.cancela('a0000000-0000-0000-0000-000000000001', 'c_vencido')$$);
+select pg_temp.espera_verdade('a recebedora cancela tarde sem multa: não tem cobrança',
+  pg_temp.situacao('c_vencido', 'a0000000-0000-0000-0000-000000000001') = 'cancelou_fora_do_prazo'
+  and pg_temp.cobranca('c_vencido', 'a0000000-0000-0000-0000-000000000001') is null);
+
+-- cancelamento_livre_ate no futuro (RN20).
+select pg_temp.confirma(pg_temp.m(9), 'c_livre');
+update jogo set cancelamento_livre_ate = inicio where id = pg_temp.id('c_livre');
+select pg_temp.espera_ok('Membro 9 cancela no jogo remarcado, depois do prazo normal',
+  $$select pg_temp.cancela(pg_temp.m(9), 'c_livre')$$);
+select pg_temp.espera_verdade('cancelamento_livre_ate no futuro deixa o cancelamento sem multa',
+  pg_temp.situacao('c_livre', pg_temp.m(9)) = 'cancelou_no_prazo'
+  and pg_temp.cobranca('c_livre', pg_temp.m(9)) = 'cancelada:parte:1000');
+
+-- Lista de espera (RN08) e vaga liberada.
+select pg_temp.confirma(pg_temp.m(1), 'c_fila');
+select pg_temp.confirma(p, 'c_fila') from unnest(array['e0000000-0000-0000-0000-000000000001',
+  'b0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001']::uuid[]) p;
+select pg_temp.espera_verdade('fila: Eva(1), Bruno(2), Carlos(3)',
+  pg_temp.situacao('c_fila', 'e0000000-0000-0000-0000-000000000001') = 'lista_espera:1'
+  and pg_temp.situacao('c_fila', 'b0000000-0000-0000-0000-000000000001') = 'lista_espera:2'
+  and pg_temp.situacao('c_fila', 'c0000000-0000-0000-0000-000000000001') = 'lista_espera:3');
+
+-- A 1 h do início, sair da lista ainda é no prazo.
+select pg_temp.inicio('c_fila', now() + interval '1 hour');
+select pg_temp.espera_ok('Bruno sai da lista', $$select pg_temp.cancela('b0000000-0000-0000-0000-000000000001', 'c_fila')$$);
+select pg_temp.espera_verdade('sair da lista é cancelou_no_prazo, sem cobrança, e a fila fica Eva(1), Carlos(2)',
+  pg_temp.situacao('c_fila', 'b0000000-0000-0000-0000-000000000001') = 'cancelou_no_prazo'
+  and pg_temp.cobranca('c_fila', 'b0000000-0000-0000-0000-000000000001') is null
+  and pg_temp.situacao('c_fila', 'e0000000-0000-0000-0000-000000000001') = 'lista_espera:1'
+  and pg_temp.situacao('c_fila', 'c0000000-0000-0000-0000-000000000001') = 'lista_espera:2'
+  and not exists (select 1 from notificacao where tipo = 'vaga_liberada' and jogo_id = pg_temp.id('c_fila')));
+
+select pg_temp.espera_ok('Membro 1, confirmado, cancela com fila', $$select pg_temp.cancela(pg_temp.m(1), 'c_fila')$$);
+select pg_temp.espera_verdade('cada pessoa da fila recebe um vaga_liberada, com o texto do G1; quem saiu, não',
+  (select array_agg(pessoa_id order by pessoa_id) from notificacao
+   where tipo = 'vaga_liberada' and jogo_id = pg_temp.id('c_fila'))
+  = array['c0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001']::uuid[]
+  and not exists (select 1 from notificacao where tipo = 'vaga_liberada' and jogo_id = pg_temp.id('c_fila')
+                  and (titulo <> 'Abriu uma vaga em Areia de Sábado'
+                       or corpo <> format('%s · %s. Fica com quem confirmar primeiro.',
+                                          privado.data_curta(now() + interval '1 hour'), privado.hora(now() + interval '1 hour'))
+                       or cobranca_id is not null)));
+select pg_temp.espera_verdade('a vaga não é dada a ninguém: a fila segue como estava',
+  pg_temp.situacao('c_fila', 'e0000000-0000-0000-0000-000000000001') = 'lista_espera:1'
+  and (select count(*) from participacao where jogo_id = pg_temp.id('c_fila') and status = 'confirmado') = 1);
+
+select pg_temp.espera_ok('Eva confirma e fica com a vaga', $$select pg_temp.confirma('e0000000-0000-0000-0000-000000000001', 'c_fila')$$);
+select pg_temp.espera_ok('Ana, a recebedora, cancela com a fila só com Carlos', $$select pg_temp.cancela('a0000000-0000-0000-0000-000000000001', 'c_fila')$$);
+select pg_temp.espera_verdade('o novo anúncio vai só a Carlos, e Eva não recebe outro',
+  (select count(*) from notificacao where tipo = 'vaga_liberada' and jogo_id = pg_temp.id('c_fila')
+     and pessoa_id = 'c0000000-0000-0000-0000-000000000001') = 2
+  and (select count(*) from notificacao where tipo = 'vaga_liberada' and jogo_id = pg_temp.id('c_fila')
+     and pessoa_id = 'e0000000-0000-0000-0000-000000000001') = 1);
+select pg_temp.espera_ok('Carlos confirma, e Eva cancela com a fila vazia', $$select pg_temp.confirma('c0000000-0000-0000-0000-000000000001', 'c_fila'), pg_temp.cancela('e0000000-0000-0000-0000-000000000001', 'c_fila')$$);
+select pg_temp.espera_verdade('fila vazia: ninguém é avisado',
+  (select count(*) from notificacao where tipo = 'vaga_liberada' and jogo_id = pg_temp.id('c_fila')) = 3);
+
+-- Depois do início e jogo fechado.
+select pg_temp.inicio('c_grupo', now() - interval '1 minute');
+select pg_temp.como(pg_temp.m(3));
+select pg_temp.espera_recusa('depois do início, cancelar é recusado',
+  $$select cancelar_presenca(pg_temp.id('c_grupo'))$$, 'jogo_ja_comecou');
+reset role;
+update jogo set status = 'cancelado' where id = pg_temp.id('c_proprio');
+select pg_temp.como(pg_temp.m(4));
+select pg_temp.espera_recusa('jogo cancelado, recusado',
+  $$select cancelar_presenca(pg_temp.id('c_proprio'))$$, 'jogo_fechado');
+reset role;
 
 -- Jogo que começou e jogo cancelado (RN06).
 
@@ -473,8 +632,9 @@ select pg_temp.espera_verdade('não avisa quem está na lista nem quem cancelou'
 select pg_temp.espera_verdade('não avisa no jogo de prazo próprio, no remarcado, no que começou nem no cancelado',
   not exists (select 1 from notificacao where tipo = 'regra_grupo_alterada'
               and jogo_id in (pg_temp.id('proprio'), pg_temp.id('do_membro'), pg_temp.id('comeca'), pg_temp.id('cancelado'))));
-select pg_temp.espera_verdade('avisa nos dois jogos da RN05, que seguem o grupo',
-  (select count(distinct jogo_id) from notificacao where tipo = 'regra_grupo_alterada') = 3);
+select pg_temp.espera_verdade('avisa também nos jogos da RN05 e na fila, que seguem o grupo',
+  (select array_agg(distinct nome order by nome) from notificacao n join ids on ids.id = n.jogo_id
+   where n.tipo = 'regra_grupo_alterada') = array['c_fila', 'dez', 'rn05a', 'rn05b']);
 
 select pg_temp.como('a0000000-0000-0000-0000-000000000001');
 select pg_temp.espera_ok('mudar só a cor depois não avisa de novo',
@@ -484,17 +644,20 @@ select pg_temp.espera_verdade('o número de avisos de prazo não mudou',
   (select count(*) from notificacao where tipo = 'regra_grupo_alterada')
   = (select count(*) from participacao p
      where p.status = 'confirmado' and p.pessoa_id <> 'a0000000-0000-0000-0000-000000000001'
-       and p.jogo_id in (pg_temp.id('dez'), pg_temp.id('rn05a'), pg_temp.id('rn05b'))));
+       and p.jogo_id in (pg_temp.id('dez'), pg_temp.id('rn05a'), pg_temp.id('rn05b'), pg_temp.id('c_fila'))));
 
 -- Privilégios.
 
-select pg_temp.espera_verdade('authenticated executa confirmar_presenca; anon não',
+select pg_temp.espera_verdade('authenticated executa confirmar_presenca e cancelar_presenca; anon não',
   has_function_privilege('authenticated', 'public.confirmar_presenca(uuid)', 'execute')
-  and not has_function_privilege('anon', 'public.confirmar_presenca(uuid)', 'execute'));
+  and not has_function_privilege('anon', 'public.confirmar_presenca(uuid)', 'execute')
+  and has_function_privilege('authenticated', 'public.cancelar_presenca(uuid)', 'execute')
+  and not has_function_privilege('anon', 'public.cancelar_presenca(uuid)', 'execute'));
 select pg_temp.espera_verdade('authenticated não executa as auxiliares de privado',
   not has_function_privilege('authenticated', 'privado.confirmar(uuid, uuid)', 'execute')
   and not has_function_privilege('authenticated', 'privado.reais(integer)', 'execute')
-  and not has_function_privilege('authenticated', 'privado.nome_jogo(uuid)', 'execute'));
+  and not has_function_privilege('authenticated', 'privado.nome_jogo(uuid)', 'execute')
+  and not has_function_privilege('authenticated', 'privado.anunciar_vaga(uuid)', 'execute'));
 
 select pg_temp.como('a0000000-0000-0000-0000-000000000001');
 select pg_temp.espera_erro('authenticated chamando privado.confirmar para outra pessoa é barrado',

@@ -1,6 +1,6 @@
 # T06 — `rpc_presenca`: cancelar presença
 
-**Estado:** a fazer · **Depende de:** T05
+**Estado:** feito · **Depende de:** T05
 
 ## Objetivo
 
@@ -13,7 +13,7 @@ Cancelar presença (RF15) com o prazo sem multa (RN02, RN20), a multa do cancela
 
 ## O que falta
 
-- [ ] Em `rpc_presenca`, `cancelar_presenca(jogo)` → `participacao_status`:
+- [x] Em `rpc_presenca`, `cancelar_presenca(jogo)` → `participacao_status`:
   - trava a linha do jogo; jogo `aberto` e `now() < inicio` (`jogo_ja_comecou`);
   - sem participação ativa (`confirmado` ou `lista_espera`): devolve o status atual, nada muda (RNF10);
   - em `lista_espera`: vira `cancelou_no_prazo`, `cancelado_em = now()`, sem cobrança, em qualquer momento; as posições seguintes são renumeradas;
@@ -21,8 +21,8 @@ Cancelar presença (RF15) com o prazo sem multa (RN02, RN20), a multa do cancela
   - `confirmado` depois do prazo: `cancelou_fora_do_prazo`, cobrança segue `pendente` com origem `cancelamento_tardio` e o mesmo valor (RN03); o recebedor não tem cobrança e sai sem multa;
   - saída de confirmado com fila não vazia: `vaga_liberada` a todos da lista (RN08, texto do G1);
   - `grant execute` a `authenticated`.
-- [ ] Nos testes da T05, trocar os cancelamentos montados como `postgres` pela função.
-- [ ] `supabase/testes/rpc_presenca.sql`:
+- [x] Nos testes da T05, trocar os cancelamentos montados como `postgres` pela função.
+- [x] `supabase/testes/rpc_presenca.sql`:
   - no prazo: `cancelou_no_prazo` e cobrança `cancelada`; reconfirmar reabre a mesma cobrança (RN25);
   - fora do prazo (movendo `inicio` para perto de `now()`): `cancelou_fora_do_prazo`, cobrança de `cancelamento_tardio`;
   - jogo criado com o prazo já vencido: o primeiro cancelamento já é tardio (RN02);
@@ -31,6 +31,15 @@ Cancelar presença (RF15) com o prazo sem multa (RN02, RN20), a multa do cancela
   - lista de espera: sair vira `cancelou_no_prazo`, sem cobrança, e a fila Ana(1), Bruno(2), Carla(3) sem o Bruno fica Ana(1), Carla(2);
   - vaga liberada: cada pessoa da fila recebe um `vaga_liberada`;
   - depois do início, recusado; cancelar duas vezes não muda nada.
+
+## Resultado
+
+- `cancelar_presenca` em `rpc_presenca`; o anúncio da vaga é `privado.anunciar_vaga`, na `rpc_jogo` (editada no lugar), porque a `editar_jogo` da T07 também o grava quando as vagas aumentam com fila.
+- Papel: cancela quem vê o jogo (`privado.pode_ver_jogo`), sempre a própria participação; quem não vê recebe `sem_permissao`. Quem vê e não participa recebe vazio, sem erro. Recusas reaproveitadas: `jogo_fechado` e `jogo_ja_comecou`, nenhum código novo.
+- O recebedor que cancela depois do prazo fica `cancelou_fora_do_prazo`, sem multa: o status diz quando ele saiu, e a multa é a cobrança, que ele não tem (RN07). O selo "Cancelou tarde" aparece para ele também.
+- A vaga liberada não é dada a ninguém: o aviso vai a toda a lista, e a vaga fica com quem confirmar primeiro (RN08).
+- Testes: os cancelamentos montados como `postgres` da T05 viraram chamadas à função. Os tardios da RN05 aproximam o início do jogo de `now()` e o devolvem depois; como `now()` é o mesmo na transação inteira, `cancelado_em` é movido para trás para fixar a ordem dos cancelamentos.
+- `rpc_presenca.sql` com 98 asserções; `schema` 70, `rls` 69, `autenticacao` 39, `rpc_grupo` 63, `rpc_jogo` 74.
 
 ## Pronto quando
 
