@@ -138,6 +138,17 @@ select pg_temp.espera_verdade('a virada do dia segue Brasília: 02:00 UTC de 1/1
   privado.data_curta('2026-11-01 02:00:00+00') = 'sáb, 31 out'
   and privado.hora('2026-11-01 02:00:00+00') = '23:00');
 
+-- Corpo do regra_grupo_alterada, nas três formas. O aviso inteiro é conferido na T05.
+select pg_temp.espera_verdade('prazo de várias horas: "são"',
+  privado.corpo_regra_grupo(6, '2026-10-24 23:00:00+00', '2026-10-24 17:00:00+00')
+  = 'Agora são 6 h antes do início. No jogo de sáb, 24 out · 20:00, cancelar sem multa vai até sáb, 24 out · 14:00.');
+select pg_temp.espera_verdade('prazo de 1 h: "é", no singular',
+  privado.corpo_regra_grupo(1, '2026-10-24 23:00:00+00', '2026-10-24 22:00:00+00')
+  = 'Agora é 1 h antes do início. No jogo de sáb, 24 out · 20:00, cancelar sem multa vai até sáb, 24 out · 19:00.');
+select pg_temp.espera_verdade('prazo zero: uma frase só, com o início do jogo',
+  privado.corpo_regra_grupo(0, '2026-10-24 23:00:00+00', '2026-10-24 23:00:00+00')
+  = 'Agora dá para cancelar sem multa até o início do jogo, sáb, 24 out · 20:00.');
+
 -- Criar (RF03, RN12, RN13).
 
 select pg_temp.como('a0000000-0000-0000-0000-000000000001');
@@ -389,6 +400,7 @@ select pg_temp.espera_verdade('authenticated não executa as auxiliares de priva
   not has_function_privilege('authenticated', 'privado.avisar(uuid, notificacao_tipo, text, text, uuid, uuid)', 'execute')
   and not has_function_privilege('authenticated', 'privado.data_curta(timestamptz)', 'execute')
   and not has_function_privilege('authenticated', 'privado.hora(timestamptz)', 'execute')
+  and not has_function_privilege('authenticated', 'privado.corpo_regra_grupo(integer, timestamptz, timestamptz)', 'execute')
   and not has_function_privilege('authenticated', 'privado.validar_grupo(text, text, integer)', 'execute'));
 
 select pg_temp.como(null);

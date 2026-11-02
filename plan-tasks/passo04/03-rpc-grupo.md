@@ -37,13 +37,13 @@ Criar as funções de grupo — que vêm primeiro para os cenários seguintes cr
 
 ## Resultado
 
-- Migração `20261102220914_rpc_grupo.sql`. Além das cinco funções e de `privado.avisar`, traz três auxiliares em `privado`, sem `execute` para ninguém: `validar_grupo` (as recusas de nome, cor e prazo, comuns a criar e editar) e `data_curta` e `hora`, a formatação de data dos textos em Brasília, que as próximas tasks reaproveitam.
+- Migração `20261102220914_rpc_grupo.sql`. Além das cinco funções e de `privado.avisar`, traz quatro auxiliares em `privado`, sem `execute` para ninguém: `validar_grupo` (as recusas de nome, cor e prazo, comuns a criar e editar); `data_curta` e `hora`, a formatação de data dos textos em Brasília, que as próximas tasks reaproveitam; e `corpo_regra_grupo`, o corpo do aviso de prazo, com as variações de 1 h e de zero aprovadas em 2026-11-02 (`docs/design/telas/08-avisos/implementacao.md`).
 - O nome do grupo é gravado aparado, e a cor em maiúsculas: `#3b6fe0` é aceita e vira `#3B6FE0`.
 - `editar_grupo` recebe todos os campos; o que não muda vai com o valor atual. Pedido igual ao estado atual não toca a linha.
 - O prazo sem multa do aviso é calculado no lugar, como o mais tardio entre `inicio − prazo` e `cancelamento_livre_ate`; a T04 cria `privado.prazo_sem_multa` e pode trocar o cálculo por ela.
 - Promoção, remoção e saída travam a linha do grupo (`for update`), para duas saídas simultâneas de admins não deixarem o grupo sem admin.
 - Idempotência: promover quem já é admin, remover quem já não é membro e sair de grupo do qual já saiu não fazem nada, sem erro e sem aviso.
-- `rpc_grupo.sql` com 60 asserções; `schema` 70, `rls` 69, `autenticacao` 39.
+- `rpc_grupo.sql` com 63 asserções; `schema` 70, `rls` 69, `autenticacao` 39.
 
 ## Pronto quando
 

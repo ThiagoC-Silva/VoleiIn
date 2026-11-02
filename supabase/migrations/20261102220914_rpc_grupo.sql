@@ -48,6 +48,27 @@ as $$
   select to_char(p_momento at time zone 'America/Sao_Paulo', 'HH24:MI');
 $$;
 
+-- Corpo do aviso regra_grupo_alterada (RN11): o prazo novo do grupo, em horas, e o prazo
+-- sem multa que ele dá ao jogo. Com 1 h o verbo vai ao singular; com zero o prazo sem
+-- multa é o próprio início, e o corpo é uma frase só.
+create function privado.corpo_regra_grupo(p_horas integer, p_inicio timestamptz, p_prazo_sem_multa timestamptz)
+returns text
+language sql
+stable
+set search_path = ''
+as $$
+  select case
+    when p_horas = 0 then
+      format('Agora dá para cancelar sem multa até o início do jogo, %s · %s.',
+             privado.data_curta(p_inicio), privado.hora(p_inicio))
+    else
+      format('Agora %s %s h antes do início. No jogo de %s · %s, cancelar sem multa vai até %s · %s.',
+             case when p_horas = 1 then 'é' else 'são' end, p_horas,
+             privado.data_curta(p_inicio), privado.hora(p_inicio),
+             privado.data_curta(p_prazo_sem_multa), privado.hora(p_prazo_sem_multa))
+  end;
+$$;
+
 -- Valida os campos que criar_grupo e editar_grupo recebem (RN12). O nome chega aparado.
 create function privado.validar_grupo(p_nome text, p_cor text, p_prazo_cancelamento_horas integer)
 returns void
@@ -73,6 +94,7 @@ revoke execute on function
   privado.avisar(uuid, public.notificacao_tipo, text, text, uuid, uuid),
   privado.data_curta(timestamptz),
   privado.hora(timestamptz),
+  privado.corpo_regra_grupo(integer, timestamptz, timestamptz),
   privado.validar_grupo(text, text, integer)
 from public, anon, authenticated;
 
@@ -193,10 +215,7 @@ begin
       v_aviso.pessoa_id,
       'regra_grupo_alterada',
       format('Novo prazo sem multa em %s', v_nome),
-      format('Agora são %s h antes do início. No jogo de %s · %s, cancelar sem multa vai até %s · %s.',
-             p_prazo_cancelamento_horas,
-             privado.data_curta(v_aviso.inicio), privado.hora(v_aviso.inicio),
-             privado.data_curta(v_aviso.novo), privado.hora(v_aviso.novo)),
+      privado.corpo_regra_grupo(p_prazo_cancelamento_horas, v_aviso.inicio, v_aviso.novo),
       v_aviso.jogo_id);
   end loop;
 end;
