@@ -162,6 +162,11 @@ Pergunta única de confirmação em bloco (multiSelect), cada item com a correç
 - Texto da B4: "Se outra pessoa confirmar presença depois de você, sua cobrança pode ser isenta." (registrado em `docs/design/telas/02-jogos/implementacao.md`).
 - Aberto para o passo 5: o que a B3 mostra em "Sua parte" para o recebedor confirmado.
 
+### Pendências achadas na conferência final — 2026-11-01
+
+- O passo 4 do `stack.md` não listava as mudanças de schema decididas: entra a migração `ajustes_schema` (coluna `jogo.cancelamento_livre_ate`, `check` de `devedor_id <> credor_id`), logo depois de `ajustes_funcoes`.
+- Avisos das transições novas (respondido em rodada curta): a isenção automática da RN05 avisa o isento com `cobranca_isenta`; a remarcação manda `jogo_editado` também a quem teve a multa cancelada; a troca de recebedor não avisa na hora (o `pagamento_liberado` do encerramento já chega com o credor novo).
+
 ## R6 — Aplicar e fechar
 
 1. Editar na ordem: `docs/prd.md` (regras RN05, RN08, RN13, RN17, RN19, RN20, RN24/RN25 conforme as respostas) → `docs/modelo-de-dados.md` (campos/invariantes novos, se houver) → `docs/stack.md` (passos, funções, concorrência, avisos) → `docs/progresso.md` (seção "Decisões de produto antes do passo 4" com data e motivo).

@@ -254,7 +254,7 @@ A unicidade de `id_transacao` só vale quando o campo está preenchido: comprova
 | `Comprovante.resultado` | `consistente`, `divergente`, `ilegivel` |
 | `Notificacao.tipo` | `vaga_liberada`, `jogo_editado`, `jogo_cancelado`, `regra_grupo_alterada`, `valor_recalculado`, `pagamento_liberado`, `cobranca_vencida`, `comprovante_recebido`, `comprovante_recusado`, `cobranca_confirmada`, `cobranca_isenta`, `falta_marcada`, `removido_do_grupo`, `promovido_a_admin` |
 
-Cada valor de `Notificacao.tipo` tem uma regra de origem: `vaga_liberada` vem da RN08, `jogo_editado` e `valor_recalculado` da RN20 e RN01, `jogo_cancelado` da RN23, `regra_grupo_alterada` da RN11, `pagamento_liberado` e `cobranca_vencida` da RN07, `comprovante_recebido` da RN09, `comprovante_recusado` da RN10, `cobranca_confirmada` e `cobranca_isenta` dos RF22 e RF23, `falta_marcada` da RN04, `removido_do_grupo` da RN30 e `promovido_a_admin` da RN13.
+Cada valor de `Notificacao.tipo` tem uma regra de origem: `vaga_liberada` vem da RN08, `jogo_editado` e `valor_recalculado` da RN20 e RN01 (o `jogo_editado` da remarcação vai também a quem teve a multa cancelada), `jogo_cancelado` da RN23, `regra_grupo_alterada` da RN11, `pagamento_liberado` e `cobranca_vencida` da RN07, `comprovante_recebido` da RN09, `comprovante_recusado` da RN10, `cobranca_confirmada` e `cobranca_isenta` dos RF22 e RF23 (o `cobranca_isenta` também da isenção automática da RN05), `falta_marcada` da RN04, `removido_do_grupo` da RN30 e `promovido_a_admin` da RN13.
 
 ## Invariantes que o diagrama não expressa
 

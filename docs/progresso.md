@@ -120,6 +120,8 @@ A análise de 2026-10-29 achou regras abertas que o passo 4 teria de inventar. F
 - **Ciclo (RN17, RN04):** encerrar à mão a partir do fim reservado, por criador e admins; falta só com o jogo encerrado.
 - **Retenção e idempotência (RN19, RNF10):** o mês conta de `cobranca.atualizado_em`; idempotência por estado, com o limite do pedido atrasado documentado.
 - **Plano (stack.md):** avisos gravados já no passo 4; encerramento numa função interna única; `excluir_conta` no passo 4 (`rpc_conta`); feed e painéis por leitura direta, com a marca de vencida numa visão no passo 5; busca de locais no app; fila por local (`pg_advisory_xact_lock`) contra a corrida da RN15; migração `ajustes_funcoes` abrindo o passo 4.
+- **Avisos novos (RN05, RN20):** a isenção automática avisa o isento com `cobranca_isenta`; a remarcação manda `jogo_editado` também a quem teve a multa cancelada; a troca de recebedor não avisa na hora, porque o pagamento liberado já chega com o credor novo.
+- **Schema:** o passo 4 abre com `ajustes_funcoes` e `ajustes_schema` (coluna `jogo.cancelamento_livre_ate` e `check` de devedor diferente de credor).
 - **Design:** a B4 troca o texto da isenção e há um aberto para a B3 do recebedor (`docs/design/telas/02-jogos/implementacao.md`).
 
 <!-- Modelo de entrada, a copiar ao fechar um passo:
