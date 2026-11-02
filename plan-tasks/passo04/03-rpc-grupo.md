@@ -33,7 +33,7 @@ Criar as funções de grupo — que vêm primeiro para os cenários seguintes cr
   - remover: membro comum não remove; admin remove e o removido recebe aviso; remover a si mesmo recusado;
   - sair: admin único com outro membro recusado; depois de promover, sai; último membro sai;
   - `anon` não executa nenhuma; `authenticated` não executa `privado.avisar`.
-- [ ] O aviso de `editar_grupo` sobre o prazo depende de confirmados em jogo: a asserção entra na T05. Conferido à mão nesta task, com jogos inseridos direto: avisa só os confirmados do jogo que segue o grupo, sem quem editou; pula o jogo com prazo próprio, o remarcado (`cancelamento_livre_ate` no início) e o já começado.
+- [x] O aviso de `editar_grupo` sobre o prazo depende de confirmados em jogo: a asserção entrou na T05, em `rpc_presenca.sql`. Conferido à mão nesta task, com jogos inseridos direto: avisa só os confirmados do jogo que segue o grupo, sem quem editou; pula o jogo com prazo próprio, o remarcado (`cancelamento_livre_ate` no início) e o já começado.
 
 ## Resultado
 

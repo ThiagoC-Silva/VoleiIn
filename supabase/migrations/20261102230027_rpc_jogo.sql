@@ -6,6 +6,34 @@
 -- Recusas (supabase/CLAUDE.md, Funções): P0001 com o código na mensagem; 42501 com
 -- 'sem_permissao'.
 
+-- Dinheiro nos textos dos avisos (DESIGN.md, Escrita e formatos): 'R$ 1.234,56', sempre
+-- com centavos. Montado à mão, sem to_char, para não depender do locale do servidor.
+create function privado.reais(p_centavos integer)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select 'R$ '
+         || regexp_replace((p_centavos / 100)::text, '(\d)(?=(\d{3})+$)', '\1.', 'g')
+         || ',' || lpad((p_centavos % 100)::text, 2, '0');
+$$;
+
+-- Como o jogo aparece nos avisos: o nome do grupo, ou o do local no avulso
+-- (docs/design/telas/08-avisos/implementacao.md, Convenções dos textos).
+create function privado.nome_jogo(p_jogo uuid)
+returns text
+language sql
+stable
+set search_path = ''
+as $$
+  select coalesce(g.nome, l.nome)
+  from public.jogo j
+  join public.local l on l.id = j.local_id
+  left join public.grupo g on g.id = j.grupo_id
+  where j.id = p_jogo;
+$$;
+
 -- Prazo sem multa do jogo (RN02): início menos o prazo — do jogo, ou do grupo quando o
 -- jogo não tem o próprio (RN12) —, ou cancelamento_livre_ate, o que for mais tardio
 -- (RN20). greatest ignora o vazio.
@@ -243,6 +271,8 @@ end;
 $$;
 
 revoke execute on function
+  privado.reais(integer),
+  privado.nome_jogo(uuid),
   privado.prazo_sem_multa(uuid),
   privado.checar_rn15(uuid, uuid, timestamptz, integer, uuid),
   privado.nascer_cobranca(uuid),
