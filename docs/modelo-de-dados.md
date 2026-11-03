@@ -216,7 +216,7 @@ Cada linha é uma referência real no banco. "Obrigatória" indica se a coluna a
 | Participacao | `pessoa_id` | Pessoa | sim | — |
 | Cobranca | `participacao_id` | Participacao | sim | Único: no máximo uma cobrança por participação |
 | Cobranca | `devedor_id` | Pessoa | sim | Igual ao `pessoa_id` da participação |
-| Cobranca | `credor_id` | Pessoa | sim | Igual ao `recebedor_id` do jogo; migra junto (RN20) |
+| Cobranca | `credor_id` | Pessoa | sim | Igual ao `recebedor_id` do jogo; migra junto, menos na cobrança do próprio recebedor novo (RN20) |
 | Cobranca | `confirmado_por` | Pessoa | não | Preenchido na baixa e na isenção manual (RN07) |
 | Comprovante | `cobranca_id` | Cobranca | sim | Uma cobrança aceita vários comprovantes |
 | Notificacao | `pessoa_id` | Pessoa | sim | Destinatário |
@@ -263,7 +263,7 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | Invariante | Origem |
 | --- | --- |
 | `Cobranca.devedor_id` é igual ao `pessoa_id` da participação referenciada | Modelo |
-| `Cobranca.credor_id` é igual ao `recebedor_id` do jogo e migra quando o recebedor é trocado | RN20 |
+| `Cobranca.credor_id` é igual ao `recebedor_id` do jogo e migra quando o recebedor é trocado, menos a cobrança de quem passa a ser recebedor, que vai a `cancelada` com o credor anterior | RN20 |
 | `Cobranca.devedor_id` nunca é igual a `credor_id`: o recebedor confirmado ocupa vaga sem cobrança, e a troca de recebedor cancela a cobrança de quem passa a sê-lo | RN07, RN20 |
 | Toda participação `confirmado` tem cobrança, exceto a do recebedor do jogo; quem cria o jogo, ou o duplica, nasce `confirmado` | RN07, RN24, RN28 |
 | `Jogo.preco_por_vaga` é `custo_total / vagas_total` arredondado para cima no centavo | RN01, RN16 |
