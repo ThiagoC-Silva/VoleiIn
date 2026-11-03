@@ -381,15 +381,33 @@ $c$, '42501');
 
 reset role;
 
--- As auxiliares e o gatilho não viram RPC
-select pg_temp.espera_verdade('authenticated não executa auxiliar de cálculo nem gatilho',
-  not has_function_privilege('authenticated', 'privado.encerramento_previsto(timestamptz, integer)', 'execute')
+-- As auxiliares e o gatilho não viram RPC. As duas puras de prazo são exceção desde a
+-- migração visoes: a visão cobranca_vencimento é security_invoker e precisa executá-las com
+-- o papel de quem consulta. Elas calculam sobre os próprios argumentos e não leem tabela, e
+-- o grant não as expõe pela API, porque o PostgREST não serve o schema privado.
+select pg_temp.espera_verdade('authenticated executa as puras de prazo, e não o gatilho',
+  has_function_privilege('authenticated', 'privado.vencimento(timestamptz, integer)', 'execute')
+  and has_function_privilege('authenticated', 'privado.encerramento_previsto(timestamptz, integer)', 'execute')
+  and not has_function_privilege('anon', 'privado.vencimento(timestamptz, integer)', 'execute')
   and not has_function_privilege('authenticated', 'public.tocar_atualizado_em()', 'execute')
   and not has_function_privilege('anon', 'privado.pode_ver_jogo(uuid)', 'execute'));
 
 select pg_temp.espera_verdade('política de linha ligada nas treze tabelas',
   (select count(*) = 13 from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity));
+
+-- Visão sem security_invoker roda com o papel de quem a criou e mostraria a cobrança de
+-- todo mundo. É varredura, e não lista, para pegar também as visões dos próximos passos.
+select pg_temp.espera_verdade('toda visão de public é security_invoker, lida por authenticated e não por anon',
+  (select count(*) >= 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'v')
+  and not exists (
+    select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind = 'v'
+      and (coalesce((select o.option_value from pg_options_to_table(c.reloptions) o
+                     where o.option_name = 'security_invoker'), '') not in ('on', 'true')
+           or not has_table_privilege('authenticated', c.oid, 'select')
+           or has_table_privilege('anon', c.oid, 'select'))));
 
 -- listar_participantes (RN26)
 select pg_temp.como('a0000000-0000-0000-0000-000000000001');
@@ -457,10 +475,14 @@ select pg_temp.espera_verdade('as funções de gatilho de public não são execu
               where n.nspname = 'public' and p.prorettype = 'trigger'::regtype
                 and (has_function_privilege('authenticated', p.oid, 'execute')
                      or has_function_privilege('anon', p.oid, 'execute'))));
-select pg_temp.espera_verdade('em privado, authenticated executa só as cinco auxiliares das políticas, e anon nada',
+-- As cinco auxiliares das políticas, que leem dados, mais as duas puras de prazo, que a
+-- visão cobranca_vencimento precisa executar. Nada além disso: a lista é fechada de
+-- propósito, para um grant acidental falhar aqui.
+select pg_temp.espera_verdade('em privado, authenticated executa só as cinco auxiliares das políticas e as duas puras de prazo, e anon nada',
   (select array_agg(p.proname::text order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'privado' and has_function_privilege('authenticated', p.oid, 'execute'))
-  = array['conhece', 'eh_admin', 'eh_membro', 'pode_ver_grupo', 'pode_ver_jogo']
+  = array['conhece', 'eh_admin', 'eh_membro', 'encerramento_previsto',
+          'pode_ver_grupo', 'pode_ver_jogo', 'vencimento']
   and not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                   where n.nspname = 'privado' and has_function_privilege('anon', p.oid, 'execute')));
 select pg_temp.espera_verdade('toda função de privado tem search_path vazio',

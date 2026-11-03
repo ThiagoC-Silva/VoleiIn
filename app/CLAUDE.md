@@ -30,6 +30,7 @@ Toda mutação é uma chamada RPC a uma função do banco. Leitura é consulta d
 - Os pacotes permitidos são a lista fechada de `docs/stack.md`, todos gratuitos. Pacote novo precisa ser justificado por custo e tamanho antes de entrar.
 - Valor em centavos só vira texto na borda de exibição. Nunca armazene nem calcule em `double`.
 - Hora exibida converte de UTC para horário de Brasília na apresentação, mas a decisão de prazo é sempre do servidor: não compare prazo com o relógio do aparelho (RN02).
+- Cobrança se lê pela visão `cobranca_vencimento`, nunca da tabela `cobranca`: `vence_em` e `vencida` vêm dela, calculados com a hora do servidor (RN07, RN26, RNF08). Se uma tela precisar saber se a cobrança venceu, a resposta já vem na linha.
 - Comprima a imagem do comprovante para algo em torno de 200 KB antes do upload.
 - Arquivo privado se abre só por URL assinada de validade curta, nunca por link público (RNF02).
 - O app lê o comprovante e envia os campos lidos; quem classifica é o servidor (RN09).
