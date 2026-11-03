@@ -1,5 +1,5 @@
--- Funções de presença: confirmar (RF14, RF16, RF17, RF19) e cancelar (RF15). Cresce na
--- T09 com marcar_falta.
+-- Funções de presença: confirmar (RF14, RF16, RF17, RF19), cancelar (RF15) e marcar falta
+-- (RF18).
 --
 -- Recusas (supabase/CLAUDE.md, Funções): P0001 com o código na mensagem; 42501 com
 -- 'sem_permissao'.
@@ -219,5 +219,87 @@ begin
 end;
 $$;
 
-revoke execute on function public.confirmar_presenca(uuid), public.cancelar_presenca(uuid) from public, anon;
-grant execute on function public.confirmar_presenca(uuid), public.cancelar_presenca(uuid) to authenticated;
+-- RF18, RN04. O recebedor e os admins do grupo marcam quem confirmou e não foi; no avulso,
+-- que não tem admin, só o recebedor (RN13). Só com o jogo encerrado (RN17) e até 24 h depois
+-- do encerramento previsto, contadas como o vencimento (RN07). O faltoso não contesta.
+create function public.marcar_falta(p_jogo uuid, p_pessoa uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_eu uuid := (select auth.uid());
+  v_jogo public.jogo;
+  v_participacao public.participacao;
+  v_cobranca uuid;
+begin
+  -- RNF09: a mesma trava das outras mutações de presença.
+  select * into v_jogo from public.jogo where id = p_jogo for update;
+
+  if not found or v_eu is null
+     or not (v_jogo.recebedor_id = v_eu or privado.eh_admin(v_jogo.grupo_id)) then
+    raise exception using errcode = '42501', message = 'sem_permissao';
+  end if;
+  if v_jogo.status <> 'encerrado' then
+    raise exception using errcode = 'P0001', message = 'jogo_nao_encerrado';
+  end if;
+  if now() > privado.encerramento_previsto(v_jogo.inicio, v_jogo.duracao_minutos) + interval '24 hours' then
+    raise exception using errcode = 'P0001', message = 'janela_de_falta_encerrada';
+  end if;
+
+  select * into v_participacao from public.participacao
+  where jogo_id = p_jogo and pessoa_id = p_pessoa;
+
+  -- RNF10: já marcado, nada muda nem avisa.
+  if v_participacao.status = 'faltou' then
+    return;
+  end if;
+  if v_participacao.status is distinct from 'confirmado' then
+    raise exception using errcode = 'P0001', message = 'nao_confirmado';
+  end if;
+
+  update public.participacao set status = 'faltou' where id = v_participacao.id;
+
+  -- A parte vira falta com o mesmo valor, qualquer que seja o status, inclusive já paga ou
+  -- isenta: a origem é só o registro do desfecho (RN04). É a exceção da âncora da retenção
+  -- (docs/modelo-de-dados.md). O recebedor não tem cobrança (RN07) e só muda de
+  -- participação; a cobrança cancelada que ele guarde de antes de virar recebedor (RN20)
+  -- fica como está.
+  if p_pessoa <> v_jogo.recebedor_id then
+    update public.cobranca
+    set origem = 'falta'
+    where participacao_id = v_participacao.id and origem = 'parte'
+    returning id into v_cobranca;
+  end if;
+
+  -- falta_marcada (docs/design/telas/08-avisos/implementacao.md): com cobrança, leva a ela;
+  -- sem cobrança, o do recebedor, perde a frase do valor e leva ao jogo. A data perde a
+  -- vírgula depois do nome do jogo, como no G1.
+  if p_pessoa <> v_eu then
+    perform privado.avisar(
+      p_pessoa,
+      'falta_marcada',
+      'Falta marcada',
+      format('%s marcou sua falta em %s, %s.%s',
+             (select nome from public.pessoa where id = v_eu),
+             privado.nome_jogo(p_jogo),
+             replace(privado.data_curta(v_jogo.inicio), ',', ''),
+             case when v_cobranca is not null then ' O valor da cobrança não muda.' else '' end),
+      case when v_cobranca is null then p_jogo end,
+      v_cobranca);
+  end if;
+end;
+$$;
+
+revoke execute on function
+  public.confirmar_presenca(uuid),
+  public.cancelar_presenca(uuid),
+  public.marcar_falta(uuid, uuid)
+from public, anon;
+
+grant execute on function
+  public.confirmar_presenca(uuid),
+  public.cancelar_presenca(uuid),
+  public.marcar_falta(uuid, uuid)
+to authenticated;

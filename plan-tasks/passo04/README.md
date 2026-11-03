@@ -59,7 +59,7 @@ Valem para todas as tasks. O que mudar durante o passo é registrado aqui e, no 
 | [T06](06-cancelar-presenca.md) | `rpc_presenca`: cancelar presença | feito | T05 |
 | [T07](07-editar-jogo.md) | `rpc_jogo`: editar jogo | feito | T06 |
 | [T08](08-cancelar-encerrar-jogo.md) | `rpc_jogo`: cancelar e encerrar jogo | feito | T06 |
-| [T09](09-marcar-falta.md) | `rpc_presenca`: marcar falta | a fazer | T08 |
+| [T09](09-marcar-falta.md) | `rpc_presenca`: marcar falta | feito | T08 |
 | [T10](10-rpc-cobranca.md) | `rpc_cobranca`: baixa e isenção | a fazer | T09 |
 | [T11](11-excluir-conta.md) | `rpc_conta`: excluir conta | a fazer | T10 |
 | [T12](12-concorrencia.md) | Concorrência | a fazer | T05, T07 |

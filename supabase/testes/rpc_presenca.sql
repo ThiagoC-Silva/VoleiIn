@@ -1,7 +1,8 @@
--- Cenários de confirmar e cancelar presença (migração rpc_presenca): papel (RN13), cobrança (RN07),
--- fila (RN08), isenção do cancelante tardio (RN05), reconfirmação (RN25), trava (RNF09) e
--- o aviso de prazo de editar_grupo (RN11), que precisa de confirmados. Roda numa
--- transação desfeita, a partir do banco recém-resetado com o seed.sql aplicado.
+-- Cenários de confirmar e cancelar presença e de marcar falta (migração rpc_presenca): papel
+-- (RN13), cobrança (RN07), fila (RN08), isenção do cancelante tardio (RN05), reconfirmação
+-- (RN25), trava (RNF09), falta (RN04) e o aviso de prazo de editar_grupo (RN11), que precisa
+-- de confirmados. Roda numa transação desfeita, a partir do banco recém-resetado com o
+-- seed.sql aplicado.
 --
 -- docker exec -i supabase_db_VoleiIn psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/testes/rpc_presenca.sql
 --
@@ -646,8 +647,141 @@ select pg_temp.espera_verdade('o número de avisos de prazo não mudou',
      where p.status = 'confirmado' and p.pessoa_id <> 'a0000000-0000-0000-0000-000000000001'
        and p.jogo_id in (pg_temp.id('dez'), pg_temp.id('rn05a'), pg_temp.id('rn05b'), pg_temp.id('c_fila'))));
 
+-- Marcar falta (RF18, RN04).
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select promover_admin(pg_temp.id('sabado'), 'f0000000-0000-0000-0000-000000000001');
+reset role;
+
+-- f1: Membro 1 cria com Ana recebendo. Ana e Membros 2 a 7 confirmam, e Membro 7 sai no prazo.
+select pg_temp.como(pg_temp.m(1));
+insert into ids values ('f1', criar_jogo(pg_temp.id('sabado'), '10000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000001', pg_temp.proximo(1, '19:00') + interval '14 days', 120, 10, 10000, null,
+  'a0000000-0000-0000-0000-000000000001'));
+reset role;
+select pg_temp.confirma(p, 'f1')
+from unnest(array['a0000000-0000-0000-0000-000000000001'::uuid, pg_temp.m(2), pg_temp.m(3), pg_temp.m(4),
+                  pg_temp.m(5), pg_temp.m(6), pg_temp.m(7)]) p;
+select pg_temp.cancela(pg_temp.m(7), 'f1');
+
+-- O fim reservado passou, mas o jogo segue aberto.
+select pg_temp.inicio('f1', now() - interval '2 hours');
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('antes do encerramento, mesmo depois do fim reservado',
+  $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(2))$$, 'jogo_nao_encerrado');
+select pg_temp.espera_ok('Ana, admin, encerra f1', $$select encerrar_jogo(pg_temp.id('f1'))$$);
+reset role;
+
+-- Ana dá baixa na cobrança de Membro 3 e isenta a de Membro 4. As funções chegam na T10;
+-- aqui, o par de autor e momento é gravado como postgres.
+update cobranca c set status = 'confirmado', confirmado_por = 'a0000000-0000-0000-0000-000000000001', confirmado_em = now()
+from participacao p where p.id = c.participacao_id and p.jogo_id = pg_temp.id('f1') and p.pessoa_id = pg_temp.m(3);
+update cobranca c set status = 'isenta', confirmado_por = 'a0000000-0000-0000-0000-000000000001', confirmado_em = now()
+from participacao p where p.id = c.participacao_id and p.jogo_id = pg_temp.id('f1') and p.pessoa_id = pg_temp.m(4);
+
+select pg_temp.como(pg_temp.m(1));
+select pg_temp.espera_recusa('o criador que não é recebedor nem admin não marca',
+  $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(2))$$, 'sem_permissao', '42501');
+select pg_temp.como('e0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('membro comum não marca',
+  $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(2))$$, 'sem_permissao', '42501');
+select pg_temp.como('d0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('quem é de fora não marca',
+  $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(2))$$, 'sem_permissao', '42501');
+select pg_temp.espera_recusa('marcar falta em jogo que não existe',
+  $$select marcar_falta('40000000-0000-0000-0000-0000000000ff', pg_temp.m(2))$$, 'sem_permissao', '42501');
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_ok('Ana, a recebedora, marca a falta de Membro 2', $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(2))$$);
+select pg_temp.espera_ok('e repete o pedido', $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(2))$$);
+select pg_temp.espera_recusa('quem saiu no prazo não falta',
+  $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(7))$$, 'nao_confirmado');
+select pg_temp.espera_recusa('quem nunca participou não falta',
+  $$select marcar_falta(pg_temp.id('f1'), 'e0000000-0000-0000-0000-000000000001')$$, 'nao_confirmado');
+select pg_temp.como('f0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_ok('Fabi, admin que não recebe, marca a falta de Membro 3, já paga',
+  $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(3))$$);
+select pg_temp.espera_ok('e a de Membro 4, isenta', $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(4))$$);
+select pg_temp.espera_ok('e a de Ana, a recebedora, que confirmou e não foi',
+  $$select marcar_falta(pg_temp.id('f1'), 'a0000000-0000-0000-0000-000000000001')$$);
+reset role;
+
+select pg_temp.espera_verdade('participação e origem mudam juntas, com o mesmo valor, qualquer que seja o status',
+  pg_temp.situacao('f1', pg_temp.m(2)) = 'faltou' and pg_temp.cobranca('f1', pg_temp.m(2)) = 'pendente:falta:1000'
+  and pg_temp.situacao('f1', pg_temp.m(3)) = 'faltou' and pg_temp.cobranca('f1', pg_temp.m(3)) = 'confirmado:falta:1000'
+  and pg_temp.situacao('f1', pg_temp.m(4)) = 'faltou' and pg_temp.cobranca('f1', pg_temp.m(4)) = 'isenta:falta:1000'
+  and not exists (select 1 from cobranca c join participacao p on p.id = c.participacao_id
+                  where p.jogo_id = pg_temp.id('f1') and p.pessoa_id in (pg_temp.m(3), pg_temp.m(4))
+                    and c.confirmado_por is distinct from 'a0000000-0000-0000-0000-000000000001'));
+select pg_temp.espera_verdade('a recebedora vira faltou, sem cobrança a mudar',
+  pg_temp.situacao('f1', 'a0000000-0000-0000-0000-000000000001') = 'faltou'
+  and pg_temp.cobranca('f1', 'a0000000-0000-0000-0000-000000000001') is null);
+select pg_temp.espera_verdade('quem não foi marcado fica como estava',
+  pg_temp.situacao('f1', pg_temp.m(5)) = 'confirmado' and pg_temp.cobranca('f1', pg_temp.m(5)) = 'pendente:parte:1000'
+  and pg_temp.situacao('f1', pg_temp.m(1)) = 'confirmado' and pg_temp.cobranca('f1', pg_temp.m(1)) = 'pendente:parte:1000'
+  and pg_temp.situacao('f1', pg_temp.m(7)) = 'cancelou_no_prazo' and pg_temp.cobranca('f1', pg_temp.m(7)) = 'cancelada:parte:1000');
+select pg_temp.espera_verdade('falta_marcada uma vez a cada faltoso',
+  (select array_agg(pessoa_id order by pessoa_id) from notificacao where tipo = 'falta_marcada')
+  = array[pg_temp.m(2), pg_temp.m(3), pg_temp.m(4), 'a0000000-0000-0000-0000-000000000001'::uuid]);
+select pg_temp.espera_verdade('com cobrança, o aviso leva a ela, com o nome inteiro de quem marcou e a data sem vírgula',
+  exists (select 1 from notificacao n join cobranca c on c.id = n.cobranca_id
+          where n.tipo = 'falta_marcada' and n.pessoa_id = pg_temp.m(2) and c.devedor_id = pg_temp.m(2)
+            and n.jogo_id is null and n.titulo = 'Falta marcada'
+            and n.corpo = format('Ana Souza marcou sua falta em Areia de Sábado, %s. O valor da cobrança não muda.',
+                                 replace(privado.data_curta(now() - interval '2 hours'), ',', ''))
+            and n.corpo ~ '^Ana Souza marcou sua falta em Areia de Sábado, (dom|seg|ter|qua|qui|sex|sáb) [0-9]{1,2} [a-z]{3}\. ')
+  and exists (select 1 from notificacao where tipo = 'falta_marcada' and pessoa_id = pg_temp.m(3)
+                and corpo = format('Fabi marcou sua falta em Areia de Sábado, %s. O valor da cobrança não muda.',
+                                   replace(privado.data_curta(now() - interval '2 hours'), ',', ''))));
+select pg_temp.espera_verdade('sem cobrança, o da recebedora perde a frase do valor e leva ao jogo',
+  exists (select 1 from notificacao
+          where tipo = 'falta_marcada' and pessoa_id = 'a0000000-0000-0000-0000-000000000001'
+            and jogo_id = pg_temp.id('f1') and cobranca_id is null and titulo = 'Falta marcada'
+            and corpo = format('Fabi marcou sua falta em Areia de Sábado, %s.',
+                               replace(privado.data_curta(now() - interval '2 hours'), ',', ''))));
+
+-- A janela fecha 24 h depois do encerramento previsto: início + 2 h de jogo + 1 h + 24 h.
+select pg_temp.inicio('f1', now() - interval '27 hours 1 minute');
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('um minuto depois da janela',
+  $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(5))$$, 'janela_de_falta_encerrada');
+reset role;
+select pg_temp.inicio('f1', now() - interval '27 hours');
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_ok('no último instante da janela', $$select marcar_falta(pg_temp.id('f1'), pg_temp.m(5))$$);
+reset role;
+select pg_temp.espera_verdade('Membro 5 faltou no limite da janela',
+  pg_temp.situacao('f1', pg_temp.m(5)) = 'faltou' and pg_temp.cobranca('f1', pg_temp.m(5)) = 'pendente:falta:1000');
+
+-- f2: no avulso, só o recebedor marca. Dani cria com Ana recebendo, e Ana confirma.
+select pg_temp.como('d0000000-0000-0000-0000-000000000001');
+insert into ids values ('f2', criar_jogo(null, '10000000-0000-0000-0000-000000000002', null,
+  pg_temp.proximo(0, '10:00') + interval '14 days', 60, 10, 10000, 2, 'a0000000-0000-0000-0000-000000000001'));
+reset role;
+select pg_temp.confirma('a0000000-0000-0000-0000-000000000001', 'f2');
+select pg_temp.inicio('f2', now() - interval '1 hour');
+select pg_temp.como('d0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_ok('Dani, a criadora, encerra o avulso', $$select encerrar_jogo(pg_temp.id('f2'))$$);
+select pg_temp.espera_recusa('no avulso, a criadora que não recebe não marca',
+  $$select marcar_falta(pg_temp.id('f2'), 'a0000000-0000-0000-0000-000000000001')$$, 'sem_permissao', '42501');
+select pg_temp.como('f0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('no avulso, admin de grupo não marca',
+  $$select marcar_falta(pg_temp.id('f2'), 'd0000000-0000-0000-0000-000000000001')$$, 'sem_permissao', '42501');
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_ok('no avulso, a recebedora marca a falta da criadora',
+  $$select marcar_falta(pg_temp.id('f2'), 'd0000000-0000-0000-0000-000000000001')$$);
+reset role;
+select pg_temp.espera_verdade('Dani faltou e deve a falta a Ana; o aviso diz o nome do local',
+  pg_temp.situacao('f2', 'd0000000-0000-0000-0000-000000000001') = 'faltou'
+  and pg_temp.cobranca('f2', 'd0000000-0000-0000-0000-000000000001') = 'pendente:falta:1000'
+  and exists (select 1 from notificacao where tipo = 'falta_marcada' and pessoa_id = 'd0000000-0000-0000-0000-000000000001'
+                and corpo like 'Ana Souza marcou sua falta em Ginásio Municipal, %. O valor da cobrança não muda.'));
+
 -- Privilégios.
 
+select pg_temp.espera_verdade('authenticated executa marcar_falta; anon não',
+  has_function_privilege('authenticated', 'public.marcar_falta(uuid, uuid)', 'execute')
+  and not has_function_privilege('anon', 'public.marcar_falta(uuid, uuid)', 'execute'));
 select pg_temp.espera_verdade('authenticated executa confirmar_presenca e cancelar_presenca; anon não',
   has_function_privilege('authenticated', 'public.confirmar_presenca(uuid)', 'execute')
   and not has_function_privilege('anon', 'public.confirmar_presenca(uuid)', 'execute')
