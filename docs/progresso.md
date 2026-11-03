@@ -6,14 +6,14 @@ O que entra aqui é o que **não se descobre lendo o código**: a decisão tomad
 
 ## Estado
 
-**Passo atual: 4 — Núcleo financeiro.**
+**Passo atual: 5 — App.**
 
 | Passo | Estado |
 | --- | --- |
 | 1. Schema | feito |
 | 2. Política de linha | feito |
 | 3. Autenticação | feito |
-| 4. Núcleo financeiro | a fazer |
+| 4. Núcleo financeiro | feito |
 | 5. App | a fazer |
 | 6. Comprovante | a fazer |
 | 7. Avisos | a fazer |
@@ -123,6 +123,36 @@ A análise de 2026-10-29 achou regras abertas que o passo 4 teria de inventar. F
 - **Avisos novos (RN05, RN20):** a isenção automática avisa o isento com `cobranca_isenta`; a remarcação manda `jogo_editado` também a quem teve a multa cancelada; a troca de recebedor não avisa na hora, porque o pagamento liberado já chega com o credor novo.
 - **Schema:** o passo 4 abre com `ajustes_funcoes` e `ajustes_schema` (coluna `jogo.cancelamento_livre_ate` e `check` de devedor diferente de credor).
 - **Design:** a B4 troca o texto da isenção e há um aberto para a B3 do recebedor (`docs/design/telas/02-jogos/implementacao.md`).
+
+## Passo 4 — Núcleo financeiro · 2026-11-02
+
+Dezesseis funções RPC — cinco de grupo, cinco de jogo, três de presença, duas de cobrança e a `excluir_conta` —, cada uma gravando os próprios avisos na mesma transação. Antes delas, as migrações de ajuste `ajustes_funcoes` e `ajustes_schema`. Oito suítes SQL passam, com 70 (`schema`), 74 (`rls`), 39 (`autenticacao`), 63 (`rpc_grupo`), 164 (`rpc_jogo`), 126 (`rpc_presenca`), 42 (`rpc_cobranca`) e 21 (`rpc_conta`) asserções. O roteiro `concorrencia.sh` passa com 3 cenários, três rodadas seguidas. No remoto, `supabase db push --linked` levou as sete migrações, e `supabase migration list` bate nos treze arquivos. O verificador de segurança perdeu o `function_search_path_mutable` e ficou só com o alerta esperado das RPCs (Aberto).
+
+**Arquivos:** `supabase/migrations/` (`ajustes_funcoes`, `ajustes_schema`, `rpc_grupo`, `rpc_jogo`, `rpc_presenca`, `rpc_cobranca`, `rpc_conta`), `supabase/testes/` (`rpc_grupo.sql`, `rpc_jogo.sql`, `rpc_presenca.sql`, `rpc_cobranca.sql`, `rpc_conta.sql`, `concorrencia.sh`, e as asserções de privilégio em `rls.sql`), `docs/design/telas/08-avisos/implementacao.md` (textos dos avisos) e `plan-tasks/passo04/` (uma task por commit, com o resultado de cada uma).
+
+**Decisões de implementação:**
+- **Recusa por código estável.** Regra violada é `P0001` com um código em `snake_case` na mensagem; falta de papel é `42501` com `sem_permissao`, também quando o jogo, o grupo ou a cobrança não existe. A lista por função, com o que cada código quer dizer, está em `supabase/CLAUDE.md`, seção Funções: o app do passo 5 a traduz, e o código não muda depois de publicado.
+- **Ordem das checagens:** papel, estado do jogo, hora e, por último, o estado da participação ou da cobrança. Repetir a operação já feita não muda nada nem avisa (RNF10), mas a hora vem antes: confirmar depois do início, ou marcar falta depois da janela, recusa mesmo para quem já estava no estado pedido.
+- **Auxiliares em `privado`**, sem `execute` para ninguém. As RPC são `security definer` com `search_path` vazio. O `rls.sql` confere isso pelo catálogo, e não por uma lista, para pegar também as funções dos próximos passos. Em `privado`, só as cinco auxiliares das políticas do passo 2 são executadas por `authenticated`.
+- **Migrações editadas no lugar até o `db push`.** `rpc_jogo` e `rpc_presenca` nasceram numa task e cresceram nas seguintes, porque nada do passo tinha ido ao remoto. Depois do push, vale a regra de `supabase/CLAUDE.md`: corrige-se criando a próxima.
+- **Travas.** Mutação de jogo e de presença trava a linha do jogo (`for update`). Criação e remarcação entram na fila do local com `pg_advisory_xact_lock(hashtextextended(local_id))` antes de checar a RN15. Promover, remover, sair e excluir a conta travam a linha do grupo, para duas saídas simultâneas não deixarem o grupo sem admin. `concorrencia.sh` prova as duas primeiras com duas sessões de verdade: sem o `pg_advisory_xact_lock`, o cenário da quadra falha.
+- **O tempo nos testes.** Dentro da transação `now()` não anda. Os cenários movem `jogo.inicio` como postgres, para o jogo começar, terminar ou sair da janela de falta. A âncora da retenção recua um dia o `atualizado_em` das cobranças inativas, com o gatilho desligado só nesse `update`; sem isso, uma escrita indevida passaria despercebida. A rotina de minuto é simulada esvaziando `request.jwt.claims`.
+- **Encerramento numa função só.** `privado.encerrar` é a que a rotina de minuto do passo 8 vai chamar. Ela lê `auth.uid()` para não avisar quem encerra à mão; na rotina, sem autor, todo devedor com cobrança `pendente` recebe o `pagamento_liberado`.
+- **Textos dos avisos formatados no banco.** São `privado.reais`, `privado.data_curta`, `privado.hora`, `privado.nome_jogo`, `privado.primeiro_nome` e `privado.resumo_cobranca`, sem `to_char` de data nem de dinheiro, para não depender do locale do servidor. Depois de "`{jogo}`," a data perde a vírgula do dia da semana, como no G1.
+- **A exclusão de conta apaga direto em `auth.users`.** A função é dona `postgres`, que tem `delete` lá, no local e no remoto, e as tabelas do Auth (sessões, identidades, fatores) caem em cascata. Sem a linha em `auth.users`, o pedido repetido com o token ainda válido não faz nada.
+- **Decisões de produto tomadas durante o passo (2026-11-02), já no PRD, no modelo e nos avisos:**
+  - a falta muda também a cobrança isenta, e a âncora da retenção aceita a resolvida, paga ou isenta;
+  - a recebedora marcada com falta recebe o aviso sem a frase do valor, levando ao jogo;
+  - a exclusão de conta só tira a pessoa da fila de jogo aberto;
+  - quem encerra à mão não recebe o próprio `pagamento_liberado`.
+
+**Aberto:**
+- O verificador de segurança do Supabase acusa `authenticated_security_definer_function_executable` em cada RPC. É o desenho: toda mutação é `security definer` chamada por `authenticated`, com o papel conferido dentro da função. Antes do passo, o mesmo alerta já aparecia só para a `listar_participantes`.
+- Os avisos de quem excluiu a conta ficam em `notificacao`, sem ninguém que os leia (a política só mostra ao titular). A RN27 não manda apagá-los.
+- `excluir_conta` confere as cobranças e depois apaga o usuário, mas não trava os jogos de onde uma cobrança nova poderia nascer. Se o mesmo titular confirmar presença noutro aparelho no mesmo instante, ou o criador de um jogo aberto o puser como recebedor nesse instante, a conta sai com a pendência. Não foi tratado nem decidido: no volume do piloto, exige duas ações no mesmo instante, mas fica para decidir se vale travar.
+- `enviar_comprovante` (passo 6) ainda decide se a recusa de comprovante repetido grava `comprovante_recusado` (`08-avisos/implementacao.md`, Notas). O `cobranca_vencida` e o encerramento automático entram com a rotina do passo 8, que chama `privado.encerrar`.
+- O remoto segue sem locais, quadras e horários: o `seed.sql` não vai para lá (Aberto do passo 1).
+- O remoto pausou por inatividade entre o passo 3 e o 4 e foi reativado em 2026-11-02, pelo MCP do Supabase (`restore_project`), antes do push. Até o workflow diário do passo 10, a pausa se repete a cada semana sem uso; reativa-se pelo painel ou pelo MCP, sem custo.
 
 <!-- Modelo de entrada, a copiar ao fechar um passo:
 

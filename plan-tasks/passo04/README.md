@@ -63,7 +63,7 @@ Valem para todas as tasks. O que mudar durante o passo é registrado aqui e, no 
 | [T10](10-rpc-cobranca.md) | `rpc_cobranca`: baixa e isenção | feito | T09 |
 | [T11](11-excluir-conta.md) | `rpc_conta`: excluir conta | feito | T10 |
 | [T12](12-concorrencia.md) | Concorrência | feito | T05, T07 |
-| [T13](13-fechamento.md) | Fechamento do passo | a fazer | todas |
+| [T13](13-fechamento.md) | Fechamento do passo | feito | todas |
 
 Ordem: T01 → T02 → T03 → T04 → T05 → T06 → T07 → T08 → T09 → T10 → T11 → T12 → T13. Uma task só começa com a anterior fechada e commitada.
 

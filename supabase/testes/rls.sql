@@ -440,6 +440,33 @@ select pg_temp.espera_verdade('Carlos, admin de quinta, vê Bruno marcado em J4 
 
 reset role;
 
+-- Privilégio de execução de todas as funções, pelo catálogo, para pegar também as que os
+-- próximos passos criarem (supabase/CLAUDE.md, Funções e Acesso).
+
+select pg_temp.espera_verdade('toda função de public, menos as de gatilho, é RPC: authenticated executa e anon não',
+  not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+              where n.nspname = 'public' and p.prorettype <> 'trigger'::regtype
+                and (not has_function_privilege('authenticated', p.oid, 'execute')
+                     or has_function_privilege('anon', p.oid, 'execute'))));
+select pg_temp.espera_verdade('toda RPC é security definer, com search_path vazio',
+  not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+              where n.nspname = 'public' and p.prorettype <> 'trigger'::regtype
+                and (not p.prosecdef or p.proconfig is distinct from array['search_path=""'])));
+select pg_temp.espera_verdade('as funções de gatilho de public não são executadas pelo app',
+  not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+              where n.nspname = 'public' and p.prorettype = 'trigger'::regtype
+                and (has_function_privilege('authenticated', p.oid, 'execute')
+                     or has_function_privilege('anon', p.oid, 'execute'))));
+select pg_temp.espera_verdade('em privado, authenticated executa só as cinco auxiliares das políticas, e anon nada',
+  (select array_agg(p.proname::text order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'privado' and has_function_privilege('authenticated', p.oid, 'execute'))
+  = array['conhece', 'eh_admin', 'eh_membro', 'pode_ver_grupo', 'pode_ver_jogo']
+  and not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'privado' and has_function_privilege('anon', p.oid, 'execute')));
+select pg_temp.espera_verdade('toda função de privado tem search_path vazio',
+  not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+              where n.nspname = 'privado' and p.proconfig is distinct from array['search_path=""']));
+
 do $$
 begin
   raise notice 'SUCESSO: % asserções', currval('assercoes');
