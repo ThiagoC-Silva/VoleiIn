@@ -22,7 +22,7 @@ Excluir a própria conta (RF36, RN27, RNF04): recusar enquanto houver pendência
   Sem pendência, na mesma transação:
   - `pessoa`: nome `Jogador removido`, `avatar_url`, `telefone` e `chave_pix` vazios;
   - `jogo.chave_pix_recebedor` vazia nos jogos em que ele é recebedor (RNF04);
-  - participação em `lista_espera` vira `cancelou_no_prazo`, com as filas renumeradas;
+  - participação em `lista_espera` de jogo `aberto` vira `cancelou_no_prazo`, com as filas renumeradas; em jogo encerrado ou cancelado fica como está (decidido em 2026-11-02, RN17);
   - apaga as linhas dele em `membro_grupo` e em `dispositivo_push`;
   - apaga o usuário em `auth.users` — testar que a função, dona `postgres`, tem o privilégio para isso no local; se não tiver, parar e decidir antes de contornar.
 - [ ] `grant execute` a `authenticated`.

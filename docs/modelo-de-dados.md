@@ -285,7 +285,7 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | Convite com `revogado_em` preenchido não aplica mais o convite, mesmo dentro do prazo | RF32, RN22 |
 | A exclusão de conta apaga o usuário no serviço de autenticação e preserva a linha de Pessoa, anonimizada; nenhuma coluna do perfil guarda credencial | RN21, RN27 |
 | A troca de e-mail, a troca de senha e a exclusão de conta apagam todos os DispositivoPush do titular, não os de um aparelho | RNF07, RN27 |
-| A exclusão de conta é recusada enquanto o titular tiver cobrança `pendente` ou `comprovante_enviado`, como devedor ou credor, ou for `recebedor_id` de jogo `aberto`; feita, ele sai de todos os grupos e a participação dele em `lista_espera` vira `cancelou_no_prazo` | RN27 |
+| A exclusão de conta é recusada enquanto o titular tiver cobrança `pendente` ou `comprovante_enviado`, como devedor ou credor, ou for `recebedor_id` de jogo `aberto`; feita, ele sai de todos os grupos e a participação dele em `lista_espera` de jogo `aberto` vira `cancelou_no_prazo` | RN17, RN27 |
 | Grupo com mais de um membro tem ao menos um MembroGrupo `admin`: o admin único só sai do grupo, ou exclui a conta, depois de promover outro | RN27, RN30 |
 | `DispositivoPush.token_fcm` pertence a quem o registrou por último: registrar um token que já existe transfere a linha, em vez de criar outra | RN29 |
 | `Participacao.posicao_espera` só é preenchido enquanto o status for `lista_espera`, e é renumerado sem buracos quando alguém sai da lista | RN08 |
@@ -298,12 +298,12 @@ Regras de integridade que dependem de mais de uma tabela ou de condição entre 
 | `Comprovante` só é aceito depois do encerramento do jogo | RN07 |
 | `Comprovante.resultado` é derivado no servidor a partir dos campos lidos e dos dados da cobrança, nunca informado pelo app | RN09 |
 | O descarte do comprovante esvazia `arquivo_url` mas preserva a linha, porque `id_transacao` segue bloqueando reenvio | RN10, RN19 |
-| `Participacao` passa a `faltou` junto com a mudança da cobrança para origem `falta`, só com o jogo `encerrado` | RN04, RN17 |
+| `Participacao` passa a `faltou` junto com a mudança da cobrança para origem `falta`, qualquer que seja o status dela, só com o jogo `encerrado`; o recebedor, sem cobrança, só muda de participação | RN04, RN17 |
 | A cobrança vence e a janela de falta fecha 24 horas após o encerramento previsto, `inicio + duracao_minutos + 1h`, mesmo quando o jogo foi encerrado antes à mão | RN04, RN07, RN17 |
 | `Local.verificado` é sempre falso no MVP | RN18 |
 | Local, Quadra e HorarioFuncionamento são somente leitura para todo cliente autenticado; só a chave de serviço escreve | RN18 |
 | Só o devedor e o credor da cobrança leem o `arquivo_url` do comprovante | RN19, RNF02 |
-| A retenção do comprovante conta de `Cobranca.atualizado_em`: depois do encerramento, nenhuma função altera cobrança que deixou de estar ativa, exceto a marcação de falta numa cobrança já confirmada, dentro das 24 horas | RN04, RN19, RNF03 |
+| A retenção do comprovante conta de `Cobranca.atualizado_em`: depois do encerramento, nenhuma função altera cobrança que deixou de estar ativa, exceto a marcação de falta numa cobrança já resolvida — confirmada ou isenta —, dentro das 24 horas | RN04, RN19, RNF03 |
 
 ## Notas de leitura
 
@@ -317,6 +317,6 @@ Os campos lidos do Comprovante — `valor_lido`, `data_lida`, `destinatario_lido
 
 Notificacao e DispositivoPush pendem apenas de Pessoa e não participam do rateio. O aviso é sempre gravado, mesmo sem push autorizado ou com falha no envio: o sino é a fonte de verdade e o push é entrega oportunista (RN29).
 
-A retenção do comprovante (RN19) conta de `Cobranca.atualizado_em`, sem um campo próprio para o momento em que a cobrança deixou de estar ativa. Isso só é exato porque comprovante só existe depois do encerramento, e daí em diante nenhuma função toca cobrança inativa. A única exceção é marcar falta numa cobrança já confirmada, dentro das 24 horas da RN04, que atrasa o descarte em até um dia. Uma função nova que altere cobrança inativa depois do encerramento quebra essa conta, e os cenários do passo 4 conferem isso.
+A retenção do comprovante (RN19) conta de `Cobranca.atualizado_em`, sem um campo próprio para o momento em que a cobrança deixou de estar ativa. Isso só é exato porque comprovante só existe depois do encerramento, e daí em diante nenhuma função toca cobrança inativa. A única exceção é marcar falta numa cobrança já resolvida, confirmada ou isenta, dentro das 24 horas da RN04, que atrasa o descarte em até um dia. Uma função nova que altere cobrança inativa depois do encerramento quebra essa conta, e os cenários do passo 4 conferem isso.
 
 `Local.dono_id` e `Local.verificado` existem sem uso, à espera do perfil de dono de local, que está fora do MVP (RN18).

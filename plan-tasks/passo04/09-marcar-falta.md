@@ -16,9 +16,9 @@ Marcar quem faltou (RF18, RN04), só com o jogo encerrado e dentro da janela de 
 - [ ] Em `rpc_presenca`, `marcar_falta(jogo, pessoa)`:
   - recebedor do jogo e admins do grupo; no avulso, só o recebedor (RN04, RN13);
   - jogo `encerrado` (`jogo_nao_encerrado`) e `now() <= encerramento_previsto + 24 h` (`janela_de_falta_encerrada`);
-  - participação `confirmado` vira `faltou`; a cobrança de origem `parte` vira `falta` com o mesmo valor, qualquer que seja o status dela — inclusive já paga, a exceção aceita na âncora de retenção (`docs/modelo-de-dados.md`);
+  - participação `confirmado` vira `faltou`; a cobrança de origem `parte` vira `falta` com o mesmo valor, qualquer que seja o status dela — inclusive já paga ou isenta, a exceção aceita na âncora de retenção (`docs/modelo-de-dados.md`; a isenta decidida em 2026-11-02);
   - participação que não é `confirmado` é recusada (`nao_confirmado`); já `faltou`, nada muda;
-  - `falta_marcada` ao faltoso;
+  - `falta_marcada` ao faltoso; o recebedor, sem cobrança, recebe a versão sem a frase do valor, levando ao jogo (decidido em 2026-11-02);
   - `grant execute` a `authenticated`.
 - [ ] `supabase/testes/rpc_presenca.sql`:
   - antes do encerramento, recusado; depois de `encerramento_previsto + 24 h`, recusado;

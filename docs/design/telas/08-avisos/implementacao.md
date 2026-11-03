@@ -37,6 +37,7 @@ Tela: ainda não implementada (passo 7). Os avisos, porém, são gravados desde 
 | `cobranca_isenta` (manual) | Ana isentou sua cobrança | R$ 20,00 · `{jogo}`, sáb 17 out. Nada a pagar. | O devedor (RF23) | `isentar_cobranca` | cobrança |
 | `cobranca_isenta` (automática) | Multa isenta | Outra pessoa confirmou presença em `{jogo}`, `{data}`. Os R$ 20,00 da sua multa não são mais devidos. | O cancelante tardio isento (RN05) | `confirmar_presenca`, pela função interna que a `aplicar_convite` também chama | cobrança |
 | `falta_marcada` | Falta marcada | Ana marcou sua falta em `{jogo}`, sáb 17 out. O valor da cobrança não muda. | Quem foi marcado (RN04) | `marcar_falta` | cobrança |
+| `falta_marcada` (recebedor) | Falta marcada | Ana marcou sua falta em `{jogo}`, sáb 17 out. | O recebedor confirmado marcado como faltoso, que não tem cobrança (RN04, RN07) | `marcar_falta` | jogo |
 | `removido_do_grupo` | Você não está mais em `{grupo}` | Um admin removeu você do grupo. Suas presenças e cobranças continuam valendo. | Quem foi removido (RN30) | `remover_membro` | — |
 | `promovido_a_admin` | Você agora é admin de `{grupo}` | Bruno promoveu você. Agora você edita as regras, convida e remove membros. | Quem foi promovido (RN13) | `promover_admin` | — |
 
@@ -51,4 +52,7 @@ Tela: ainda não implementada (passo 7). Os avisos, porém, são gravados desde 
 - **`valor_recalculado` com 1 vaga** segue a variação do `regra_grupo_alterada`: "Agora é 1 vaga." e "Total R$ 30,00 em 1 vaga.". Como nos outros avisos da edição, `{jogo}` é o nome de antes dela.
 - **`regra_grupo_alterada` sem efeito não avisa.** Num jogo remarcado, `cancelamento_livre_ate` é o próprio início, e mudar o prazo do grupo não muda o prazo sem multa dele (RN02); num jogo que já começou, cancelar não é mais possível.
 - **`comprovante_recusado` no passo 6.** Se a recusa do envio for uma exceção, a transação desfaz também a linha do aviso. O passo 6 decide entre devolver a recusa sem exceção, gravando o aviso, e não gravar o aviso, já que a F4 mostra a recusa na hora.
+- **`falta_marcada` do recebedor** (decidido em 2026-11-02): o recebedor confirmado que não aparece também leva falta, mas não tem cobrança. O aviso perde a frase do valor e leva ao jogo.
+- **`pagamento_liberado` não vai a quem encerra à mão** (decidido em 2026-11-02), pela convenção de quem faz o ato: o criador que encerra e deve a parte dele vê o débito no painel e recebe o `cobranca_vencida` se não pagar. No encerramento pela rotina de minuto, não há autor, e todo devedor com cobrança `pendente` recebe.
+- **Data sem vírgula depois do `{jogo}`**: nos textos com "`{jogo}`, sáb 17 out" (`comprovante_recebido`, `cobranca_confirmada`, `cobranca_isenta` manual, `falta_marcada`), a data curta perde a vírgula do dia da semana, como no G1 ("Vôlei de Quinta, qui 15 out"), para não ficar "Areia de Sábado, sáb, 17 out". É a data do início do jogo.
 - **Ícone e cor** de cada tipo ficam para o passo 7, com a tela. Os cinco do G1 já têm os seus.

@@ -22,7 +22,7 @@ Dar baixa (RF22) e isentar à mão (RF23), só pelo credor e só depois do encer
   - devedor e terceiro recusados; credor antes do encerramento recusado (congelamento da RN07);
   - baixa e isenção preenchem o par e avisam; repetir não duplica aviso; baixa em cobrança isenta recusada;
   - depois da troca de recebedor (T07), só o novo credor dá baixa;
-  - **âncora da retenção:** encerrado o jogo, guardar o `atualizado_em` de cada cobrança inativa (`confirmado`, `isenta`, `cancelada`); rodar, em todas as cobranças e participações do jogo, cada função que o app alcança depois do encerramento — `dar_baixa`, `isentar_cobranca`, `editar_jogo`, `cancelar_jogo`, `encerrar_jogo`, `confirmar_presenca`, `cancelar_presenca`, `marcar_falta` —, aceitando as recusas; conferir que nenhum `atualizado_em` mudou, exceto o da cobrança já paga cuja falta foi marcada.
+  - **âncora da retenção:** encerrado o jogo, guardar o `atualizado_em` de cada cobrança inativa (`confirmado`, `isenta`, `cancelada`); rodar, em todas as cobranças e participações do jogo, cada função que o app alcança depois do encerramento — `dar_baixa`, `isentar_cobranca`, `editar_jogo`, `cancelar_jogo`, `encerrar_jogo`, `confirmar_presenca`, `cancelar_presenca`, `marcar_falta` —, aceitando as recusas; conferir que nenhum `atualizado_em` mudou, exceto o das cobranças já resolvidas — paga ou isenta — cuja falta foi marcada.
 
 ## Pronto quando
 

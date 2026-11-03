@@ -15,7 +15,7 @@ Cancelar o jogo (RF11, RN23) e encerrá-lo à mão (RF33, RN17), com o encerrame
 
 - [ ] Em `rpc_jogo`:
   - `cancelar_jogo(jogo)`: criador e admins (RN13); trava a linha; só `aberto` e antes do início (`jogo_ja_comecou`); status `cancelado`; toda cobrança ativa vira `cancelada`, inclusive multas (RN23); `jogo_cancelado` aos destinatários aprovados; já cancelado, nada muda;
-  - `privado.encerrar(jogo)`: status `encerrado`; `pagamento_liberado` a cada devedor com cobrança `pendente`, com valor, credor e vencimento (`encerramento_previsto + 24 h`); quem está em `lista_espera` fica como está (RN17); já encerrado, nada muda;
+  - `privado.encerrar(jogo)`: status `encerrado`; `pagamento_liberado` a cada devedor com cobrança `pendente`, com valor, credor e vencimento (`encerramento_previsto + 24 h`), menos a quem encerra à mão (decidido em 2026-11-02); quem está em `lista_espera` fica como está (RN17); já encerrado, nada muda;
   - `encerrar_jogo(jogo)`: criador e admins do grupo, no avulso só o criador (RN13, RN17); `now() >= inicio + duracao_minutos` (`jogo_nao_terminou`); chama `privado.encerrar`;
   - `grant execute` de `cancelar_jogo` e `encerrar_jogo` a `authenticated`; nenhum para `privado.encerrar`.
 - [ ] `supabase/testes/rpc_jogo.sql`:
