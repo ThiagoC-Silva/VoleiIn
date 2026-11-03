@@ -57,7 +57,7 @@ Valem para todas as tasks. O que mudar durante o passo é registrado aqui e, no 
 | [T04](04-criar-duplicar-jogo.md) | `rpc_jogo`: criar e duplicar jogo | feito | T03 |
 | [T05](05-confirmar-presenca.md) | `rpc_presenca`: confirmar presença | feito | T04 |
 | [T06](06-cancelar-presenca.md) | `rpc_presenca`: cancelar presença | feito | T05 |
-| [T07](07-editar-jogo.md) | `rpc_jogo`: editar jogo | a fazer | T06 |
+| [T07](07-editar-jogo.md) | `rpc_jogo`: editar jogo | feito | T06 |
 | [T08](08-cancelar-encerrar-jogo.md) | `rpc_jogo`: cancelar e encerrar jogo | a fazer | T06 |
 | [T09](09-marcar-falta.md) | `rpc_presenca`: marcar falta | a fazer | T08 |
 | [T10](10-rpc-cobranca.md) | `rpc_cobranca`: baixa e isenção | a fazer | T09 |

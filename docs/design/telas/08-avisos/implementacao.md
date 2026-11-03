@@ -48,6 +48,7 @@ Tela: ainda não implementada (passo 7). Os avisos, porém, são gravados desde 
 - **`valor_recalculado` sem mudança no valor por vaga** não avisa: custo de R$ 100,00 para R$ 100,01 em 7 vagas mantém R$ 14,29, e nenhuma cobrança muda.
 - **`regra_grupo_alterada` com 1 h e com zero** (aprovado em 2026-11-02): "são 1 h" e "são 0 h" soariam errados. Com 1 h, o verbo vai ao singular. Com zero, o prazo sem multa é o próprio início, e a segunda frase só repetiria a data; o corpo vira uma frase só.
 - **Pessoa no corpo com o nome inteiro**, também no `promovido_a_admin` (confirmado em 2026-11-02): "Ana Souza promoveu você." O "Bruno" da tabela é o exemplo de um nome de uma palavra.
+- **`valor_recalculado` com 1 vaga** segue a variação do `regra_grupo_alterada`: "Agora é 1 vaga." e "Total R$ 30,00 em 1 vaga.". Como nos outros avisos da edição, `{jogo}` é o nome de antes dela.
 - **`regra_grupo_alterada` sem efeito não avisa.** Num jogo remarcado, `cancelamento_livre_ate` é o próprio início, e mudar o prazo do grupo não muda o prazo sem multa dele (RN02); num jogo que já começou, cancelar não é mais possível.
 - **`comprovante_recusado` no passo 6.** Se a recusa do envio for uma exceção, a transação desfaz também a linha do aviso. O passo 6 decide entre devolver a recusa sem exceção, gravando o aviso, e não gravar o aviso, já que a F4 mostra a recusa na hora.
 - **Ícone e cor** de cada tipo ficam para o passo 7, com a tela. Os cinco do G1 já têm os seus.

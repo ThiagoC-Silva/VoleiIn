@@ -1,4 +1,4 @@
--- Cenários de criar e duplicar jogo (migração rpc_jogo): preço por vaga (RN01, RN16), o
+-- Cenários de criar, duplicar e editar jogo (migração rpc_jogo): preço por vaga (RN01, RN16), o
 -- criador confirmado (RN24), a chave do recebedor (RN24, RN28), o papel de quem cria
 -- (RN13) e as checagens de quadra e funcionamento (RN15). Roda numa transação desfeita,
 -- a partir do banco recém-resetado com o seed.sql aplicado.
@@ -458,14 +458,242 @@ select pg_temp.espera_erro('nascer_cobranca do recebedor é barrada pelo check',
       and pessoa_id = 'a0000000-0000-0000-0000-000000000001'))$$,
   '23514', 'cobranca_devedor_nao_e_credor');
 
+-- Editar (RF10, RN20). Confirmações e cancelamentos pelas funções de rpc_presenca.
+
+insert into pessoa (id, nome) select ('90000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, 'Membro ' || n
+from generate_series(1, 6) n;
+insert into membro_grupo (grupo_id, pessoa_id, papel)
+select pg_temp.jogo('sabado'), ('90000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, 'membro'
+from generate_series(1, 6) n;
+
+create function pg_temp.m(p_n integer) returns uuid language sql immutable as $$
+  select ('90000000-0000-0000-0000-' || lpad(p_n::text, 12, '0'))::uuid
+$$;
+-- Age como a pessoa num comando só e volta ao postgres.
+create function pg_temp.como_faz(p_pessoa uuid, p_comando text) returns void language plpgsql as $$
+begin
+  perform pg_temp.como(p_pessoa);
+  execute p_comando;
+  reset role;
+end;
+$$;
+create function pg_temp.cobranca(p_jogo text, p_pessoa uuid) returns text language sql stable as $$
+  select c.status || ':' || c.origem || ':' || c.valor
+  from cobranca c join participacao p on p.id = c.participacao_id
+  where p.jogo_id = pg_temp.jogo(p_jogo) and p.pessoa_id = p_pessoa
+$$;
+grant execute on function pg_temp.m(integer) to authenticated;
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select promover_admin(pg_temp.jogo('sabado'), 'c0000000-0000-0000-0000-000000000001');
+insert into ids values
+  ('e1', criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(), pg_temp.proximo(4, '19:00'), 120, 10, 10000, null)),
+  ('e2', criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q2(), pg_temp.proximo(4, '19:00'), 120, 10, 10000, null)),
+  ('e3', criar_jogo(pg_temp.jogo('sabado'), pg_temp.arena(), pg_temp.q1(), pg_temp.proximo(5, '19:00'), 120, 10, 10000, null));
+reset role;
+
+-- e1: Ana recebe; Membros 1 a 3 confirmados; Membro 4 com multa de cancelamento tardio.
+select pg_temp.como_faz(pg_temp.m(n), $$select confirmar_presenca(pg_temp.jogo('e1'))$$) from generate_series(1, 4) n;
+update jogo set inicio = now() + interval '1 hour' where id = pg_temp.jogo('e1');
+select pg_temp.como_faz(pg_temp.m(4), $$select cancelar_presenca(pg_temp.jogo('e1'))$$);
+update jogo set inicio = pg_temp.proximo(4, '19:00') where id = pg_temp.jogo('e1');
+
+select pg_temp.espera_verdade('e1 montado: três partes e uma multa de R$ 10,00',
+  pg_temp.cobranca('e1', pg_temp.m(1)) = 'pendente:parte:1000'
+  and pg_temp.cobranca('e1', pg_temp.m(4)) = 'pendente:cancelamento_tardio:1000');
+
+-- Papel (RN13).
+select pg_temp.como('b0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('membro comum não edita',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_custo_total => 14000)$$, 'sem_permissao', '42501');
+select pg_temp.como('d0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('quem é de fora não edita',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_custo_total => 14000)$$, 'sem_permissao', '42501');
+select pg_temp.como('c0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('admin que não criou não troca o recebedor',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_recebedor => 'c0000000-0000-0000-0000-000000000001')$$, 'sem_permissao', '42501');
+select pg_temp.espera_recusa('custo negativo',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_custo_total => -1)$$, 'custo_invalido');
+
+-- Custo (RN01).
+select pg_temp.espera_ok('Carlos, admin, muda o custo de R$ 100,00 para R$ 140,00',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_custo_total => 14000)$$);
+select pg_temp.espera_ok('e repete o mesmo pedido', $$select editar_jogo(pg_temp.jogo('e1'), p_custo_total => 14000)$$);
+reset role;
+
+select pg_temp.espera_verdade('preço e cobranças ativas passam a 1400, a multa também',
+  (select preco_por_vaga || ':' || custo_total from jogo where id = pg_temp.jogo('e1')) = '1400:14000'
+  and pg_temp.cobranca('e1', pg_temp.m(1)) = 'pendente:parte:1400'
+  and pg_temp.cobranca('e1', pg_temp.m(3)) = 'pendente:parte:1400'
+  and pg_temp.cobranca('e1', pg_temp.m(4)) = 'pendente:cancelamento_tardio:1400');
+select pg_temp.espera_verdade('a mudança de custo não é remarcação',
+  (select cancelamento_livre_ate from jogo where id = pg_temp.jogo('e1')) is null);
+select pg_temp.espera_verdade('valor_recalculado aos três confirmados e à multada, uma vez só, levando à cobrança',
+  (select array_agg(pessoa_id order by pessoa_id) from notificacao where tipo = 'valor_recalculado')
+    = array[pg_temp.m(1), pg_temp.m(2), pg_temp.m(3), pg_temp.m(4)]
+  and not exists (select 1 from notificacao where tipo = 'valor_recalculado' and (cobranca_id is null or jogo_id is not null)));
+select pg_temp.espera_verdade('o texto da parte e o da multa',
+  exists (select 1 from notificacao where tipo = 'valor_recalculado' and pessoa_id = pg_temp.m(1)
+            and titulo = 'Areia de Sábado mudou o custo'
+            and corpo = 'Total R$ 140,00. Sua parte passou para R$ 14,00.')
+  and exists (select 1 from notificacao where tipo = 'valor_recalculado' and pessoa_id = pg_temp.m(4)
+            and titulo = 'Areia de Sábado mudou o custo'
+            and corpo = 'Total R$ 140,00. Sua multa passou para R$ 14,00.'));
+
+-- Vagas (RN06).
+select pg_temp.como('c0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('vagas abaixo dos quatro confirmados',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_vagas_total => 3)$$, 'vagas_abaixo_dos_confirmados');
+select pg_temp.espera_recusa('vagas zero', $$select editar_jogo(pg_temp.jogo('e1'), p_vagas_total => 0)$$, 'vagas_invalidas');
+select pg_temp.espera_ok('vagas iguais aos confirmados', $$select editar_jogo(pg_temp.jogo('e1'), p_vagas_total => 4)$$);
+reset role;
+select pg_temp.espera_verdade('R$ 140,00 em 4 vagas: R$ 35,00, com o aviso de vagas',
+  pg_temp.cobranca('e1', pg_temp.m(2)) = 'pendente:parte:3500'
+  and exists (select 1 from notificacao where tipo = 'valor_recalculado' and pessoa_id = pg_temp.m(2)
+            and titulo = 'Areia de Sábado mudou as vagas'
+            and corpo = 'Agora são 4 vagas. Sua parte passou para R$ 35,00.'));
+
+-- Vagas que aumentam com fila (RN08).
+select pg_temp.como_faz(pg_temp.m(n), $$select confirmar_presenca(pg_temp.jogo('e1'))$$) from generate_series(5, 6) n;
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_ok('Ana aumenta para 5 vagas e muda o custo para R$ 150,00',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_vagas_total => 5, p_custo_total => 15000)$$);
+reset role;
+select pg_temp.espera_verdade('a fila inteira recebe vaga_liberada, sem a vaga ser dada a ninguém',
+  (select array_agg(pessoa_id order by pessoa_id) from notificacao where tipo = 'vaga_liberada' and jogo_id = pg_temp.jogo('e1'))
+    = array[pg_temp.m(5), pg_temp.m(6)]
+  and (select count(*) from participacao where jogo_id = pg_temp.jogo('e1') and status = 'lista_espera') = 2);
+select pg_temp.espera_verdade('custo e vagas juntos: o terceiro texto',
+  exists (select 1 from notificacao where tipo = 'valor_recalculado' and pessoa_id = pg_temp.m(3)
+            and titulo = 'Areia de Sábado mudou o custo e as vagas'
+            and corpo = 'Total R$ 150,00 em 5 vagas. Sua parte passou para R$ 30,00.')
+  and pg_temp.cobranca('e1', pg_temp.m(4)) = 'pendente:cancelamento_tardio:3000');
+
+-- Remarcação (RN20).
+select pg_temp.como('c0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('remarcar para o horário de outro jogo na mesma quadra',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_inicio => pg_temp.proximo(1, '19:00'))$$, 'quadra_ocupada');
+select pg_temp.espera_recusa('remarcar para fora da faixa',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_inicio => pg_temp.proximo(4, '22:00'))$$, 'fora_do_funcionamento');
+select pg_temp.espera_recusa('remarcar para o passado',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_inicio => now() - interval '1 hour')$$, 'inicio_no_passado');
+select pg_temp.espera_ok('remarcar uma hora depois, sobre o próprio horário antigo',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_inicio => pg_temp.proximo(4, '20:00'))$$);
+select pg_temp.espera_ok('repetir a remarcação', $$select editar_jogo(pg_temp.jogo('e1'), p_inicio => pg_temp.proximo(4, '20:00'))$$);
+reset role;
+
+select pg_temp.espera_verdade('a remarcação grava o novo início em cancelamento_livre_ate e cancela a multa',
+  (select cancelamento_livre_ate from jogo where id = pg_temp.jogo('e1')) = pg_temp.proximo(4, '20:00')
+  and privado.prazo_sem_multa(pg_temp.jogo('e1')) = pg_temp.proximo(4, '20:00')
+  and pg_temp.cobranca('e1', pg_temp.m(4)) = 'cancelada:cancelamento_tardio:3000');
+select pg_temp.espera_verdade('jogo_editado a cada confirmado e à multada, uma vez só, e não a quem editou nem à fila',
+  (select array_agg(pessoa_id order by pessoa_id) from notificacao where tipo = 'jogo_editado' and jogo_id = pg_temp.jogo('e1'))
+    = array[pg_temp.m(1), pg_temp.m(2), pg_temp.m(3), pg_temp.m(4), 'a0000000-0000-0000-0000-000000000001'::uuid]);
+select pg_temp.espera_verdade('os dois textos da remarcação',
+  exists (select 1 from notificacao where tipo = 'jogo_editado' and pessoa_id = pg_temp.m(1)
+            and titulo = 'Jogo remarcado' and cobranca_id is null
+            and corpo = format('Areia de Sábado de %s passou para %s · 20:00, em Arena Beira-Mar · Quadra 1. Cancelar fica sem multa até o início.',
+                               privado.data_curta(pg_temp.proximo(4, '19:00')), privado.data_curta(pg_temp.proximo(4, '20:00'))))
+  and exists (select 1 from notificacao where tipo = 'jogo_editado' and pessoa_id = pg_temp.m(4)
+            and corpo = format('Areia de Sábado de %s passou para %s · 20:00, em Arena Beira-Mar · Quadra 1. Sua multa de R$ 30,00 foi cancelada.',
+                               privado.data_curta(pg_temp.proximo(4, '19:00')), privado.data_curta(pg_temp.proximo(4, '20:00')))));
+
+-- Depois da remarcação, cancelar não gera multa até o início: o tempo passa até 1 h antes.
+update jogo set inicio = now() + interval '1 hour', cancelamento_livre_ate = now() + interval '1 hour'
+where id = pg_temp.jogo('e1');
+select pg_temp.como_faz(pg_temp.m(1), $$select cancelar_presenca(pg_temp.jogo('e1'))$$);
+select pg_temp.espera_verdade('a 1 h do início, com o prazo de 3 h do grupo vencido, Membro 1 cancela sem multa',
+  pg_temp.cobranca('e1', pg_temp.m(1)) = 'cancelada:parte:3000'
+  and (select status from participacao where jogo_id = pg_temp.jogo('e1') and pessoa_id = pg_temp.m(1)) = 'cancelou_no_prazo');
+
+-- Janelas: vagas e remarcação até o início; custo até o encerramento.
+update jogo set inicio = now() - interval '1 minute' where id = pg_temp.jogo('e1');
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('vagas depois do início', $$select editar_jogo(pg_temp.jogo('e1'), p_vagas_total => 8)$$, 'jogo_ja_comecou');
+select pg_temp.espera_recusa('remarcar depois do início',
+  $$select editar_jogo(pg_temp.jogo('e1'), p_quadra => pg_temp.q2())$$, 'jogo_ja_comecou');
+select pg_temp.espera_ok('custo depois do início', $$select editar_jogo(pg_temp.jogo('e1'), p_custo_total => 16000)$$);
+reset role;
+select pg_temp.espera_verdade('o custo mudou depois do início',
+  (select preco_por_vaga from jogo where id = pg_temp.jogo('e1')) = 3200 and pg_temp.cobranca('e1', pg_temp.m(2)) = 'pendente:parte:3200');
+update jogo set status = 'encerrado' where id = pg_temp.jogo('e1');
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('custo depois do encerramento', $$select editar_jogo(pg_temp.jogo('e1'), p_custo_total => 17000)$$, 'jogo_fechado');
+reset role;
+
+-- Troca de recebedor (RN20, RN24).
+select pg_temp.como_faz(p, $$select confirmar_presenca(pg_temp.jogo('e2'))$$)
+from unnest(array['b0000000-0000-0000-0000-000000000001'::uuid, pg_temp.m(1), pg_temp.m(2)]) p;
+select pg_temp.como_faz(pg_temp.m(2), $$select cancelar_presenca(pg_temp.jogo('e2'))$$);
+create temp table avisos_antes as select count(*) as n from notificacao;
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_recusa('novo recebedor sem chave', $$select editar_jogo(pg_temp.jogo('e2'), p_recebedor => 'b0000000-0000-0000-0000-000000000001')$$,
+  'recebedor_sem_chave');
+select pg_temp.espera_recusa('novo recebedor desconhecido', $$select editar_jogo(pg_temp.jogo('e2'), p_recebedor => 'd0000000-0000-0000-0000-000000000001')$$,
+  'recebedor_desconhecido');
+select pg_temp.espera_ok('Ana passa o recebimento a Bruno, com a chave digitada',
+  $$select editar_jogo(pg_temp.jogo('e2'), p_recebedor => 'b0000000-0000-0000-0000-000000000001', p_chave_pix_recebedor => 'bruno-pix')$$);
+reset role;
+
+select pg_temp.espera_verdade('o jogo guarda o novo recebedor e a chave digitada',
+  (select recebedor_id::text || ':' || chave_pix_recebedor from jogo where id = pg_temp.jogo('e2'))
+    = 'b0000000-0000-0000-0000-000000000001:bruno-pix'
+  and (select chave_pix from pessoa where id = 'b0000000-0000-0000-0000-000000000001') is null);
+select pg_temp.espera_verdade('a cobrança de Bruno, agora recebedor, vira cancelada',
+  pg_temp.cobranca('e2', 'b0000000-0000-0000-0000-000000000001') = 'cancelada:parte:1000');
+select pg_temp.espera_verdade('Ana, antiga recebedora e confirmada, passa a dever a parte',
+  pg_temp.cobranca('e2', 'a0000000-0000-0000-0000-000000000001') = 'pendente:parte:1000');
+select pg_temp.espera_verdade('todas as cobranças, inclusive a cancelada de Membro 2, apontam a Bruno; só a dele fica com Ana',
+  (select array_agg(p.pessoa_id::text || '>' || c.credor_id order by p.pessoa_id)
+   from cobranca c join participacao p on p.id = c.participacao_id where p.jogo_id = pg_temp.jogo('e2'))
+  = array['90000000-0000-0000-0000-000000000001>b0000000-0000-0000-0000-000000000001',
+          '90000000-0000-0000-0000-000000000002>b0000000-0000-0000-0000-000000000001',
+          'a0000000-0000-0000-0000-000000000001>b0000000-0000-0000-0000-000000000001',
+          'b0000000-0000-0000-0000-000000000001>a0000000-0000-0000-0000-000000000001']
+  and pg_temp.cobranca('e2', pg_temp.m(2)) = 'cancelada:parte:1000');
+select pg_temp.espera_verdade('a troca não avisa ninguém', (select count(*) from notificacao) = (select n from avisos_antes));
+
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_ok('Ana volta a receber, com a chave do perfil',
+  $$select editar_jogo(pg_temp.jogo('e2'), p_recebedor => 'a0000000-0000-0000-0000-000000000001')$$);
+reset role;
+select pg_temp.espera_verdade('de volta: Bruno deve de novo, na mesma cobrança, e a de Ana é cancelada',
+  pg_temp.cobranca('e2', 'b0000000-0000-0000-0000-000000000001') = 'pendente:parte:1000'
+  and pg_temp.cobranca('e2', 'a0000000-0000-0000-0000-000000000001') = 'cancelada:parte:1000'
+  and (select count(*) from cobranca c join participacao p on p.id = c.participacao_id where p.jogo_id = pg_temp.jogo('e2')) = 4
+  and (select chave_pix_recebedor from jogo where id = pg_temp.jogo('e2')) = 'ana-nova'
+  and not exists (select 1 from cobranca c join participacao p on p.id = c.participacao_id
+                  where p.jogo_id = pg_temp.jogo('e2') and c.devedor_id <> 'a0000000-0000-0000-0000-000000000001'
+                    and c.credor_id <> 'a0000000-0000-0000-0000-000000000001'));
+
+-- e3: só a criadora recebedora confirmada. Mudar o custo não avisa; trocar de local leva a quadra do local novo.
+select pg_temp.como('a0000000-0000-0000-0000-000000000001');
+select pg_temp.espera_ok('custo de e3 sem outros confirmados', $$select editar_jogo(pg_temp.jogo('e3'), p_custo_total => 12000)$$);
+select pg_temp.espera_recusa('Ginásio com a quadra da Arena',
+  $$select editar_jogo(pg_temp.jogo('e3'), p_inicio => pg_temp.proximo(5, '10:00'), p_local => pg_temp.ginasio(), p_quadra => pg_temp.q1())$$,
+  'quadra_invalida');
+select pg_temp.espera_ok('e3 vai para o Ginásio, sem quadra',
+  $$select editar_jogo(pg_temp.jogo('e3'), p_inicio => pg_temp.proximo(5, '10:00'), p_local => pg_temp.ginasio())$$);
+reset role;
+select pg_temp.espera_verdade('sem confirmados além da criadora recebedora, nenhum aviso',
+  not exists (select 1 from notificacao where jogo_id = pg_temp.jogo('e3'))
+  and not exists (select 1 from notificacao n join cobranca c on c.id = n.cobranca_id
+                  join participacao p on p.id = c.participacao_id where p.jogo_id = pg_temp.jogo('e3')));
+select pg_temp.espera_verdade('e3 está no Ginásio, sem quadra, com o preço novo',
+  exists (select 1 from jogo where id = pg_temp.jogo('e3') and local_id = pg_temp.ginasio() and quadra_id is null
+            and preco_por_vaga = 1200 and cancelamento_livre_ate = pg_temp.proximo(5, '10:00')));
+
 -- Privilégios.
 
-select pg_temp.espera_verdade('anon não executa criar nem duplicar',
+select pg_temp.espera_verdade('anon não executa criar, duplicar nem editar',
   not has_function_privilege('anon', 'public.criar_jogo(uuid, uuid, uuid, timestamptz, integer, integer, integer, integer, uuid, text)', 'execute')
-  and not has_function_privilege('anon', 'public.duplicar_jogo(uuid, timestamptz, text)', 'execute'));
-select pg_temp.espera_verdade('authenticated executa criar e duplicar',
+  and not has_function_privilege('anon', 'public.duplicar_jogo(uuid, timestamptz, text)', 'execute')
+  and not has_function_privilege('anon', 'public.editar_jogo(uuid, timestamptz, uuid, uuid, integer, integer, uuid, text)', 'execute'));
+select pg_temp.espera_verdade('authenticated executa criar, duplicar e editar',
   has_function_privilege('authenticated', 'public.criar_jogo(uuid, uuid, uuid, timestamptz, integer, integer, integer, integer, uuid, text)', 'execute')
-  and has_function_privilege('authenticated', 'public.duplicar_jogo(uuid, timestamptz, text)', 'execute'));
+  and has_function_privilege('authenticated', 'public.duplicar_jogo(uuid, timestamptz, text)', 'execute')
+  and has_function_privilege('authenticated', 'public.editar_jogo(uuid, timestamptz, uuid, uuid, integer, integer, uuid, text)', 'execute'));
 select pg_temp.espera_verdade('authenticated não executa as auxiliares de privado',
   not has_function_privilege('authenticated', 'privado.prazo_sem_multa(uuid)', 'execute')
   and not has_function_privilege('authenticated', 'privado.checar_rn15(uuid, uuid, timestamptz, integer, uuid)', 'execute')
