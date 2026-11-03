@@ -1,7 +1,8 @@
--- Funções de jogo: criar (RF07, RF08) e duplicar (RF34), e as auxiliares que presença e
--- edição reaproveitam: o prazo sem multa (RN02, RN20), as checagens de quadra e de
--- funcionamento (RN15) e o nascimento da cobrança (RN07, RN25).
--- Cresce nas próximas tasks com editar_jogo, cancelar_jogo e encerrar_jogo.
+-- Funções de jogo: criar (RF07, RF08), duplicar (RF34), editar (RF10), cancelar (RF11) e
+-- encerrar (RF33), e as auxiliares que presença e edição reaproveitam: o prazo sem multa
+-- (RN02, RN20), as checagens de quadra e de funcionamento (RN15), o nascimento da
+-- cobrança (RN07, RN25) e o encerramento numa função interna única, que a rotina de
+-- minuto do passo 8 também chama (RN17).
 --
 -- Recusas (supabase/CLAUDE.md, Funções): P0001 com o código na mensagem; 42501 com
 -- 'sem_permissao'.
@@ -610,14 +611,172 @@ begin
 end;
 $$;
 
+-- RF11, RN23. Criador e admins do grupo, até o início; depois dele, o caminho é encerrar.
+-- Toda cobrança ativa vai a cancelada, inclusive as multas, porque sem jogo não há quadra
+-- a ressarcir; é transição automática, sem autor (RN07). As participações ficam como estão.
+create function public.cancelar_jogo(p_jogo uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_eu uuid := (select auth.uid());
+  v_jogo public.jogo;
+  v_corpo text;
+  v_pessoa uuid;
+begin
+  -- RNF09: a mesma trava de editar e de confirmar e cancelar presença.
+  select * into v_jogo from public.jogo where id = p_jogo for update;
+
+  if not found or v_eu is null
+     or not (v_jogo.criador_id = v_eu or privado.eh_admin(v_jogo.grupo_id)) then
+    raise exception using errcode = '42501', message = 'sem_permissao';
+  end if;
+
+  -- RNF10: já cancelado, nada muda nem avisa.
+  if v_jogo.status = 'cancelado' then
+    return;
+  end if;
+  if v_jogo.status <> 'aberto' then
+    raise exception using errcode = 'P0001', message = 'jogo_fechado';
+  end if;
+  if now() >= v_jogo.inicio then
+    raise exception using errcode = 'P0001', message = 'jogo_ja_comecou';
+  end if;
+
+  update public.jogo set status = 'cancelado' where id = p_jogo;
+
+  -- jogo_cancelado (docs/design/telas/08-avisos/implementacao.md): os confirmados, a lista
+  -- de espera e quem tinha multa ativa, lidos antes de as cobranças irem a cancelada.
+  v_corpo := format('%s, %s · %s, não vai acontecer. Nada a pagar por ele.',
+                    privado.nome_jogo(p_jogo), privado.data_curta(v_jogo.inicio), privado.hora(v_jogo.inicio));
+
+  for v_pessoa in
+    select p.pessoa_id from public.participacao p
+    where p.jogo_id = p_jogo
+      and p.pessoa_id <> v_eu
+      and (p.status in ('confirmado', 'lista_espera')
+           or exists (select 1 from public.cobranca c
+                      where c.participacao_id = p.id
+                        and c.origem = 'cancelamento_tardio'
+                        and c.status in ('pendente', 'comprovante_enviado')))
+  loop
+    perform privado.avisar(v_pessoa, 'jogo_cancelado', 'Jogo cancelado', v_corpo, p_jogo);
+  end loop;
+
+  update public.cobranca c
+  set status = 'cancelada'
+  from public.participacao p
+  where p.id = c.participacao_id and p.jogo_id = p_jogo
+    and c.status in ('pendente', 'comprovante_enviado');
+end;
+$$;
+
+-- RN17, RN07: encerra o jogo e libera o pagamento. É a única função que encerra, chamada
+-- por encerrar_jogo e pela rotina de minuto do passo 8; quem chama confere o papel e a
+-- hora. Já encerrado, nada muda (RNF10). A lista de espera fica como está (RN17).
+create function privado.encerrar(p_jogo uuid)
+returns void
+language plpgsql
+volatile
+set search_path = ''
+as $$
+declare
+  -- Quem encerra à mão; vazio na rotina de minuto, que não tem autor.
+  v_eu uuid := (select auth.uid());
+  v_jogo public.jogo;
+  v_vence timestamptz;
+  v_aviso record;
+begin
+  select * into v_jogo from public.jogo where id = p_jogo for update;
+
+  if v_jogo.status = 'encerrado' then
+    return;
+  end if;
+  if v_jogo.status is distinct from 'aberto' then
+    raise exception using errcode = 'P0001', message = 'jogo_fechado';
+  end if;
+
+  update public.jogo set status = 'encerrado' where id = p_jogo;
+
+  -- A cobrança vence 24 h depois do encerramento previsto, mesmo quando o jogo é encerrado
+  -- antes, à mão (RN07).
+  v_vence := privado.encerramento_previsto(v_jogo.inicio, v_jogo.duracao_minutos) + interval '24 hours';
+
+  -- pagamento_liberado a cada cobrança pendente, parte ou multa: isenta e cancelada não
+  -- devem nada, e o recebedor e a lista de espera não têm cobrança (RN07, RN17). Quem
+  -- encerra à mão não recebe o aviso do próprio ato.
+  for v_aviso in
+    select c.id, c.devedor_id, c.valor, credor.nome as credor
+    from public.cobranca c
+    join public.participacao p on p.id = c.participacao_id
+    join public.pessoa credor on credor.id = c.credor_id
+    where p.jogo_id = p_jogo
+      and c.status = 'pendente'
+      and c.devedor_id is distinct from v_eu
+  loop
+    perform privado.avisar(
+      v_aviso.devedor_id,
+      'pagamento_liberado',
+      'Pagamento liberado',
+      format('%s para %s. Vence %s · %s.', privado.reais(v_aviso.valor), v_aviso.credor,
+             privado.data_curta(v_vence), privado.hora(v_vence)),
+      null,
+      v_aviso.id);
+  end loop;
+end;
+$$;
+
+revoke execute on function privado.encerrar(uuid) from public, anon, authenticated;
+
+-- RF33, RN17. Criador e admins do grupo; no avulso, que não tem admin, só o criador (RN13).
+-- A partir do fim do horário reservado; sem isso, a rotina de minuto encerra uma hora
+-- depois dele.
+create function public.encerrar_jogo(p_jogo uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_eu uuid := (select auth.uid());
+  v_jogo public.jogo;
+begin
+  select * into v_jogo from public.jogo where id = p_jogo for update;
+
+  if not found or v_eu is null
+     or not (v_jogo.criador_id = v_eu or privado.eh_admin(v_jogo.grupo_id)) then
+    raise exception using errcode = '42501', message = 'sem_permissao';
+  end if;
+
+  -- RNF10: já encerrado, nada muda nem avisa.
+  if v_jogo.status = 'encerrado' then
+    return;
+  end if;
+  if v_jogo.status <> 'aberto' then
+    raise exception using errcode = 'P0001', message = 'jogo_fechado';
+  end if;
+  if now() < v_jogo.inicio + make_interval(mins => v_jogo.duracao_minutos) then
+    raise exception using errcode = 'P0001', message = 'jogo_nao_terminou';
+  end if;
+
+  perform privado.encerrar(p_jogo);
+end;
+$$;
+
 revoke execute on function
   public.criar_jogo(uuid, uuid, uuid, timestamptz, integer, integer, integer, integer, uuid, text),
   public.duplicar_jogo(uuid, timestamptz, text),
-  public.editar_jogo(uuid, timestamptz, uuid, uuid, integer, integer, uuid, text)
+  public.editar_jogo(uuid, timestamptz, uuid, uuid, integer, integer, uuid, text),
+  public.cancelar_jogo(uuid),
+  public.encerrar_jogo(uuid)
 from public, anon;
 
 grant execute on function
   public.criar_jogo(uuid, uuid, uuid, timestamptz, integer, integer, integer, integer, uuid, text),
   public.duplicar_jogo(uuid, timestamptz, text),
-  public.editar_jogo(uuid, timestamptz, uuid, uuid, integer, integer, uuid, text)
+  public.editar_jogo(uuid, timestamptz, uuid, uuid, integer, integer, uuid, text),
+  public.cancelar_jogo(uuid),
+  public.encerrar_jogo(uuid)
 to authenticated;
