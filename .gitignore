@@ -1,0 +1,63 @@
+# Segredos e variáveis locais (setup.md, seção 5). Só os exemplos vão para o Git.
+.env
+.env.*
+!.env.example
+supabase/.env
+supabase/functions/.env
+app/env/*.json
+!app/env/example.json
+
+# Supabase CLI: vínculo com a produção e estado local (setup.md, seção 9.1)
+supabase/.temp/
+supabase/.branches/
+
+# Cópias da produção têm dados pessoais e nunca entram no Git (setup.md, seção 9.2)
+*.dump
+dumps/
+
+# Flutter e Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+coverage/
+*.g.dart.tmp
+
+# Android
+local.properties
+.gradle/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+*.jks
+*.keystore
+key.properties
+.cxx/
+.externalNativeBuild/
+
+# Deno e Node
+node_modules/
+.deno/
+
+# Spec Kit e Python
+.venv/
+__pycache__/
+
+# Editores e sistema
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Obsidian
+.obsidian/
+
+# Claude Code: configurações pessoais desta máquina
+.claude/settings.local.json

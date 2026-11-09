@@ -1,0 +1,109 @@
+# Matriz de RLS
+
+> Decisões de 09/11/2026. Base: `modelo-dados.md` (seções 7 e 8), `contratos-api.md` (seção 9), `arquitetura-app.md` (seção 14.2) e o ADR 0015.
+> Quem pode ler e escrever o quê no banco e no Storage, inclusive quem **não** pode. Cada linha desta matriz tem um teste pgTAP.
+> O documento cresce a cada fatia: a fatia que libera uma tabela escreve aqui as políticas dela antes do código (`plan-docs.md`, seção 8.3).
+
+## 1. Como o acesso funciona
+
+Para o app ler ou escrever uma tabela, **duas camadas** precisam permitir:
+
+| Camada | Decide | Sem ela |
+|--------|--------|---------|
+| **Privilégio** (`grant`) | Que operação o papel pode fazer e em que colunas | Erro `42501` (*permission denied*) |
+| **Política** (RLS) | Em que linhas a operação vale | A leitura volta vazia, e a escrita é recusada |
+
+- **RLS ativado em toda tabela** de `public`, sem exceção. Tabela com RLS e sem política não devolve nenhuma linha.
+- **Privilégios padrão revogados** na primeira migração (ADR 0015). Tabela e função novas nascem sem acesso para `anon` e `authenticated`. Isso inclui o `execute` que o Postgres dá a `public` em toda função nova.
+- **Escrita com regra** passa pelas funções `security definer` (`contratos-api.md`), que rodam como dono e não dependem do RLS. O RLS protege a leitura e as escritas diretas da seção 9 do `contratos-api.md`.
+- **Realtime** respeita o RLS: o app só recebe eventos de linhas que pode ler. Por isso uma tabela só entra na publicação `supabase_realtime` na fatia que libera a leitura dela.
+
+## 2. Papéis
+
+**Papéis do Postgres**
+
+| Papel | Quem é | Acesso |
+|-------|--------|--------|
+| `anon` | O app sem login | Nenhum, em nenhuma fatia. O app não lê nada antes do login |
+| `authenticated` | O app com login (`auth.uid()` = o usuário) | O que cada fatia conceder |
+| `service_role` | Edge Functions do servidor | Ignora o RLS. Nunca vai para o app (`setup.md`, seção 5.1) |
+| `postgres` | Migrações, seed e testes | Dono das tabelas |
+
+**Papéis do domínio**, sempre do ponto de vista de quem chama, calculados por funções do esquema `private` (`arquitetura-app.md`, 14.2):
+
+| Papel | Função | Fatia |
+|-------|--------|-------|
+| Membro do grupo | `private.is_group_member(group_id, user_id)` | 3 |
+| Admin do grupo | `private.is_group_admin(group_id, user_id)` | 3 |
+| Compartilha contexto (RN107) | `private.shares_context(a, b)` | 3 |
+| Admin do jogo | `private.is_game_admin(game_id, user_id)` | 4 |
+| Pode ver o jogo | `private.can_view_game(game_id, user_id)` | 4 |
+| Participante, recebedor, pagador | Leitura das colunas da própria linha | 4 a 6 |
+
+A definição SQL de cada função entra nesta matriz na fatia indicada.
+
+## 3. Estado base (fatia 1)
+
+A fatia 1 cria o banco inteiro e **não libera nada**. Depois dela:
+
+| Objeto | `anon` | `authenticated` |
+|--------|--------|-----------------|
+| As 20 tabelas de `public` (`modelo-dados.md`, seção 4) | Nenhum privilégio, nenhuma política | Nenhum privilégio, nenhuma política |
+| Funções de `public` | Não há nenhuma | Não há nenhuma |
+| Esquema `private` (`emit_notification` e as *triggers*) | Sem `usage` | Sem `usage` |
+| Bucket `avatars` | Sem acesso | Sem acesso |
+| Bucket `receipts` | Sem acesso | Sem acesso |
+
+- O login técnico (`docs/ui/telas.md`, seção 4) usa só o Supabase Auth e não lê tabela, então não precisa de nenhuma política.
+- As *triggers* do esquema `private` são `security definer` e rodam mesmo sem `usage` de quem dispara a escrita.
+
+**Buckets**, criados por migração (`insert into storage.buckets`), para valer igual no local e na produção:
+
+| Bucket | Público | Tamanho máximo | Tipos aceitos | Origem |
+|--------|---------|----------------|---------------|--------|
+| `avatars` | Não | 2 MB (2.097.152 bytes) | `image/jpeg`, `image/png`, `image/webp` | RN106 |
+| `receipts` | Não | 10 MB (10.485.760 bytes) | `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `application/pdf` | RN87 |
+
+O Storage recusa o arquivo fora do tamanho ou do tipo antes de qualquer política. As políticas de `storage.objects` entram nas fatias 2, 3 e 6.
+
+## 4. Quem libera cada tabela
+
+Resumo do `modelo-dados.md` (seção 8), que define o acesso final. A coluna "Fatia" diz quando o acesso é concedido. O detalhe de cada política entra na seção 5 quando a fatia é documentada.
+
+| Tabela ou bucket | Fatia | Leitura (resumo) | Escrita direta (resumo) |
+|------------------|-------|------------------|-------------------------|
+| `profiles` | 2 (própria linha) e 3 (contexto) | O próprio e quem compartilha contexto (RN107) | Própria linha: `name`, `nickname`, `photo_path` |
+| `profile_private` | 2 | Só o dono | Própria linha, com a *trigger* da RN105 |
+| `terms_acceptances` | 2 | Só o dono | Inserção da própria linha |
+| `groups`, `group_members` | 3 | Membros do grupo | Não |
+| `group_join_requests` | 3 | O solicitante e os admins do grupo | Não |
+| `games`, `game_admins`, `game_participants`, `game_waitlist` | 4 | `can_view_game` | Não |
+| `game_limit_history` | 4 | Admins do jogo | Não |
+| `receiver_changes` | 5 | Admins do jogo | Não |
+| `charges`, `charge_events` | 5 | O pagador vê os seus; o recebedor e os admins do jogo veem todos do jogo | Não |
+| `receipts` | 6 | Pagador e `receiver_id` | Não |
+| `notifications` | 7 | Próprio usuário | Só `read_at` |
+| `device_tokens`, `notification_preferences` | 7 | Próprio usuário | Próprio usuário |
+| `scheduled_notifications_log`, `audit_log` | Nunca | Ninguém pelo app | Não |
+| Bucket `avatars` | 2 (perfil) e 3 (grupo) | URL assinada para quem pode ver o perfil ou é membro do grupo | Dono do perfil ou admin do grupo |
+| Bucket `receipts` | 6 | Pagador e `receiver_id`, por URL assinada de curta duração | Pagador, para valor `pending` |
+
+## 5. Políticas por fatia
+
+### Fatia 1
+
+Nenhuma política. Os testes provam que nada está aberto (`testes-referencia.md`, seção 9.1):
+
+- toda tabela de `public` tem RLS (B01), e as tabelas são exatamente as 20 do modelo (B02);
+- não existe política em `public` (B03) nem em `storage.objects` para os dois buckets (B10);
+- `anon` e `authenticated` não têm privilégio em tabela nem `execute` em função de `public` (B04, B06), nem `usage` no esquema `private` (B07);
+- tabela e função criadas depois da primeira migração também nascem fechadas (B05).
+
+**Como os testes evoluem.** B03, B04 e B06 comparam o banco com uma **lista esperada**: na fatia 1, as listas são vazias. Cada fatia acrescenta às listas as políticas, os privilégios e as funções que concede, no mesmo PR. Assim, qualquer acesso que ninguém documentou faz o teste falhar.
+
+## 6. Cuidados nas próximas fatias
+
+- **Desempenho:** nas políticas, use `(select auth.uid())` em vez de `auth.uid()`, para o Postgres calcular uma vez por consulta e não uma vez por linha. As funções auxiliares são `stable` e consultam por colunas indexadas (`modelo-dados.md`, seção 4).
+- **Caso negativo sempre:** toda política nova tem ao menos um teste de quem **não** pode (sem contexto, ex-membro, outro pagador), além do teste de quem pode.
+- **Simulação do usuário nos testes:** `set local role authenticated` e `set local request.jwt.claims` com o `sub` do usuário (`arquitetura-app.md`, 14.4).
+- **Advisors:** ao fim de cada fatia, `get_advisors` do MCP (só leitura) não aponta tabela sem RLS nem política com problema de desempenho.

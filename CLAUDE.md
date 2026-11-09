@@ -1,0 +1,108 @@
+# VoleiIn
+
+App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de presença, calcula o rateio e as multas ao concluir o jogo e acompanha os pagamentos por Pix entre os participantes, com leitura automática de comprovantes. O app não processa pagamentos.
+
+**Estado atual:** documentação das Fases 0 e 1 concluída. Documentos da fatia 1 escritos em 09/11/2026 (`docs/ui/telas.md`, `docs/copy.md`, `docs/rls-matriz.md` e `testes-referencia.md`, seção 9), aguardando a revisão do responsável. Depois dela vem o código da fatia 1. Os comandos abaixo passam a funcionar a partir da fatia 1.
+
+## Antes de implementar
+
+1. Veja em `docs/plano-implementacao.md` a fatia atual, seu escopo e o que fica fora dela.
+2. Confira a lista de início de fatia na seção 8.4 de `plan-docs.md`.
+3. Consulte os documentos abaixo. Não assuma regra, valor padrão ou nome que eles já definem.
+
+| Documento | Use para |
+|-----------|----------|
+| `docs/requisitos.md` | O que o app faz (RF) |
+| `docs/regras-negocio.md` | Como as regras funcionam (RN) e o glossário do domínio |
+| `docs/modelo-dados.md` | Tabelas, enums, constraints e passo a passo de `complete_game` |
+| `docs/contratos-api.md` | Assinatura, permissões, erros e efeitos de cada função |
+| `docs/testes-referencia.md` | Resultados esperados dos cenários de maior risco |
+| `docs/requisitos-nao-funcionais.md` | Android, velocidade, acessibilidade, custo e uso sem internet |
+| `docs/stacks.md` | Tecnologias, bibliotecas, ambientes e CI |
+| `docs/setup.md` | Ambientes, variáveis, segredos, seeds e produção |
+| `docs/arquitetura-app.md` | Padrões do app (pastas, Riverpod, erros, Realtime, testes) e convenções do servidor |
+| `docs/trabalho-com-agente.md` | Ciclo da fatia, definição de pronto, Git e PR, o que o agente nunca faz |
+| `docs/ui/design-system.md` | Cores, fontes, componentes, mapa de status e tema Flutter |
+| `docs/ui/telas.md` | Mapa de todas as telas e rotas, navegação e o detalhe das telas de cada fatia |
+| `docs/copy.md` | Textos da interface (chaves do ARB), tom de voz, formatos e mensagens de erro |
+| `docs/rls-matriz.md` | Privilégios e políticas de RLS por tabela, e a fatia que libera cada uma |
+| `docs/adr/` | Decisões de arquitetura já tomadas, que não devem ser reabertas |
+| `plan-docs.md` | Documentos ainda a escrever e o que cada fatia exige antes do código |
+
+Em caso de conflito, siga `contratos-api.md` para assinaturas, `regras-negocio.md` para regras e `plano-implementacao.md` para escopo. **Se os documentos divergirem ou a regra for ambígua, pare e pergunte.** O documento prevalece sobre o código até ser atualizado.
+
+Com o Spec Kit, cada `spec.md` cita os RFs e RNs em vez de copiar o texto: `docs/` é a fonte da verdade.
+
+## Stack
+
+Flutter (Android), Riverpod, `go_router` e `freezed`. Supabase (Postgres, Auth, Storage, Edge Functions em Deno, Realtime), `pg_cron`, FCM, Claude API e Resend. Testes com `flutter_test`, pgTAP e Deno test.
+
+## Comandos
+
+```bash
+# em app/
+dart analyze                    # análise estática (nunca flutter analyze: o "Á" do caminho o quebra, ADR 0014)
+flutter test                    # testes unitários e de widget
+flutter run --dart-define-from-file=env/local.json   # app no emulador, com o Supabase local
+
+# na raiz
+supabase start                  # sobe o Supabase local
+supabase db reset               # recria o banco com migrações e seeds
+supabase test db                # testes pgTAP
+supabase migration new <nome>   # cria uma migração
+supabase functions serve        # Edge Functions locais
+deno test                       # testes das Edge Functions e de concorrência
+```
+
+Primeira execução, variáveis e problemas comuns: `docs/setup.md`. Há dois ambientes: o **Supabase local** (desenvolvimento e homologação, com o app no emulador) e a **produção** (um projeto remoto só, ADR 0011).
+
+## Convenções
+
+- **Idiomas:** código, banco e nomes de arquivo em inglês. Interface e documentos em pt-BR.
+- **App:** organização *feature-first* (`stacks.md`, seção 3.2), com `data`, `domain` e `presentation`.
+- **Banco:** `snake_case`. Todo o schema muda por migração versionada.
+- **Dinheiro:** `integer` em centavos, colunas `_cents`. Cálculos intermediários que possam estourar usam `bigint`.
+- **Tempo:** `timestamptz` em UTC, exibido em `America/Fortaleza`.
+- **Erros:** funções devolvem os códigos estáveis de `contratos-api.md`. O app converte o código em texto.
+- **Textos:** nenhuma string de interface solta no código.
+
+## Glossário
+
+| pt-BR | Código |
+|-------|--------|
+| Recebedor | `receiver` |
+| Valor a pagar | `charge` |
+| Multa | `penalty` (`absence_penalty`, `late_cancellation_penalty`) |
+| Rateio, parte por vaga | `split`, `share`, `share_cents` |
+| Lista de presença | `game_participants` |
+| Lista de espera | `game_waitlist` |
+| Vaga, limite de vagas | `slot`, `slot_limit` |
+| Prazo de cancelamento | `cancellation_deadline` |
+| Comprovante | `receipt` |
+| Convite | `invite_code` |
+| Aberto, Confirmado, Cancelado, Concluído | `open`, `confirmed`, `cancelled`, `completed` |
+| Pendente, Em análise, Pago, Isento | `pending`, `under_review`, `paid`, `waived` |
+| Compartilhar contexto | `shares_context` |
+
+## Nunca faça
+
+- **Escrever direto em tabelas de regra.** Use as funções do servidor: só elas validam papel, tempo e estado. O que o app pode escrever direto está em `contratos-api.md`, seção 9.
+- **Usar ponto flutuante para dinheiro.** Um centavo errado quebra o valor exato exigido na validação do comprovante (RN04, RN88).
+- **Calcular rateio, multa ou status só no app.** O servidor decide, e o app apenas exibe.
+- **Confiar no relógio do aparelho.** Prazos e início usam o relógio do servidor (RN02).
+- **Colocar segredo no app ou no repositório.** No app, só identificadores públicos: a URL e a chave pública do Supabase, o ID do cliente web do Google e a configuração do Firebase. O resto fica nos *secrets* do GitHub e do Supabase (`setup.md`, seção 5).
+- **Criar tabela sem RLS ou alterar política sem teste.** O RLS é o que protege telefone, chave Pix e comprovantes.
+- **Aplicar migração, alterar dados ou mexer em segredos em produção.** Produção só muda pelo pipeline, com aprovação manual. O projeto não tem backup do banco (`requisitos-nao-funcionais.md`, seção 8), então um erro pode não ter volta.
+- **Mudar um resultado esperado de `testes-referencia.md` para o teste passar.** Ele vem da regra. Se a regra parecer errada, pare e pergunte.
+- **Implementar algo fora do escopo da fatia atual.**
+
+## Definição de pronto
+
+- Os testes da fatia foram escritos antes do código, falharam e agora passam.
+- `dart analyze`, `flutter test`, `supabase test db` e `deno test` estão verdes.
+- O fluxo de "Pronto quando" da fatia funciona de ponta a ponta.
+- Nenhuma tabela está sem RLS.
+- Todo bug corrigido ganhou um teste que o reproduz.
+- Os documentos afetados foram atualizados.
+
+O detalhe, com o checklist do PR, está em `docs/trabalho-com-agente.md` (seção 5).
