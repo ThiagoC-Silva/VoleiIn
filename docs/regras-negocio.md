@@ -68,7 +68,7 @@
  
 | ID | Regra | RF |
 |----|-------|----|
-| RN25 | Um admin do jogo pode adicionar e remover outros admins. O jogo sempre tem ao menos um admin. | RF34, RF35 |
+| RN25 | Um admin do jogo pode adicionar e remover outros admins. O jogo sempre tem ao menos um admin, em qualquer status, inclusive Concluído e Cancelado: depois da conclusão, o admin ainda isenta multas (RN66) e troca o recebedor (RN31). | RF34, RF35 |
 | RN26 | **Ser admin não depende de estar na lista.** Sair da lista não tira o papel de admin. O único admin só deixa o papel depois de indicar outro. A exceção é a saída do grupo (RN14). | RF35 |
 | RN27 | Só pode ser indicado como admin quem está na lista de presença do jogo. | RF34 |
  
@@ -245,6 +245,7 @@ Status: **Pendente**, **Em análise**, **Pago** e **Isento**. O valor Isento fic
 |       | - tiver valor a pagar ou a receber Pendente ou Em análise; | |
 |       | - for o último admin de um grupo (se for o único membro, pode excluir o grupo antes, RN17); | |
 |       | - for o único admin ou o recebedor de um jogo Aberto ou Confirmado. | |
+|       | **Risco aceito (09/11/2026):** o único admin de um jogo Concluído pode excluir a conta mesmo com valores Pendentes no jogo. Depois disso, a linha de admin continua (RN25), mas aponta para o perfil anônimo, e ninguém mais isenta multas nem troca o recebedor desse jogo. O recebedor continua podendo marcar como pago (RN84). | |
 | RN104 | **Efeitos da exclusão:** o usuário sai das listas de presença e de espera de jogos não iniciados (sem multa) e dos grupos, suas solicitações pendentes são canceladas e seus dados pessoais são anonimizados, como descrito no `stacks.md` (13.2). | RF13 |
 | RN105 | **Chave Pix:** pode ser trocada a qualquer momento, mas **não pode ser removida** enquanto o usuário for recebedor de um jogo Aberto ou Confirmado ou tiver valor a receber Pendente ou Em análise. O pagador sempre vê a chave atual (RF77). | RF11, RF12 |
 | RN106 | **Fotos de perfil e de grupo:** JPEG, PNG ou WebP. O app redimensiona para no máximo 1024 px no maior lado antes do envio, e o servidor aceita até **2 MB**. | RF09, RF14, RF18 |

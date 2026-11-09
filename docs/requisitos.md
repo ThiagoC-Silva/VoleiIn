@@ -4,12 +4,12 @@
  
 | RFXX | Descrição | Dependência |
 |------|-----------|-------------|
-| RF01 | O usuário deve poder criar uma conta com e-mail e senha, informando obrigatoriamente o nome. | - |
-| RF02 | O app deve exigir a confirmação do e-mail por link antes de liberar o acesso de contas criadas com e-mail e senha. | RF01 |
+| RF01 | O usuário deve poder criar uma conta com e-mail e senha, informando obrigatoriamente o nome. O nome só é gravado depois que o e-mail é confirmado (RF02). | - |
+| RF02 | O app deve exigir a confirmação do e-mail por um código de 6 dígitos, enviado ao endereço e digitado no app, antes de liberar o acesso de contas criadas com e-mail e senha. | RF01 |
 | RF03 | O usuário deve poder criar uma conta ou entrar com a conta Google, tendo o nome preenchido a partir dela. | - |
 | RF04 | O usuário deve poder entrar no app com e-mail e senha. | RF01, RF02 |
 | RF05 | O app deve manter a sessão do usuário ativa, sem exigir login a cada abertura. | RF03, RF04 |
-| RF06 | O usuário deve poder recuperar a senha por e-mail. | RF01 |
+| RF06 | O usuário deve poder recuperar a senha por um código de 6 dígitos enviado ao e-mail. | RF01 |
 | RF07 | O usuário deve poder sair da conta (logout). | RF03, RF04 |
 | RF08 | O usuário deve poder definir um apelido opcional. Nas listas e cobranças, o app exibe o apelido e, se não houver, o nome. | RF01, RF03 |
 | RF09 | O usuário deve poder adicionar e alterar a foto de perfil, no formato e tamanho da RN106. | RF01, RF03 |
@@ -19,7 +19,7 @@
 | RF13 | O usuário deve poder excluir sua conta, desde que não tenha valores a pagar nem a receber Pendentes ou Em análise, não seja o último admin de um grupo e não seja o único admin nem o recebedor de um jogo Aberto ou Confirmado (RN103). Os dados pessoais são anonimizados e o histórico de jogos e valores é mantido. | RF01, RF03, RF24, RF31, RF35 |
 | RF101 | Quando o usuário tornar o telefone visível, o app deve exibi-lo no perfil para os usuários que compartilham contexto com ele (RN107). Quando o telefone estiver oculto, apenas o próprio usuário o vê. | RF10, RF19, RF46 |
 | RF105 | O usuário deve aceitar os Termos de Uso e a Política de Privacidade ao criar a conta, inclusive pelo Google. O app registra a versão, a data e a hora do aceite e pede um novo aceite quando a versão de algum dos documentos mudar. | RF01, RF03 |
-| RF106 | O usuário deve poder alterar o e-mail de acesso, com confirmação por link enviado ao novo endereço. Até a confirmação, o e-mail anterior continua valendo. | RF01, RF02 |
+| RF106 | O usuário deve poder alterar o e-mail de acesso, com confirmação por um código de 6 dígitos enviado ao novo endereço. Até a confirmação, o e-mail anterior continua valendo. | RF01, RF02 |
 | RF107 | O usuário com acesso por e-mail e senha deve poder alterar a senha estando logado, informando a senha atual. | RF01, RF04 |
 | RF108 | Se o usuário entrar com uma conta Google cujo e-mail verificado já pertence a uma conta existente, o app deve vincular as duas formas de acesso à mesma conta, sem criar uma nova. | RF01, RF03 |
  

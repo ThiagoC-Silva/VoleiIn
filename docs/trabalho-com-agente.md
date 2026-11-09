@@ -72,7 +72,7 @@ Checklist do PR. O revisor confere cada item, e o agente marca no texto do PR.
 - [ ] Nenhum segredo no código, no Git ou no app.
 
 **Produto**
-- [ ] O fluxo de "Pronto quando" da fatia foi conferido no emulador. O agente descreve os passos no PR, e o responsável confere.
+- [ ] O fluxo de "Pronto quando" da fatia foi conferido no emulador. O agente roda os testes de integração nos emuladores (e no celular do responsável, quando conectado), põe a saída e os passos no PR, e o responsável confere.
 - [ ] As telas novas passam na lista de acessibilidade (`design-system.md`, seção 8).
 - [ ] Nenhuma string de interface solta e nenhuma cor fora do tema.
 - [ ] Os documentos afetados foram atualizados no mesmo PR.

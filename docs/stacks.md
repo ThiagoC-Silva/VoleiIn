@@ -75,7 +75,7 @@ Cada feature segue: `data` (repositórios e acesso ao Supabase), `domain` (model
  
 | Serviço | Uso no projeto | Requisitos |
 |---------|----------------|------------|
-| **Auth** | E-mail e senha com confirmação por link, Google com vinculação por e-mail verificado, recuperação e troca de senha, troca de e-mail, sessão persistente. Os e-mails saem pelo Resend, configurado como SMTP próprio | RF01 a RF07, RF106 a RF108 |
+| **Auth** | E-mail e senha com confirmação por código de 6 dígitos, Google com vinculação por e-mail verificado, recuperação de senha e troca de e-mail também por código, troca de senha, sessão persistente. Os templates de e-mail mandam o código (`{{ .Token }}`), não o link. Os e-mails saem pelo Resend, configurado como SMTP próprio | RF01 a RF07, RF106 a RF108 |
 | **Postgres** | Dados de usuários, grupos, jogos, listas, multas, rateio e pagamentos | Todos |
 | **Row Level Security (RLS)** | Controle de acesso por membro, admin do jogo, recebedor e visibilidade do perfil e do telefone | RF17, RF34, RF74, RF87, RF101 |
 | **Storage (buckets privados)** | Fotos de perfil e de grupo, e comprovantes com acesso restrito ao pagador e ao recebedor | RF09, RF14, RF78, RF87 |

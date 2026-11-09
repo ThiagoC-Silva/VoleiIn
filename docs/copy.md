@@ -77,13 +77,7 @@ Saem do ARB quando a aba ganha a tela real (`docs/ui/telas.md`, seção 4.2).
 | `authPasswordRequired` | Informe a sua senha. | Erro do campo vazio |
 | `authLogout` | Sair | Botão provisório na aba Perfil |
 
-### 5.4 Comuns
-
-| Chave | Texto | Onde |
-|-------|-------|------|
-| `commonTryAgain` | Tentar de novo | Botão dos estados de erro e sem conexão (`design-system.md`, 7.16) |
-
-### 5.5 Erros
+### 5.4 Erros
 
 Cada `ErrorCode` do app tem um texto (`arquitetura-app.md`, seção 7). Na fatia 1 entram os códigos gerais do `contratos-api.md` (seção 2), o de sem conexão e os do login. Cada fatia acrescenta os seus.
 

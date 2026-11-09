@@ -14,7 +14,7 @@ Para o app ler ou escrever uma tabela, **duas camadas** precisam permitir:
 | **Política** (RLS) | Em que linhas a operação vale | A leitura volta vazia, e a escrita é recusada |
 
 - **RLS ativado em toda tabela** de `public`, sem exceção. Tabela com RLS e sem política não devolve nenhuma linha.
-- **Privilégios padrão revogados** na primeira migração (ADR 0015). Tabela e função novas nascem sem acesso para `anon` e `authenticated`. Isso inclui o `execute` que o Postgres dá a `public` em toda função nova.
+- **Privilégios padrão revogados** na primeira migração (ADR 0015). Tabela e função novas nascem sem acesso para `anon` e `authenticated`. Isso inclui o `execute` que o Postgres dá a `public` em toda função nova. **Esse `execute` só sai com a forma global**, sem `in schema`: `alter default privileges for role postgres revoke execute on functions from public`. A forma por esquema só acrescenta privilégios aos globais e não remove este, então a função de `private` nasceria executável por todos. O B05 cobre os dois esquemas.
 - **Escrita com regra** passa pelas funções `security definer` (`contratos-api.md`), que rodam como dono e não dependem do RLS. O RLS protege a leitura e as escritas diretas da seção 9 do `contratos-api.md`.
 - **Realtime** respeita o RLS: o app só recebe eventos de linhas que pode ler. Por isso uma tabela só entra na publicação `supabase_realtime` na fatia que libera a leitura dela.
 

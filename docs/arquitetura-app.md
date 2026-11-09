@@ -143,7 +143,7 @@ Tudo o que sai do Supabase passa por uma conversão única, em `core/errors/`, e
 | Função SQL | `PostgrestException` com `code == 'P0001'` e o código em `message` | `ErrorCode` correspondente |
 | Edge Function | `FunctionException` com `{ "error": { "code": ... } }` no corpo | `ErrorCode` correspondente |
 | Trigger de escrita direta | `PostgrestException` `P0001` (por exemplo, `PIX_KEY_IN_USE`) | `ErrorCode` correspondente |
-| Supabase Auth | `AuthException` | Código do app pela tabela do `docs/copy.md` (seção 5.5): os do login na fatia 1, os demais na fatia 2 |
+| Supabase Auth | `AuthException` | Código do app pela tabela do `docs/copy.md` (seção 5.4): os do login na fatia 1, os demais na fatia 2 |
 | Sem rede | `SocketException`, `ClientException`, `TimeoutException` | `ErrorCode.noConnection` (RNF07) |
 | Qualquer outra coisa, ou código desconhecido | — | `ErrorCode.internalError` |
 
@@ -336,7 +336,7 @@ void main() {
 
 - Tabelas, enums e funções chamadas pelo app ficam em `public`.
 - **Funções auxiliares e internas ficam no esquema `private`**, que a API não expõe: `private.is_group_member`, `private.is_group_admin`, `private.is_game_admin`, `private.can_view_game`, `private.shares_context`, `private.emit_notification` e as tarefas agendadas. Em `public`, toda função vira uma chamada da API: um `shares_context(a, b)` público deixaria qualquer usuário descobrir quem se conhece.
-- **Privilégios padrão revogados** na primeira migração: tabela ou função nova nasce sem acesso para `anon` e `authenticated`. Cada fatia concede o que precisa:
+- **Privilégios padrão revogados** na primeira migração: tabela ou função nova nasce sem acesso para `anon` e `authenticated`. O `execute` que todo papel ganha em função nova sai com a forma global, sem `in schema` (`rls-matriz.md`, seção 1). Cada fatia concede o que precisa:
   - `grant select` nas tabelas que o app lê;
   - `grant insert`/`update` **por coluna** nas escritas diretas da seção 9 do `contratos-api.md`;
   - `grant execute ... to authenticated` em cada função pública do app.

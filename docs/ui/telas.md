@@ -33,8 +33,8 @@ Depois do login, o app abre na aba Jogos.
 | **Acesso** | | | | |
 | Login | `/login` | Fora das abas | 1 e 2 | RF04 |
 | Cadastro | `/signup` | Fora das abas | 2 | RF01, RF03, RF105 |
-| Aviso de confirmação do e-mail | `/confirm-email` | Fora das abas | 2 | RF02 |
-| Recuperar senha | `/forgot-password` | Fora das abas | 2 | RF06 |
+| Confirmar e-mail (digitar o código de 6 dígitos) | `/confirm-email` | Fora das abas | 2 | RF01, RF02 |
+| Recuperar senha (e-mail, código e senha nova) | `/forgot-password` | Fora das abas | 2 | RF06 |
 | Aceite dos termos | `/terms` | Fora das abas | 2 | RF105 |
 | **Jogos** | | | | |
 | Meus jogos | `/games` | Aba Jogos | 1 e 4 | RF44 |
@@ -67,7 +67,7 @@ Depois do login, o app abre na aba Jogos.
 | Meu perfil | `/profile` | Aba Perfil | 1 e 2 | RF07, RF08 a RF12 |
 | Editar perfil (nome, apelido, foto, telefone) | `/profile/edit` | Fora das abas | 2 | RF08 a RF10, RF12 |
 | Chave Pix | `/profile/pix` | Fora das abas | 2 | RF11, RF12 |
-| Trocar e-mail | `/profile/email` | Fora das abas | 2 | RF106 |
+| Trocar e-mail (e-mail novo e código) | `/profile/email` | Fora das abas | 2 | RF106 |
 | Trocar senha | `/profile/password` | Fora das abas | 2 | RF107 |
 | Preferências de notificação | `/profile/notifications` | Aba Perfil | 7 | RF98 |
 | Excluir conta | `/profile/delete` | Fora das abas | 6 | RF13 |
@@ -126,7 +126,7 @@ Na fatia 1 o app tem o login, a barra inferior e as quatro abas ainda vazias. Ne
 | Campo vazio ao tocar em Entrar | Erro no campo (`design-system.md`, 7.2). O app não chama o servidor |
 | Enviando | O botão entra no estado carregando e bloqueia novo toque. Os campos ficam desabilitados |
 | Sucesso | O roteador leva à aba Jogos. A tela de login sai da pilha |
-| Erro do servidor | `SnackBar` com o texto do código (`docs/copy.md`, seção 5.3). Os campos mantêm o que foi digitado |
+| Erro do servidor | `SnackBar` com o texto do código (`docs/copy.md`, seção 5.4). Os campos mantêm o que foi digitado |
 | Sem conexão | `SnackBar` de sem conexão. Os campos mantêm o que foi digitado |
 
 - O app não valida o formato do e-mail nem o tamanho da senha: quem decide se o login vale é o Supabase Auth.

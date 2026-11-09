@@ -197,7 +197,7 @@ pgTAP, em `supabase/tests/database/base_security.test.sql`. B03, B04 e B06 compa
 | B02 | Idem | Lista as tabelas de `public` | Exatamente as 20 da seção 4 do `modelo-dados.md` |
 | B03 | Idem | Lista as políticas de `public` (`pg_policies`) | Igual à lista esperada. Na fatia 1, vazia |
 | B04 | Idem | Lista os privilégios de tabela e de coluna de `anon` e `authenticated` em `public` | Igual à lista esperada. Na fatia 1, vazia |
-| B05 | Como `postgres`, o teste cria uma tabela e uma função novas em `public` | Consulta os privilégios delas | `anon`, `authenticated` e `public` sem privilégio algum, inclusive sem `execute` na função |
+| B05 | Como `postgres`, o teste cria uma tabela e uma função novas em `public` e uma função nova em `private` | Consulta os privilégios delas | `anon`, `authenticated` e `public` sem privilégio algum, inclusive sem `execute` nas duas funções |
 | B06 | Banco após reset | Lista as funções de `public`, fora as de extensões, que `anon` ou `authenticated` podem executar | Igual à lista esperada. Na fatia 1, vazia |
 | B07 | Idem | Consulta `usage` de `anon` e `authenticated` no esquema `private` e `execute` em `private.emit_notification` | Falso em todos |
 | B08 | Usuário autenticado (`role authenticated` com o `sub` de um usuário de teste) | `select` em `profiles` e `insert` em `notifications` | Erro `42501` nos dois |
@@ -217,7 +217,7 @@ pgTAP, em `supabase/tests/database/base_schema.test.sql` e `base_triggers.test.s
 | B13 | RN01 | Lista as colunas de `public` do tipo `timestamp without time zone`, `time` ou `timetz` | Lista vazia |
 | B14 | RN02 | Lista as colunas `created_at` de `public` | Todas `not null`, com padrão `now()` |
 
-**Perfil.** O perfil e o `profile_private` nascem juntos quando o e-mail fica confirmado: na confirmação do link (cadastro por e-mail) ou no próprio cadastro (Google, que já chega confirmado). O nome vem de `name` e, sem ele, de `full_name` nos metadados. Sem nenhum dos dois, vem do início do e-mail (`modelo-dados.md`, `profiles`).
+**Perfil.** O perfil e o `profile_private` nascem juntos quando o e-mail fica confirmado: quando o código é aceito (cadastro por e-mail) ou no próprio cadastro (Google, que já chega confirmado). O nome vem de `name` e, sem ele, de `full_name` nos metadados. Sem nenhum dos dois, vem do início do e-mail (`modelo-dados.md`, `profiles`). O app não manda o nome no cadastro com senha, só depois do código (RF01). Por isso B15, B16, B18 a B20 e B23, que trazem `name` nos metadados, são a rede de segurança da *trigger*, e não o caminho normal do app.
 
 | ID | Dado | Quando | Então |
 |----|------|--------|-------|
@@ -258,7 +258,7 @@ pgTAP, em `supabase/tests/database/base_schema.test.sql` e `base_triggers.test.s
 
 | ID | Dado | Quando | Então |
 |----|------|--------|-------|
-| B37 | Usuário com perfil | Como `postgres`, `private.emit_notification('game_confirmed', <uid>, '{"game_id": "<id>"}')` | Uma linha em `notifications` com o tipo, o usuário e o `data` informados. Texto provisório até a fatia 7: `title` é o tipo (`game_confirmed`) e `body` fica vazio. `read_at` e `push_sent_at` nulos. A função devolve o `id` da linha |
+| B37 | Usuário com perfil | Como `postgres`, `private.emit_notification('game_confirmed', <uid>, '{"game_id": "<id>"}')` | Uma linha em `notifications` com o tipo, o usuário e o `data` informados. Texto provisório até a fatia 7: `title` é o tipo (`game_confirmed`) e `body` é o texto vazio (`''`, não nulo). `read_at` e `push_sent_at` nulos. A função devolve o `id` da linha |
 
 ### 9.3 Formatação (RN01, RN04)
 
@@ -299,7 +299,9 @@ O formato de valor negativo fica para a fatia 5 (cenário R04).
 | E07 | `SocketException`, `ClientException` e `TimeoutException` | `noConnection` |
 | E08 | Cada valor de `ErrorCode` | O texto vem do `app_pt.arb` e não é vazio |
 
-**Login e navegação**, testes de widget com o repositório trocado por um dublê e testes de integração no emulador contra o Supabase local com o seed (`docs/ui/telas.md`, seção 4):
+**Login e navegação**, testes de widget com o repositório trocado por um dublê e testes de integração no emulador contra o Supabase local com o seed (`docs/ui/telas.md`, seção 4).
+
+Os de integração (L06, L07) ficam fora do CI. O agente os roda nos dois emuladores e, quando o celular do responsável estiver conectado, também nele (`setup.md`, seção 4). A saída vai no PR.
 
 | ID | Tipo | Dado | Quando | Então |
 |----|------|------|--------|-------|

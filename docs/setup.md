@@ -82,6 +82,14 @@ Para entrar no app, use um usuário do seed (seção 8), por exemplo `ana@voleii
 
 **Endereço do Supabase no emulador.** Dentro do emulador, `127.0.0.1` é o próprio emulador. O computador é visto como `10.0.2.2`. Por isso o `env/local.json` usa `SUPABASE_URL=http://10.0.2.2:54321`, que não muda com a rede.
 
+**Celular de verdade.** O `10.0.2.2` só existe no emulador. Para rodar o app ou os testes de integração no celular do responsável:
+
+1. No celular, ativar as opções do desenvolvedor e a **depuração USB**, e ligar o cabo. `adb devices` deve listar o aparelho como `device`.
+2. `adb reverse tcp:54321 tcp:54321`: o `127.0.0.1:54321` do celular passa a ser o Supabase do computador, pelo cabo, sem depender da rede. O comando vale até o cabo sair, então é repetido a cada conexão.
+3. Usar um `env/phone.json` igual ao `local.json`, mas com `SUPABASE_URL=http://127.0.0.1:54321`, e escolher o aparelho com `-d <id>`.
+
+O agente só alcança o celular nessas condições. Os emuladores continuam sendo a referência das versões mínima e alvo, e o celular é uma conferência extra num aparelho real (`testes-referencia.md`, 9.4).
+
 **E-mails no local.** O Supabase local não envia e-mail de verdade: todos caem no Mailpit, em `http://127.0.0.1:54324`.
 
 ## 5. Variáveis e segredos
@@ -154,7 +162,7 @@ Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfir
 | Carla | `carla@voleiin.test` | Membro, participante, às vezes na espera |
 | Diego | `diego@voleiin.test` | Sem grupo, para os testes de "sem contexto" (RN107) |
 
-- Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente.
+- Senha de todos: `voleiin123`. Contas com e-mail já confirmado. O aceite dos termos na versão vigente entra na fatia 2, quando a versão vigente passa a existir.
 - IDs fixos (UUIDs legíveis, como `00000000-0000-0000-0000-00000000000a` para a Ana), para que testes e anotações possam citá-los.
 - O domínio `.test` é reservado e nunca entrega e-mail.
 
@@ -163,7 +171,7 @@ Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfir
 | Fatia | Acrescenta |
 |-------|------------|
 | 1 | As quatro contas, para o login técnico |
-| 2 | Perfis completos: apelido, telefone visível e oculto, chave Pix |
+| 2 | Aceite dos termos na versão vigente; perfis completos: apelido, telefone visível e oculto, chave Pix |
 | 3 | Um grupo com admin e membros, uma solicitação pendente |
 | 4 | Jogos Aberto, Confirmado (com espera), em andamento e Cancelado; passagens canceladas no prazo e fora dele |
 | 5 | Jogo Concluído com rateio, multas mantidas e isentadas, troca de recebedor |

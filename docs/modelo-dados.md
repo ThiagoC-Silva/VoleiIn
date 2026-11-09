@@ -143,8 +143,9 @@ erDiagram
 ### 4.1 Conta
  
 #### `profiles`
-Dados exibidos a quem compartilha contexto (RN107). Criado por *trigger* em `auth.users` **quando o e-mail fica confirmado**, junto com a linha de `profile_private`: na confirmação do link (cadastro por e-mail) ou no próprio cadastro (Google, que já chega confirmado). Um cadastro nunca confirmado não deixa perfil. Assim, quando o Supabase vincula o Google a um cadastro pendente com o mesmo e-mail (RF108), o perfil já nasce com os dados do Google, e não com o nome de quem digitou o e-mail errado.
-O `name` vem dos metadados: `name` e, sem ele, `full_name`, sem espaço nas pontas e cortado em 80 caracteres. Sem nenhum dos dois, vem do início do e-mail (antes do `@`), e a pessoa corrige no perfil. Decisões de 09/11/2026, cenários B15 a B23 do `testes-referencia.md`.
+Dados exibidos a quem compartilha contexto (RN107). Criado por *trigger* em `auth.users` **quando o e-mail fica confirmado**, junto com a linha de `profile_private`: quando o código de confirmação é aceito (cadastro por e-mail) ou no próprio cadastro (Google, que já chega confirmado). Um cadastro nunca confirmado não deixa perfil.
+**O nome digitado no cadastro com senha não vai para o servidor antes do código** (RF01). O app guarda o nome no aparelho até a confirmação e, aceito o código, grava-o em `profiles.name`. Assim, quando o Supabase vincula o Google a um cadastro pendente com o mesmo e-mail (RF108), o servidor nunca teve o nome de quem digitou o e-mail errado, e o perfil nasce com os dados do Google.
+Na criação, o `name` vem dos metadados: `name` e, sem ele, `full_name`, sem espaço nas pontas e cortado em 80 caracteres. Sem nenhum dos dois, vem do início do e-mail (antes do `@`): é o caso do cadastro com senha, logo antes de o app gravar o nome digitado, e de quando o nome guardado no aparelho se perde (a pessoa corrige no perfil). Decisões de 09/11/2026, cenários B15 a B23 do `testes-referencia.md`.
  
 | Coluna | Tipo | Regras |
 |--------|------|--------|
@@ -287,7 +288,7 @@ Registra cada valor do limite de vagas, para calcular o `L` da RN62 (menor limit
 | `added_at` | timestamptz | |
  
 PK `(game_id, user_id)`. Índice `(user_id)`.
-Invariantes: ao menos um admin por jogo (RN25, *constraint trigger*); quem é adicionado precisa estar na lista com `status = 'active'` (RN27). Sair da lista depois não remove o papel (RN26); sair do grupo remove (RN14).
+Invariantes: ao menos um admin por jogo, em qualquer status (RN25, *constraint trigger*, sem a exceção que o grupo arquivado tem na RN13); quem é adicionado precisa estar na lista com `status = 'active'` (RN27). Sair da lista depois não remove o papel (RN26); sair do grupo remove (RN14).
  
 #### `game_participants`
 Cada linha é **uma passagem** do usuário pela lista de presença. Quem cancela e volta ganha uma linha nova (RN56), e a linha antiga fica com o cancelamento anulado.
