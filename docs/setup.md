@@ -254,6 +254,7 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 | Aparece uma **pasta** com nome `.html` em `supabase/templates/` | O Docker cria uma pasta quando o arquivo citado no `config.toml` não existe | Apague a pasta e crie o arquivo de template |
 | `ProjectPausedError` | Produção pausada por falta de uso | Reative pelo painel (seção 9.1) |
 | O emulador fecha sozinho durante o build do Gradle, e o log tem `process_memory.cc` e `short read` | Falta de memória com GPU do computador | Abra o emulador com `-gpu swiftshader_indirect` (seção 3) |
+| `flutter test integration_test` instala o app, o app abre no emulador e nada mais sai no terminal | O *runner* do teste perde a conexão com o aparelho logo depois do boot (visto na imagem Google Play de API 36, com a memória da máquina cheia) | Encerre o `flutter test` e o emulador, abra o emulador de novo, espere uns 20 s depois do boot e rode com `timeout 900` na frente |
 | `adb: more than one device/emulator` | Celular ligado por USB ou Wi-Fi além do emulador | Passe `-d emulator-5554` ao `flutter test` e `-s emulator-5554` ao `adb` |
 | `permission denied` no Docker | Usuário fora do grupo `docker`, ou sessão não reaberta | `sudo usermod -aG docker $USER` e reabrir a sessão |
 | Erro de geração (`*.freezed.dart` ou `*.g.dart` não encontrado) | `build_runner` não rodou | `dart run build_runner build --delete-conflicting-outputs` |
