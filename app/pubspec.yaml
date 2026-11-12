@@ -1,0 +1,65 @@
+name: voleiin
+description: "VoleiIn: jogos, listas de presença, rateio e pagamentos por Pix."
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+
+# Pacote novo precisa de motivo, de custo zero e de entrada na tabela da seção 3
+# de docs/arquitetura-app.md antes de entrar aqui.
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Banco, Auth, Storage, Edge Functions e Realtime
+  supabase_flutter: ^2.18.3
+  # Estado e injeção de dependência
+  flutter_riverpod: ^3.5.0
+  # Rotas e deep links
+  go_router: ^18.1.4
+  # Modelos imutáveis e JSON (usados a partir da fatia 2)
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+  # Formatação de datas; a versão vem de flutter_localizations
+  intl: any
+  # Conversão para America/Fortaleza (RN01)
+  timezone: ^0.11.2
+  # Ícones Material Symbols Rounded
+  material_symbols_icons: ^4.2960.0
+  # Já vem com supabase_flutter; declarada porque a conversão de erros cita
+  # ClientException (docs/arquitetura-app.md, seção 7)
+  http: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  # Dublês nos testes
+  mocktail: ^1.0.5
+  # Regras do dart analyze
+  flutter_lints: ^6.0.0
+  # Geração de freezed e json_serializable
+  build_runner: ^2.17.1
+  freezed: ^4.0.3
+  json_serializable: ^6.15.2
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  # Fontes do design system (docs/ui/design-system.md, seção 5), em asset para
+  # funcionar desde a primeira abertura, sem baixar nada. Roboto é a do sistema.
+  fonts:
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Montserrat-ExtraBold.ttf
+          weight: 800
+    - family: BebasNeue
+      fonts:
+        - asset: assets/fonts/BebasNeue-Regular.ttf

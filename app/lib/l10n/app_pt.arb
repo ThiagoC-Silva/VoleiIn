@@ -1,0 +1,40 @@
+{
+  "@@locale": "pt",
+
+  "appTitle": "VoleiIn",
+  "@appTitle": {
+    "description": "Nome do app no MaterialApp e no espaço reservado do logo"
+  },
+
+  "navGames": "Jogos",
+  "navGroups": "Grupos",
+  "navCharges": "Cobranças",
+  "navProfile": "Perfil",
+
+  "placeholderTitle": "Em construção",
+  "@placeholderTitle": {
+    "description": "Provisório: sai quando a aba ganha a tela real"
+  },
+  "placeholderBody": "Esta parte do app chega nas próximas versões.",
+
+  "authLoginSubtitle": "Entre para ver seus jogos.",
+  "authEmailLabel": "E-mail",
+  "authPasswordLabel": "Senha",
+  "authShowPassword": "Mostrar senha",
+  "authHidePassword": "Ocultar senha",
+  "authLoginButton": "Entrar",
+  "authEmailRequired": "Informe o seu e-mail.",
+  "authPasswordRequired": "Informe a sua senha.",
+  "authLogout": "Sair",
+
+  "commonTryAgain": "Tentar de novo",
+
+  "errorNotAuthenticated": "Entre na sua conta para continuar.",
+  "errorNotFound": "Não encontramos o que você procura.",
+  "errorInvalidInput": "Confira os dados informados.",
+  "errorInternalError": "Algo deu errado. Tente de novo.",
+  "errorNoConnection": "Sem conexão com a internet. Confira a sua rede e tente de novo.",
+  "errorAuthInvalidCredentials": "E-mail ou senha incorretos.",
+  "errorAuthEmailNotConfirmed": "Confirme o seu e-mail antes de entrar. O link está na sua caixa de entrada.",
+  "errorAuthRateLimited": "Muitas tentativas. Espere alguns minutos e tente de novo."
+}

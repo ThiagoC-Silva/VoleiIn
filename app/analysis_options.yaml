@@ -1,0 +1,10 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    # Gerados por `flutter gen-l10n`, `freezed` e `json_serializable`.
+    - lib/l10n/app_localizations*.dart
+    - "**/*.freezed.dart"
+    - "**/*.g.dart"
