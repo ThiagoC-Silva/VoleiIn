@@ -97,7 +97,7 @@ O tratamento de leitura que passa do tempo limite será definido no documento de
 
 - **RNF08. Disponibilidade:** sem meta formal. O serviço depende do Supabase no plano grátis e funciona pelo melhor esforço possível. Quando o servidor não responde, o app mostra uma mensagem de erro com a opção de tentar de novo.
 - **RNF09. Backup:** sem backup do banco. **Risco aceito:** um erro grave ou uma perda do banco pode apagar definitivamente o histórico de valores, multas e comprovantes.
-- **Pausa do plano grátis:** o Supabase pausa o projeto após 1 semana sem uso. Enquanto a produção estiver pausada, o app e as tarefas agendadas (`stacks.md`, seção 7) ficam parados. O que conta como uso será confirmado na fatia 1.
+- **Pausa do plano grátis:** o Supabase pausa o projeto após 1 semana sem uso. Enquanto a produção estiver pausada, o app e as tarefas agendadas (`stacks.md`, seção 7) ficam parados. Conta como uso a atividade de consultas no banco vinda de usuários, pela API ou pelo app, com algumas por dia ao longo da semana; o `pg_cron` não conta, e a Supabase avisa por e-mail uma semana antes (confirmado na fatia 1, em 12/11/2026, na documentação oficial de *project pausing*). Enquanto o app não tiver uso diário, a produção pode ser mantida acordada por uma requisição externa semanal ao banco, ou reativada pelo painel quando precisar.
 - **Migrações:** como não há backup nem banco remoto de homologação, depois do lançamento toda migração é ensaiada antes com uma cópia dos dados da produção, restaurada no Supabase local. A cópia fica guardada na máquina do responsável até a próxima migração, como foto do banco de antes da mudança. Não é backup contínuo e não muda a RNF09 (`setup.md`, seção 9.2, ADR 0011).
 
 ## 9. Custo

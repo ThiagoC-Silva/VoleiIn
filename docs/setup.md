@@ -47,12 +47,32 @@ specs/                # especificações do Spec Kit, uma por fatia
 | Docker | Atual | Supabase local | Gerenciador de pacotes; o usuário precisa estar no grupo `docker` |
 | Supabase CLI | Estável mais recente (não usar versões `-next`) | Banco local, migrações, testes pgTAP, Edge Functions | Pacote `.deb` das *releases* do GitHub |
 | Deno | 2.x | Testes das Edge Functions e de concorrência | `curl -fsSL https://deno.land/install.sh \| sh` |
-| `uv` e Spec Kit | `uv` atual; `specify-cli` | Especificação de cada fatia | `curl -LsSf https://astral.sh/uv/install.sh \| sh`; `uv tool install specify-cli` |
+| `uv` e Spec Kit | `uv` atual; `specify-cli` 1.4 ou superior | Especificação de cada fatia | `curl -LsSf https://astral.sh/uv/install.sh \| sh`; `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git` |
 | Firebase CLI e FlutterFire CLI | Atual | Configurar o FCM (fatia 7) | Binário oficial do Firebase; `dart pub global activate flutterfire_cli` |
 
 **Emuladores (AVD):** dois, ambos com imagem **Google Play** (exigida pelo login com Google e pelo push):
-- API 29 (Android 10), a versão mínima (RNF01);
-- API 36, a versão alvo (RNF02).
+- `voleiin_api29`: API 29 (Android 10), a versão mínima (RNF01);
+- `voleiin_api36`: API 36, a versão alvo (RNF02).
+
+Criação pela linha de comando, com o `sdkmanager` e o `avdmanager` do `cmdline-tools`:
+
+```bash
+sdkmanager "system-images;android-29;google_apis_playstore;x86_64" "system-images;android-36;google_apis_playstore;x86_64"
+avdmanager create avd -n voleiin_api29 -k "system-images;android-29;google_apis_playstore;x86_64" -d pixel_4
+avdmanager create avd -n voleiin_api36 -k "system-images;android-36;google_apis_playstore;x86_64" -d pixel_7
+```
+
+Numa máquina com 16 GB de RAM, o emulador com GPU do computador (`-gpu host`, o padrão) caiu durante o build do Gradle, que sozinho passa de 4 GB. Com renderização por software ele ficou estável:
+
+```bash
+emulator -avd voleiin_api29 -no-snapshot -no-audio -gpu swiftshader_indirect
+```
+
+Os testes de integração rodam com um emulador aberto e o Supabase local de pé. Se houver mais de um aparelho no `adb` (um celular ligado, por exemplo), indique o emulador com `-d`:
+
+```bash
+cd app && flutter test integration_test -d emulator-5554 --dart-define-from-file=env/local.json
+```
 
 **Caminho com acento.** O projeto pode ficar em "Área de trabalho", mas o `flutter analyze` quebra com `FormatException` quando o caminho tem acento. **Use sempre `dart analyze`**, que faz a mesma análise e funciona em qualquer caminho. O CI também usa `dart analyze`.
 
@@ -179,7 +199,7 @@ Jogos com horário relativo usam `now()` (por exemplo, `now() + interval '2 days
 ### 9.1 Acesso e pausa
 
 - Numa máquina nova: `supabase login` e `supabase link --project-ref zmokpmovphikmobynssy`. O vínculo fica em `supabase/.temp/`, fora do Git.
-- O plano grátis pausa o projeto após 1 semana sem uso. Pausado, o CLI responde `ProjectPausedError`. Para reativar, use o painel (sem custo, em poucos minutos). O que conta como "uso" será confirmado na fatia 1 (`requisitos-nao-funcionais.md`, seção 8).
+- O plano grátis pausa o projeto após 1 semana sem uso. Pausado, o CLI responde `ProjectPausedError`. Para reativar, use o painel (sem custo, em poucos minutos, por até 90 dias depois da pausa). O que conta como "uso" é a **atividade de consultas no banco** vinda de usuários (chamadas da API ou do app): algumas por dia na semana bastam. Jobs do `pg_cron` não contam, porque rodam dentro do próprio projeto. A Supabase avisa por e-mail uma semana antes de pausar (confirmado em 12/11/2026, `requisitos-nao-funcionais.md`, seção 8).
 
 ### 9.2 Migração na produção, com ensaio
 
@@ -233,5 +253,7 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 | `supabase start` falha por porta ocupada | Outro projeto Supabase rodando | `supabase stop --all` |
 | Aparece uma **pasta** com nome `.html` em `supabase/templates/` | O Docker cria uma pasta quando o arquivo citado no `config.toml` não existe | Apague a pasta e crie o arquivo de template |
 | `ProjectPausedError` | Produção pausada por falta de uso | Reative pelo painel (seção 9.1) |
+| O emulador fecha sozinho durante o build do Gradle, e o log tem `process_memory.cc` e `short read` | Falta de memória com GPU do computador | Abra o emulador com `-gpu swiftshader_indirect` (seção 3) |
+| `adb: more than one device/emulator` | Celular ligado por USB ou Wi-Fi além do emulador | Passe `-d emulator-5554` ao `flutter test` e `-s emulator-5554` ao `adb` |
 | `permission denied` no Docker | Usuário fora do grupo `docker`, ou sessão não reaberta | `sudo usermod -aG docker $USER` e reabrir a sessão |
 | Erro de geração (`*.freezed.dart` ou `*.g.dart` não encontrado) | `build_runner` não rodou | `dart run build_runner build --delete-conflicting-outputs` |

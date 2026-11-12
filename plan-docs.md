@@ -102,7 +102,7 @@ Cada documento abaixo tem: objetivo, conteúdo mínimo, critério de pronto, fer
 **Critério de pronto:** cada RF aparece em exatamente uma fatia, e cada fatia cabe em poucas sessões de trabalho.
  
 **Ferramentas que ajudam:**
-- **GitHub Spec Kit (escolhido em 06/11/2026):** `/speckit-constitution` uma vez por projeto e, em cada fatia, `/speckit-specify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement` e `/speckit-converge`. Requer Python 3.11+ e `uv`. Instalação: `uv tool install specify-cli`. Em repositório já existente, depois de um commit de base: `specify init --here --force --integration <chave>`. Confirmar a chave do Claude Code na documentação de integrações.
+- **GitHub Spec Kit (escolhido em 06/11/2026):** `/speckit-constitution` uma vez por projeto e, em cada fatia, `/speckit-specify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement` e `/speckit-converge`. Requer Python 3.11+ e `uv`. Instalação: `uv tool install specify-cli`. Em repositório já existente, depois de um commit de base: `specify init --here --force --integration claude` (chave confirmada em 12/11/2026, na fatia 1).
 - **Regra de uso do Spec Kit:** `docs/` é a fonte da verdade. O `spec.md` de cada fatia cita os RFs e RNs em vez de copiar o texto, e o `plano-implementacao.md` continua definindo a ordem e o escopo das fatias.
 - **Superpowers:** a skill `writing-plans` produz planos em tarefas pequenas e grava em `docs/superpowers/plans/`.
 - **Decisão:** usar só o Spec Kit como framework de especificação, sem combinar com o OpenSpec ou o BMAD.
