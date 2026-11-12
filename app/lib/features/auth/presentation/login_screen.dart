@@ -62,78 +62,84 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Espaço reservado do logo (design-system.md, 7.17).
-                  Text(l10n.appTitle, style: theme.textTheme.headlineLarge),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.authLoginSubtitle,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  _FieldLabel(l10n.authEmailLabel),
-                  TextFormField(
-                    controller: _emailController,
-                    enabled: !submitting,
-                    keyboardType: TextInputType.emailAddress,
-                    autocorrect: false,
-                    autofillHints: const [AutofillHints.email],
-                    textInputAction: TextInputAction.next,
-                    // O app não valida o formato: quem decide é o Supabase Auth.
-                    validator: (value) => (value ?? '').trim().isEmpty
-                        ? l10n.authEmailRequired
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  _FieldLabel(l10n.authPasswordLabel),
-                  TextFormField(
-                    controller: _passwordController,
-                    enabled: !submitting,
-                    obscureText: !_passwordVisible,
-                    autofillHints: const [AutofillHints.password],
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) {
-                      if (!submitting) _submit();
-                    },
-                    validator: (value) =>
-                        (value ?? '').isEmpty ? l10n.authPasswordRequired : null,
-                    decoration: InputDecoration(
-                      suffixIcon: IconButton(
-                        // Área de toque de 48 x 48 e rótulo para o TalkBack.
-                        iconSize: 24,
-                        constraints: const BoxConstraints(
-                          minWidth: 48,
-                          minHeight: 48,
-                        ),
-                        tooltip: _passwordVisible
-                            ? l10n.authHidePassword
-                            : l10n.authShowPassword,
-                        icon: Icon(
-                          _passwordVisible ? Symbols.visibility_off : Symbols.visibility,
-                        ),
-                        onPressed: () =>
-                            setState(() => _passwordVisible = !_passwordVisible),
+            // O autofill do Android só enxerga os campos dentro de um grupo.
+            child: AutofillGroup(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Espaço reservado do logo (design-system.md, 7.17).
+                    Text(l10n.appTitle, style: theme.textTheme.headlineLarge),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.authLoginSubtitle,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  FilledButton(
-                    onPressed: submitting ? null : _submit,
-                    child: submitting
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
-                          )
-                        : Text(l10n.authLoginButton),
-                  ),
-                ],
+                    const SizedBox(height: 32),
+                    _FieldLabel(l10n.authEmailLabel),
+                    TextFormField(
+                      controller: _emailController,
+                      enabled: !submitting,
+                      keyboardType: TextInputType.emailAddress,
+                      autocorrect: false,
+                      autofillHints: const [AutofillHints.email],
+                      textInputAction: TextInputAction.next,
+                      // O app não valida o formato: quem decide é o Auth.
+                      validator: (value) => (value ?? '').trim().isEmpty
+                          ? l10n.authEmailRequired
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    _FieldLabel(l10n.authPasswordLabel),
+                    TextFormField(
+                      controller: _passwordController,
+                      enabled: !submitting,
+                      obscureText: !_passwordVisible,
+                      autofillHints: const [AutofillHints.password],
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) {
+                        if (!submitting) _submit();
+                      },
+                      validator: (value) =>
+                          (value ?? '').isEmpty ? l10n.authPasswordRequired : null,
+                      decoration: InputDecoration(
+                        suffixIcon: IconButton(
+                          // Área de toque de 48 x 48 e rótulo para o TalkBack.
+                          iconSize: 24,
+                          constraints: const BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                          tooltip: _passwordVisible
+                              ? l10n.authHidePassword
+                              : l10n.authShowPassword,
+                          icon: Icon(
+                            _passwordVisible
+                                ? Symbols.visibility_off
+                                : Symbols.visibility,
+                          ),
+                          onPressed: () => setState(
+                            () => _passwordVisible = !_passwordVisible,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FilledButton(
+                      onPressed: submitting ? null : _submit,
+                      child: submitting
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            )
+                          : Text(l10n.authLoginButton),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -19,10 +19,13 @@ class RootTabScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // A barra cresce com a fonte do sistema: com o título em title.xl (28) a
+    // 150%, uma altura fixa cortaria o texto (RNF05).
+    final titleHeight = MediaQuery.textScalerOf(context).scale(28 * 1.25);
     return Scaffold(
       appBar: AppBar(
         title: Text(title, style: theme.textTheme.headlineLarge),
-        toolbarHeight: 72,
+        toolbarHeight: 32 + titleHeight,
       ),
       body: body,
     );
