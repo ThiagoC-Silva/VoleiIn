@@ -38,6 +38,29 @@ begin
 end;
 $fn$;
 
+-- Personagens do seed (docs/setup.md, seção 8), criados aqui se faltarem, para o
+-- teste rodar também sem o seed, como no ensaio de migração com a cópia da
+-- produção (docs/setup.md, 9.2). Com o seed, as contas já existem e nada muda.
+-- O perfil nasce pela trigger de auth.users, porque o e-mail entra confirmado.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change, email_change_token_new
+)
+select
+  '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
+  'nao-usado-no-teste', now(),
+  '{"provider": "email", "providers": ["email"]}'::jsonb, jsonb_build_object('name', u.name),
+  now(), now(), '', '', '', ''
+from (
+  values
+    ('00000000-0000-0000-0000-00000000000a'::uuid, 'ana@voleiin.test', 'Ana'),
+    ('00000000-0000-0000-0000-00000000000b'::uuid, 'bruno@voleiin.test', 'Bruno'),
+    ('00000000-0000-0000-0000-00000000000c'::uuid, 'carla@voleiin.test', 'Carla'),
+    ('00000000-0000-0000-0000-00000000000d'::uuid, 'diego@voleiin.test', 'Diego')
+) as u (id, email, name)
+on conflict do nothing;
+
 -- Grupo ativo com Ana como admin.
 create function pg_temp.mk_group(p_name text)
 returns uuid
