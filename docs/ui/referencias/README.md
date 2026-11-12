@@ -26,8 +26,18 @@ Detalhe de cada tela em `docs/ui/telas.md`, seção 5. Textos em `docs/copy.md`,
 | `profile.png` e `profile-google.png` | Meu perfil, com e sem acesso por e-mail e senha | Obrigatório |
 | `profileEdit.png` e `profileEdit-foto.png` | Editar perfil e a sheet da foto | Obrigatório |
 | `profilePix.png` e `profilePix-remover.png` | Chave Pix e a confirmação de remoção | Obrigatório |
+| `profilePix-tipo.png` | Chave Pix com o menu do tipo aberto | Extra, enviado pelo responsável |
 | `profileEmail-etapa1.png` e `profileEmail-etapa2.png` | Trocar e-mail | Obrigatório |
 | `profilePassword.png` | Trocar senha | Obrigatório |
+
+### Conferência dos PNGs da fatia 2 (12/11/2026)
+
+Todos os PNGs obrigatórios chegaram, com todos os elementos do briefing. Na implementação:
+
+- **A folha da foto não tem título.** O PNG mostra "Foto do perfil", mas o responsável decidiu tirar. "Remover foto" fica em tom destrutivo e sem confirmação.
+- **No título "Confirme o seu e-mail", o hífen não quebra** (U+2011). O PNG mostra a quebra "e-" / "mail", que não deve acontecer.
+- O tipo da chave Pix é um menu suspenso com ícones (`profilePix-tipo.png`), e não chips.
+- Os ícones decorativos (quadrado amarelo na confirmação e no aceite, ícones nas linhas, relógio no reenviar) e o bloco amarelo do login seguem os PNGs.
 
 ### `login.png`. Login (`/login`)
 

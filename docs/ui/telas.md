@@ -272,7 +272,7 @@ Barra superior interna com voltar e o rótulo do documento como título. O corpo
 
 **Conteúdo:**
 
-1. **Foto:** avatar de 96 com o botão de texto **Trocar foto**, que abre uma sheet com **Escolher da galeria**, **Tirar foto** e, se houver foto, **Remover foto**. A foto escolhida aparece no avatar antes de salvar.
+1. **Foto:** avatar de 96 com o botão de texto **Trocar foto**, que abre uma sheet **sem título** com **Escolher da galeria**, **Tirar foto** e, se houver foto, **Remover foto**, esta em tom destrutivo e sem confirmação, porque só vale ao tocar em Salvar (decisão de 12/11/2026). A foto escolhida aparece no avatar antes de salvar.
 2. **Nome**, obrigatório, até 80 caracteres.
 3. **Apelido**, opcional, até 30 caracteres, com a dica "Aparece no lugar do nome nas listas" (RN100).
 4. **Telefone**, opcional: prefixo fixo `+55` e máscara `(86) 99999-1234`, com 10 ou 11 dígitos (decisão de 12/11/2026). Gravado em E.164 (`+5586999991234`).
@@ -296,7 +296,7 @@ Barra superior interna com voltar e o rótulo do documento como título. O corpo
 
 **Conteúdo:**
 
-1. **Tipo da chave:** chips de filtro (`design-system.md`, 7.5) com os cinco rótulos de `pix_key_type`: CPF, CNPJ, E-mail, Telefone e Aleatória. Trocar o tipo limpa o campo.
+1. **Tipo da chave:** menu suspenso, com um ícone por opção, e os cinco rótulos de `pix_key_type`: CPF, CNPJ, E-mail, Telefone e Aleatória. A opção escolhida tem a marca de seleção (`profilePix-tipo.png`). Trocar o tipo limpa o campo.
 2. **Chave**, com teclado e máscara do tipo:
 
    | Tipo | Teclado e máscara | O app confere | Grava |
