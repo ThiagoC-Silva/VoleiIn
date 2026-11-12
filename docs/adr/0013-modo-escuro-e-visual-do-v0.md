@@ -11,7 +11,7 @@ O projeto anterior (VoleiIn v0) tinha um design fechado: cores, fontes, componen
 - O app tem **só o modo escuro**, sem opção de aparência.
 
 ## Alternativas descartadas
-- **Trazer os PNGs:** mostram comportamentos que não existem mais e seriam uma segunda fonte de verdade.
+- **Trazer os PNGs:** mostram comportamentos que não existem mais e seriam uma segunda fonte de verdade. (Os PNGs **novos**, desenhados pelo responsável a cada fatia a partir do briefing de `docs/ui/referencias/`, são outra coisa: decidem só a aparência, e o `telas.md` continua decidindo o conteúdo. Decisão de 12/11/2026.)
 - **Design novo:** refaria um trabalho visual já fechado e aprovado.
 - **Escuro e claro:** dobraria a conferência de contraste e de cada tela.
 

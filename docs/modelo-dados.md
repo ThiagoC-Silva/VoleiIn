@@ -143,7 +143,7 @@ erDiagram
 ### 4.1 Conta
  
 #### `profiles`
-Dados exibidos a quem compartilha contexto (RN107). Criado por *trigger* em `auth.users` **quando o e-mail fica confirmado**, junto com a linha de `profile_private`: na confirmação do link (cadastro por e-mail) ou no próprio cadastro (Google, que já chega confirmado). Um cadastro nunca confirmado não deixa perfil. Assim, quando o Supabase vincula o Google a um cadastro pendente com o mesmo e-mail (RF108), o perfil já nasce com os dados do Google, e não com o nome de quem digitou o e-mail errado.
+Dados exibidos a quem compartilha contexto (RN107). Criado por *trigger* em `auth.users` **quando o e-mail fica confirmado**, junto com a linha de `profile_private`: na confirmação do código (cadastro por e-mail, ADR 0017) ou no próprio cadastro (Google, que já chega confirmado). Um cadastro nunca confirmado não deixa perfil. Assim, quando o Supabase vincula o Google a um cadastro pendente com o mesmo e-mail (RF108), o perfil já nasce com os dados do Google, e não com o nome de quem digitou o e-mail errado.
 O `name` vem dos metadados: `name` e, sem ele, `full_name`, sem espaço nas pontas e cortado em 80 caracteres. Sem nenhum dos dois, vem do início do e-mail (antes do `@`), e a pessoa corrige no perfil. Decisões de 09/11/2026, cenários B15 a B23 do `testes-referencia.md`.
  
 | Coluna | Tipo | Regras |
@@ -162,13 +162,13 @@ Dados com visibilidade própria (RN101, RN102). Ficam fora de `profiles` porque 
 | Coluna | Tipo | Regras |
 |--------|------|--------|
 | `user_id` | uuid | PK, FK `profiles(id)` |
-| `phone` | text | null, formato E.164 (`^\+[1-9][0-9]{7,14}$`) |
+| `phone` | text | null, formato E.164 (`^\+[1-9][0-9]{7,14}$`). O app só aceita números do Brasil: mostra `+55` fixo e a pessoa digita DDD e número, com 10 ou 11 dígitos (decisão de 12/11/2026) |
 | `phone_visible` | boolean | not null, padrão `false` (RN101) |
 | `pix_key_type` | pix_key_type | null |
-| `pix_key` | text | null, normalizada (CPF/CNPJ só dígitos, e-mail minúsculo, telefone E.164) |
+| `pix_key` | text | null, normalizada (CPF/CNPJ só dígitos, e-mail minúsculo, telefone E.164, aleatória em minúsculas) |
 | `updated_at` | timestamptz | |
  
-Constraints: `(pix_key_type is null) = (pix_key is null)`; formato de `pix_key` validado por `pix_key_type`.
+Constraints: `(pix_key_type is null) = (pix_key is null)`; formato de `pix_key` validado por `pix_key_type`. **CPF e CNPJ também têm os dígitos verificadores conferidos** (decisão de 12/11/2026), pelas funções `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)`, `immutable`, usadas na constraint e repetidas no app para o aviso no campo. Sequências de um dígito só (`00000000000`, `11111111111`...) são recusadas, embora passem na conta. A chave de telefone segue a mesma regra do campo `phone` no app (só Brasil).
 *Trigger* da RN105: rejeita `pix_key = null` se o usuário for `receiver_id` de um jogo `open`/`confirmed` ou de um `charge` `pending`/`under_review`. A troca de chave é livre.
  
 #### `terms_acceptances`
@@ -181,7 +181,7 @@ Constraints: `(pix_key_type is null) = (pix_key is null)`; formato de `pix_key` 
 | `version` | text | not null |
 | `accepted_at` | timestamptz | not null, padrão `now()` |
  
-Único: `(user_id, document, version)`. O app compara a última versão aceita com a versão vigente (configuração do servidor) para pedir novo aceite (RF105).
+Único: `(user_id, document, version)`. A **versão vigente** de cada documento vem da função `public.current_terms_versions()` (seção 6), trocada por migração quando um texto muda (decisão de 12/11/2026). O app compara o aceite com ela para pedir novo aceite (RF105), e a política de inserção só aceita a versão vigente (`rls-matriz.md`, fatia 2). O `accepted_at` vem sempre do padrão `now()`: o app não tem privilégio na coluna.
  
 ### 4.2 Grupos
  
@@ -540,6 +540,7 @@ Toda escrita com regra passa por uma função do servidor (SQL `security definer
 | `archive_group` | Valida que não há jogo `open`/`confirmed`, remove membros, cancela solicitações pendentes, invalida o convite, grava `archived_at` e notifica os membros | RN17, RF103 |
 | `delete_account` | Valida bloqueios, sai das listas futuras, cancela solicitações e anonimiza | RN103, RN104 |
 | `get_profile_contact(user_id)` | Devolve telefone e chave Pix só quando a RN101, a RN102 e a RN107 permitem | RN101, RN102, RN107 |
+| `current_terms_versions()` | Devolve a versão vigente dos Termos de Uso e da Política de Privacidade | RF105 |
  
 **`complete_game(game_id, total_cents?, absent_user_ids?)`**
  

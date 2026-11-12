@@ -102,6 +102,55 @@ Nenhuma política. Os testes provam que nada está aberto (`testes-referencia.md
 
 **Como os testes evoluem.** B03, B04 e B06 comparam o banco com uma **lista esperada**: na fatia 1, as listas são vazias. Cada fatia acrescenta às listas as políticas, os privilégios e as funções que concede, no mesmo PR. Assim, qualquer acesso que ninguém documentou faz o teste falhar.
 
+### Fatia 2
+
+Decisões de 12/11/2026. A pessoa lê e edita **só a própria linha** de `profiles`, `profile_private` e `terms_acceptances`, e envia, lê e apaga **só as próprias fotos** no bucket `avatars`. Ninguém vê o perfil de outra pessoa nesta fatia: a leitura por contexto (RN107) entra na fatia 3, junto com `shares_context`. Nas condições, `uid` é `(select auth.uid())` (seção 6).
+
+**Privilégios de `authenticated`** (lista esperada do B04). `anon` continua sem nenhum.
+
+| Tabela | Privilégio | Colunas |
+|--------|------------|---------|
+| `profiles` | `select` | Todas |
+| `profiles` | `update` | `name`, `nickname`, `photo_path` |
+| `profile_private` | `select` | Todas |
+| `profile_private` | `update` | `phone`, `phone_visible`, `pix_key_type`, `pix_key` |
+| `terms_acceptances` | `select` | Todas |
+| `terms_acceptances` | `insert` | `user_id`, `document`, `version` |
+
+- Sem `insert` em `profiles` e `profile_private`: as duas linhas nascem pela *trigger* de `auth.users` (`modelo-dados.md`, 4.1). Sem `delete` em nenhuma das três tabelas.
+- O privilégio por coluna impede o app de gravar `id`, `deleted_at`, `display_name`, `updated_at` e `accepted_at`. O `accepted_at` vem sempre do `now()` do servidor (RN02).
+
+**Políticas** (lista esperada do B03)
+
+| Tabela | Política | Operação | `using` | `with check` |
+|--------|----------|----------|---------|--------------|
+| `profiles` | `profiles_select_own` | `select` | `id = uid` | — |
+| `profiles` | `profiles_update_own` | `update` | `id = uid and deleted_at is null` | `id = uid and (photo_path is null or photo_path like 'profiles/' \|\| id::text \|\| '/%')` |
+| `profile_private` | `profile_private_select_own` | `select` | `user_id = uid` | — |
+| `profile_private` | `profile_private_update_own` | `update` | `user_id = uid` | `user_id = uid` |
+| `terms_acceptances` | `terms_acceptances_select_own` | `select` | `user_id = uid` | — |
+| `terms_acceptances` | `terms_acceptances_insert_own` | `insert` | — | `user_id = uid and exists (select 1 from public.current_terms_versions() v where v.document = terms_acceptances.document and v.version = terms_acceptances.version)` |
+
+- O `photo_path` só aponta para a pasta da própria pessoa no bucket. Assim ninguém exibe como sua a foto de outra.
+- A *trigger* da RN105 roda em todo `update` de `profile_private`, inclusive o do app, e devolve `PIX_KEY_IN_USE` (`contratos-api.md`, seção 2).
+- O aceite com versão que não é a vigente, ou com o `user_id` de outra pessoa, é recusado pelo RLS (`42501`).
+
+**Funções** (lista esperada do B06): `public.current_terms_versions()`, com `execute` só para `authenticated` (`contratos-api.md`, seção 9).
+
+**Storage, bucket `avatars`.** Políticas em `storage.objects`, todas com `bucket_id = 'avatars' and (storage.foldername(name))[1] = 'profiles' and (storage.foldername(name))[2] = uid::text`:
+
+| Política | Operação | Para quê |
+|----------|----------|----------|
+| `avatars_profile_select_own` | `select` | Gerar a URL assinada da própria foto |
+| `avatars_profile_insert_own` | `insert` | Enviar uma foto nova, sempre com nome novo (`profiles/{uid}/{uuid}.{ext}`) |
+| `avatars_profile_delete_own` | `delete` | Apagar a foto substituída ou removida (`modelo-dados.md`, seção 7) |
+
+- Sem `update`: o app nunca sobrescreve um arquivo (`upsert: false`). Trocar a foto é enviar a nova, gravar o `photo_path` e apagar a antiga, nesta ordem.
+- Tipo e tamanho (RN106) são conferidos pelo próprio bucket, antes das políticas (seção 3).
+- A pasta `groups/` continua fechada até a fatia 3. A leitura das fotos de outras pessoas, por contexto, também entra na fatia 3.
+
+**Casos negativos**, cada um com teste (`testes-referencia.md`, seção 10.1): outra pessoa não lê nem edita a linha da Ana nas três tabelas; ninguém grava as colunas fora da lista; ninguém insere em `profiles` ou `profile_private`; ninguém aceita uma versão antiga ou em nome de outro; ninguém envia, lê ou apaga arquivo na pasta de outra pessoa nem em `groups/`; `anon` não lê nada.
+
 ## 6. Cuidados nas próximas fatias
 
 - **Desempenho:** nas políticas, use `(select auth.uid())` em vez de `auth.uid()`, para o Postgres calcular uma vez por consulta e não uma vez por linha. As funções auxiliares são `stable` e consultam por colunas indexadas (`modelo-dados.md`, seção 4).

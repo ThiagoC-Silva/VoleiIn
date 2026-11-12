@@ -144,7 +144,9 @@ Tudo o que sai do Supabase passa por uma conversão única, em `core/errors/`, e
 | Função SQL | `PostgrestException` com `code == 'P0001'` e o código em `message` | `ErrorCode` correspondente |
 | Edge Function | `FunctionException` com `{ "error": { "code": ... } }` no corpo | `ErrorCode` correspondente |
 | Trigger de escrita direta | `PostgrestException` `P0001` (por exemplo, `PIX_KEY_IN_USE`) | `ErrorCode` correspondente |
-| Supabase Auth | `AuthException` | Código do app pela tabela do `docs/copy.md` (seção 5.5): os do login na fatia 1, os demais na fatia 2 |
+| Supabase Auth | `AuthException` | Código do app pelas tabelas do `docs/copy.md` (seções 5.5 e 6.8) |
+| Storage | `StorageException` | `photoTooLarge` (HTTP 413) ou `photoInvalidType` (`invalid_mime_type`), pelo `docs/copy.md` (seção 6.8) |
+| Login com Google | Retorno nulo do `google_sign_in` (seletor fechado) ou exceção dele | Nulo não é erro. A exceção vira `authGoogleFailed` |
 | Sem rede | `SocketException`, `ClientException`, `TimeoutException` | `ErrorCode.noConnection` (RNF07) |
 | Qualquer outra coisa, ou código desconhecido | — | `ErrorCode.internalError` |
 
@@ -164,7 +166,8 @@ Tudo o que sai do Supabase passa por uma conversão única, em `core/errors/`, e
 
 - `go_router`, com as rotas em `core/router/`. Cada rota tem um nome constante. Navegação sempre por nome (`context.goNamed`), nunca por caminho escrito no widget.
 - As raízes da navegação inferior usam `StatefulShellRoute.indexedStack`. Os destinos estão em `docs/ui/telas.md`.
-- **Redirecionamentos**, nesta ordem: sem sessão → login; e-mail não confirmado → aviso de confirmação; termos não aceitos na versão vigente (RF105) → aceite; caso contrário, segue.
+- **Redirecionamentos**, nesta ordem: sem sessão → login, salvo nas rotas de acesso (`/signup`, `/confirm-email`, `/forgot-password`); com sessão numa rota de acesso → `/games`; termos não aceitos na versão vigente (RF105) → `/terms`; caso contrário, segue. E-mail não confirmado não tem sessão, porque a confirmação é por código (ADR 0017): a `/confirm-email` é aberta pelo cadastro e pelo erro `email_not_confirmed` do login, e não por redirecionamento (`docs/ui/telas.md`, seção 3.1).
+- **Estado de acesso em memória:** o e-mail do código pendente (cadastro, recuperação e troca de e-mail) e o resultado da conferência dos termos ficam em providers, nunca no aparelho nem na rota. A conferência roda ao abrir o app com sessão e depois de cada login, e é refeita depois do aceite.
 - **Deep links** (fatia 8): `/g/:code` e `/j/:code`. Sem sessão, o convite fica num provider em memória (não no aparelho, RNF07) e é retomado depois do login.
 - Parâmetro de rota é sempre um ID ou um código. Os dados são relidos do servidor ao abrir a tela, nunca passados como objeto entre telas.
 

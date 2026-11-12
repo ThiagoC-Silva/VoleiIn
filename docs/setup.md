@@ -140,7 +140,27 @@ O SMTP e o limite de e-mails por hora só são configurados pelo painel: o `supa
 
 O ref do projeto (`zmokpmovphikmobynssy`) e a URL não são segredo e ficam no workflow.
 
-## 6. Login com Google
+## 6. Supabase Auth e login com Google
+
+### 6.1 E-mail, código e senha (fatia 2)
+
+Os três e-mails de conta levam um código de 6 dígitos (ADR 0017). No local, as opções ficam no `supabase/config.toml`. Na produção, as mesmas opções são ajustadas no painel (Authentication → Sign In / Providers, Email Templates e Rate Limits), porque o SMTP e os limites não vão pelo `supabase config push` (seção 5.2).
+
+| Opção (`config.toml`) | Valor | Por quê |
+|-----------------------|-------|---------|
+| `[auth.email] enable_confirmations` | `true` | Sem confirmação não há sessão (RF02) |
+| `[auth.email] double_confirm_changes` | `false` | Na troca de e-mail, o código vai só ao endereço novo (RF106) |
+| `[auth.email] otp_length` e `otp_expiry` | `6` e `3600` | Código de 6 dígitos, válido por 1 hora |
+| `[auth] minimum_password_length` | `8` | Decisão de 12/11/2026 (`docs/ui/telas.md`, seção 5) |
+| `[auth] password_requirements` | `""` | Sem exigir número ou símbolo |
+| `[auth.email.template.confirmation]`, `.recovery`, `.email_change` | `subject` e `content_path = "./supabase/templates/<arquivo>.html"` | Textos e assuntos no `docs/copy.md`, seção 6.9 |
+| `[auth] site_url` | Fica como está | Sem link nos e-mails, o endereço não é usado |
+
+- **No local,** os e-mails caem no Mailpit (seção 4), que também é lido pelos testes de integração (`testes-referencia.md`, seção 10.4).
+- **Limite de envio:** o padrão local é `email_sent = 2` por hora, o que trava o "Reenviar código" e os testes de integração. O `config.toml` sobe para `30` no local. Na produção, com o SMTP do Resend, o limite fica no painel, em 30 por hora.
+- **Modelos:** cada arquivo citado em `content_path` precisa existir antes do `supabase start`. Sem ele, o Docker cria uma pasta com o nome do arquivo (seção 11).
+
+### 6.2 Login com Google
 
 Usa o projeto `VoleiIn` do Google Cloud, já criado no v0.
 
@@ -174,7 +194,7 @@ Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfir
 | Carla | `carla@voleiin.test` | Membro, participante, às vezes na espera |
 | Diego | `diego@voleiin.test` | Sem grupo, para os testes de "sem contexto" (RN107) |
 
-- Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente. Até a fatia 2 definir a versão vigente na configuração do servidor (RF105), o seed grava a versão `1.0`.
+- Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente, que vem de `current_terms_versions()` (`contratos-api.md`, seção 9). O seed grava a mesma versão (`1.0`); quando uma migração trocar a versão, o seed muda junto.
 - IDs fixos (UUIDs legíveis, como `00000000-0000-0000-0000-00000000000a` para a Ana), para que testes e anotações possam citá-los.
 - O domínio `.test` é reservado e nunca entrega e-mail.
 
@@ -183,7 +203,7 @@ Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfir
 | Fatia | Acrescenta |
 |-------|------------|
 | 1 | As quatro contas, para o login técnico |
-| 2 | Perfis completos: apelido, telefone visível e oculto, chave Pix |
+| 2 | Perfis completos: apelido, telefone visível e oculto, chave Pix. O aceite dos termos na versão `1.0`, a mesma de `current_terms_versions()` |
 | 3 | Um grupo com admin e membros, uma solicitação pendente |
 | 4 | Jogos Aberto, Confirmado (com espera), em andamento e Cancelado; passagens canceladas no prazo e fora dele |
 | 5 | Jogo Concluído com rateio, multas mantidas e isentadas, troca de recebedor |

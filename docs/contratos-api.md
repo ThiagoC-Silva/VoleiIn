@@ -406,16 +406,24 @@ Sem permissão de execução para o app.
 
 | Tabela ou serviço | O que o app faz | Erros | Origem |
 |-------------------|-----------------|-------|--------|
-| `profiles` | Edita `name`, `nickname`, `photo_path` da própria linha | Constraints | RF08, RF09, RF12 |
-| `profile_private` | Edita telefone, visibilidade e chave Pix | `PIX_KEY_IN_USE` (*trigger*), constraints | RF10 a RF12, RN105 |
-| `terms_acceptances` | Insere o próprio aceite | Constraints | RF105 |
+| `profiles` | Edita `name`, `nickname`, `photo_path` da própria linha (fatia 2) | Constraints | RF08, RF09, RF12 |
+| `profile_private` | Edita telefone, visibilidade e chave Pix da própria linha (fatia 2). A linha já existe, criada com o perfil | `PIX_KEY_IN_USE` (*trigger*), constraints | RF10 a RF12, RN105 |
+| `terms_acceptances` | Insere o próprio aceite, uma linha por documento, só na versão vigente (fatia 2) | Constraints, `42501` com versão que não é a vigente | RF105 |
 | `device_tokens` | Registra e apaga os próprios tokens | Constraints | RF07, RF88 |
 | `notification_preferences` | Liga e desliga tipos | Constraints | RF98 |
 | `notifications` | Grava só `read_at` | — | RF99 |
 | Storage | Envia fotos e comprovantes, conforme as políticas e limites da seção 7 do `modelo-dados.md` | Erros do Storage | RF09, RF14, RF78 |
-| Supabase Auth | Cadastro, login, recuperação, troca de senha e de e-mail, logout | Erros do Auth | RF01 a RF07, RF106 a RF108 |
+| Supabase Auth | Cadastro, login (e-mail e Google), confirmação, recuperação e troca de e-mail por código de 6 dígitos (`verifyOTP`, ADR 0017), troca de senha e logout | Erros do Auth (`docs/copy.md`) | RF01 a RF07, RF106 a RF108 |
 
-**Leitura:** o app lê as tabelas por `select`, limitado pelo RLS, e assina o Realtime nas tabelas do `stacks.md` (seção 4.1). Consultas de leitura não têm contrato próprio, salvo os totais de RF75 e RF76, que somam `charges` por `status`, e o rateio de RF73 e RF74.
+**Leitura:** o app lê as tabelas por `select`, limitado pelo RLS, e assina o Realtime nas tabelas do `stacks.md` (seção 4.1). Consultas de leitura não têm contrato próprio, salvo os totais de RF75 e RF76, que somam `charges` por `status`, o rateio de RF73 e RF74 e a função abaixo.
+
+### `current_terms_versions()` (fatia 2)
+
+- **Retorno:** `table (document legal_document, version text)`, uma linha por documento. Na fatia 2, `terms_of_use` e `privacy_policy`, ambos na versão `1.0`.
+- **Permissão:** `authenticated`. Não lê tabela nem depende de quem chama: é `sql`, `immutable` e `security invoker`, com as versões escritas no corpo.
+- **Erros:** nenhum.
+- **Uso:** o roteador compara com a última versão aceita de cada documento em `terms_acceptances` e manda para `/terms` se faltar alguma (RF105, `arquitetura-app.md`, seção 9). A política de inserção de `terms_acceptances` usa a mesma função (`rls-matriz.md`, fatia 2).
+- **Para mudar uma versão:** uma migração nova recria a função com o valor novo. Na próxima abertura, todo mundo que aceitou a versão anterior vê o aceite de novo, em qualquer versão do app.
 
 ## 10. Decisões registradas com estes contratos
 
