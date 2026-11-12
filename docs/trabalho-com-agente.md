@@ -108,6 +108,7 @@ Checklist do PR. O revisor confere cada item, e o agente marca no texto do PR.
 | **Deploy** (disparo manual, `workflow_dispatch`) | Migrações (`supabase db push`), Edge Functions e o build assinado do app, na produção |
 
 - **A aprovação manual é o próprio disparo.** O workflow de deploy só roda quando o responsável o dispara no GitHub, informando a versão e confirmando, num campo do formulário, que o ensaio da migração foi feito (`setup.md`, seção 9.2). Esse formato funciona em qualquer plano do GitHub.
+- **O workflow de deploy ainda não existe.** Por decisão de 11/11/2026, ele entra numa fatia próxima do lançamento: o CI de *pull request* já existe desde a fatia 1, e as migrações da produção são aplicadas à mão pelo responsável, com os comandos da seção 9.2 do `setup.md`.
 - Num repositório privado do plano grátis, o GitHub não bloqueia o *merge* com o CI vermelho. A regra "só com CI verde" vale pela revisão do responsável.
 
 ## 7. O que o agente nunca faz

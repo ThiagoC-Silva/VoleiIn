@@ -8,7 +8,7 @@
 - **Chaves:** `uuid` com `gen_random_uuid()`. Tabelas de junção usam chave composta.
 - **Tempo:** todo instante é `timestamptz`, gravado em UTC e exibido em `America/Fortaleza` (RN01). Instantes de regra (entrada, cancelamento, conclusão) vêm de `now()` no servidor, nunca do aparelho (RN02).
 - **Dinheiro:** `integer` em centavos, colunas com sufixo `_cents`. Nenhum cálculo em ponto flutuante (RN04).
-- **Auditoria mínima:** `created_at` (padrão `now()`) em todas as tabelas; `updated_at` mantido por *trigger* onde há edição.
+- **Auditoria mínima:** `created_at` (padrão `now()`) nas tabelas que a seção 4 lista com essa coluna; `updated_at` mantido por *trigger* onde há edição. As tabelas cujo instante de criação já tem nome próprio (`joined_at`, `added_at`, `accepted_at`, `effective_from`, `sent_at`) não repetem `created_at`, e a `notification_preferences` não guarda instante (ADR 0016).
 - **Sem exclusão física de histórico:** jogos, presenças, valores e comprovantes mudam de status; contas são anonimizadas (RF13) e grupos são arquivados (RF103).
 - **Escrita controlada:** tabelas com regra de negócio (grupos, jogos, listas, valores, comprovantes) **não aceitam escrita direta do app**. As mudanças passam por funções `security definer` ou Edge Functions (seção 6). O app escreve direto apenas em perfil, preferências, tokens e na leitura de notificações.
 - **RLS ativado em todas as tabelas** (seção 8).

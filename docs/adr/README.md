@@ -23,6 +23,7 @@ Cada arquivo registra uma decisão que alguém poderia querer reabrir: o context
 | [0013](0013-modo-escuro-e-visual-do-v0.md) | Só modo escuro, com o visual herdado do v0 | Aceito |
 | [0014](0014-dart-analyze.md) | `dart analyze` no lugar de `flutter analyze` | Aceito |
 | [0015](0015-esquema-private.md) | Funções auxiliares no esquema `private` e privilégios revogados | Aceito |
+| [0016](0016-created-at-nas-tabelas-de-juncao.md) | `created_at` segue a lista de colunas de cada tabela | Aceito |
 
 ## Modelo
 

@@ -197,8 +197,8 @@ pgTAP, em `supabase/tests/database/base_security.test.sql`. B03, B04 e B06 compa
 | B02 | Idem | Lista as tabelas de `public` | Exatamente as 20 da seção 4 do `modelo-dados.md` |
 | B03 | Idem | Lista as políticas de `public` (`pg_policies`) | Igual à lista esperada. Na fatia 1, vazia |
 | B04 | Idem | Lista os privilégios de tabela e de coluna de `anon` e `authenticated` em `public` | Igual à lista esperada. Na fatia 1, vazia |
-| B05 | Como `postgres`, o teste cria uma tabela e uma função novas em `public` | Consulta os privilégios delas | `anon`, `authenticated` e `public` sem privilégio algum, inclusive sem `execute` na função |
-| B06 | Banco após reset | Lista as funções de `public`, fora as de extensões, que `anon` ou `authenticated` podem executar | Igual à lista esperada. Na fatia 1, vazia |
+| B05 | Como `postgres`, o teste cria uma tabela e uma função novas em `public` | Consulta os privilégios delas | A **tabela** nasce sem privilégio algum para `anon`, `authenticated` e `public`. A **função** nasce com o `execute` que o Postgres dá a `public`, que nenhuma configuração remove (`rls-matriz.md`, seção 1): o teste registra esse comportamento e falha se ele mudar. Quem cobra o fechamento de cada função é o B06 |
+| B06 | Banco após reset | Lista as funções de `public`, fora as de extensões, que `anon` ou `authenticated` podem executar | Igual à lista esperada. Na fatia 1, vazia. É o teste que cobra o `revoke execute ... from public, anon` de toda função nova (B05) |
 | B07 | Idem | Consulta `usage` de `anon` e `authenticated` no esquema `private` e `execute` em `private.emit_notification` | Falso em todos |
 | B08 | Usuário autenticado (`role authenticated` com o `sub` de um usuário de teste) | `select` em `profiles` e `insert` em `notifications` | Erro `42501` nos dois |
 | B09 | Banco após reset | Lê `storage.buckets` | `avatars` e `receipts` existem, com `public = false` e os tamanhos e tipos da `rls-matriz.md` (seção 3) |

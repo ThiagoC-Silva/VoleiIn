@@ -154,7 +154,7 @@ Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfir
 | Carla | `carla@voleiin.test` | Membro, participante, às vezes na espera |
 | Diego | `diego@voleiin.test` | Sem grupo, para os testes de "sem contexto" (RN107) |
 
-- Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente.
+- Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente. Até a fatia 2 definir a versão vigente na configuração do servidor (RF105), o seed grava a versão `1.0`.
 - IDs fixos (UUIDs legíveis, como `00000000-0000-0000-0000-00000000000a` para a Ana), para que testes e anotações possam citá-los.
 - O domínio `.test` é reservado e nunca entrega e-mail.
 
@@ -193,7 +193,13 @@ Não há backup (RNF09) nem banco remoto de teste. Por isso, **depois do lançam
    ```
 2. **Montar o banco local no estado da produção:** `supabase db reset --version <última migração aplicada na produção>` (a lista sai de `supabase migration list --linked`). Em seguida, carregar `data.sql` no banco local com `psql`.
 3. **Aplicar a migração nova** no local (`supabase migration up`) e conferir: a migração termina sem erro, `supabase test db` passa e as contagens das tabelas afetadas batem com o esperado.
-4. **Publicar** pelo workflow de deploy (`trabalho-com-agente.md`, seção 6), que pede a confirmação de que o ensaio foi feito.
+4. **Publicar** pelo workflow de deploy (`trabalho-com-agente.md`, seção 6), que pede a confirmação de que o ensaio foi feito. Esse workflow ainda não existe (decisão de 11/11/2026: ele entra numa fatia próxima do lançamento). Até lá, o responsável publica à mão, na raiz do repositório:
+   ```bash
+   supabase login                                        # uma vez por máquina
+   supabase link --project-ref zmokpmovphikmobynssy      # pede a senha do banco
+   supabase migration list --linked                      # confere o que já foi aplicado
+   supabase db push                                      # aplica as migrações novas
+   ```
 5. **Guardar a cópia** até a próxima migração, que a substitui. A cópia tem telefone, chave Pix e e-mails: fica só nesta máquina, nunca no Git nem em nuvem.
 
 Antes do lançamento, o ensaio é opcional, porque não há dados reais. **O procedimento é validado na fatia 1**, ainda com dados de teste. Os comandos acima são o ponto de partida: os esquemas incluídos no dump, em especial `auth`, devem ser conferidos e corrigidos aqui nessa validação.

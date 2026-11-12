@@ -14,7 +14,8 @@ Para o app ler ou escrever uma tabela, **duas camadas** precisam permitir:
 | **Política** (RLS) | Em que linhas a operação vale | A leitura volta vazia, e a escrita é recusada |
 
 - **RLS ativado em toda tabela** de `public`, sem exceção. Tabela com RLS e sem política não devolve nenhuma linha.
-- **Privilégios padrão revogados** na primeira migração (ADR 0015). Tabela e função novas nascem sem acesso para `anon` e `authenticated`. Isso inclui o `execute` que o Postgres dá a `public` em toda função nova.
+- **Privilégios padrão revogados** na primeira migração (ADR 0015). **Tabela** nova em `public` nasce sem acesso para `anon` e `authenticated`.
+- **Função nova não nasce fechada, e isso é do Postgres.** Toda função recebe `execute` para o papel `public`, que quer dizer "todos os papéis" e inclui `anon` e `authenticated`. O `alter default privileges ... revoke execute on functions from public` **não** tira essa concessão: o Postgres soma o padrão embutido ao que a migração configura (medido em 11/11/2026, no Postgres 17.11 do Supabase local). Um *event trigger* resolveria, mas exige superusuário, que o projeto não tem na produção. Por isso **toda função de `public` leva o `revoke execute ... from public, anon` logo depois do `create`** (`arquitetura-app.md`, 14.3), e o teste B06 fica vermelho se alguma esquecer.
 - **Escrita com regra** passa pelas funções `security definer` (`contratos-api.md`), que rodam como dono e não dependem do RLS. O RLS protege a leitura e as escritas diretas da seção 9 do `contratos-api.md`.
 - **Realtime** respeita o RLS: o app só recebe eventos de linhas que pode ler. Por isso uma tabela só entra na publicação `supabase_realtime` na fatia que libera a leitura dela.
 
@@ -97,7 +98,7 @@ Nenhuma política. Os testes provam que nada está aberto (`testes-referencia.md
 - toda tabela de `public` tem RLS (B01), e as tabelas são exatamente as 20 do modelo (B02);
 - não existe política em `public` (B03) nem em `storage.objects` para os dois buckets (B10);
 - `anon` e `authenticated` não têm privilégio em tabela nem `execute` em função de `public` (B04, B06), nem `usage` no esquema `private` (B07);
-- tabela e função criadas depois da primeira migração também nascem fechadas (B05).
+- tabela criada depois da primeira migração nasce fechada (B05). Função nova, não: o B05 registra o `execute` que o Postgres dá a `public` (seção 1), e quem cobra o fechamento de cada função é o B06.
 
 **Como os testes evoluem.** B03, B04 e B06 comparam o banco com uma **lista esperada**: na fatia 1, as listas são vazias. Cada fatia acrescenta às listas as políticas, os privilégios e as funções que concede, no mesmo PR. Assim, qualquer acesso que ninguém documentou faz o teste falhar.
 
