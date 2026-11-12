@@ -1,16 +1,16 @@
--- Segurança da base (fatia 1).
+-- Segurança da base.
 -- Cenários B01 a B10 de docs/testes-referencia.md, seção 9.1.
 -- Documento de referência das políticas e privilégios: docs/rls-matriz.md.
 --
--- B03, B04 e B06 comparam o banco com uma LISTA ESPERADA. Na fatia 1 as três
--- listas são vazias: nada está liberado. Cada fatia acrescenta aqui, no mesmo PR,
--- as políticas, os privilégios e as funções que concede (docs/rls-matriz.md, 5).
+-- B03, B04, B06 e B10 comparam o banco com uma LISTA ESPERADA. Cada fatia
+-- acrescenta aqui, no mesmo PR, as políticas, os privilégios e as funções que
+-- concede (docs/rls-matriz.md, 5). Listas atuais: as da fatia 2.
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(22);
+select plan(24);
 
 -- B01. Nenhuma tabela de public sem RLS. É o teste "tabela sem RLS" do CI.
 select is_empty(
@@ -43,49 +43,84 @@ select set_eq(
   'B02: public tem exatamente as 20 tabelas do modelo de dados'
 );
 
--- B03. Políticas de public. Lista esperada da fatia 1: vazia.
--- Cada fatia troca este is_empty por um set_eq com as políticas que cria.
-select is_empty(
+-- B03. Políticas de public. Lista esperada: as seis da fatia 2
+-- (docs/rls-matriz.md, fatia 2).
+select set_eq(
   $$ select tablename || '.' || policyname from pg_policies where schemaname = 'public' $$,
-  'B03: nenhuma política em public (lista esperada da fatia 1: vazia)'
+  array[
+    'profiles.profiles_select_own',
+    'profiles.profiles_update_own',
+    'profile_private.profile_private_select_own',
+    'profile_private.profile_private_update_own',
+    'terms_acceptances.terms_acceptances_select_own',
+    'terms_acceptances.terms_acceptances_insert_own'
+  ],
+  'B03: as políticas de public são exatamente as da lista esperada (fatia 2)'
 );
 
 -- B04. Privilégios de tabela e de coluna de anon e authenticated em public.
--- Lista esperada da fatia 1: vazia.
-select is_empty(
-  $$ select c.relname || ' ' || a.privilege_type
+-- Lista esperada: a da fatia 2. anon continua sem nenhum.
+select set_eq(
+  $$ select a.grantee::regrole::text || ' ' || c.relname || ' ' || a.privilege_type
      from pg_class c
      join pg_namespace n on n.oid = c.relnamespace
      cross join aclexplode(c.relacl) a
      where n.nspname = 'public'
        and a.grantee::regrole::text in ('anon', 'authenticated') $$,
-  'B04a: anon e authenticated sem privilégio de tabela em public'
+  array[
+    'authenticated profiles SELECT',
+    'authenticated profile_private SELECT',
+    'authenticated terms_acceptances SELECT'
+  ],
+  'B04a: privilégios de tabela iguais à lista esperada (fatia 2)'
 );
 
-select is_empty(
-  $$ select c.relname || '.' || att.attname || ' ' || a.privilege_type
+select set_eq(
+  $$ select a.grantee::regrole::text || ' ' || c.relname || '.' || att.attname || ' ' || a.privilege_type
      from pg_attribute att
      join pg_class c on c.oid = att.attrelid
      join pg_namespace n on n.oid = c.relnamespace
      cross join aclexplode(att.attacl) a
      where n.nspname = 'public'
        and a.grantee::regrole::text in ('anon', 'authenticated') $$,
-  'B04b: anon e authenticated sem privilégio de coluna em public'
+  array[
+    'authenticated profiles.name UPDATE',
+    'authenticated profiles.nickname UPDATE',
+    'authenticated profiles.photo_path UPDATE',
+    'authenticated profile_private.phone UPDATE',
+    'authenticated profile_private.phone_visible UPDATE',
+    'authenticated profile_private.pix_key_type UPDATE',
+    'authenticated profile_private.pix_key UPDATE',
+    'authenticated terms_acceptances.user_id INSERT',
+    'authenticated terms_acceptances.document INSERT',
+    'authenticated terms_acceptances.version INSERT'
+  ],
+  'B04b: privilégios de coluna iguais à lista esperada (fatia 2)'
 );
 
 -- B06. Funções de public que anon ou authenticated podem executar, fora as de
--- extensões. Lista esperada da fatia 1: vazia (não há função em public).
--- Este é o teste que cobra o `revoke execute ... from public, anon` de toda
--- função nova (docs/arquitetura-app.md, 14.3).
+-- extensões. Lista esperada da fatia 2: current_terms_versions(), só para
+-- authenticated. Este é o teste que cobra o `revoke execute ... from public, anon`
+-- de toda função nova (docs/arquitetura-app.md, 14.3).
+select set_eq(
+  $$ select p.oid::regprocedure::text
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+       and has_function_privilege('authenticated', p.oid, 'execute') $$,
+  array['current_terms_versions()'],
+  'B06a: authenticated executa só as funções da lista esperada (fatia 2)'
+);
+
 select is_empty(
   $$ select p.oid::regprocedure::text
      from pg_proc p
      join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public'
        and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
-       and (has_function_privilege('anon', p.oid, 'execute')
-            or has_function_privilege('authenticated', p.oid, 'execute')) $$,
-  'B06: nenhuma função de public é executável por anon ou authenticated'
+       and has_function_privilege('anon', p.oid, 'execute') $$,
+  'B06b: nenhuma função de public é executável por anon'
 );
 
 -- B05. Tabela e função criadas depois da primeira migração nascem fechadas.
@@ -136,8 +171,10 @@ select ok(
   'B07d: authenticated sem execute em private.emit_notification'
 );
 
--- B08. Usuário autenticado não lê nem escreve nada.
--- Simulação do usuário como a API faz (docs/arquitetura-app.md, 14.4).
+-- B08. Usuário autenticado não lê nem escreve o que nenhuma fatia liberou.
+-- Até a fatia 1, o select era em profiles, que a fatia 2 libera para a própria
+-- linha (cenários P01 a P16). Simulação do usuário como a API faz
+-- (docs/arquitetura-app.md, 14.4).
 select set_config(
   'request.jwt.claims',
   json_build_object('sub', '00000000-0000-0000-0000-00000000000a', 'role', 'authenticated')::text,
@@ -146,10 +183,10 @@ select set_config(
 set local role authenticated;
 
 select throws_ok(
-  $$ select id from public.profiles $$,
+  $$ select id from public.groups $$,
   '42501',
   null,
-  'B08a: select em profiles como authenticated devolve 42501'
+  'B08a: select em groups como authenticated devolve 42501'
 );
 
 select throws_ok(
@@ -194,26 +231,42 @@ select is(
   'B09f: receipts aceita imagem e PDF (RN87)'
 );
 
--- B10. Ninguém envia arquivo: não há política de storage.objects nesta fatia.
+-- B10. Ninguém envia comprovante: o bucket receipts só abre na fatia 6. Até a
+-- fatia 1, o caminho testado era avatars/profiles/<uid>/x.png, que a fatia 2
+-- libera ao próprio usuário (P15).
 set local role authenticated;
 
 select throws_ok(
   $$ insert into storage.objects (bucket_id, name)
-     values ('avatars', 'profiles/00000000-0000-0000-0000-00000000000a/x.png') $$,
+     values ('receipts', '00000000-0000-0000-0000-0000000000c1/x.png') $$,
   '42501',
   null,
-  'B10a: insert em storage.objects como authenticated é recusado'
+  'B10a: insert em storage.objects, bucket receipts, é recusado pelo RLS'
 );
 
 reset role;
 
-select is_empty(
-  $$ select policyname
+select set_eq(
+  $$ select policyname::text
      from pg_policies
      where schemaname = 'storage'
        and tablename = 'objects'
        and (coalesce(qual, '') || coalesce(with_check, '')) like any (array['%avatars%', '%receipts%']) $$,
-  'B10b: nenhuma política de storage.objects cita avatars ou receipts'
+  array[
+    'avatars_profile_select_own',
+    'avatars_profile_insert_own',
+    'avatars_profile_delete_own'
+  ],
+  'B10b: as políticas de storage.objects são exatamente as três de avatars (fatia 2)'
+);
+
+select is_empty(
+  $$ select policyname::text
+     from pg_policies
+     where schemaname = 'storage'
+       and tablename = 'objects'
+       and policyname not like 'avatars_profile_%' $$,
+  'B10c: não há outra política em storage.objects'
 );
 
 select * from finish();

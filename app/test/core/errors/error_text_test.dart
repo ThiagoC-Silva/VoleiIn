@@ -23,4 +23,34 @@ void main() {
       'E-mail ou senha incorretos.',
     );
   });
+
+  test('os textos dos erros da fatia 2 são os do catálogo (docs/copy.md)', () {
+    // Seção 5.5: o texto deixou de citar o link (ADR 0017).
+    expect(
+      errorText(l10nPt, ErrorCode.authEmailNotConfirmed),
+      'Confirme o seu e-mail antes de entrar.',
+    );
+    // Seção 6.8.
+    expect(
+      errorText(l10nPt, ErrorCode.authInvalidCode),
+      'Código incorreto ou vencido. Confira ou peça um novo.',
+    );
+    expect(
+      errorText(l10nPt, ErrorCode.authGoogleFailed),
+      'Não foi possível entrar com o Google. Tente de novo.',
+    );
+    expect(
+      errorText(l10nPt, ErrorCode.pixKeyInUse),
+      'Você pode trocar a chave, mas não removê-la enquanto tiver jogos em '
+      'aberto ou valores a receber.',
+    );
+    expect(
+      errorText(l10nPt, ErrorCode.photoTooLarge),
+      'A foto passa de 2 MB. Escolha outra.',
+    );
+    expect(
+      errorText(l10nPt, ErrorCode.photoInvalidType),
+      'Use uma foto JPEG, PNG ou WebP.',
+    );
+  });
 }
