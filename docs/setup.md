@@ -47,12 +47,32 @@ specs/                # especificações do Spec Kit, uma por fatia
 | Docker | Atual | Supabase local | Gerenciador de pacotes; o usuário precisa estar no grupo `docker` |
 | Supabase CLI | Estável mais recente (não usar versões `-next`) | Banco local, migrações, testes pgTAP, Edge Functions | Pacote `.deb` das *releases* do GitHub |
 | Deno | 2.x | Testes das Edge Functions e de concorrência | `curl -fsSL https://deno.land/install.sh \| sh` |
-| `uv` e Spec Kit | `uv` atual; `specify-cli` | Especificação de cada fatia | `curl -LsSf https://astral.sh/uv/install.sh \| sh`; `uv tool install specify-cli` |
+| `uv` e Spec Kit | `uv` atual; `specify-cli` 1.4 ou superior | Especificação de cada fatia | `curl -LsSf https://astral.sh/uv/install.sh \| sh`; `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git` |
 | Firebase CLI e FlutterFire CLI | Atual | Configurar o FCM (fatia 7) | Binário oficial do Firebase; `dart pub global activate flutterfire_cli` |
 
 **Emuladores (AVD):** dois, ambos com imagem **Google Play** (exigida pelo login com Google e pelo push):
-- API 29 (Android 10), a versão mínima (RNF01);
-- API 36, a versão alvo (RNF02).
+- `voleiin_api29`: API 29 (Android 10), a versão mínima (RNF01);
+- `voleiin_api36`: API 36, a versão alvo (RNF02).
+
+Criação pela linha de comando, com o `sdkmanager` e o `avdmanager` do `cmdline-tools`:
+
+```bash
+sdkmanager "system-images;android-29;google_apis_playstore;x86_64" "system-images;android-36;google_apis_playstore;x86_64"
+avdmanager create avd -n voleiin_api29 -k "system-images;android-29;google_apis_playstore;x86_64" -d pixel_4
+avdmanager create avd -n voleiin_api36 -k "system-images;android-36;google_apis_playstore;x86_64" -d pixel_7
+```
+
+Numa máquina com 16 GB de RAM, o emulador com GPU do computador (`-gpu host`, o padrão) caiu durante o build do Gradle, que sozinho passa de 4 GB. Com renderização por software ele ficou estável:
+
+```bash
+emulator -avd voleiin_api29 -no-snapshot -no-audio -gpu swiftshader_indirect
+```
+
+Os testes de integração rodam com um emulador aberto e o Supabase local de pé. Se houver mais de um aparelho no `adb` (um celular ligado, por exemplo), indique o emulador com `-d`:
+
+```bash
+cd app && flutter test integration_test -d emulator-5554 --dart-define-from-file=env/local.json
+```
 
 **Caminho com acento.** O projeto pode ficar em "Área de trabalho", mas o `flutter analyze` quebra com `FormatException` quando o caminho tem acento. **Use sempre `dart analyze`**, que faz a mesma análise e funciona em qualquer caminho. O CI também usa `dart analyze`.
 
@@ -179,7 +199,7 @@ Jogos com horário relativo usam `now()` (por exemplo, `now() + interval '2 days
 ### 9.1 Acesso e pausa
 
 - Numa máquina nova: `supabase login` e `supabase link --project-ref zmokpmovphikmobynssy`. O vínculo fica em `supabase/.temp/`, fora do Git.
-- O plano grátis pausa o projeto após 1 semana sem uso. Pausado, o CLI responde `ProjectPausedError`. Para reativar, use o painel (sem custo, em poucos minutos). O que conta como "uso" será confirmado na fatia 1 (`requisitos-nao-funcionais.md`, seção 8).
+- O plano grátis pausa o projeto após 1 semana sem uso. Pausado, o CLI responde `ProjectPausedError`. Para reativar, use o painel (sem custo, em poucos minutos, por até 90 dias depois da pausa). O que conta como "uso" é a **atividade de consultas no banco** vinda de usuários (chamadas da API ou do app): algumas por dia na semana bastam. Jobs do `pg_cron` não contam, porque rodam dentro do próprio projeto. A Supabase avisa por e-mail uma semana antes de pausar (confirmado em 12/11/2026, `requisitos-nao-funcionais.md`, seção 8).
 
 ### 9.2 Migração na produção, com ensaio
 
@@ -189,9 +209,18 @@ Não há backup (RNF09) nem banco remoto de teste. Por isso, **depois do lançam
    ```bash
    mkdir -p ~/voleiin-dumps && chmod 700 ~/voleiin-dumps
    supabase db dump --linked -f ~/voleiin-dumps/schema.sql
-   supabase db dump --linked --data-only --use-copy -f ~/voleiin-dumps/data.sql
+   supabase db dump --linked --data-only --use-copy -s public,auth -f ~/voleiin-dumps/data.sql
    ```
-2. **Montar o banco local no estado da produção:** `supabase db reset --version <última migração aplicada na produção>` (a lista sai de `supabase migration list --linked`). Em seguida, carregar `data.sql` no banco local com `psql`.
+   Os dados saem só de `public` e `auth`. O `storage` fica de fora: as linhas de `storage.buckets` já nascem da migração (o `COPY` delas dá chave duplicada), as outras tabelas do `storage` pertencem ao `supabase_storage_admin` (o `COPY` dá `permission denied`), e os arquivos em si não vêm no dump.
+2. **Montar o banco local no estado da produção**, sem o seed:
+   ```bash
+   supabase migration list --linked          # última migração aplicada na produção
+   supabase db reset --version <essa versão> --no-seed
+   docker cp ~/voleiin-dumps/data.sql supabase_db_VoleiIn:/tmp/data.sql
+   docker exec supabase_db_VoleiIn psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q -f /tmp/data.sql
+   docker exec supabase_db_VoleiIn rm /tmp/data.sql
+   ```
+   O `psql` roda dentro do container do banco, e não precisa estar instalado na máquina. O dump começa com `session_replication_role = replica`, então as *triggers* (como a que cria o perfil a partir de `auth.users`) não disparam na carga.
 3. **Aplicar a migração nova** no local (`supabase migration up`) e conferir: a migração termina sem erro, `supabase test db` passa e as contagens das tabelas afetadas batem com o esperado.
 4. **Publicar** pelo workflow de deploy (`trabalho-com-agente.md`, seção 6), que pede a confirmação de que o ensaio foi feito. Esse workflow ainda não existe (decisão de 11/11/2026: ele entra numa fatia próxima do lançamento). Até lá, o responsável publica à mão, na raiz do repositório:
    ```bash
@@ -202,9 +231,11 @@ Não há backup (RNF09) nem banco remoto de teste. Por isso, **depois do lançam
    ```
 5. **Guardar a cópia** até a próxima migração, que a substitui. A cópia tem telefone, chave Pix e e-mails: fica só nesta máquina, nunca no Git nem em nuvem.
 
-Antes do lançamento, o ensaio é opcional, porque não há dados reais. **O procedimento é validado na fatia 1**, ainda com dados de teste. Os comandos acima são o ponto de partida: os esquemas incluídos no dump, em especial `auth`, devem ser conferidos e corrigidos aqui nessa validação.
+Antes do lançamento, o ensaio é opcional, porque não há dados reais. **O procedimento foi validado na fatia 1, em 12/11/2026**, com a produção recém-migrada e ainda vazia: os comandos acima já trazem as correções que a validação mostrou (dados só de `public` e `auth`, `--no-seed` e o `psql` do container). As colunas de `auth` da produção e do Supabase local bateram, porque o `COPY` de cada tabela cita as colunas e passou. Os testes pgTAP criam os personagens do seed que usam, então passam também no banco do ensaio, que não tem seed.
 
 ### 9.3 Limpeza do projeto do v0 (fatia 1)
+
+**Feita em 12/11/2026**, pelo agente, com autorização expressa do responsável para esta tarefa. O projeto tinha só o esquema do v0, sem dados: nenhuma conta, nenhum bucket ou arquivo, sem `pg_cron` e sem Edge Functions. Foram apagados os esquemas `privado` e `public` (recriado vazio, com os privilégios padrão) e as 14 linhas do histórico de migrações. Em seguida, `supabase db push` aplicou as 13 migrações da fatia 1. Conferência: 20 tabelas, todas com RLS, buckets `avatars` e `receipts`, e o advisor de segurança só com o aviso esperado de RLS sem política (`rls-matriz.md`). O registro abaixo fica como referência do que foi pedido.
 
 O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo antes da primeira migração do projeto atual:
 
@@ -233,5 +264,8 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 | `supabase start` falha por porta ocupada | Outro projeto Supabase rodando | `supabase stop --all` |
 | Aparece uma **pasta** com nome `.html` em `supabase/templates/` | O Docker cria uma pasta quando o arquivo citado no `config.toml` não existe | Apague a pasta e crie o arquivo de template |
 | `ProjectPausedError` | Produção pausada por falta de uso | Reative pelo painel (seção 9.1) |
+| O emulador fecha sozinho durante o build do Gradle, e o log tem `process_memory.cc` e `short read` | Falta de memória com GPU do computador | Abra o emulador com `-gpu swiftshader_indirect` (seção 3) |
+| `flutter test integration_test` instala o app, o app abre no emulador e nada mais sai no terminal | O *runner* do teste perde a conexão com o aparelho logo depois do boot (visto na imagem Google Play de API 36, com a memória da máquina cheia) | Encerre o `flutter test` e o emulador, abra o emulador de novo, espere uns 20 s depois do boot e rode com `timeout 900` na frente |
+| `adb: more than one device/emulator` | Celular ligado por USB ou Wi-Fi além do emulador | Passe `-d emulator-5554` ao `flutter test` e `-s emulator-5554` ao `adb` |
 | `permission denied` no Docker | Usuário fora do grupo `docker`, ou sessão não reaberta | `sudo usermod -aG docker $USER` e reabrir a sessão |
 | Erro de geração (`*.freezed.dart` ou `*.g.dart` não encontrado) | `build_runner` não rodou | `dart run build_runner build --delete-conflicting-outputs` |

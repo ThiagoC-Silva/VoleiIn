@@ -45,10 +45,18 @@ class EmptyState extends StatelessWidget {
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, size: 48, color: theme.colorScheme.onSurfaceVariant),
+            child: Icon(
+              icon,
+              size: 48,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 16),
-          Text(title, style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 8),
           Text(
             body,
@@ -82,7 +90,10 @@ class ErrorStateView extends StatelessWidget {
       icon: offline ? Symbols.wifi_off : Symbols.error_outline,
       title: errorTextFor(l10n, error),
       body: '',
-      action: OutlinedButton(onPressed: onRetry, child: Text(l10n.commonTryAgain)),
+      action: OutlinedButton(
+        onPressed: onRetry,
+        child: Text(l10n.commonTryAgain),
+      ),
     );
   }
 }

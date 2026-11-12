@@ -34,7 +34,10 @@ class AppShell extends StatelessWidget {
             initialLocation: index == navigationShell.currentIndex,
           ),
           destinations: [
-            NavDestinationData(icon: Symbols.sports_volleyball, label: l10n.navGames),
+            NavDestinationData(
+              icon: Symbols.sports_volleyball,
+              label: l10n.navGames,
+            ),
             NavDestinationData(icon: Symbols.groups, label: l10n.navGroups),
             // O contador vermelho de Cobranças entra na fatia 5, com os valores.
             NavDestinationData(icon: Symbols.payments, label: l10n.navCharges),

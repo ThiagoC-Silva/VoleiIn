@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -36,7 +35,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final l10n = AppLocalizations.of(context);
-    final ok = await ref.read(loginControllerProvider.notifier).signIn(
+    final ok = await ref
+        .read(loginControllerProvider.notifier)
+        .signIn(
           email: _emailController.text,
           password: _passwordController.text,
         );
@@ -45,9 +46,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Erro de ação: SnackBar, e a tela continua como estava.
     final error = ref.read(loginControllerProvider).error;
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorTextFor(l10n, error))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(errorTextFor(l10n, error))));
     }
   }
 
@@ -103,8 +103,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onFieldSubmitted: (_) {
                         if (!submitting) _submit();
                       },
-                      validator: (value) =>
-                          (value ?? '').isEmpty ? l10n.authPasswordRequired : null,
+                      validator: (value) => (value ?? '').isEmpty
+                          ? l10n.authPasswordRequired
+                          : null,
                       decoration: InputDecoration(
                         suffixIcon: IconButton(
                           // Área de toque de 48 x 48 e rótulo para o TalkBack.
@@ -134,7 +135,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ? const SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
                             )
                           : Text(l10n.authLoginButton),
                     ),

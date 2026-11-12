@@ -38,8 +38,9 @@ void main() {
     ).thenThrow(AppException(code));
   }
 
-  testWidgets('L01: campos vazios mostram erro e não chamam o servidor',
-      (tester) async {
+  testWidgets('L01: campos vazios mostram erro e não chamam o servidor', (
+    tester,
+  ) async {
     await pumpLogin(tester);
 
     await tester.tap(find.widgetWithText(FilledButton, l10nPt.authLoginButton));
@@ -55,21 +56,25 @@ void main() {
     );
   });
 
-  testWidgets('L02: senha incorreta mostra o texto do erro e mantém o que foi digitado',
-      (tester) async {
-    mockSignInError(ErrorCode.authInvalidCredentials);
-    await pumpLogin(tester);
+  testWidgets(
+    'L02: senha incorreta mostra o texto do erro e mantém o que foi digitado',
+    (tester) async {
+      mockSignInError(ErrorCode.authInvalidCredentials);
+      await pumpLogin(tester);
 
-    final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), 'ana@voleiin.test');
-    await tester.enterText(fields.at(1), 'errada');
-    await tester.tap(find.widgetWithText(FilledButton, l10nPt.authLoginButton));
-    await tester.pumpAndSettle();
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), 'ana@voleiin.test');
+      await tester.enterText(fields.at(1), 'errada');
+      await tester.tap(
+        find.widgetWithText(FilledButton, l10nPt.authLoginButton),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text(l10nPt.errorAuthInvalidCredentials), findsOneWidget);
-    expect(find.text('ana@voleiin.test'), findsOneWidget);
-    expect(find.text('errada'), findsOneWidget);
-  });
+      expect(find.text(l10nPt.errorAuthInvalidCredentials), findsOneWidget);
+      expect(find.text('ana@voleiin.test'), findsOneWidget);
+      expect(find.text('errada'), findsOneWidget);
+    },
+  );
 
   testWidgets('L03: sem conexão mostra o texto de sem conexão', (tester) async {
     mockSignInError(ErrorCode.noConnection);
@@ -84,7 +89,9 @@ void main() {
     expect(find.text(l10nPt.errorNoConnection), findsOneWidget);
   });
 
-  testWidgets('L04: login com a fonte do sistema em 150% não estoura', (tester) async {
+  testWidgets('L04: login com a fonte do sistema em 150% não estoura', (
+    tester,
+  ) async {
     await pumpLogin(tester, textScale: 1.5);
 
     expect(tester.takeException(), isNull);

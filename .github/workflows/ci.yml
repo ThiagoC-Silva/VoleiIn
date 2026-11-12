@@ -88,8 +88,10 @@ jobs:
       - name: Formatação
         run: deno fmt --check
 
+      # --permit-no-files: até a fatia 3 não há nenhum .ts, e sem a opção o
+      # deno lint sai com erro ("No target files found").
       - name: Lint
-        run: deno lint
+        run: deno lint --permit-no-files
 
       # A primeira Edge Function chega na fatia 3; sem arquivo de teste,
       # `deno test` falharia por não achar nenhum.

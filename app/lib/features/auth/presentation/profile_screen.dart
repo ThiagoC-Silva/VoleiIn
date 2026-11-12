@@ -41,7 +41,9 @@ class ProfileScreen extends ConsumerWidget {
     try {
       await ref.read(authRepositoryProvider).signOut();
     } catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text(errorTextFor(l10n, error))));
+      messenger.showSnackBar(
+        SnackBar(content: Text(errorTextFor(l10n, error))),
+      );
     }
   }
 }

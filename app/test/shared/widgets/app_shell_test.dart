@@ -34,12 +34,13 @@ void main() {
   }
 
   Finder navLabel(String text) => find.descendant(
-        of: find.byType(VoleiBottomNav),
-        matching: find.text(text),
-      );
+    of: find.byType(VoleiBottomNav),
+    matching: find.text(text),
+  );
 
-  testWidgets('L05: abre na aba Jogos, com as quatro abas na ordem do mapa',
-      (tester) async {
+  testWidgets('L05: abre na aba Jogos, com as quatro abas na ordem do mapa', (
+    tester,
+  ) async {
     await pumpApp(tester);
 
     for (final label in [
@@ -61,7 +62,10 @@ void main() {
 
     // Abre na aba Jogos.
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text(l10nPt.navGames)),
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text(l10nPt.navGames),
+      ),
       findsOneWidget,
     );
   });
@@ -73,7 +77,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text(l10nPt.navGroups)),
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text(l10nPt.navGroups),
+      ),
       findsOneWidget,
     );
     expect(find.byType(BackButton), findsNothing);
@@ -85,15 +92,20 @@ void main() {
     expect(find.byType(BackButton), findsNothing);
   });
 
-  testWidgets('L04: as abas com a fonte do sistema em 150% não estouram',
-      (tester) async {
+  testWidgets('L04: as abas com a fonte do sistema em 150% não estouram', (
+    tester,
+  ) async {
     tester.platformDispatcher.textScaleFactorTestValue = 1.5;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
     await pumpApp(tester);
     expect(tester.takeException(), isNull);
 
-    for (final label in [l10nPt.navGroups, l10nPt.navCharges, l10nPt.navProfile]) {
+    for (final label in [
+      l10nPt.navGroups,
+      l10nPt.navCharges,
+      l10nPt.navProfile,
+    ]) {
       await tester.tap(navLabel(label));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: label);

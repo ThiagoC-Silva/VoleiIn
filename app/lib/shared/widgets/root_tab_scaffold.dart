@@ -7,11 +7,7 @@ import 'state_views.dart';
 ///
 /// O sino entra na fatia 7.
 class RootTabScaffold extends StatelessWidget {
-  const RootTabScaffold({
-    required this.title,
-    required this.body,
-    super.key,
-  });
+  const RootTabScaffold({required this.title, required this.body, super.key});
 
   final String title;
   final Widget body;

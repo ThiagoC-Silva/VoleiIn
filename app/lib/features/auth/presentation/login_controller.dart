@@ -11,14 +11,15 @@ class LoginController extends AsyncNotifier<void> {
   Future<bool> signIn({required String email, required String password}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).signInWithPassword(
-            email: email.trim(),
-            password: password,
-          ),
+      () => ref
+          .read(authRepositoryProvider)
+          .signInWithPassword(email: email.trim(), password: password),
     );
     return !state.hasError;
   }
 }
 
 final loginControllerProvider =
-    AsyncNotifierProvider.autoDispose<LoginController, void>(LoginController.new);
+    AsyncNotifierProvider.autoDispose<LoginController, void>(
+      LoginController.new,
+    );

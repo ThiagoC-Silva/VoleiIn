@@ -116,7 +116,9 @@ class _NavItem extends StatelessWidget {
                 height: 56,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: selected ? theme.colorScheme.primary : Colors.transparent,
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: icon,

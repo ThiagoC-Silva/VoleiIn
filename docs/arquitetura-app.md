@@ -389,6 +389,7 @@ grant execute on function public.leave_game(uuid) to authenticated;
 | Concorrência | `supabase/functions/_tests/concurrency/*_test.ts`, com conexões separadas ao banco local | `deno test --allow-net --allow-env` |
 
 - Cada teste pgTAP roda numa transação desfeita no fim, sem deixar dados.
+- Um teste pgTAP não depende do seed: os personagens que ele usa (Ana, Bruno, Carla e Diego, com os IDs fixos de `setup.md`, seção 8) são inseridos no começo da transação, com `on conflict do nothing`. Assim o teste roda no banco com seed e no banco do ensaio de migração, montado com a cópia da produção (`setup.md`, 9.2).
 - O teste de RLS simula o usuário como a API faz: `set local role authenticated` e `set local request.jwt.claims` com o `sub` do usuário.
 - Os IDs dos cenários de `testes-referencia.md` (T01, I04...) aparecem no nome de cada asserção, para ligar a falha à regra.
 

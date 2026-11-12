@@ -21,15 +21,14 @@ class AuthRepository {
   Future<void> signInWithPassword({
     required String email,
     required String password,
-  }) =>
-      guard(() async {
-        await _client.auth.signInWithPassword(email: email, password: password);
-      });
+  }) => guard(() async {
+    await _client.auth.signInWithPassword(email: email, password: password);
+  });
 
   /// A remoção do token de push entra nas fatias 2 e 7 (RF07).
   Future<void> signOut() => guard(() async {
-        await _client.auth.signOut();
-      });
+    await _client.auth.signOut();
+  });
 }
 
 final authRepositoryProvider = Provider<AuthRepository>(

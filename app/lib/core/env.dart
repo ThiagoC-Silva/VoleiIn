@@ -8,12 +8,14 @@ class Env {
   const Env._();
 
   static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const String supabasePublishableKey =
-      String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+  static const String supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+  );
 
   /// Usado pelo login com Google, a partir da fatia 2.
-  static const String googleWebClientId =
-      String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+  static const String googleWebClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+  );
 
   /// Para a abertura logo no `main` se faltar alguma variável desta fatia.
   static void ensureComplete() {
