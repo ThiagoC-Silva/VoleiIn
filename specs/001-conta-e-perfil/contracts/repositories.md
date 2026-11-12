@@ -42,6 +42,12 @@ A fronteira com o servidor está em `docs/contratos-api.md`, seção 9, e não m
 
 A ordem do Salvar da edição (`telas.md`, 5.8; S12) é do controller: `uploadAvatar`, `updateProfile`, `updateContact`, `deleteAvatar`.
 
+## `PhotoPicker` (`features/auth/data/photo_picker.dart`)
+
+| Membro | Devolve |
+|--------|---------|
+| `pick(PhotoSource)` | A foto escolhida na galeria ou tirada na câmera, com no máximo 1024 px no maior lado (RN106), como bytes e extensão (`jpg`, `png` ou `webp`). Nulo se a pessoa desistiu. Outro tipo lança `AppException(photoInvalidType)` |
+
 ## `TermsRepository` (`features/auth/data/terms_repository.dart`)
 
 | Membro | Chama |

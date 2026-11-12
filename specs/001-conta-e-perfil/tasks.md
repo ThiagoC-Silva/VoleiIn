@@ -38,7 +38,7 @@
 - [ ] T006 [P] Escrever P01 a P16 em `supabase/tests/database/account_security.test.sql`
 - [ ] T007 [P] Escrever X01 a X10 e N01 a N09 em `supabase/tests/database/account_pix.test.sql`
 - [ ] T008 [P] Escrever A01 a A06 em `supabase/functions/_tests/avatars_test.ts`
-- [ ] T009 [P] Escrever U01, U02, U05 e U06 em `app/test/core/format/pix_key_test.dart`, U03 e U04 em `app/test/core/format/phone_test.dart` e U07 em `app/test/features/auth/domain/auth_access_test.dart`
+- [ ] T009 [P] Escrever U01 e U02 em `app/test/core/format/documents_test.dart`, U03 e U04 em `app/test/core/format/phone_test.dart`, U05 e U06 em `app/test/features/auth/domain/pix_key_test.dart` e U07 em `app/test/features/auth/domain/auth_access_test.dart`
 - [ ] T010 [P] Escrever E09 a E11 (e o novo exemplo do E06) em `app/test/core/errors/error_mapper_test.dart`, e E12 em `app/test/features/auth/data/auth_repository_test.dart`
 - [ ] T011 [P] Escrever S01 e S02 em `app/test/features/auth/presentation/signup_screen_test.dart`, S03 a S05 em `confirm_email_screen_test.dart` e S06 e S07 em `login_screen_test.dart`
 - [ ] T012 [P] Escrever S08 em `app/test/features/auth/presentation/forgot_password_screen_test.dart`, S09 em `terms_screen_test.dart` e S10 em `app/test/core/router/app_router_test.dart`
@@ -65,11 +65,11 @@
 - [ ] T024 Fazer o teste do Storage rodar no job `database` de `.github/workflows/ci.yml` (research R10) e passar A01 a A06 no local
 - [ ] T025 [P] Acrescentar os `ErrorCode` de `docs/copy.md`, 6.8, em `app/lib/core/errors/error_code.dart`, a conversão em `error_mapper.dart` (Auth, `PIX_KEY_IN_USE`, Storage) e os textos em `error_text.dart`
 - [ ] T026 [P] Acrescentar ao `app/lib/l10n/app_pt.arb` todas as chaves de `docs/copy.md`, seção 6, corrigir `errorAuthEmailNotConfirmed` (research R9) e gerar com `flutter gen-l10n`
-- [ ] T027 [P] Criar `app/lib/core/format/phone.dart`, `pix_key.dart` e `input_masks.dart` (U01 a U06; research R8)
-- [ ] T028 [P] Criar os modelos de `data-model.md` em `app/lib/features/auth/domain/` (`profile.dart`, `profile_private.dart`, `legal_document.dart`, `terms.dart`, `auth_access.dart`) e rodar o `build_runner`
+- [ ] T027 [P] Criar `app/lib/core/format/documents.dart` (CPF e CNPJ), `phone.dart` e `input_masks.dart`, e `app/lib/features/auth/domain/pix_key.dart` com o enum do tipo e a conferência, a normalização e a exibição por tipo (U01 a U06; research R8)
+- [ ] T028 [P] Criar os modelos de `data-model.md` em `app/lib/features/auth/domain/` (`profile.dart`, `profile_private.dart`, `own_profile.dart`, `legal_document.dart`, `terms.dart`, `auth_access.dart`) e rodar o `build_runner`
 - [ ] T029 [P] Criar os componentes comuns em `app/lib/shared/widgets/`: campo com rótulo, campo de senha, botão com carregando, barra superior interna, campo de código, reenviar código, avatar, lista de linhas com seta, quadrado de ícone e sheet de confirmação (`docs/ui/design-system.md`, seção 7; PNGs de `docs/ui/referencias/fatia-2/`)
 - [ ] T030 Criar `google_id_token_source.dart` e completar `auth_repository.dart` em `app/lib/features/auth/data/`, conforme `contracts/repositories.md` (E12)
-- [ ] T031 [P] Criar `profile_repository.dart` e `terms_repository.dart` em `app/lib/features/auth/data/`, conforme `contracts/repositories.md`
+- [ ] T031 [P] Criar `profile_repository.dart`, `terms_repository.dart` e `photo_picker.dart` (a escolha da foto, trocável por dublê) em `app/lib/features/auth/data/`, conforme `contracts/repositories.md`
 - [ ] T032 Criar os providers de sessão, rascunho de acesso, recuperação em andamento e conferência dos termos em `app/lib/features/auth/presentation/auth_providers.dart`, e desligar a repetição automática no `ProviderScope` de `app/lib/main.dart` (research R2 a R4)
 
 **Checkpoint**: B, P, X, N, A, U e E verdes.

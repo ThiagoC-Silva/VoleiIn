@@ -30,7 +30,7 @@ Nenhuma tabela, coluna ou enum novo.
 
 - `freezed` e `json_serializable`, com `field_rename: snake` (`arquitetura-app.md`, seção 4).
 - `TermsStatus` e `OwnProfile` não vêm de JSON: são montados na camada `data` ou no provider.
-- O modelo não calcula regra. Validação e formatação de telefone e de chave Pix ficam em `core/format/`.
+- O modelo não calcula regra. CPF, CNPJ e telefone (conferência e formato) ficam em `core/format/`. A conferência, a normalização e a exibição da chave **por tipo** ficam em `features/auth/domain/pix_key.dart`, ao lado do enum, para o `core` não depender da feature.
 
 ## Estado em memória
 
