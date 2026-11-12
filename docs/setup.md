@@ -209,9 +209,18 @@ Não há backup (RNF09) nem banco remoto de teste. Por isso, **depois do lançam
    ```bash
    mkdir -p ~/voleiin-dumps && chmod 700 ~/voleiin-dumps
    supabase db dump --linked -f ~/voleiin-dumps/schema.sql
-   supabase db dump --linked --data-only --use-copy -f ~/voleiin-dumps/data.sql
+   supabase db dump --linked --data-only --use-copy -s public,auth -f ~/voleiin-dumps/data.sql
    ```
-2. **Montar o banco local no estado da produção:** `supabase db reset --version <última migração aplicada na produção>` (a lista sai de `supabase migration list --linked`). Em seguida, carregar `data.sql` no banco local com `psql`.
+   Os dados saem só de `public` e `auth`. O `storage` fica de fora: as linhas de `storage.buckets` já nascem da migração (o `COPY` delas dá chave duplicada), as outras tabelas do `storage` pertencem ao `supabase_storage_admin` (o `COPY` dá `permission denied`), e os arquivos em si não vêm no dump.
+2. **Montar o banco local no estado da produção**, sem o seed:
+   ```bash
+   supabase migration list --linked          # última migração aplicada na produção
+   supabase db reset --version <essa versão> --no-seed
+   docker cp ~/voleiin-dumps/data.sql supabase_db_VoleiIn:/tmp/data.sql
+   docker exec supabase_db_VoleiIn psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q -f /tmp/data.sql
+   docker exec supabase_db_VoleiIn rm /tmp/data.sql
+   ```
+   O `psql` roda dentro do container do banco, e não precisa estar instalado na máquina. O dump começa com `session_replication_role = replica`, então as *triggers* (como a que cria o perfil a partir de `auth.users`) não disparam na carga.
 3. **Aplicar a migração nova** no local (`supabase migration up`) e conferir: a migração termina sem erro, `supabase test db` passa e as contagens das tabelas afetadas batem com o esperado.
 4. **Publicar** pelo workflow de deploy (`trabalho-com-agente.md`, seção 6), que pede a confirmação de que o ensaio foi feito. Esse workflow ainda não existe (decisão de 11/11/2026: ele entra numa fatia próxima do lançamento). Até lá, o responsável publica à mão, na raiz do repositório:
    ```bash
@@ -222,9 +231,11 @@ Não há backup (RNF09) nem banco remoto de teste. Por isso, **depois do lançam
    ```
 5. **Guardar a cópia** até a próxima migração, que a substitui. A cópia tem telefone, chave Pix e e-mails: fica só nesta máquina, nunca no Git nem em nuvem.
 
-Antes do lançamento, o ensaio é opcional, porque não há dados reais. **O procedimento é validado na fatia 1**, ainda com dados de teste. Os comandos acima são o ponto de partida: os esquemas incluídos no dump, em especial `auth`, devem ser conferidos e corrigidos aqui nessa validação.
+Antes do lançamento, o ensaio é opcional, porque não há dados reais. **O procedimento foi validado na fatia 1, em 12/11/2026**, com a produção recém-migrada e ainda vazia: os comandos acima já trazem as correções que a validação mostrou (dados só de `public` e `auth`, `--no-seed` e o `psql` do container). As colunas de `auth` da produção e do Supabase local bateram, porque o `COPY` de cada tabela cita as colunas e passou. Os testes pgTAP criam os personagens do seed que usam, então passam também no banco do ensaio, que não tem seed.
 
 ### 9.3 Limpeza do projeto do v0 (fatia 1)
+
+**Feita em 12/11/2026**, pelo agente, com autorização expressa do responsável para esta tarefa. O projeto tinha só o esquema do v0, sem dados: nenhuma conta, nenhum bucket ou arquivo, sem `pg_cron` e sem Edge Functions. Foram apagados os esquemas `privado` e `public` (recriado vazio, com os privilégios padrão) e as 14 linhas do histórico de migrações. Em seguida, `supabase db push` aplicou as 13 migrações da fatia 1. Conferência: 20 tabelas, todas com RLS, buckets `avatars` e `receipts`, e o advisor de segurança só com o aviso esperado de RLS sem política (`rls-matriz.md`). O registro abaixo fica como referência do que foi pedido.
 
 O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo antes da primeira migração do projeto atual:
 
