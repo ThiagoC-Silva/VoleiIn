@@ -17,7 +17,7 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: Env.supabaseUrl,
-    anonKey: Env.supabasePublishableKey,
+    publishableKey: Env.supabasePublishableKey,
   );
 
   runApp(const ProviderScope(child: VoleiInApp()));

@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide ErrorCode;
 import 'package:voleiin/core/errors/error_code.dart';
 import 'package:voleiin/core/errors/error_mapper.dart';
 
@@ -27,23 +27,35 @@ void main() {
     expect(toAppException(exception).code, ErrorCode.internalError);
   });
 
-  test('E04: Edge Function 401 com NOT_AUTHENTICATED vira notAuthenticated', () {
-    final exception = FunctionException(
-      status: 401,
-      details: {
-        'error': {'code': 'NOT_AUTHENTICATED'},
-      },
-    );
-    expect(toAppException(exception).code, ErrorCode.notAuthenticated);
-  });
+  test(
+    'E04: Edge Function 401 com NOT_AUTHENTICATED vira notAuthenticated',
+    () {
+      final exception = FunctionException(
+        status: 401,
+        details: {
+          'error': {'code': 'NOT_AUTHENTICATED'},
+        },
+      );
+      expect(toAppException(exception).code, ErrorCode.notAuthenticated);
+    },
+  );
 
-  test('E05: AuthException invalid_credentials vira authInvalidCredentials', () {
-    final exception = AuthException('Invalid login credentials', code: 'invalid_credentials');
-    expect(toAppException(exception).code, ErrorCode.authInvalidCredentials);
-  });
+  test(
+    'E05: AuthException invalid_credentials vira authInvalidCredentials',
+    () {
+      final exception = AuthException(
+        'Invalid login credentials',
+        code: 'invalid_credentials',
+      );
+      expect(toAppException(exception).code, ErrorCode.authInvalidCredentials);
+    },
+  );
 
   test('E06: AuthException que a fatia 1 não mapeia vira internalError', () {
-    final exception = AuthException('Password is too weak', code: 'weak_password');
+    final exception = AuthException(
+      'Password is too weak',
+      code: 'weak_password',
+    );
     expect(toAppException(exception).code, ErrorCode.internalError);
   });
 
@@ -70,7 +82,11 @@ void main() {
     await expectLater(
       guard<void>(() async => throw const SocketException('sem rota')),
       throwsA(
-        isA<AppException>().having((e) => e.code, 'code', ErrorCode.noConnection),
+        isA<AppException>().having(
+          (e) => e.code,
+          'code',
+          ErrorCode.noConnection,
+        ),
       ),
     );
   });

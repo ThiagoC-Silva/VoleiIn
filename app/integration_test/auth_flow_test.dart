@@ -24,7 +24,7 @@ void main() {
     initTimeZones();
     await Supabase.initialize(
       url: Env.supabaseUrl,
-      anonKey: Env.supabasePublishableKey,
+      publishableKey: Env.supabasePublishableKey,
     );
   });
 
@@ -37,7 +37,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('L06: entra com a Ana e continua logado ao reabrir', (tester) async {
+  testWidgets('L06: entra com a Ana e continua logado ao reabrir', (
+    tester,
+  ) async {
     await openApp(tester);
 
     expect(find.text(l10nPt.authLoginSubtitle), findsOneWidget);
@@ -49,21 +51,28 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 5));
 
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text(l10nPt.navGames)),
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text(l10nPt.navGames),
+      ),
       findsOneWidget,
     );
 
     // Fecha e reabre: a sessão continua (RF05).
     await openApp(tester);
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text(l10nPt.navGames)),
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text(l10nPt.navGames),
+      ),
       findsOneWidget,
     );
     expect(find.text(l10nPt.authLoginSubtitle), findsNothing);
   });
 
-  testWidgets('L07: Sair volta ao login, e o voltar não retorna às abas',
-      (tester) async {
+  testWidgets('L07: Sair volta ao login, e o voltar não retorna às abas', (
+    tester,
+  ) async {
     await Supabase.instance.client.auth.signInWithPassword(
       email: 'ana@voleiin.test',
       password: 'voleiin123',

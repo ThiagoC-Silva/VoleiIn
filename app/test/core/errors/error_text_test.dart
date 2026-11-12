@@ -14,7 +14,10 @@ void main() {
   });
 
   test('os textos dos erros gerais são os do catálogo (docs/copy.md, 5.5)', () {
-    expect(errorText(l10nPt, ErrorCode.notFound), 'Não encontramos o que você procura.');
+    expect(
+      errorText(l10nPt, ErrorCode.notFound),
+      'Não encontramos o que você procura.',
+    );
     expect(
       errorText(l10nPt, ErrorCode.authInvalidCredentials),
       'E-mail ou senha incorretos.',

@@ -19,5 +19,7 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
 }
 
 /// Texto de um erro qualquer, já convertido em [AppException].
-String errorTextFor(AppLocalizations l10n, Object error) =>
-    errorText(l10n, error is AppException ? error.code : ErrorCode.internalError);
+String errorTextFor(AppLocalizations l10n, Object error) => errorText(
+  l10n,
+  error is AppException ? error.code : ErrorCode.internalError,
+);

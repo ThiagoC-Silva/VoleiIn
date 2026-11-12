@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide ErrorCode;
 
 import 'error_code.dart';
 
@@ -21,7 +21,9 @@ AppException toAppException(Object error) {
   // Função SQL e trigger de escrita direta: código em `message`, errcode P0001.
   if (error is PostgrestException) {
     if (error.code == 'P0001') {
-      return AppException(_serverCodes[error.message.trim()] ?? ErrorCode.internalError);
+      return AppException(
+        _serverCodes[error.message.trim()] ?? ErrorCode.internalError,
+      );
     }
     return const AppException(ErrorCode.internalError);
   }
@@ -34,7 +36,9 @@ AppException toAppException(Object error) {
       if (inner is Map) {
         final code = inner['code'];
         if (code is String) {
-          return AppException(_serverCodes[code.trim()] ?? ErrorCode.internalError);
+          return AppException(
+            _serverCodes[code.trim()] ?? ErrorCode.internalError,
+          );
         }
       }
     }

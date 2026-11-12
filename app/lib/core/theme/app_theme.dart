@@ -45,7 +45,14 @@ class VoleiColors extends ThemeExtension<VoleiColors> {
     required this.neutral,
   });
 
-  final Color game, owe, receive, wait, split, onBlock, primaryPressed, destructive;
+  final Color game,
+      owe,
+      receive,
+      wait,
+      split,
+      onBlock,
+      primaryPressed,
+      destructive;
   final BadgeTone ok, warn, bad, info, waiting, neutral;
 
   static const dark = VoleiColors(
@@ -72,7 +79,11 @@ class VoleiColors extends ThemeExtension<VoleiColors> {
       text: Color(0xFFFF9B90),
       dot: Color(0xFFE74C3C),
     ),
-    info: BadgeTone(background: _surfaceHigh, text: _onSurface, dot: Color(0xFF8EC5FF)),
+    info: BadgeTone(
+      background: _surfaceHigh,
+      text: _onSurface,
+      dot: Color(0xFF8EC5FF),
+    ),
     waiting: BadgeTone(
       background: Color(0x33B8A6FF),
       text: Color(0xFFD3C9FF),
@@ -146,13 +157,17 @@ const _text = TextTheme(
   bodyLarge: TextStyle(fontSize: 16, height: 1.5, letterSpacing: 0),
   bodyMedium: TextStyle(fontSize: 14, height: 20 / 14, letterSpacing: 0),
   bodySmall: TextStyle(fontSize: 12, height: 16 / 12, letterSpacing: 0),
-  labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0),
+  labelLarge: TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+  ),
 );
 
 OutlineInputBorder _border(Color color, double width) => OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: color, width: width),
-    );
+  borderRadius: BorderRadius.circular(16),
+  borderSide: BorderSide(color: color, width: width),
+);
 
 final appTheme = ThemeData(
   useMaterial3: true,
@@ -210,7 +225,8 @@ final appTheme = ThemeData(
         BorderSide(color: _surfaceHigh, width: 1.5),
       ),
       foregroundColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.disabled) ? _onSurfaceVariant : _onSurface,
+        (s) =>
+            s.contains(WidgetState.disabled) ? _onSurfaceVariant : _onSurface,
       ),
     ),
   ),
