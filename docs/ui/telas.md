@@ -10,6 +10,7 @@
 - **Onde fica:** a aba da barra inferior em que a tela abre, "fora das abas" (tela cheia, sem a barra) ou "sheet" (folha sobre a tela de origem).
 - Uma tela marcada com duas fatias nasce na primeira e é completada na segunda.
 - Telas novas ou renomeadas entram aqui antes de entrar no código.
+- **Referência visual:** cada tela tem um PNG desenhado pelo responsável em `docs/ui/referencias/` antes de ser implementada. Este documento decide o conteúdo e o comportamento, e o PNG decide a aparência e a disposição (`docs/ui/referencias/README.md`).
 
 ## 2. Mapa de telas
 

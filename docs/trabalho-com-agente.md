@@ -24,7 +24,8 @@
 | Etapa | O que acontece | Saída |
 |-------|----------------|-------|
 | 1. Conferir | A lista da seção 8.4 do `plan-docs.md`: dependências concluídas e contratos das funções existentes | Lista do que falta |
-| 2. Documentar | Telas (`docs/ui/telas.md`), textos (`docs/copy.md`), RLS (`docs/rls-matriz.md`) e os cenários de teste da fatia, só o que ela usa | PR só de documentação, aprovado pelo responsável |
+| 2. Documentar | Telas (`docs/ui/telas.md`), textos (`docs/copy.md`), RLS (`docs/rls-matriz.md`) e os cenários de teste da fatia, só o que ela usa. O agente escreve também o **briefing visual** de cada tela em `docs/ui/referencias/README.md` | PR só de documentação, aprovado pelo responsável |
+| 2b. Referência visual | O responsável desenha cada tela do briefing e salva o PNG em `docs/ui/referencias/fatia-<n>/` (decisão de 12/11/2026). **Nenhuma tela é implementada sem o PNG obrigatório dela.** Se o PNG divergir do `telas.md` em conteúdo, o agente pergunta antes | PNGs no repositório |
 | 3. Especificar | `/speckit-specify`, `/speckit-plan` e `/speckit-tasks`. O `spec.md` **cita** os RFs, RNs e seções dos documentos, sem copiar o texto | `specs/<nnn>-<nome>/` |
 | 4. Testes primeiro | Os testes da tarefa são escritos e rodados, e **falham** pelo motivo certo: a função ainda não existe ou não faz o esperado | *Commit* só de testes |
 | 5. Implementar | `/speckit-implement`, tarefa por tarefa, até os testes passarem | *Commits* de implementação |

@@ -485,6 +485,7 @@ Como ler o desenho: setas cheias são a sequência obrigatória; setas tracejada
 Antes de pedir a implementação de uma fatia ao agente, confira:
  
 - [ ] As telas da fatia estão descritas em 4.1 (inclusive estados de vazio, erro e sem permissão).
+- [ ] Os PNGs obrigatórios do briefing da fatia estão em `docs/ui/referencias/fatia-<n>/`.
 - [ ] Os textos da fatia estão em 4.3.
 - [ ] As políticas de RLS das tabelas da fatia estão em 4.5.
 - [ ] Os testes de referência da fatia estão escritos e **falham** (ainda não há código).
