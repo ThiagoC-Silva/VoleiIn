@@ -2,7 +2,7 @@
 
 App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de presença, calcula o rateio e as multas ao concluir o jogo e acompanha os pagamentos por Pix entre os participantes, com leitura automática de comprovantes. O app não processa pagamentos.
 
-**Estado atual:** código da fatia 1 escrito em 11/11/2026, no *branch* `fatia-1/fundacao`. O banco está completo e fechado (20 tabelas com RLS, enums, constraints, índices, *triggers*, `emit_notification` e os dois buckets), com `supabase db reset`, `supabase db lint` e `supabase test db` verdes (74 asserções pgTAP). O app Flutter (tema, login, abas, formatação e conversão de erros) e seus testes estão escritos, mas **ainda não passaram por `dart analyze` nem `flutter test`**: o Flutter não está instalado nesta máquina (`setup.md`, seção 3). Falta, para fechar a fatia: os dois comandos do app, o fluxo no emulador, a limpeza da produção (`setup.md`, 9.3), o ensaio de migração (9.2) e o Spec Kit.
+**Estado atual:** código da fatia 1 na `main` desde 11/11/2026. O banco está completo e fechado (20 tabelas com RLS, enums, constraints, índices, *triggers*, `emit_notification` e os dois buckets), com `supabase db reset`, `supabase db lint` e `supabase test db` verdes (74 asserções pgTAP). O app Flutter (tema, login, abas, formatação e conversão de erros) e seus testes estão escritos, mas **ainda não passaram por `dart analyze` nem `flutter test`**: o Flutter não está instalado nesta máquina (`setup.md`, seção 3). Falta, para fechar a fatia: os dois comandos do app, o fluxo no emulador, a limpeza da produção (`setup.md`, 9.3), o ensaio de migração (9.2) e o Spec Kit.
 
 ## Antes de implementar
 
