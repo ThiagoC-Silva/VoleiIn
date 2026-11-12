@@ -17,8 +17,9 @@ Esta é a versão da Fase 0, com os cenários de maior risco. Antes de cada fati
 | 7 | Troca de recebedor (RN31) | 5 | pgTAP |
 | 8 | Concorrência | 4, 5 e 6 | Deno test com conexões separadas |
 | 9 | Fundação: segurança da base, estrutura, *triggers*, formatação, erros e login | 1 | pgTAP, `flutter_test` e `integration_test` |
+| 10 | Conta e perfil: RLS da conta, chave Pix e RN105, fotos (RN106), validações, telas e fluxos | 2 | pgTAP, Deno test, `flutter_test` e `integration_test` |
 
-**Ficam para o ciclo de cada fatia:** a máquina de estados do jogo (RN40 a RN45) e do valor a pagar (RN80 a RN94), as regras de conta (RN103, RN105), o RLS de cada tabela e os comprovantes.
+**Ficam para o ciclo de cada fatia:** a máquina de estados do jogo (RN40 a RN45) e do valor a pagar (RN80 a RN94), a exclusão de conta (RN103), o RLS de cada tabela e os comprovantes.
 
 **Como controlar o tempo nos testes:** dentro de uma transação, `now()` não muda. Para testar um instante exato, o teste insere o jogo direto na tabela, com `starts_at = now()`, por exemplo, e chama a função na mesma transação. Para simular uma ordem de cancelamentos ou uma mudança de limite, grava `left_at` e `effective_from` direto.
 
@@ -200,9 +201,9 @@ pgTAP, em `supabase/tests/database/base_security.test.sql`. B03, B04 e B06 compa
 | B05 | Como `postgres`, o teste cria uma tabela e uma função novas em `public` | Consulta os privilégios delas | A **tabela** nasce sem privilégio algum para `anon`, `authenticated` e `public`. A **função** nasce com o `execute` que o Postgres dá a `public`, que nenhuma configuração remove (`rls-matriz.md`, seção 1): o teste registra esse comportamento e falha se ele mudar. Quem cobra o fechamento de cada função é o B06 |
 | B06 | Banco após reset | Lista as funções de `public`, fora as de extensões, que `anon` ou `authenticated` podem executar | Igual à lista esperada. Na fatia 1, vazia. É o teste que cobra o `revoke execute ... from public, anon` de toda função nova (B05) |
 | B07 | Idem | Consulta `usage` de `anon` e `authenticated` no esquema `private` e `execute` em `private.emit_notification` | Falso em todos |
-| B08 | Usuário autenticado (`role authenticated` com o `sub` de um usuário de teste) | `select` em `profiles` e `insert` em `notifications` | Erro `42501` nos dois |
+| B08 | Usuário autenticado (`role authenticated` com o `sub` de um usuário de teste) | `select` em `groups` e `insert` em `notifications` | Erro `42501` nos dois. Até a fatia 1, o `select` era em `profiles`, que a fatia 2 libera para a própria linha (seção 10.1) |
 | B09 | Banco após reset | Lê `storage.buckets` | `avatars` e `receipts` existem, com `public = false` e os tamanhos e tipos da `rls-matriz.md` (seção 3) |
-| B10 | Usuário autenticado | `insert` em `storage.objects`, bucket `avatars`, caminho `profiles/<uid>/x.png` | Recusado pelo RLS. Nenhuma política de `storage.objects` cita `avatars` ou `receipts` |
+| B10 | Usuário autenticado | `insert` em `storage.objects`, bucket `receipts`, caminho `<uuid>/x.png` | Recusado pelo RLS. As políticas de `storage.objects` são exatamente as da lista esperada: nenhuma na fatia 1; as três de `avatars` da fatia 2 (`rls-matriz.md`). Até a fatia 1, o caminho testado era `avatars/profiles/<uid>/x.png`, que a fatia 2 libera ao próprio usuário |
 
 ### 9.2 Estrutura e *triggers*
 
@@ -217,7 +218,7 @@ pgTAP, em `supabase/tests/database/base_schema.test.sql` e `base_triggers.test.s
 | B13 | RN01 | Lista as colunas de `public` do tipo `timestamp without time zone`, `time` ou `timetz` | Lista vazia |
 | B14 | RN02 | Lista as colunas `created_at` de `public` | Todas `not null`, com padrão `now()` |
 
-**Perfil.** O perfil e o `profile_private` nascem juntos quando o e-mail fica confirmado: na confirmação do link (cadastro por e-mail) ou no próprio cadastro (Google, que já chega confirmado). O nome vem de `name` e, sem ele, de `full_name` nos metadados. Sem nenhum dos dois, vem do início do e-mail (`modelo-dados.md`, `profiles`).
+**Perfil.** O perfil e o `profile_private` nascem juntos quando o e-mail fica confirmado: na confirmação do código (cadastro por e-mail, ADR 0017) ou no próprio cadastro (Google, que já chega confirmado). O nome vem de `name` e, sem ele, de `full_name` nos metadados. Sem nenhum dos dois, vem do início do e-mail (`modelo-dados.md`, `profiles`).
 
 | ID | Dado | Quando | Então |
 |----|------|--------|-------|
@@ -295,7 +296,7 @@ O formato de valor negativo fica para a fatia 5 (cenário R04).
 | E03 | `PostgrestException` com `code = '42501'` | `internalError` |
 | E04 | `FunctionException` 401 com `{"error": {"code": "NOT_AUTHENTICATED"}}` | `notAuthenticated` |
 | E05 | `AuthException` com `code = 'invalid_credentials'` | `authInvalidCredentials` |
-| E06 | `AuthException` com um código que a fatia 1 não mapeia (`weak_password`) | `internalError` |
+| E06 | `AuthException` com um código que o app não mapeia (`unexpected_failure`). Até a fatia 1, o exemplo era `weak_password`, que a fatia 2 mapeia (seção 10.4) | `internalError` |
 | E07 | `SocketException`, `ClientException` e `TimeoutException` | `noConnection` |
 | E08 | Cada valor de `ErrorCode` | O texto vem do `app_pt.arb` e não é vazio |
 
@@ -311,7 +312,145 @@ O formato de valor negativo fica para a fatia 5 (cenário R04).
 | L06 | Integração, API 29 e 36 | Sem sessão | Abre o app, entra com `ana@voleiin.test` e `voleiin123`, fecha e reabre | Vai do login para a aba Jogos e, ao reabrir, continua logado na aba Jogos |
 | L07 | Integração, API 29 e 36 | Ana logada | Toca em Sair, na aba Perfil, e depois no voltar do Android | Volta ao login, e o voltar não retorna às abas |
 
-## 10. Rastreabilidade
+## 10. Conta e perfil (fatia 2)
+
+Decisões de 12/11/2026. Base: `rls-matriz.md` (fatia 2), `modelo-dados.md` (4.1), `docs/ui/telas.md` (seção 5) e `docs/copy.md` (seção 6). Personagens do seed: Ana (`...00a`) e Bruno (`...00b`), criados pelo próprio teste quando faltarem (`arquitetura-app.md`, 14.4). "Ana logada" é `role authenticated` com o `sub` da Ana.
+
+Os resultados de B03, B04, B06 e B10 passam a ser as listas da fatia 2 da `rls-matriz.md`.
+
+### 10.1 RLS da conta
+
+pgTAP, em `supabase/tests/database/account_security.test.sql`.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| P01 | Ana logada. Ana e Bruno têm perfil | `select` em `profiles` | Só a linha da Ana |
+| P02 | Ana logada, sem apelido | `update` do próprio `nickname` para `'Aninha'` e depois para nulo | O `display_name` vira `'Aninha'` e depois volta ao `name` (RN100) |
+| P03 | Ana logada | `update` do `name` do Bruno | Nenhuma linha alterada. O perfil do Bruno não muda |
+| P04 | Ana logada | `update` do próprio `deleted_at`, e depois do próprio `id` | `42501` nos dois |
+| P05 | Ana logada | `update` do próprio `photo_path` para `profiles/<bruno>/x.png`; para `profiles/<ana>/x.png`; para nulo | O primeiro é recusado pelo RLS (`42501`). Os outros dois são aceitos |
+| P06 | Ana logada, com `deleted_at` preenchido | `update` do próprio `name` | Nenhuma linha alterada |
+| P07 | Ana logada | `insert` em `profiles` e em `profile_private` | `42501` nos dois |
+| P08 | Ana logada | `select` em `profile_private`; `update` do próprio `phone` para `'+5586999991234'`; `update` do `phone` do Bruno | Só a linha da Ana; o próprio `update` é aceito; o do Bruno não altera nenhuma linha |
+| P09 | Ana logada | `update` do próprio `user_id` em `profile_private` | `42501` |
+| P10 | Ana logada | `select * from current_terms_versions()` | Duas linhas: `terms_of_use` e `privacy_policy`, ambas `'1.0'` |
+| P11 | Ana logada, sem aceite | `insert` em `terms_acceptances` de `(ana, 'terms_of_use', '1.0')`; e outro com `accepted_at` informado | O primeiro é aceito, com `accepted_at = now()`. O segundo dá `42501` |
+| P12 | Ana logada | `insert` com a versão `'0.9'`; e com o `user_id` do Bruno e a versão `'1.0'` | `42501` nos dois |
+| P13 | Ana e Bruno com aceites | Ana logada lê `terms_acceptances` | Só as linhas da Ana |
+| P14 | `role anon` | `select` nas três tabelas e `current_terms_versions()` | `42501` em todos |
+| P15 | Ana logada | `insert` em `storage.objects`, bucket `avatars`, em `profiles/<ana>/<uuid>.png`, em `profiles/<bruno>/<uuid>.png` e em `groups/<uuid>/<uuid>.png` | Só o primeiro é aceito |
+| P16 | Um arquivo da Ana e um do Bruno em `avatars` | Ana logada faz `select`, `update` e `delete` em `storage.objects` | O `select` vê só o arquivo da Ana. O `update` não altera nenhuma linha. O `delete` apaga o da Ana e não altera o do Bruno |
+
+### 10.2 Chave Pix e RN105
+
+pgTAP, em `supabase/tests/database/account_pix.test.sql`. Os formatos rodam como `postgres`, direto em `profile_private`. A RN105 roda como Ana logada, para provar que a *trigger* vale também para a escrita do app.
+
+**Formato** (`modelo-dados.md`, 4.1). "Recusado" é a violação de constraint (`23514`).
+
+| ID | Tipo | Chave | Então |
+|----|------|-------|-------|
+| X01 | `cpf` | `52998224725` | Aceito |
+| X02 | `cpf` | `52998224724` (último dígito trocado) | Recusado |
+| X03 | `cpf` | `11111111111` (passa na conta, mas é sequência repetida) | Recusado |
+| X04 | `cnpj` | `11222333000181` | Aceito |
+| X05 | `cnpj` | `11222333000180` | Recusado |
+| X06 | `cnpj` | `00000000000000` | Recusado |
+| X07 | `email` | `Ana@Exemplo.com`; `ana@exemplo.com` | Recusado; aceito |
+| X08 | `phone` | `+5586999991234`; `86999991234` | Aceito; recusado |
+| X09 | `random` | `123e4567-e89b-12d3-a456-426614174000`; a mesma em maiúsculas | Aceito; recusado |
+| X10 | `cpf` | nulo | Recusado (`profile_private_pix_pair`) |
+
+**Remoção da chave (RN105).** Ana tem chave Pix. "Remover" é `update` de `pix_key_type` e `pix_key` para nulo.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| N01 | Ana é recebedora de um jogo `open` | Remove a chave | `PIX_KEY_IN_USE`. A chave continua |
+| N02 | Ana é recebedora de um jogo `confirmed` | Remove a chave | `PIX_KEY_IN_USE` |
+| N03 | Ana é recebedora só de jogos `cancelled` e `completed`, sem valor a receber | Remove a chave | Aceito |
+| N04 | Ana é o `receiver_id` de um valor `pending` | Remove a chave | `PIX_KEY_IN_USE` |
+| N05 | Ana é o `receiver_id` de um valor `under_review` | Remove a chave | `PIX_KEY_IN_USE` |
+| N06 | Ana é o `receiver_id` só de valores `paid` e `waived` | Remove a chave | Aceito |
+| N07 | Como N01 | Troca a chave por outra válida, de outro tipo | Aceito: a troca é livre |
+| N08 | Bruno é participante, não recebedor, de um jogo `open` | Bruno remove a própria chave | Aceito |
+| N09 | Como N01 | Ana troca só o telefone, sem mexer na chave | Aceito: a *trigger* só olha a remoção da chave |
+
+### 10.3 Fotos (RN106)
+
+Deno test, em `supabase/functions/_tests/avatars_test.ts`, contra a API do Storage local, com a Ana e o Bruno logados por e-mail e senha. Roda no job do CI que sobe o Supabase. O Storage confere o tipo declarado no envio e o tamanho: o app garante o tipo real ao redimensionar.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| A01 | Ana logada | Envia um PNG de 100 KB para `profiles/<ana>/<uuid>.png` | Aceito |
+| A02 | Ana logada | Envia um JPEG de 2.097.153 bytes (2 MB mais 1 byte) | Recusado pelo tamanho |
+| A03 | Ana logada | Envia um JPEG de exatamente 2.097.152 bytes | Aceito |
+| A04 | Ana logada | Envia um GIF (`image/gif`) | Recusado pelo tipo |
+| A05 | Ana logada | Envia um PNG para `profiles/<bruno>/<uuid>.png` | Recusado pelo RLS |
+| A06 | Um arquivo da Ana e um do Bruno | Ana pede a URL assinada de cada um | Recebe a do próprio arquivo. A do Bruno é recusada |
+
+### 10.4 App
+
+**Validações e formatação**, testes unitários em `app/test/`:
+
+| ID | Entrada | Função | Resultado |
+|----|---------|--------|-----------|
+| U01 | `52998224725`, `529.982.247-25`, `52998224724`, `11111111111` | Validação de CPF | Verdadeiro, verdadeiro, falso, falso. A mesma regra do banco (X01 a X03) |
+| U02 | `11222333000181`, `11.222.333/0001-81`, `11222333000180`, `00000000000000` | Validação de CNPJ | Verdadeiro, verdadeiro, falso, falso |
+| U03 | `(86) 99999-1234`, `(86) 3322-1234`, `(86) 9999-123` | Telefone digitado para E.164 | `+5586999991234`, `+558633221234`, inválido |
+| U04 | `+5586999991234`, `+558633221234` | E.164 para exibição | `(86) 99999-1234`, `(86) 3322-1234` |
+| U05 | CPF `52998224725`, CNPJ `11222333000181`, telefone `+5586999991234` | Chave Pix para exibição | `529.982.247-25`, `11.222.333/0001-81`, `(86) 99999-1234` |
+| U06 | E-mail ` Ana@Exemplo.com `, aleatória em maiúsculas | Normalização da chave | `ana@exemplo.com`, a mesma em minúsculas |
+| U07 | Identidades `[email]`, `[google]`, `[email, google]` | Tem acesso por e-mail e senha | Verdadeiro, falso, verdadeiro |
+
+**Conversão de erros**, em `app/test/core/errors/`:
+
+| ID | Exceção recebida | `ErrorCode` |
+|----|------------------|-------------|
+| E09 | `AuthException` com cada código da tabela da seção 6.8 do `docs/copy.md` | O `ErrorCode` da mesma linha |
+| E10 | `PostgrestException` `P0001` com `PIX_KEY_IN_USE` | `pixKeyInUse` |
+| E11 | `StorageException` com HTTP 413; e com `invalid_mime_type` | `photoTooLarge`; `photoInvalidType` |
+| E12 | O `google_sign_in` devolve nulo (seletor fechado) | Nenhum erro, e nada é mostrado |
+
+**Telas**, testes de widget com os repositórios trocados por dublês (`docs/ui/telas.md`, seção 5):
+
+| ID | Tela | Quando | Então |
+|----|------|--------|-------|
+| S01 | Cadastro | Toca em Criar conta com os campos vazios; depois com senha de 7 caracteres | Erros nos campos (`authNameRequired`, `authEmailRequired`, `authPasswordRequired`; depois `authPasswordTooShort`). O repositório não é chamado |
+| S02 | Cadastro | Cadastro aceito | Abre a `/confirm-email` com o e-mail na frase. O voltar não retorna ao cadastro |
+| S03 | Confirmar e-mail | Digita o sexto dígito; o repositório responde `authInvalidCode` | O `verifyOTP` é chamado sem tocar no botão. Erro `errorAuthInvalidCode` no campo, que é limpo |
+| S04 | Confirmar e-mail | Abre a tela; passam 60 s | **Reenviar código** desabilitado com a contagem (`authResendCodeIn`), e habilitado depois |
+| S05 | Confirmar e-mail | Rota aberta sem e-mail em memória | Vai para o login |
+| S06 | Login | O repositório responde `authEmailNotConfirmed`; a pessoa toca em **Confirmar** no `SnackBar` | O `resend` é chamado com o e-mail digitado e a `/confirm-email` abre |
+| S07 | Login | O Google devolve nulo; depois falha | Nada na primeira vez. `SnackBar` `errorAuthGoogleFailed` na segunda |
+| S08 | Recuperar senha | Envia o código; o `verifyOTP` vale, e o `updateUser` responde `authSamePassword`; toca de novo em Salvar | Passa à etapa 2. Depois, só o campo de senha, com o erro. O novo toque chama só o `updateUser` |
+| S09 | Aceite dos termos | Abre sem aceite; marca a caixa; toca em Aceitar | Botão desabilitado até marcar. Insere uma linha por documento que falta. Frase `termsSubtitleFirst` |
+| S10 | Roteador | Sessão sem aceite; sessão com aceite da versão vigente; vigente `1.1` e aceite `1.0`; sessão abrindo `/signup` | `/terms`; `/games`; `/terms` com `termsSubtitleUpdated`; `/games` |
+| S11 | Meu perfil | Conta só com Google; conta com e-mail; conta só com Google abrindo `/profile/email` | Sem as linhas Trocar e-mail e Trocar senha; com as duas; volta ao perfil |
+| S12 | Editar perfil | Telefone vazio; apaga o telefone com o interruptor ligado; telefone com 9 dígitos; Salvar com foto nova no lugar da antiga | Interruptor desabilitado; interruptor desliga; erro `profilePhoneInvalid`; chamadas nesta ordem: envio da foto, `profiles`, `profile_private`, remoção da foto antiga |
+| S13 | Chave Pix | CPF `52998224724`; troca de CPF para E-mail; Remover, confirmar, e o repositório responde `pixKeyInUse` | Erro `pixInvalidCpf` sem chamar o servidor; o campo é limpo; `SnackBar` `errorPixKeyInUse`, e a chave continua na tela |
+| S14 | Trocar e-mail | Novo e-mail igual ao atual; o repositório responde `authEmailInUse` | Erro `emailSameAsCurrent` sem chamar o servidor; erro `errorAuthEmailInUse` no campo |
+| S15 | Trocar senha | O `signInWithPassword` responde `authInvalidCredentials` | Erro `passwordCurrentWrong` no campo Senha atual. O `updateUser` não é chamado |
+| S16 | Todas as telas da seção 5 do `telas.md` | Fonte do sistema em 150% | Nenhum *overflow* |
+| S17 | Meu perfil | Perfil com `name = 'Ana Souza'` e `nickname = 'Aninha'` | O cabeçalho mostra `Aninha` (RN100) |
+
+**Fluxos**, testes de integração no emulador (API 29 e 36) contra o Supabase local com o seed. O código chega pelo Mailpit, lido pela API dele em `http://10.0.2.2:54324`. Cada fluxo deixa o seed como encontrou, para poder rodar de novo sem `db reset`: o L08 usa um e-mail novo a cada execução, e L09 a L11 devolvem, no fim, a senha, o apelido, o telefone e o e-mail originais:
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| L08 | Sem sessão, e-mail novo | Cria a conta com o nome `Carla Souza`, lê o código no Mailpit, confirma e aceita os termos | Chega à aba Jogos. O perfil mostra `Carla Souza` |
+| L09 | Bruno sem sessão | Recupera a senha com o código do Mailpit e uma senha nova; sai e entra com a senha nova | Entra nas duas vezes. A senha antiga não entra mais |
+| L10 | Ana logada | Muda o apelido para `Aninha` e o telefone, salva e reabre o app | O perfil mostra `Aninha` e o telefone formatado |
+| L11 | Diego logado | Troca o e-mail com o código do Mailpit, sai e entra com o e-mail novo | Entra com o novo. O antigo não entra mais |
+
+**Conferência manual**, no emulador e na produção, porque depende de conta Google real e do Resend (`plano-implementacao.md`, fatia 2, "Pronto quando"):
+
+| ID | O que conferir |
+|----|----------------|
+| M01 | Conta nova pelo Google: o perfil nasce com o nome do Google e a `/terms` aparece |
+| M02 | Google com o e-mail de uma conta criada por e-mail e senha (RF108): entra na mesma conta, sem criar outra, e as linhas Trocar e-mail e Trocar senha continuam aparecendo |
+| M03 | Na produção, os três e-mails chegam pelo Resend com o remetente `nao-responda@mail.voleiin.com.br` e o código no assunto |
+| M04 | Na produção, o cadastro por e-mail, o Google e a vinculação funcionam, ainda sem usuários reais |
+
+## 11. Rastreabilidade
 
 | Regra | Cenários |
 |-------|----------|
@@ -332,3 +471,8 @@ O formato de valor negativo fica para a fatia 5 (cenário R04).
 | RN71 a RN75 | R01 a R10 |
 | RN30, RN31, RN32, RN94 | V01 a V11, C12 |
 | RN89 | C10 |
+| RN100 | P02, S17 |
+| RN101 | S12 |
+| RN105 | N01 a N09, S13 |
+| RN106 | A01 a A06, S12 |
+| RF105 | P10 a P13, S09, S10, L08 |

@@ -79,12 +79,12 @@ Estas decisões organizam o trabalho e não mudam o comportamento do app.
 
 - **RFs:** RF01 a RF12, RF105 a RF108.
 - **RNs:** RN100, RN105, RN106.
-- **Banco:** políticas de `profiles` (própria linha), `profile_private` e `terms_acceptances`; Storage `avatars` (própria foto); *trigger* da RN105.
-- **Funções e serviços:** Supabase Auth, login com Google e Resend como SMTP.
+- **Banco:** políticas de `profiles` (própria linha), `profile_private` e `terms_acceptances`; Storage `avatars` (própria foto); *trigger* da RN105; `current_terms_versions()`; dígitos verificadores de CPF e CNPJ na chave Pix (`rls-matriz.md` e `modelo-dados.md`, decisões de 12/11/2026).
+- **Funções e serviços:** Supabase Auth com código de 6 dígitos por e-mail (ADR 0017), login com Google e Resend como SMTP.
 - **Telas:** cadastro, login, recuperação de senha, aceite dos termos, perfil, troca de e-mail e de senha, chave Pix.
 - **Depende de:** fatia 1.
 - **Pronto quando:**
-  - cadastro por e-mail com confirmação, login com Google e vinculação das duas formas de acesso (RF108) funcionam no Supabase local e na produção (ainda sem usuários reais);
+  - cadastro por e-mail com confirmação por código, login com Google e vinculação das duas formas de acesso (RF108) funcionam no Supabase local e na produção (ainda sem usuários reais);
   - o e-mail chega pelo Resend;
   - um novo aceite é pedido quando a versão dos termos muda;
   - o teste da RN105 recusa a remoção da chave Pix com jogo ou valor em aberto;
