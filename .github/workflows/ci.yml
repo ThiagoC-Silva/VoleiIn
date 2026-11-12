@@ -1,0 +1,102 @@
+# Integração contínua (docs/stacks.md, seção 10.2; docs/trabalho-com-agente.md, 5).
+# Roda os mesmos comandos da definição de pronto, em todo pull request.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (dart analyze e flutter test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Dependências
+        run: flutter pub get
+
+      - name: Textos da interface (app_pt.arb)
+        run: flutter gen-l10n
+
+      - name: Geração de código (freezed e json_serializable)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Formatação
+        run: dart format --output=none --set-exit-if-changed .
+
+      # Nunca `flutter analyze`: o acento no caminho o quebra (ADR 0014).
+      - name: Análise estática
+        run: dart analyze
+
+      - name: Testes unitários e de widget
+        run: flutter test
+
+      # Cenário D15: o fuso do aparelho não entra na conta (RN01).
+      - name: Testes de formatação em outro fuso
+        run: TZ=Asia/Tokyo flutter test test/core/format
+
+  database:
+    name: Banco (migrações e pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Sobe o Supabase local
+        run: supabase start
+
+      # As migrações acabaram de ser aplicadas em um banco limpo pelo start.
+      - name: Lint do schema
+        run: supabase db lint
+
+      - name: Recria o banco com migrações e seed
+        run: supabase db reset
+
+      - name: Testes pgTAP
+        run: supabase test db
+
+  functions:
+    name: Edge Functions (Deno)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: supabase/functions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Formatação
+        run: deno fmt --check
+
+      - name: Lint
+        run: deno lint
+
+      # A primeira Edge Function chega na fatia 3; sem arquivo de teste,
+      # `deno test` falharia por não achar nenhum.
+      - name: Testes
+        run: |
+          if find . -name '*_test.ts' -print -quit | grep -q .; then
+            deno test --allow-net --allow-env
+          else
+            echo 'Nenhum teste de Edge Function nesta fatia.'
+          fi
