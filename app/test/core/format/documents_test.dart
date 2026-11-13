@@ -38,5 +38,26 @@ void main() {
     test('recusa a sequência de um dígito só', () {
       expect(isValidCnpj('00000000000000'), isFalse);
     });
+
+    // Formato alfanumérico da Receita Federal (modelo-dados.md, 4.1).
+    test('aceita o CNPJ alfanumérico válido', () {
+      expect(isValidCnpj('12ABC34501DE35'), isTrue);
+    });
+
+    test('aceita o CNPJ alfanumérico com a máscara', () {
+      expect(isValidCnpj('12.ABC.345/01DE-35'), isTrue);
+    });
+
+    test('aceita o CNPJ alfanumérico digitado em minúsculas', () {
+      expect(isValidCnpj('12abc34501de35'), isTrue);
+    });
+
+    test('recusa o CNPJ alfanumérico com o último dígito trocado', () {
+      expect(isValidCnpj('12ABC34501DE36'), isFalse);
+    });
+
+    test('recusa letra no dígito verificador', () {
+      expect(isValidCnpj('12ABC34501DEA5'), isFalse);
+    });
   });
 }

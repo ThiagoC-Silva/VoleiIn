@@ -179,6 +179,21 @@ void main() {
     ).called(1);
   });
 
+  testWidgets('salva o CNPJ alfanumérico sem pontuação e em maiúsculas', (
+    tester,
+  ) async {
+    await open(tester);
+
+    await chooseType(tester, l10nPt.pixTypeCnpj);
+    await tester.enterText(keyField, '12abc34501de35');
+    await save(tester);
+
+    verify(
+      () =>
+          h.profiles.updatePixKey(type: PixKeyType.cnpj, key: '12ABC34501DE35'),
+    ).called(1);
+  });
+
   for (final (label, typed, error) in [
     (l10nPt.pixTypeCnpj, '11222333000180', l10nPt.pixInvalidCnpj),
     (l10nPt.pixTypeEmail, 'ana-sem-arroba', l10nPt.pixInvalidEmail),

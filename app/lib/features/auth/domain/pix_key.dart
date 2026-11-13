@@ -25,12 +25,14 @@ final _uuid = RegExp(
   r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
 );
 
-/// A chave como ela é gravada (docs/ui/telas.md, 5.9): CPF e CNPJ só com os
-/// dígitos, e-mail e aleatória sem espaços e em minúsculas, telefone em E.164.
+/// A chave como ela é gravada (docs/ui/telas.md, 5.9): CPF só com os dígitos,
+/// CNPJ sem pontuação e em maiúsculas, e-mail e aleatória sem espaços e em
+/// minúsculas, telefone em E.164.
 /// Telefone com outro número de dígitos fica só com os dígitos, e a conferência
 /// recusa.
 String normalizePixKey(PixKeyType type, String typed) => switch (type) {
-  PixKeyType.cpf || PixKeyType.cnpj => digitsOnly(typed),
+  PixKeyType.cpf => digitsOnly(typed),
+  PixKeyType.cnpj => normalizeCnpj(typed),
   PixKeyType.email || PixKeyType.random => typed.trim().toLowerCase(),
   PixKeyType.phone => phoneToE164(typed) ?? digitsOnly(typed),
 };

@@ -136,7 +136,7 @@
   "pixTypeRandom": "Aleatória",
   "pixKeyLabel": "Chave",
   "pixInvalidCpf": "CPF inválido. Confira os números.",
-  "pixInvalidCnpj": "CNPJ inválido. Confira os números.",
+  "pixInvalidCnpj": "CNPJ inválido. Confira as letras e os números.",
   "pixInvalidEmail": "E-mail inválido.",
   "pixInvalidPhone": "Informe o DDD e o número, com 10 ou 11 dígitos.",
   "pixInvalidRandom": "Chave aleatória inválida. Copie e cole a chave do seu banco.",

@@ -15,6 +15,13 @@ void main() {
       );
     });
 
+    test('CNPJ alfanumérico', () {
+      expect(
+        formatPixKey(PixKeyType.cnpj, '12ABC34501DE35'),
+        '12.ABC.345/01DE-35',
+      );
+    });
+
     test('telefone', () {
       expect(
         formatPixKey(PixKeyType.phone, '+5586999991234'),
@@ -38,6 +45,13 @@ void main() {
           '123E4567-E89B-12D3-A456-426614174000',
         ),
         '123e4567-e89b-12d3-a456-426614174000',
+      );
+    });
+
+    test('CNPJ sem pontuação e em maiúsculas', () {
+      expect(
+        normalizePixKey(PixKeyType.cnpj, '12.abc.345/01de-35'),
+        '12ABC34501DE35',
       );
     });
   });

@@ -138,7 +138,9 @@ class _PixFormState extends ConsumerState<_PixForm> {
     final busy = ref.watch(profilePixControllerProvider).isLoading;
     final (keyboard, formatters) = switch (_type) {
       PixKeyType.cpf => (TextInputType.number, [DigitMaskFormatter.cpf]),
-      PixKeyType.cnpj => (TextInputType.number, [DigitMaskFormatter.cnpj]),
+      // O CNPJ pode ter letras (formato alfanumérico da Receita): teclado de
+      // texto, em maiúsculas (docs/ui/telas.md, 5.9).
+      PixKeyType.cnpj => (TextInputType.text, [DigitMaskFormatter.cnpj]),
       PixKeyType.phone => (TextInputType.phone, [DigitMaskFormatter.phone]),
       PixKeyType.email => (TextInputType.emailAddress, <TextInputFormatter>[]),
       PixKeyType.random => (TextInputType.text, <TextInputFormatter>[]),
@@ -165,6 +167,9 @@ class _PixFormState extends ConsumerState<_PixForm> {
             keyboardType: keyboard,
             inputFormatters: formatters,
             autocorrect: false,
+            textCapitalization: _type == PixKeyType.cnpj
+                ? TextCapitalization.characters
+                : TextCapitalization.none,
             prefixText: _type == PixKeyType.phone ? '+55  ' : null,
             validator: (value) => _validate(l10n, value),
           ),

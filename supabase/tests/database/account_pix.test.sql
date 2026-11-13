@@ -1,5 +1,5 @@
 -- Chave Pix e RN105 (fatia 2).
--- Cenários X01 a X10 e N01 a N09 de docs/testes-referencia.md, seção 10.2.
+-- Cenários X01 a X14 e N01 a N09 de docs/testes-referencia.md, seção 10.2.
 -- Formatos: docs/modelo-dados.md, 4.1. Trigger: RN105, contratos-api.md (PIX_KEY_IN_USE).
 --
 -- Os formatos rodam como postgres, direto em profile_private. A RN105 roda como
@@ -9,7 +9,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(23);
+select plan(27);
 
 -- Personagens do seed (docs/setup.md, seção 8), criados aqui se faltarem.
 insert into auth.users (
@@ -173,6 +173,22 @@ select throws_ok(
 select throws_ok(
   $$ select pg_temp.set_pix('cnpj', '00000000000000') $$, '23514', null,
   'X06: CNPJ de um dígito só é recusado'
+);
+select lives_ok(
+  $$ select pg_temp.set_pix('cnpj', '12ABC34501DE35') $$,
+  'X11: CNPJ alfanumérico 12ABC34501DE35 é aceito'
+);
+select throws_ok(
+  $$ select pg_temp.set_pix('cnpj', '12ABC34501DE36') $$, '23514', null,
+  'X12: CNPJ alfanumérico com o último dígito trocado é recusado'
+);
+select throws_ok(
+  $$ select pg_temp.set_pix('cnpj', '12abc34501de35') $$, '23514', null,
+  'X13: CNPJ alfanumérico em minúsculas é recusado'
+);
+select throws_ok(
+  $$ select pg_temp.set_pix('cnpj', '12ABC34501DEA5') $$, '23514', null,
+  'X14: CNPJ com letra no dígito verificador é recusado'
 );
 select throws_ok(
   $$ select pg_temp.set_pix('email', 'Ana@Exemplo.com') $$, '23514', null,

@@ -28,4 +28,22 @@ void main() {
   test('corta no limite de dígitos do tipo', () {
     expect(_apply('', '529982247251234'), '529.982.247-25');
   });
+
+  group('CNPJ alfanumérico', () {
+    String cnpj(String old, String typed) => DigitMaskFormatter.cnpj
+        .formatEditUpdate(_value(old), _value(typed))
+        .text;
+
+    test('aceita letras nos 12 primeiros caracteres, em maiúsculas', () {
+      expect(cnpj('', '12abc34501de35'), '12.ABC.345/01DE-35');
+    });
+
+    test('recusa letra nos dois dígitos verificadores', () {
+      expect(cnpj('', '12ABC34501DEX5'), '12.ABC.345/01DE-5');
+    });
+
+    test('o CNPJ só com números continua igual', () {
+      expect(cnpj('', '11222333000181'), '11.222.333/0001-81');
+    });
+  });
 }
