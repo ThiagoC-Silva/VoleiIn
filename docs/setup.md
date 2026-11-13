@@ -294,6 +294,15 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 - manter: região, SMTP do Resend, provedor Google e domínio de e-mail;
 - conferir com `supabase migration list --linked` e com os advisors do painel.
 
+### 9.4 Migrações da fatia 2 (13/11/2026)
+
+**Feita em 13/11/2026**, pelo agente, já com o acesso à produção liberado (`trabalho-com-agente.md`, seção 8). A produção tinha as 13 migrações da fatia 1 e nenhuma conta.
+
+- Ensaio da seção 9.2: cópia em `~/voleiin-dumps`, banco local montado na versão `20261111121200` sem seed, as 6 migrações novas aplicadas sem erro e os 145 testes pgTAP verdes. Nenhuma tabela sem RLS.
+- `supabase db push --dry-run` listou as mesmas 6, sem seed nem roles, e o `supabase db push` as aplicou: `20261113120000` a `20261113120400` e `20261113162203` (CNPJ alfanumérico).
+- Conferência: `list_migrations` com as 19 migrações. Advisors só com avisos INFO: RLS sem política nas 17 tabelas das fatias seguintes (eram 20; `profiles`, `profile_private` e `terms_acceptances` ganharam política) e, em desempenho, chaves estrangeiras sem índice e índices sem uso, num banco ainda vazio.
+- Fica para o M03 e o M04 (`testes-referencia.md`, 10.4): conferir na produção os modelos de e-mail com o código e o comprimento de 6 dígitos do `config.toml` (o `supabase config push` não leva o SMTP, seção 6), e o Google e o Resend mantidos do v0 (9.3).
+
 ## 10. Domínio, e-mail e convites
 
 | Item | Valor | Observação |
