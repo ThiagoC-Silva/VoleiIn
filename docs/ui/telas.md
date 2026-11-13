@@ -206,7 +206,7 @@ Mantém tudo da seção 4.1 e acrescenta:
 
 | Situação | O que acontece |
 |----------|----------------|
-| Código completo | `verifyOTP`, tipo `email`. O Supabase Auth confirma o e-mail e cria a sessão, e o perfil nasce pela *trigger* (`modelo-dados.md`, 4.1). Depois, a conferência dos termos leva à `/terms` |
+| Código completo | `verifyOTP`, tipo `email`. O Supabase Auth confirma o e-mail e cria a sessão, e o perfil nasce pela *trigger* (`modelo-dados.md`, 4.1). Em seguida, o app grava de novo a senha digitada (`updateUser`), ignorando `same_password`, porque o Supabase mantém a senha do primeiro cadastro de um e-mail não confirmado (ADR 0018). Depois, a conferência dos termos leva à `/terms` |
 | Código errado ou vencido (`otp_expired`) | Erro no campo, que é limpo. A pessoa pode digitar de novo ou pedir outro |
 | Reenviar código | `resend`, tipo `signup`. `SnackBar` "Enviamos um novo código" |
 | Rota aberta sem e-mail em memória (app reaberto) | Volta ao login. Entrar com o e-mail não confirmado traz de volta a esta tela (5.1) |

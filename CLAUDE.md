@@ -2,7 +2,7 @@
 
 App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de presença, calcula o rateio e as multas ao concluir o jogo e acompanha os pagamentos por Pix entre os participantes, com leitura automática de comprovantes. O app não processa pagamentos.
 
-**Estado atual:** fatia 1 concluída e na `main` (12/11/2026): banco completo e fechado, app com login técnico, CI verde, produção limpa do v0 e com as 13 migrações, ensaio de migração validado. **Fatia 2 (Conta e perfil) na etapa de documentação**, no *branch* `fatia-2/docs`: telas, textos, RLS e cenários de teste escritos, à espera da aprovação do responsável. Depois vêm o Spec Kit, os testes e o código.
+**Estado atual:** fatia 1 concluída e na `main` (12/11/2026). **Fatia 2 (Conta e perfil) com o código pronto** no *branch* `fatia-2/conta-e-perfil` (13/11/2026): migrações, RLS, seed, telas e testes, com `dart analyze`, `flutter test`, `supabase test db` e `deno test` verdes. Falta rodar L06 a L11 no emulador e conferir cada tela contra o PNG (T051), a lista de acessibilidade (T049), a aprovação do ADR 0018 e o fechamento (T053). M01 a M03 e a produção são do responsável.
 
 ## Antes de implementar
 

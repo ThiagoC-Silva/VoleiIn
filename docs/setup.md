@@ -29,7 +29,7 @@ supabase/
   tests/database/     # testes pgTAP (*.test.sql)
   functions/          # Edge Functions em Deno
     _shared/          # código comum
-    _tests/           # testes de concorrência (Deno, conexões separadas)
+    _tests/           # testes contra o Supabase de pé: Storage (fatia 2) e concorrência (Deno)
   templates/          # e-mails do Supabase Auth
 web/                  # página de convite no Cloudflare Pages (fatia 8)
 docs/
@@ -175,6 +175,8 @@ SHA-1 da chave de debug desta máquina:
 keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android
 ```
 
+**No `config.toml`,** além do `client_id` e do `secret`, o `[auth.external.google]` leva `skip_nonce_check = true`: o app troca o ID token por sessão (`signInWithIdToken`) sem enviar *nonce*. O `supabase start` exige a variável do segredo mesmo sem ninguém entrar com Google; no CI ela recebe um valor qualquer (research R11 de `specs/001-conta-e-perfil`).
+
 Sem o SHA-1 cadastrado, o seletor de contas abre, a conta é escolhida e o login falha. O `adb logcat` mostra `UNREGISTERED_ON_API_CONSOLE`. Depois de uma falha, o Google Play Services guarda o veredito por alguns minutos: espere uns dez minutos antes de concluir que o cadastro não pegou.
 
 ## 7. Firebase (fatia 7)
@@ -193,6 +195,8 @@ Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfir
 | Bruno | `bruno@voleiin.test` | Membro, participante |
 | Carla | `carla@voleiin.test` | Membro, participante, às vezes na espera |
 | Diego | `diego@voleiin.test` | Sem grupo, para os testes de "sem contexto" (RN107) |
+
+**Perfis da fatia 2:** Ana com telefone visível e chave CPF; Bruno com o apelido `Brunão`, telefone oculto e chave e-mail; Carla com o apelido `Carlinha`, sem telefone e com chave aleatória; Diego só com o nome. Os fluxos L09 a L11 devolvem esses valores no fim (`testes-referencia.md`, 10.4).
 
 - Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente, que vem de `current_terms_versions()` (`contratos-api.md`, seção 9). O seed grava a mesma versão (`1.0`); quando uma migração trocar a versão, o seed muda junto.
 - IDs fixos (UUIDs legíveis, como `00000000-0000-0000-0000-00000000000a` para a Ana), para que testes e anotações possam citá-los.
