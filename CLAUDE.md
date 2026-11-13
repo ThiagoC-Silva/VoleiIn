@@ -2,7 +2,7 @@
 
 App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de presença, calcula o rateio e as multas ao concluir o jogo e acompanha os pagamentos por Pix entre os participantes, com leitura automática de comprovantes. O app não processa pagamentos.
 
-**Estado atual:** fatias 1 e 2 concluídas e na `main`. A fatia 2 (Conta e perfil) fechou em 13/11/2026: código, migrações e Auth na produção (`setup.md`, 9.4), T051 e M01 a M04 conferidos com o responsável no celular, e os RFs concluídos em `docs/rastreabilidade.md`. Próxima: fatia 3 (Grupos), começando pela documentação (`plan-docs.md`, 8.4).
+**Estado atual:** fatias 1 e 2 concluídas e na `main`. A fatia 2 (Conta e perfil) fechou em 13/11/2026: código, migrações e Auth na produção (`setup.md`, 9.4), T051 e M01 a M04 conferidos com o responsável no celular, e os RFs concluídos em `docs/rastreabilidade.md`. **Próxima: fatia 3 (Grupos), sessão 1 de 4 (Documentação)**, numa conversa nova. As quatro sessões de cada fatia (documentação, servidor, app, validação e fechamento) estão em `docs/trabalho-com-agente.md`, seção 3.1.
 
 ## Antes de implementar
 
