@@ -52,6 +52,8 @@ supabase test db                # testes pgTAP
 supabase migration new <nome>   # cria uma migração
 supabase functions serve        # Edge Functions locais
 deno test                       # testes das Edge Functions e de concorrência
+scripts/emulator.sh 36          # abre o emulador (29 ou 36) com memória limitada
+scripts/integration-test.sh     # testes de integração no emulador aberto
 ```
 
 Primeira execução, variáveis e problemas comuns: `docs/setup.md`. Há dois ambientes: o **Supabase local** (desenvolvimento e homologação, com o app no emulador) e a **produção** (um projeto remoto só, ADR 0011).
@@ -65,6 +67,7 @@ Primeira execução, variáveis e problemas comuns: `docs/setup.md`. Há dois am
 - **Tempo:** `timestamptz` em UTC, exibido em `America/Fortaleza`.
 - **Erros:** funções devolvem os códigos estáveis de `contratos-api.md`. O app converte o código em texto.
 - **Textos:** nenhuma string de interface solta no código.
+- **Memória:** emulador e testes de integração só pelos scripts de `scripts/`. Com o emulador aberto, um comando pesado por vez: nada de `flutter test`, `supabase test db`, `deno test` ou build em paralelo ao teste de integração. A soma já derrubou a sessão gráfica por falta de memória (`setup.md`, seção 3.1).
 
 ## Glossário
 

@@ -34,6 +34,7 @@ supabase/
 web/                  # página de convite no Cloudflare Pages (fatia 8)
 docs/
 specs/                # especificações do Spec Kit, uma por fatia
+scripts/              # emulador e testes de integração com limite de memória (seção 3.1)
 .github/workflows/    # CI e deploy
 ```
 
@@ -62,17 +63,40 @@ avdmanager create avd -n voleiin_api29 -k "system-images;android-29;google_apis_
 avdmanager create avd -n voleiin_api36 -k "system-images;android-36;google_apis_playstore;x86_64" -d pixel_7
 ```
 
-Numa máquina com 16 GB de RAM, o emulador com GPU do computador (`-gpu host`, o padrão) caiu durante o build do Gradle, que sozinho passa de 4 GB. Com renderização por software ele ficou estável:
+Os testes de integração rodam com um emulador aberto e o Supabase local de pé, sempre pelos scripts da seção 3.1:
 
 ```bash
-emulator -avd voleiin_api29 -no-snapshot -no-audio -gpu swiftshader_indirect
+scripts/emulator.sh 36            # ou 29; espera o boot terminar
+scripts/integration-test.sh       # todos; ou um arquivo: scripts/integration-test.sh integration_test/account_flow_test.dart
 ```
 
-Os testes de integração rodam com um emulador aberto e o Supabase local de pé. Se houver mais de um aparelho no `adb` (um celular ligado, por exemplo), indique o emulador com `-d`:
+### 3.1 Memória
+
+**Máquina mínima:** 16 GB de RAM. Recomendado ter 8 GB de swap (abaixo).
+
+Em 13/11/2026, numa máquina de 16 GB com 2 GB de swap, a sessão gráfica caiu inteira no meio dos testes de integração. O `systemd-oomd` (ligado por padrão no Ubuntu) encerra o grupo de processos que mais disputa memória quando a pressão passa de 50% por 20 segundos, e escolheu o GNOME Shell. Rodavam juntos o emulador, o build do Gradle (com os 8 GB de heap do modelo do Flutter), os testes de unidade, o Supabase local e os navegadores. Nenhum deles sozinho derruba a máquina; a soma, sim.
+
+O padrão do projeto, já no repositório e válido em qualquer máquina:
+
+| Item | Configuração | Onde | Memória |
+|------|--------------|------|---------|
+| Build do Gradle | heap de 3 GB, metaspace de 1 GB, Kotlin dentro do Gradle (sem segundo daemon), daemon sai após 10 min parado | `app/android/gradle.properties` | até ~4 GB, só durante o build |
+| Emulador | 2 GB de RAM, GPU por software, sem snapshot; um por vez | `scripts/emulator.sh` | ~3 GB |
+| Supabase local | `analytics` desligado (leva junto o `vector`) | `supabase/config.toml` | ~1,1 GB |
+| Testes de integração | só começam com 4,5 GB livres e sem testes de unidade rodando | `scripts/integration-test.sh` | — |
+
+**A regra:** com o emulador aberto, **um comando pesado por vez**. Não rode `flutter test`, `supabase test db`, `deno test` ou outro build enquanto o teste de integração compila ou roda. Antes de abrir o emulador, feche abas e navegadores que não estiver usando. Os scripts conferem a memória disponível e param com uma mensagem quando falta folga. `VOLEIIN_SKIP_MEMORY_CHECK=1` pula a conferência.
+
+**Swap (uma vez por máquina, com `sudo`).** Com 2 GB de swap, a memória chega ao limite sem margem. Com 8 GB, o sistema tira da RAM o que está parado (abas, Studio) antes de o oomd agir:
 
 ```bash
-cd app && flutter test integration_test -d emulator-5554 --dart-define-from-file=env/local.json
+swapon --show                      # tamanho atual
+sudo swapoff /swapfile
+sudo fallocate -l 8G /swapfile
+sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
 ```
+
+O `/swapfile` já costuma estar no `/etc/fstab` do Ubuntu; se não estiver, acrescente `/swapfile none swap sw 0 0`. Não desligue o `systemd-oomd`: sem ele, a máquina tende a congelar em vez de fechar a sessão.
 
 **Caminho com acento.** O projeto pode ficar em "Área de trabalho", mas o `flutter analyze` quebra com `FormatException` quando o caminho tem acento. **Use sempre `dart analyze`**, que faz a mesma análise e funciona em qualquer caminho. O CI também usa `dart analyze`.
 
@@ -288,8 +312,9 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 | `supabase start` falha por porta ocupada | Outro projeto Supabase rodando | `supabase stop --all` |
 | Aparece uma **pasta** com nome `.html` em `supabase/templates/` | O Docker cria uma pasta quando o arquivo citado no `config.toml` não existe | Apague a pasta e crie o arquivo de template |
 | `ProjectPausedError` | Produção pausada por falta de uso | Reative pelo painel (seção 9.1) |
-| O emulador fecha sozinho durante o build do Gradle, e o log tem `process_memory.cc` e `short read` | Falta de memória com GPU do computador | Abra o emulador com `-gpu swiftshader_indirect` (seção 3) |
+| O emulador fecha sozinho durante o build do Gradle, e o log tem `process_memory.cc` e `short read` | Falta de memória com GPU do computador | Abra o emulador por `scripts/emulator.sh`, que usa `-gpu swiftshader_indirect` (seção 3.1) |
+| A sessão gráfica cai e volta à tela de login, sem reiniciar; `journalctl -u systemd-oomd` mostra `Killed ... org.gnome.Shell ... due to memory pressure` | Memória esgotada por emulador, build e testes ao mesmo tempo | Siga a seção 3.1: scripts, um comando pesado por vez, swap de 8 GB |
 | `flutter test integration_test` instala o app, o app abre no emulador e nada mais sai no terminal | O *runner* do teste perde a conexão com o aparelho logo depois do boot (visto na imagem Google Play de API 36, com a memória da máquina cheia) | Encerre o `flutter test` e o emulador, abra o emulador de novo, espere uns 20 s depois do boot e rode com `timeout 900` na frente |
-| `adb: more than one device/emulator` | Celular ligado por USB ou Wi-Fi além do emulador | Passe `-d emulator-5554` ao `flutter test` e `-s emulator-5554` ao `adb` |
+| `adb: more than one device/emulator` | Celular ligado por USB ou Wi-Fi além do emulador | Desligue o celular do `adb`; os scripts escolhem o primeiro emulador. Fora deles, passe `-d emulator-5554` ao `flutter test` e `-s emulator-5554` ao `adb` |
 | `permission denied` no Docker | Usuário fora do grupo `docker`, ou sessão não reaberta | `sudo usermod -aG docker $USER` e reabrir a sessão |
 | Erro de geração (`*.freezed.dart` ou `*.g.dart` não encontrado) | `build_runner` não rodou | `dart run build_runner build --delete-conflicting-outputs` |
