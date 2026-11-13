@@ -45,6 +45,17 @@ AppException toAppException(Object error) {
     return const AppException(ErrorCode.internalError);
   }
 
+  // Storage: limites do bucket (docs/rls-matriz.md, seção 3; docs/copy.md, 6.8).
+  if (error is StorageException) {
+    if (error.statusCode == '413') {
+      return const AppException(ErrorCode.photoTooLarge);
+    }
+    if (error.error == 'invalid_mime_type') {
+      return const AppException(ErrorCode.photoInvalidType);
+    }
+    return const AppException(ErrorCode.internalError);
+  }
+
   // Supabase Auth.
   if (error is AuthException) {
     return AppException(_authCodes[error.code] ?? ErrorCode.internalError);
@@ -69,12 +80,20 @@ const Map<String, ErrorCode> _serverCodes = {
   'NOT_FOUND': ErrorCode.notFound,
   'INVALID_INPUT': ErrorCode.invalidInput,
   'INTERNAL_ERROR': ErrorCode.internalError,
+  'PIX_KEY_IN_USE': ErrorCode.pixKeyInUse,
 };
 
-/// Códigos do Supabase Auth (docs/copy.md, seção 5.5). Cadastro, recuperação de
-/// senha, troca de e-mail e login com Google entram na fatia 2.
+/// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8). O Auth devolve
+/// `otp_expired` tanto para código errado quanto para vencido.
 const Map<String, ErrorCode> _authCodes = {
   'invalid_credentials': ErrorCode.authInvalidCredentials,
   'email_not_confirmed': ErrorCode.authEmailNotConfirmed,
   'over_request_rate_limit': ErrorCode.authRateLimited,
+  'weak_password': ErrorCode.authWeakPassword,
+  'otp_expired': ErrorCode.authInvalidCode,
+  'email_address_invalid': ErrorCode.authInvalidEmail,
+  'email_exists': ErrorCode.authEmailInUse,
+  'user_already_exists': ErrorCode.authEmailInUse,
+  'same_password': ErrorCode.authSamePassword,
+  'over_email_send_rate_limit': ErrorCode.authEmailRateLimited,
 };

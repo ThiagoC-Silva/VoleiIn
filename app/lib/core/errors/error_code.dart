@@ -13,10 +13,24 @@ enum ErrorCode {
   // Só do app
   noConnection,
 
-  // Supabase Auth (docs/copy.md, seção 5.5)
+  // Supabase Auth (docs/copy.md, seções 5.5 e 6.8)
   authInvalidCredentials,
   authEmailNotConfirmed,
   authRateLimited,
+  authWeakPassword,
+  authInvalidCode,
+  authInvalidEmail,
+  authEmailInUse,
+  authSamePassword,
+  authEmailRateLimited,
+
+  // Login com Google, só do app (docs/copy.md, seção 6.8)
+  authGoogleFailed,
+
+  // Banco e Storage (docs/copy.md, seção 6.8)
+  pixKeyInUse,
+  photoTooLarge,
+  photoInvalidType,
 }
 
 /// Único tipo de exceção que sai da camada `data`.
