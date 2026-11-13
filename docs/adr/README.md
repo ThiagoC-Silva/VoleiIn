@@ -25,7 +25,7 @@ Cada arquivo registra uma decisão que alguém poderia querer reabrir: o context
 | [0015](0015-esquema-private.md) | Funções auxiliares no esquema `private` e privilégios revogados | Aceito |
 | [0016](0016-created-at-nas-tabelas-de-juncao.md) | `created_at` segue a lista de colunas de cada tabela | Aceito |
 | [0017](0017-codigo-por-email.md) | Código de 6 dígitos por e-mail no lugar de link | Aceito |
-| [0018](0018-senha-do-cadastro-pendente.md) | A senha do cadastro é gravada de novo depois do código | Proposto |
+| [0018](0018-senha-do-cadastro-pendente.md) | A senha do cadastro é gravada de novo depois do código | Aceito |
 
 ## Modelo
 

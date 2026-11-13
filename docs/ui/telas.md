@@ -302,7 +302,7 @@ Barra superior interna com voltar e o rótulo do documento como título. O corpo
    | Tipo | Teclado e máscara | O app confere | Grava |
    |------|-------------------|---------------|-------|
    | CPF | Numérico, `000.000.000-00` | 11 dígitos e dígitos verificadores | Só os dígitos |
-   | CNPJ | Numérico, `00.000.000/0000-00` | 14 dígitos e dígitos verificadores | Só os dígitos |
+   | CNPJ | Texto em maiúsculas, sem correção automática, `AA.AAA.AAA/AAAA-00`: os 12 primeiros caracteres aceitam letras e números, e os 2 últimos só números | 14 caracteres e dígitos verificadores, no formato alfanumérico da Receita (`modelo-dados.md`, 4.1) | Sem pontuação, em maiúsculas |
    | E-mail | E-mail | Um `@` e um ponto depois dele | Em minúsculas |
    | Telefone | Numérico, `+55` fixo e `(86) 99999-1234` | 10 ou 11 dígitos | E.164 |
    | Aleatória | Texto, sem correção automática | Formato de UUID | Em minúsculas, com hífens |

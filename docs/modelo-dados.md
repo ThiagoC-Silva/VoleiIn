@@ -165,10 +165,10 @@ Dados com visibilidade própria (RN101, RN102). Ficam fora de `profiles` porque 
 | `phone` | text | null, formato E.164 (`^\+[1-9][0-9]{7,14}$`). O app só aceita números do Brasil: mostra `+55` fixo e a pessoa digita DDD e número, com 10 ou 11 dígitos (decisão de 12/11/2026) |
 | `phone_visible` | boolean | not null, padrão `false` (RN101) |
 | `pix_key_type` | pix_key_type | null |
-| `pix_key` | text | null, normalizada (CPF/CNPJ só dígitos, e-mail minúsculo, telefone E.164, aleatória em minúsculas) |
+| `pix_key` | text | null, normalizada (CPF só dígitos, CNPJ sem pontuação e em maiúsculas, e-mail minúsculo, telefone E.164, aleatória em minúsculas) |
 | `updated_at` | timestamptz | |
  
-Constraints: `(pix_key_type is null) = (pix_key is null)`; formato de `pix_key` validado por `pix_key_type`. **CPF e CNPJ também têm os dígitos verificadores conferidos** (decisão de 12/11/2026), pelas funções `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)`, `immutable`, usadas na constraint e repetidas no app para o aviso no campo. Sequências de um dígito só (`00000000000`, `11111111111`...) são recusadas, embora passem na conta. A chave de telefone segue a mesma regra do campo `phone` no app (só Brasil).
+Constraints: `(pix_key_type is null) = (pix_key is null)`; formato de `pix_key` validado por `pix_key_type`. **CPF e CNPJ também têm os dígitos verificadores conferidos** (decisão de 12/11/2026), pelas funções `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)`, `immutable`, usadas na constraint e repetidas no app para o aviso no campo. Sequências de um dígito só (`00000000000`, `11111111111`...) são recusadas, embora passem na conta. **O CNPJ segue o formato alfanumérico da Receita Federal** (decisão de 13/11/2026): 14 caracteres, os 12 primeiros letras maiúsculas (`A` a `Z`) ou números e os 2 últimos dígitos verificadores numéricos, calculados em módulo 11 com cada caractere valendo o código ASCII menos 48 (os números valem eles mesmos, `A` vale 17 e `Z` vale 42). O CNPJ só com números é o caso particular da mesma conta e continua válido. A chave de telefone segue a mesma regra do campo `phone` no app (só Brasil).
 *Trigger* da RN105: rejeita `pix_key = null` se o usuário for `receiver_id` de um jogo `open`/`confirmed` ou de um `charge` `pending`/`under_review`. A troca de chave é livre.
  
 #### `terms_acceptances`

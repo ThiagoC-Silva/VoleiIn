@@ -1,6 +1,6 @@
 # 0018. A senha do cadastro é gravada de novo depois do código
 
-- **Status:** Proposto
+- **Status:** Aceito
 - **Data:** 2026-11-13
 
 ## Contexto
