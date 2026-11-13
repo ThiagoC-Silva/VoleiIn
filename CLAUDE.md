@@ -2,7 +2,7 @@
 
 App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de presença, calcula o rateio e as multas ao concluir o jogo e acompanha os pagamentos por Pix entre os participantes, com leitura automática de comprovantes. O app não processa pagamentos.
 
-**Estado atual:** fatia 1 concluída e na `main` (12/11/2026). **Fatia 2 (Conta e perfil) com o código pronto** no *branch* `fatia-2/conta-e-perfil` (13/11/2026): migrações, RLS, seed, telas e testes, com `dart analyze`, `flutter test`, `supabase test db` e `deno test` verdes. L06 a L11 verdes no emulador, nas APIs 29 e 36, acessibilidade (T049) e matriz de rastreabilidade feitas (13/11/2026). PR #3 com o CI verde. Falta: o *merge* e as migrações na produção (`setup.md`, 9.2), que o agente pode fazer; e, com o responsável, conferir cada tela contra o PNG (T051) e os testes com contas reais, M01 a M04 (Google e Resend). Depois, marcar a T053 e os RFs como concluídos.
+**Estado atual:** fatia 1 concluída e na `main` (12/11/2026). **Fatia 2 (Conta e perfil) com o código pronto** (13/11/2026): migrações, RLS, seed, telas e testes, com `dart analyze`, `flutter test`, `supabase test db` e `deno test` verdes. L06 a L11 verdes no emulador, nas APIs 29 e 36, acessibilidade (T049) e matriz de rastreabilidade feitas (13/11/2026). Na `main` pelo PR #3 e com as 6 migrações aplicadas na produção (`setup.md`, 9.4). Falta, com o responsável: conferir cada tela contra o PNG (T051) e os testes com contas reais, M01 a M04 (Google e Resend). Depois, marcar a T053 e os RFs como concluídos.
 
 ## Antes de implementar
 
