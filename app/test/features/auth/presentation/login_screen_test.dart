@@ -32,6 +32,21 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('os campos aceitam digitação já no primeiro quadro', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryProvider.overrideWithValue(repository)],
+        child: const TestApp(child: LoginScreen()),
+      ),
+    );
+
+    for (final field in tester.widgetList<TextField>(find.byType(TextField))) {
+      expect(field.enabled, isNot(isFalse));
+    }
+  });
+
   void mockSignInError(ErrorCode code) {
     when(
       () => repository.signInWithPassword(

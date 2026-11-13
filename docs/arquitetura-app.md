@@ -104,7 +104,7 @@ Regras:
 - Widgets leem com `ref.watch` e chamam ações com `ref.read(...notifier)`. Nunca `ref.read` no `build`.
 - Nos testes, repositórios são trocados com `ProviderScope(overrides: [...])`.
 - **Sem repetição automática:** o Riverpod 3 repete sozinho uma leitura que falhou. O `ProviderScope` do `main` e o dos testes desligam isso (`retry: (_, _) => null`): quem tenta de novo é a pessoa, pelo botão "Tentar de novo" (research R4 de `specs/001-conta-e-perfil`).
-- **Formulários:** o controller estende `SubmitController` (`features/auth/presentation/submit_controller.dart`). O estado é o da submissão, e cada ação devolve `AppException?`, nulo no sucesso, para a tela decidir se o erro vai para o campo ou para o `SnackBar`.
+- **Formulários:** o controller estende `SubmitController` (`features/auth/presentation/submit_controller.dart`). O estado é o da submissão, e cada ação devolve `AppException?`, nulo no sucesso, para a tela decidir se o erro vai para o campo ou para o `SnackBar`. O `build` dele é síncrono, para o controller nascer em `AsyncData`: com um `build` assíncrono, a tela começa "ocupada", desabilita os campos no primeiro quadro e perde o `autofocus`.
 
 ## 6. Realtime
 

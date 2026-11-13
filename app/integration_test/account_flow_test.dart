@@ -64,7 +64,31 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       if (finder.evaluate().isNotEmpty) return;
     }
-    throw TestFailure('Não apareceu em ${timeout.inSeconds} s: $finder');
+    // Mostra o que está na tela, para o log dizer onde o fluxo parou.
+    final onScreen = find
+        .byType(Text)
+        .evaluate()
+        .map(
+          (e) =>
+              (e.widget as Text).data ??
+              (e.widget as Text).textSpan?.toPlainText(),
+        )
+        .whereType<String>()
+        .where((t) => t.trim().isNotEmpty)
+        .join(' | ');
+    throw TestFailure(
+      'Não apareceu em ${timeout.inSeconds} s: $finder\nNa tela: $onScreen',
+    );
+  }
+
+  /// Toca quando o alvo já recebe o toque. Logo depois de trocar de tela, o
+  /// widget existe mas ainda está sob a animação da rota, e o toque cai na
+  /// tela que sai (visto no emulador de API 29, mais lento).
+  Future<void> tapReady(WidgetTester tester, Finder finder) async {
+    await pumpUntil(tester, finder);
+    await tester.ensureVisible(finder);
+    await pumpUntil(tester, finder.hitTestable());
+    await tester.tap(finder);
   }
 
   final gamesTab = find.descendant(
@@ -77,19 +101,21 @@ void main() {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), email);
     await tester.enterText(fields.at(1), pass);
-    await tester.tap(find.widgetWithText(FilledButton, l10nPt.authLoginButton));
+    await tapReady(
+      tester,
+      find.widgetWithText(FilledButton, l10nPt.authLoginButton),
+    );
   }
 
   Future<void> openProfileTab(WidgetTester tester) async {
-    await tester.tap(find.text(l10nPt.navProfile).last);
+    await tapReady(tester, find.text(l10nPt.navProfile).last);
     await pumpUntil(tester, find.text(l10nPt.authLogout));
   }
 
   Future<void> signOutFromProfile(WidgetTester tester) async {
     await openProfileTab(tester);
     final logout = find.widgetWithText(OutlinedButton, l10nPt.authLogout);
-    await tester.ensureVisible(logout);
-    await tester.tap(logout);
+    await tapReady(tester, logout);
     await pumpUntil(tester, loginScreen);
   }
 
@@ -99,7 +125,7 @@ void main() {
     final email = 'l08-${DateTime.now().millisecondsSinceEpoch}@voleiin.test';
     await openApp(tester);
 
-    await tester.tap(find.text(l10nPt.authCreateAccount).last);
+    await tapReady(tester, find.text(l10nPt.authCreateAccount).last);
     await tester.pumpAndSettle();
 
     final fields = find.byType(TextFormField);
@@ -111,8 +137,7 @@ void main() {
       FilledButton,
       l10nPt.authCreateAccountButton,
     );
-    await tester.ensureVisible(create);
-    await tester.tap(create);
+    await tapReady(tester, create);
     await pumpUntil(tester, find.byType(CodeField));
 
     final code = await mailpit.waitForCode(email, before: before);
@@ -120,9 +145,10 @@ void main() {
     await tester.enterText(find.byType(CodeField), code);
     await pumpUntil(tester, find.byType(Checkbox));
 
-    await tester.tap(find.byType(Checkbox));
+    await tapReady(tester, find.byType(Checkbox));
     await tester.pump();
-    await tester.tap(
+    await tapReady(
+      tester,
       find.widgetWithText(FilledButton, l10nPt.termsAcceptButton),
     );
     await pumpUntil(tester, gamesTab);
@@ -145,12 +171,15 @@ void main() {
     });
 
     await openApp(tester);
-    await tester.tap(find.text(l10nPt.authForgotPassword));
+    await tapReady(tester, find.text(l10nPt.authForgotPassword));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField), email);
     final before = await mailpit.snapshot(email);
-    await tester.tap(find.widgetWithText(FilledButton, l10nPt.authSendCode));
+    await tapReady(
+      tester,
+      find.widgetWithText(FilledButton, l10nPt.authSendCode),
+    );
     await pumpUntil(tester, find.byType(CodeField));
 
     final code = await mailpit.waitForCode(email, before: before);
@@ -193,15 +222,14 @@ void main() {
     await openApp(tester);
     await openProfileTab(tester);
 
-    await tester.tap(find.text(l10nPt.profileEdit));
+    await tapReady(tester, find.text(l10nPt.profileEdit));
     await pumpUntil(tester, find.text(l10nPt.profileNicknameLabel));
 
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(1), 'Aninha');
     await tester.enterText(fields.at(2), '86988887777');
     final save = find.widgetWithText(FilledButton, l10nPt.commonSave);
-    await tester.ensureVisible(save);
-    await tester.tap(save);
+    await tapReady(tester, save);
     await pumpUntil(tester, find.text(l10nPt.profileSaved));
 
     // Fecha e reabre o app.
@@ -211,7 +239,7 @@ void main() {
 
     // O telefone aparece formatado na edição: a tela Meu perfil não mostra
     // telefone (docs/ui/telas.md, 5.7).
-    await tester.tap(find.text(l10nPt.profileEdit));
+    await tapReady(tester, find.text(l10nPt.profileEdit));
     await pumpUntil(tester, find.text('(86) 98888-7777'));
   });
 
@@ -239,12 +267,15 @@ void main() {
     await openApp(tester);
     await openProfileTab(tester);
 
-    await tester.tap(find.text(l10nPt.profileChangeEmail));
+    await tapReady(tester, find.text(l10nPt.profileChangeEmail));
     await pumpUntil(tester, find.text(l10nPt.emailNewLabel));
 
     await tester.enterText(find.byType(TextFormField), newEmail);
     final before = await mailpit.snapshot(newEmail);
-    await tester.tap(find.widgetWithText(FilledButton, l10nPt.authSendCode));
+    await tapReady(
+      tester,
+      find.widgetWithText(FilledButton, l10nPt.authSendCode),
+    );
     await pumpUntil(tester, find.byType(CodeField));
 
     final code = await mailpit.waitForCode(newEmail, before: before);

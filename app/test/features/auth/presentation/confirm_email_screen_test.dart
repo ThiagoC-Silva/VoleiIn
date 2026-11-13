@@ -67,6 +67,20 @@ void main() {
     },
   );
 
+  testWidgets('o campo do código abre com o foco, para digitar direto', (
+    tester,
+  ) async {
+    await openWithPendingSignup(tester);
+
+    final field = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byType(CodeField),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(field.focusNode.hasFocus, isTrue);
+  });
+
   testWidgets('cinco dígitos não confirmam', (tester) async {
     await openWithPendingSignup(tester);
 

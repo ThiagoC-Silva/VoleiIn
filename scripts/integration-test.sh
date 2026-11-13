@@ -2,7 +2,8 @@
 # Roda os testes de integração no emulador aberto, sem nada pesado em paralelo
 # (docs/setup.md, seção 3.1). O Supabase local precisa estar de pé.
 #
-# Uso: scripts/integration-test.sh [arquivo ou pasta]   (padrão: integration_test)
+# Uso: scripts/integration-test.sh [arquivo ou pasta] [opções do flutter test]
+#      (padrão: integration_test; ex.: integration_test/x_test.dart --plain-name L08)
 set -euo pipefail
 source "$(dirname "$0")/_android.sh"
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -23,6 +24,8 @@ fi
 # O build do Gradle usa até uns 4 GB (3 GB de heap mais o metaspace).
 require_memory_mb 4500 "compilar e rodar os testes de integração"
 
+target="${1:-integration_test}"
+[ "$#" -gt 0 ] && shift
 cd "$root/app"
-exec timeout 900 flutter test "${1:-integration_test}" \
+exec timeout 900 flutter test "$target" "$@" \
   -d "$device" --dart-define-from-file=env/local.json
