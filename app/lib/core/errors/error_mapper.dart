@@ -45,6 +45,27 @@ AppException toAppException(Object error) {
     return const AppException(ErrorCode.internalError);
   }
 
+  // Storage: limite de tamanho e tipos do bucket (rls-matriz.md, seção 3).
+  if (error is StorageException) {
+    if (error.statusCode == '413') {
+      return const AppException(ErrorCode.photoTooLarge);
+    }
+    if (error.error == 'invalid_mime_type') {
+      return const AppException(ErrorCode.photoInvalidType);
+    }
+    return const AppException(ErrorCode.internalError);
+  }
+
+  // Sem rede, o Supabase Auth embrulha a falha num AuthRetryableFetchException
+  // sem status HTTP. Com status (500, por exemplo), é erro do servidor.
+  if (error is AuthRetryableFetchException) {
+    return AppException(
+      error.statusCode == null
+          ? ErrorCode.noConnection
+          : ErrorCode.internalError,
+    );
+  }
+
   // Supabase Auth.
   if (error is AuthException) {
     return AppException(_authCodes[error.code] ?? ErrorCode.internalError);
@@ -69,12 +90,22 @@ const Map<String, ErrorCode> _serverCodes = {
   'NOT_FOUND': ErrorCode.notFound,
   'INVALID_INPUT': ErrorCode.invalidInput,
   'INTERNAL_ERROR': ErrorCode.internalError,
+  // Trigger da RN105 (fatia 2).
+  'PIX_KEY_IN_USE': ErrorCode.pixKeyInUse,
 };
 
-/// Códigos do Supabase Auth (docs/copy.md, seção 5.5). Cadastro, recuperação de
-/// senha, troca de e-mail e login com Google entram na fatia 2.
+/// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).
 const Map<String, ErrorCode> _authCodes = {
   'invalid_credentials': ErrorCode.authInvalidCredentials,
   'email_not_confirmed': ErrorCode.authEmailNotConfirmed,
   'over_request_rate_limit': ErrorCode.authRateLimited,
+  'weak_password': ErrorCode.authWeakPassword,
+  // O Auth usa o mesmo código para o código errado e o vencido.
+  'otp_expired': ErrorCode.authInvalidCode,
+  'email_address_invalid': ErrorCode.authInvalidEmail,
+  'validation_failed': ErrorCode.authInvalidEmail,
+  'email_exists': ErrorCode.authEmailInUse,
+  'user_already_exists': ErrorCode.authEmailInUse,
+  'same_password': ErrorCode.authSamePassword,
+  'over_email_send_rate_limit': ErrorCode.authEmailRateLimited,
 };

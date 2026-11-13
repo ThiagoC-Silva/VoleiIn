@@ -17,6 +17,22 @@ enum ErrorCode {
   authInvalidCredentials,
   authEmailNotConfirmed,
   authRateLimited,
+
+  // Supabase Auth da fatia 2 (docs/copy.md, 6.8)
+  authWeakPassword,
+  authInvalidCode,
+  authInvalidEmail,
+  authEmailInUse,
+  authSamePassword,
+  authEmailRateLimited,
+
+  // Google, só do app (docs/copy.md, 6.8)
+  authGoogleFailed,
+
+  // Banco e Storage (docs/copy.md, 6.8)
+  pixKeyInUse,
+  photoTooLarge,
+  photoInvalidType,
 }
 
 /// Único tipo de exceção que sai da camada `data`.

@@ -15,6 +15,16 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.authInvalidCredentials => l10n.errorAuthInvalidCredentials,
     ErrorCode.authEmailNotConfirmed => l10n.errorAuthEmailNotConfirmed,
     ErrorCode.authRateLimited => l10n.errorAuthRateLimited,
+    ErrorCode.authWeakPassword => l10n.errorAuthWeakPassword,
+    ErrorCode.authInvalidCode => l10n.errorAuthInvalidCode,
+    ErrorCode.authInvalidEmail => l10n.errorAuthInvalidEmail,
+    ErrorCode.authEmailInUse => l10n.errorAuthEmailInUse,
+    ErrorCode.authSamePassword => l10n.errorAuthSamePassword,
+    ErrorCode.authEmailRateLimited => l10n.errorAuthEmailRateLimited,
+    ErrorCode.authGoogleFailed => l10n.errorAuthGoogleFailed,
+    ErrorCode.pixKeyInUse => l10n.errorPixKeyInUse,
+    ErrorCode.photoTooLarge => l10n.errorPhotoTooLarge,
+    ErrorCode.photoInvalidType => l10n.errorPhotoInvalidType,
   };
 }
 

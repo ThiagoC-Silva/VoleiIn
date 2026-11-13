@@ -33,19 +33,22 @@ void main() {
     repository = AuthRepository(gotrue, google);
   });
 
-  test('E12: seletor do Google fechado não é erro e não chama o servidor', () async {
-    when(() => google.idToken()).thenAnswer((_) async => null);
+  test(
+    'E12: seletor do Google fechado não é erro e não chama o servidor',
+    () async {
+      when(() => google.idToken()).thenAnswer((_) async => null);
 
-    final signedIn = await repository.signInWithGoogle();
+      final signedIn = await repository.signInWithGoogle();
 
-    expect(signedIn, isFalse);
-    verifyNever(
-      () => gotrue.signInWithIdToken(
-        provider: any(named: 'provider'),
-        idToken: any(named: 'idToken'),
-      ),
-    );
-  });
+      expect(signedIn, isFalse);
+      verifyNever(
+        () => gotrue.signInWithIdToken(
+          provider: any(named: 'provider'),
+          idToken: any(named: 'idToken'),
+        ),
+      );
+    },
+  );
 
   test('Google concluído troca o ID token por sessão', () async {
     when(() => google.idToken()).thenAnswer((_) async => 'id-token');
@@ -68,9 +71,8 @@ void main() {
   });
 
   test('falha do Google vira authGoogleFailed', () async {
-    when(
-      () => google.idToken(),
-    ).thenThrow(const AppException(ErrorCode.authGoogleFailed));
+    when(() => google.idToken())
+        .thenThrow(const AppException(ErrorCode.authGoogleFailed));
 
     await expectLater(
       repository.signInWithGoogle(),
@@ -97,9 +99,8 @@ void main() {
 
     test('confere o código e grava de novo a senha digitada', () async {
       mockVerify();
-      when(
-        () => gotrue.updateUser(any()),
-      ).thenAnswer((_) async => FakeUserResponse());
+      when(() => gotrue.updateUser(any()))
+          .thenAnswer((_) async => FakeUserResponse());
 
       await repository.confirmSignup(
         email: 'carla@exemplo.com',
@@ -127,9 +128,9 @@ void main() {
 
     test('a senha já ser a da conta (same_password) não é erro', () async {
       mockVerify();
-      when(() => gotrue.updateUser(any())).thenThrow(
-        const AuthException('same password', code: 'same_password'),
-      );
+      when(
+        () => gotrue.updateUser(any()),
+      ).thenThrow(const AuthException('same password', code: 'same_password'));
 
       await expectLater(
         repository.confirmSignup(

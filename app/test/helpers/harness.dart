@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,10 +45,10 @@ class TestHarness {
     registerFallbackValue(PhotoSource.gallery);
     registerFallbackValue(<TermsVersion>[]);
     registerFallbackValue(PixKeyType.cpf);
+    registerFallbackValue(Uint8List(0));
 
-    when(
-      () => auth.onAuthStateChange,
-    ).thenAnswer((_) => const Stream<AuthState>.empty());
+    when(() => auth.onAuthStateChange)
+        .thenAnswer((_) => const Stream<AuthState>.empty());
     when(() => auth.signOut()).thenAnswer((_) async {});
     signedOut();
     termsAccepted();
@@ -71,8 +73,9 @@ class TestHarness {
 
   GoRouter get router => container.read(routerProvider);
 
-  /// Caminho da tela que está na frente.
-  String get location => router.routerDelegate.currentConfiguration.uri.path;
+  /// Caminho da tela que está na frente. O `currentConfiguration.uri` não
+  /// muda no `push` (go_router 18): o `state` é o da rota do topo.
+  String get location => router.state.uri.path;
 
   void signedOut() {
     when(() => auth.hasSession).thenReturn(false);

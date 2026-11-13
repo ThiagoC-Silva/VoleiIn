@@ -1,22 +1,18 @@
 {
   "@@locale": "pt",
-
   "appTitle": "VoleiIn",
   "@appTitle": {
     "description": "Nome do app no MaterialApp e no espaço reservado do logo"
   },
-
   "navGames": "Jogos",
   "navGroups": "Grupos",
   "navCharges": "Cobranças",
   "navProfile": "Perfil",
-
   "placeholderTitle": "Em construção",
   "@placeholderTitle": {
     "description": "Provisório: sai quando a aba ganha a tela real"
   },
   "placeholderBody": "Esta parte do app chega nas próximas versões.",
-
   "authLoginSubtitle": "Entre para ver seus jogos.",
   "authEmailLabel": "E-mail",
   "authPasswordLabel": "Senha",
@@ -26,15 +22,156 @@
   "authEmailRequired": "Informe o seu e-mail.",
   "authPasswordRequired": "Informe a sua senha.",
   "authLogout": "Sair",
-
   "commonTryAgain": "Tentar de novo",
-
   "errorNotAuthenticated": "Entre na sua conta para continuar.",
   "errorNotFound": "Não encontramos o que você procura.",
   "errorInvalidInput": "Confira os dados informados.",
   "errorInternalError": "Algo deu errado. Tente de novo.",
   "errorNoConnection": "Sem conexão com a internet. Confira a sua rede e tente de novo.",
   "errorAuthInvalidCredentials": "E-mail ou senha incorretos.",
-  "errorAuthEmailNotConfirmed": "Confirme o seu e-mail antes de entrar. O link está na sua caixa de entrada.",
-  "errorAuthRateLimited": "Muitas tentativas. Espere alguns minutos e tente de novo."
+  "errorAuthEmailNotConfirmed": "Confirme o seu e-mail antes de entrar.",
+  "errorAuthRateLimited": "Muitas tentativas. Espere alguns minutos e tente de novo.",
+  "authForgotPassword": "Esqueci minha senha",
+  "authOr": "ou",
+  "authContinueWithGoogle": "Continuar com Google",
+  "authNoAccount": "Não tem conta?",
+  "authCreateAccount": "Criar conta",
+  "authConfirmAction": "Confirmar",
+  "authSignupSubtitle": "Crie sua conta para entrar nas listas dos seus grupos.",
+  "authNameLabel": "Nome",
+  "authPasswordHint": "Pelo menos 8 caracteres",
+  "authCreateAccountButton": "Criar conta",
+  "authHasAccount": "Já tem conta?",
+  "authGoToLogin": "Entrar",
+  "authNameRequired": "Informe o seu nome.",
+  "authNameTooLong": "O nome pode ter até 80 caracteres.",
+  "authPasswordTooShort": "A senha precisa ter pelo menos 8 caracteres.",
+  "authCodeLabel": "Código",
+  "authCodeSent": "Enviamos um código de 6 dígitos para {email}.",
+  "@authCodeSent": {
+    "description": "O e-mail aparece em negrito",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authResendCode": "Reenviar código",
+  "authResendCodeIn": "Reenviar código em {seconds} s",
+  "@authResendCodeIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authCodeResent": "Enviamos um novo código.",
+  "authConfirmEmailTitle": "Confirme o seu e‑mail",
+  "@authConfirmEmailTitle": {
+    "description": "Hífen que não quebra (U+2011), para o título não partir em \"e-\" / \"mail\""
+  },
+  "authConfirmButton": "Confirmar",
+  "authConfirmEmailHelp": "Não chegou? Confira o spam. Se este e-mail já tem conta, entre ou recupere a senha.",
+  "authUseAnotherEmail": "Usar outro e-mail",
+  "authForgotTitle": "Recuperar senha",
+  "authForgotSubtitle": "Informe o e-mail da sua conta. Vamos enviar um código para criar uma senha nova.",
+  "authSendCode": "Enviar código",
+  "authNewPasswordLabel": "Nova senha",
+  "authSaveNewPassword": "Salvar nova senha",
+  "authPasswordChanged": "Senha alterada.",
+  "termsTitle": "Antes de continuar",
+  "termsSubtitleFirst": "Para usar o VoleiIn, leia e aceite os documentos abaixo.",
+  "termsSubtitleUpdated": "Atualizamos os documentos abaixo. Leia e aceite para continuar.",
+  "termsVersion": "Versão {version}",
+  "@termsVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "termsCheckbox": "Li e aceito os Termos de Uso e a Política de Privacidade",
+  "termsAcceptButton": "Aceitar e continuar",
+  "termsDocumentTermsOfUse": "Termos de Uso",
+  "termsDocumentPrivacyPolicy": "Política de Privacidade",
+  "termsPlaceholderBody": "O texto definitivo deste documento chega antes do lançamento do app.",
+  "@termsPlaceholderBody": {
+    "description": "Provisório: sai quando os textos jurídicos entrarem (plan-docs.md, seção 6.1)"
+  },
+  "profileEdit": "Editar perfil",
+  "profileEditSubtitle": "Nome, apelido, foto e telefone",
+  "profilePix": "Chave Pix",
+  "profilePixNone": "Não cadastrada",
+  "profilePixSummary": "{type} · {key}",
+  "@profilePixSummary": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "profileChangeEmail": "Trocar e-mail",
+  "profileChangePassword": "Trocar senha",
+  "profileChangePhoto": "Trocar foto",
+  "profilePhotoGallery": "Escolher da galeria",
+  "profilePhotoCamera": "Tirar foto",
+  "profilePhotoRemove": "Remover foto",
+  "profileNicknameLabel": "Apelido",
+  "profileNicknameHint": "Aparece no lugar do nome nas listas",
+  "profileNicknameTooLong": "O apelido pode ter até 30 caracteres.",
+  "profilePhoneLabel": "Telefone",
+  "profilePhoneInvalid": "Informe o DDD e o número, com 10 ou 11 dígitos.",
+  "profilePhoneVisible": "Mostrar meu telefone",
+  "profilePhoneVisibleHint": "Quem estiver nos seus grupos e jogos poderá ver",
+  "commonSave": "Salvar",
+  "profileSaved": "Perfil salvo.",
+  "pixTypeLabel": "Tipo da chave",
+  "pixTypeCpf": "CPF",
+  "pixTypeCnpj": "CNPJ",
+  "pixTypeEmail": "E-mail",
+  "pixTypePhone": "Telefone",
+  "pixTypeRandom": "Aleatória",
+  "pixKeyLabel": "Chave",
+  "pixInvalidCpf": "CPF inválido. Confira os números.",
+  "pixInvalidCnpj": "CNPJ inválido. Confira os números.",
+  "pixInvalidEmail": "E-mail inválido.",
+  "pixInvalidPhone": "Informe o DDD e o número, com 10 ou 11 dígitos.",
+  "pixInvalidRandom": "Chave aleatória inválida. Copie e cole a chave do seu banco.",
+  "pixSaved": "Chave Pix salva.",
+  "pixRemove": "Remover chave",
+  "pixRemoveTitle": "Remover a chave Pix?",
+  "pixRemoveBody": "Sem chave Pix, você não pode ser recebedor de jogos.",
+  "pixRemoveConfirm": "Remover",
+  "commonBack": "Voltar",
+  "@commonBack": {
+    "description": "Botão de contorno das confirmações e rótulo do botão de voltar da barra superior"
+  },
+  "emailCurrent": "E-mail atual: {email}",
+  "@emailCurrent": {
+    "description": "O e-mail aparece em negrito",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailNewLabel": "Novo e-mail",
+  "emailKeepsWorking": "Até você digitar o código, o e-mail atual continua valendo.",
+  "emailSameAsCurrent": "Este já é o seu e-mail.",
+  "emailChanged": "E-mail alterado.",
+  "passwordCurrentLabel": "Senha atual",
+  "passwordCurrentWrong": "Senha atual incorreta.",
+  "errorAuthWeakPassword": "A senha precisa ter pelo menos 8 caracteres.",
+  "errorAuthInvalidCode": "Código incorreto ou vencido. Confira ou peça um novo.",
+  "errorAuthInvalidEmail": "Confira o e-mail informado.",
+  "errorAuthEmailInUse": "Este e-mail já é usado por outra conta.",
+  "errorAuthSamePassword": "A nova senha precisa ser diferente da atual.",
+  "errorAuthEmailRateLimited": "Muitos e-mails enviados. Espere alguns minutos e tente de novo.",
+  "errorAuthGoogleFailed": "Não foi possível entrar com o Google. Tente de novo.",
+  "errorPixKeyInUse": "Você pode trocar a chave, mas não removê-la enquanto tiver jogos em aberto ou valores a receber.",
+  "errorPhotoTooLarge": "A foto passa de 2 MB. Escolha outra.",
+  "errorPhotoInvalidType": "Use uma foto JPEG, PNG ou WebP."
 }

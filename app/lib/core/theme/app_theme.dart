@@ -43,6 +43,7 @@ class VoleiColors extends ThemeExtension<VoleiColors> {
     required this.info,
     required this.waiting,
     required this.neutral,
+    required this.avatarPastels,
   });
 
   final Color game,
@@ -54,6 +55,9 @@ class VoleiColors extends ThemeExtension<VoleiColors> {
       primaryPressed,
       destructive;
   final BadgeTone ok, warn, bad, info, waiting, neutral;
+
+  /// Fundos do avatar sem foto (design-system.md, 3.4), escolhidos pelo `id`.
+  final List<Color> avatarPastels;
 
   static const dark = VoleiColors(
     game: Color(0xFFFFE14F),
@@ -94,6 +98,14 @@ class VoleiColors extends ThemeExtension<VoleiColors> {
       text: _onSurfaceVariant,
       dot: _onSurfaceVariant,
     ),
+    avatarPastels: [
+      Color(0xFFFFB4A2),
+      Color(0xFF9FD8F5),
+      Color(0xFFC9B8FF),
+      Color(0xFF9EE6CF),
+      Color(0xFFFFD27A),
+      Color(0xFFF7A8D0),
+    ],
   );
 
   static VoleiColors of(BuildContext context) =>
