@@ -97,16 +97,40 @@ class LabeledField extends StatelessWidget {
           onFieldSubmitted: onFieldSubmitted,
           obscureText: obscureText,
           // Erro com ícone, e não só com a cor (design-system.md, 7.2).
-          errorBuilder: (context, errorText) =>
-              FieldErrorText(errorText, padding: EdgeInsets.zero),
+          errorBuilder: (context, errorText) => _AtFieldEdge(
+            child: FieldErrorText(errorText, padding: EdgeInsets.zero),
+          ),
           decoration: InputDecoration(
-            helperText: helperText,
-            helperMaxLines: 3,
+            // A ajuda e o erro começam na borda do campo, como o rótulo
+            // acima dele (PNG da fatia 2), e não recuados como o texto.
+            helper: helperText == null
+                ? null
+                : _AtFieldEdge(
+                    child: Text(
+                      helperText!,
+                      maxLines: 3,
+                      style:
+                          theme.inputDecorationTheme.helperStyle ??
+                          theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
             errorMaxLines: 3,
-            prefixText: prefixText,
-            prefixStyle: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            // Prefixo fixo, visível mesmo com o campo vazio (telas.md, 5.8).
+            // O `prefixText` do Flutter só aparece com foco ou com texto.
+            prefixIcon: prefixText == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 16),
+                    child: Text(
+                      prefixText!,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+            prefixIconConstraints: const BoxConstraints(),
             suffixIcon: suffixIcon,
           ),
         ),
@@ -223,3 +247,27 @@ class _PasswordFieldState extends State<PasswordField> {
 /// servidor. O `forceErrorText` só sai do campo no quadro seguinte, e um
 /// `validate()` antes disso ainda veria o erro antigo e barraria o envio.
 Future<void> afterServerErrorCleared() => WidgetsBinding.instance.endOfFrame;
+
+/// Desloca a ajuda e o erro do campo para a borda dele. O Flutter os põe em
+/// `contentPadding.start` mais o `inputGap` (4) do `InputDecorator`.
+class _AtFieldEdge extends StatelessWidget {
+  const _AtFieldEdge({required this.child});
+
+  static const _inputGap = 4.0;
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final padding =
+        Theme.of(context).inputDecorationTheme.contentPadding
+            ?.resolve(Directionality.of(context)) ??
+        EdgeInsets.zero;
+    final shift = padding.left + _inputGap;
+    final ltr = Directionality.of(context) == TextDirection.ltr;
+    return Transform.translate(
+      offset: Offset(ltr ? -shift : shift, 0),
+      child: child,
+    );
+  }
+}

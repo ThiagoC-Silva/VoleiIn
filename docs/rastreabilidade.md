@@ -9,13 +9,13 @@ Liga cada requisito funcional (RF) às regras (RN), à fatia, ao banco, às tela
 
 A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos por `supabase/tests/database/` e pelas seções 1 a 8 de `testes-referencia.md`.
 
-**Fatia 2, em 13/11/2026:** RFs com testes automáticos verdes e L06 a L11 nas APIs 29 e 36. Falta o M01 e o M02 (Google, no local) e o M03 e o M04 (Resend e fluxos, na produção) para passar a *Concluído*.
+**Fatia 2, em 13/11/2026:** RFs com testes automáticos verdes e L06 a L11 nas APIs 29 e 36. M01 e M02 conferidos no celular, contra o Supabase local, em 13/11/2026. Falta o M03 e o M04 (Resend e fluxos, na produção) para passar a *Concluído*.
 
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
 | RF01 | 2 | — | Auth; `profiles`, `profile_private` (`on_auth_user_confirmed`) | `/signup` | S01, S02, L08 | Feito no local |
 | RF02 | 2 | — | Auth, código de 6 dígitos (ADR 0017, ADR 0018) | `/confirm-email` | S03 a S06, L08 | Feito no local |
-| RF03 | 2 | — | Auth, Google | `/login` | S07, M01 | Falta M01 |
+| RF03 | 2 | — | Auth, Google | `/login` | S07, M01 | Feito no local |
 | RF04 | 2 | — | Auth | `/login` | L01 a L03, L06 | Feito no local |
 | RF05 | 2 | — | Auth (sessão persistida) | Roteador | S10, L06 | Feito no local |
 | RF06 | 2 | — | Auth, código de recuperação | `/forgot-password` | S08, L09 | Feito no local |
@@ -120,4 +120,4 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF105 | 2 | — | `terms_acceptances`; `current_terms_versions()` | `/terms`, `/terms/:document` | P10 a P14, S09, S10, L08 | Feito no local |
 | RF106 | 2 | — | Auth, código no endereço novo | `/profile/email` | S11, S14, L11 | Feito no local |
 | RF107 | 2 | — | Auth | `/profile/password` | S11, S15 | Feito no local |
-| RF108 | 2 | — | Auth, vinculação de identidades | `/login`, `/profile` | U07, S11, M02 | Falta M02 |
+| RF108 | 2 | — | Auth, vinculação de identidades | `/login`, `/profile` | U07, S11, M02 | Feito no local |

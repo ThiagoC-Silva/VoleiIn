@@ -20,7 +20,8 @@ class NavDestinationData {
 /// Navegação inferior (docs/ui/design-system.md, 7.6).
 ///
 /// Altura mínima 76, fundo `surface`, cantos de cima 28. O item ativo é um
-/// círculo de 56 em `primary`, com o ícone preenchido. A altura é mínima, não
+/// círculo de 56 em `primary`, com o ícone preenchido, que sobe acima da barra
+/// com um anel de 5 na cor do fundo. A altura é mínima, não
 /// fixa, para crescer com a fonte do sistema (RNF05).
 class VoleiBottomNav extends StatelessWidget {
   const VoleiBottomNav({
@@ -111,17 +112,16 @@ class _NavItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
+              SizedBox(
                 width: 56,
                 height: 56,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? theme.colorScheme.primary
-                      : Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
-                child: icon,
+                child: selected
+                    ? _RaisedCircle(
+                        color: theme.colorScheme.primary,
+                        ring: theme.scaffoldBackgroundColor,
+                        child: icon,
+                      )
+                    : Center(child: icon),
               ),
               const SizedBox(height: 4),
               Text(
@@ -135,6 +135,46 @@ class _NavItem extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Círculo do item ativo (design-system.md, 7.6): 56 em `primary`, com um anel
+/// de 5 na cor do fundo, elevado acima da barra. Sobe só na pintura: a altura
+/// da barra e a área de toque continuam as mesmas.
+class _RaisedCircle extends StatelessWidget {
+  const _RaisedCircle({
+    required this.color,
+    required this.ring,
+    required this.child,
+  });
+
+  static const _ringWidth = 5.0;
+  static const _lift = 18.0;
+
+  final Color color;
+  final Color ring;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return OverflowBox(
+      maxWidth: 56 + 2 * _ringWidth,
+      maxHeight: 56 + 2 * _ringWidth,
+      child: Transform.translate(
+        offset: const Offset(0, -_lift),
+        child: Container(
+          width: 56 + 2 * _ringWidth,
+          height: 56 + 2 * _ringWidth,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: ring, width: _ringWidth),
+          ),
+          child: child,
         ),
       ),
     );

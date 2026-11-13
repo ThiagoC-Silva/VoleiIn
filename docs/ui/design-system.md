@@ -1,6 +1,7 @@
 # Design System
 
 > Decisões de 09/11/2026. Base: `requisitos-nao-funcionais.md` (RNF05, RNF06), `modelo-dados.md` (enums) e o visual do projeto anterior (VoleiIn v0), do qual vieram as cores, as fontes e os componentes. As telas do v0 não foram trazidas: cada tela é descrita em `docs/ui/telas.md`, fatia a fatia.
+> Conferido em 13/11/2026 contra o PDF oficial do design system ("VoleiIn System Design V2", a referência máxima de aparência): cores, blocos, selos, tipografia, raios, espaçamento, ícones e componentes batem. Ficam de fora, por decisão do responsável, o modo claro (o app é só escuro) e a cor escolhida do grupo (o grupo usa o pastel pelo `id`, seção 3.4). Os rótulos de status seguem o `modelo-dados.md`, e não os do v0.
 > Este documento decide **aparência**. Não decide regra, texto final nem quais telas existem. Regra vem de `regras-negocio.md`; texto, do catálogo de textos (`plan-docs.md`, seção 4.3); telas, de `docs/ui/telas.md`.
 
 ## 1. Como usar
@@ -124,7 +125,7 @@ Três famílias, cada uma com um papel:
 
 - **Montserrat 700 e 800:** títulos de tela, nomes de jogo e de grupo, títulos de seção, iniciais de avatar. Sempre em caixa normal.
 - **Bebas Neue:** **só números** (valores, horários, vagas, posição na espera). Nunca em frase. Espaçamento entre letras +0,3.
-- **Roboto 400, 500 e 700:** texto, listas, campos e botões. É a fonte do sistema Android.
+- **Roboto 400, 500 e 700:** texto, listas, campos e botões. É a fonte do sistema Android. O título de uma linha de lista ("Editar perfil", "Termos de Uso", o nome de uma pessoa) é Roboto 700 16.
 
 | Token | Fonte | Peso / tamanho / altura | Uso |
 |-------|-------|-------------------------|-----|
@@ -135,7 +136,7 @@ Três famílias, cada uma com um papel:
 | `title.xl` | Montserrat | 800 / 28 | Título de tela-raiz |
 | `title.lg` | Montserrat | 800 / 22 | Título de sheet, nome do grupo |
 | `title.md` | Montserrat | 700 / 18 | Título de tela interna |
-| `title.sm` | Montserrat | 700 / 15 | Seção, nome em lista |
+| `title.sm` | Montserrat | 700 / 15 | Título de seção, nome de jogo ou de grupo em card |
 | `body.lg` | Roboto | 400 / 16 / 24 | Texto corrido |
 | `body.md` | Roboto | 400 / 14 / 20 | Texto de lista e aviso |
 | `label` | Roboto | 700 / 16 | Botões |
@@ -245,7 +246,7 @@ Três cards de raio 20, cada um com rótulo de 12 e número em `number.md`, logo
 
 ### 7.13 Linha de pessoa ou de valor
 
-Avatar de 44, nome `title.sm`, subtítulo de 12. À direita, o valor em Bebas Neue 22 com o selo embaixo. Altura mínima de 64, com divisor recuado 70.
+Avatar de 44, nome em Roboto 700 16, subtítulo de 12. À direita, o valor em Bebas Neue 22 com o selo embaixo. Altura mínima de 64, com divisor recuado 70.
 
 ### 7.14 Aviso em linha
 

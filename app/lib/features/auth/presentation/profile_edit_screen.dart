@@ -164,6 +164,7 @@ class _EditFormState extends ConsumerState<_EditForm> {
           Center(
             child: VoleiAvatar(
               id: profile.id,
+              isYou: true,
               name: profile.displayName,
               size: 96,
               imageUrl: photoUrl,

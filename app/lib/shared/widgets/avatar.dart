@@ -6,7 +6,7 @@ import '../../core/theme/app_theme.dart';
 
 /// Avatar redondo (design-system.md, 3.4): a foto ou as iniciais em
 /// Montserrat 800 sobre um pastel escolhido pelo `id`, sempre o mesmo para a
-/// mesma pessoa. Sem a foto (falha ao carregar, por exemplo), as iniciais.
+/// mesma pessoa, ou sobre o amarelo quando é a própria pessoa logada. Sem a foto (falha ao carregar, por exemplo), as iniciais.
 class VoleiAvatar extends StatelessWidget {
   const VoleiAvatar({
     required this.id,
@@ -14,6 +14,7 @@ class VoleiAvatar extends StatelessWidget {
     this.size = 44,
     this.imageUrl,
     this.imageBytes,
+    this.isYou = false,
     super.key,
   });
 
@@ -27,9 +28,13 @@ class VoleiAvatar extends StatelessWidget {
   /// Foto escolhida e ainda não salva.
   final Uint8List? imageBytes;
 
+  /// Se é a própria pessoa logada: "você" usa sempre o amarelo
+  /// (design-system.md, 3.4).
+  final bool isYou;
+
   @override
   Widget build(BuildContext context) {
-    final initials = _Initials(id: id, name: name, size: size);
+    final initials = _Initials(id: id, name: name, size: size, isYou: isYou);
     Widget child = initials;
     if (imageBytes != null) {
       child = Image.memory(
@@ -59,17 +64,24 @@ class VoleiAvatar extends StatelessWidget {
 }
 
 class _Initials extends StatelessWidget {
-  const _Initials({required this.id, required this.name, required this.size});
+  const _Initials({
+    required this.id,
+    required this.name,
+    required this.size,
+    required this.isYou,
+  });
 
   final String id;
   final String name;
   final double size;
+  final bool isYou;
 
   @override
   Widget build(BuildContext context) {
     final colors = VoleiColors.of(context);
-    final pastel =
-        colors.avatarPastels[_hash(id) % colors.avatarPastels.length];
+    final pastel = isYou
+        ? Theme.of(context).colorScheme.primary
+        : colors.avatarPastels[_hash(id) % colors.avatarPastels.length];
     return ExcludeSemantics(
       child: Container(
         color: pastel,

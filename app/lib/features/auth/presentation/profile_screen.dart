@@ -80,6 +80,7 @@ class _ProfileView extends ConsumerWidget {
           children: [
             VoleiAvatar(
               id: profile.id,
+              isYou: true,
               name: profile.displayName,
               size: 72,
               imageUrl: photoUrl,
