@@ -65,6 +65,21 @@ begin
 end;
 $fn$;
 
+-- Quantas linhas a escrita alterou, rodando com o papel de quem chama (o RLS
+-- vale). Um update com returning não cabe numa subconsulta escalar.
+create function pg_temp.rows_changed(p_sql text)
+returns bigint
+language plpgsql
+as $fn$
+declare
+  v_count bigint;
+begin
+  execute p_sql;
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$fn$;
+
 select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
 set local role authenticated;
 
@@ -99,12 +114,10 @@ select is(
 
 -- P03. Ana não altera o perfil do Bruno.
 select is(
-  (with changed as (
-     update public.profiles set name = 'Outro nome'
-     where id = '00000000-0000-0000-0000-00000000000b'
-     returning 1
-   )
-   select count(*) from changed),
+  pg_temp.rows_changed(
+    $$ update public.profiles set name = 'Outro nome'
+       where id = '00000000-0000-0000-0000-00000000000b' $$
+  ),
   0::bigint,
   'P03a: update do name do Bruno não altera nenhuma linha'
 );
@@ -158,12 +171,10 @@ where id = '00000000-0000-0000-0000-00000000000a';
 set local role authenticated;
 
 select is(
-  (with changed as (
-     update public.profiles set name = 'Ana de novo'
-     where id = '00000000-0000-0000-0000-00000000000a'
-     returning 1
-   )
-   select count(*) from changed),
+  pg_temp.rows_changed(
+    $$ update public.profiles set name = 'Ana de novo'
+       where id = '00000000-0000-0000-0000-00000000000a' $$
+  ),
   0::bigint,
   'P06: com deleted_at preenchido, o update do próprio name não altera nenhuma linha'
 );
@@ -204,12 +215,10 @@ select is(
   'P08c: o telefone ficou gravado'
 );
 select is(
-  (with changed as (
-     update public.profile_private set phone = '+5586999990000'
-     where user_id = '00000000-0000-0000-0000-00000000000b'
-     returning 1
-   )
-   select count(*) from changed),
+  pg_temp.rows_changed(
+    $$ update public.profile_private set phone = '+5586999990000'
+       where user_id = '00000000-0000-0000-0000-00000000000b' $$
+  ),
   0::bigint,
   'P08d: update do phone do Bruno não altera nenhuma linha'
 );
@@ -344,10 +353,9 @@ select results_eq(
   'P16a: Ana vê só o próprio arquivo'
 );
 select is(
-  (with changed as (
-     update storage.objects set name = name || '.bak' where bucket_id = 'avatars' returning 1
-   )
-   select count(*) from changed),
+  pg_temp.rows_changed(
+    $$ update storage.objects set name = name || '.bak' where bucket_id = 'avatars' $$
+  ),
   0::bigint,
   'P16b: update em storage.objects não altera nenhuma linha (sem política de update)'
 );
@@ -357,10 +365,9 @@ select is(
 set local storage.allow_delete_query = 'true';
 
 select is(
-  (with removed as (
-     delete from storage.objects where bucket_id = 'avatars' returning 1
-   )
-   select count(*) from removed),
+  pg_temp.rows_changed(
+    $$ delete from storage.objects where bucket_id = 'avatars' $$
+  ),
   1::bigint,
   'P16c: o delete apaga só o arquivo da Ana'
 );

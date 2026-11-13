@@ -1,8 +1,9 @@
 -- Seed de desenvolvimento. Roda a cada `supabase db reset`, só no local.
 -- Documento: docs/setup.md, seção 8. Nunca roda na produção.
 --
--- Fatia 1: as quatro contas do login técnico. Cada fatia acrescenta os seus
--- cenários (perfis completos, grupos, jogos, valores, comprovantes...).
+-- Fatia 1: as quatro contas do login técnico. Fatia 2: perfis completos e o
+-- aceite dos termos. Cada fatia acrescenta os seus cenários (grupos, jogos,
+-- valores, comprovantes...).
 --
 -- IDs fixos e legíveis, para testes e anotações poderem citá-los:
 --   Ana   00000000-0000-0000-0000-00000000000a  recebedora, admin do grupo
@@ -56,10 +57,43 @@ select
 from auth.users u
 where u.email like '%@voleiin.test';
 
--- Termos e Privacidade aceitos na versão vigente (docs/setup.md, seção 8).
--- A versão vigente passa a vir da configuração do servidor na fatia 2 (RF105):
--- ao implementá-la, confira se este valor continua igual ao da configuração.
+-- Perfis completos (fatia 2): apelido, telefone visível e oculto, chave Pix de
+-- vários tipos, e o Diego com o perfil mínimo, sem telefone nem chave.
+update public.profiles p
+set nickname = v.nickname
+from (
+  values
+    ('00000000-0000-0000-0000-00000000000a'::uuid, null::text),
+    ('00000000-0000-0000-0000-00000000000b'::uuid, 'Brunão'),
+    ('00000000-0000-0000-0000-00000000000c'::uuid, 'Carlinha'),
+    ('00000000-0000-0000-0000-00000000000d'::uuid, null::text)
+) as v (id, nickname)
+where p.id = v.id;
+
+update public.profile_private pp
+set phone = v.phone,
+    phone_visible = v.phone_visible,
+    pix_key_type = v.pix_key_type,
+    pix_key = v.pix_key
+from (
+  values
+    -- Ana, recebedora: telefone visível e chave CPF.
+    ('00000000-0000-0000-0000-00000000000a'::uuid, '+5586999991234', true,
+     'cpf'::public.pix_key_type, '52998224725'),
+    -- Bruno: telefone oculto e chave e-mail.
+    ('00000000-0000-0000-0000-00000000000b'::uuid, '+5586988887777', false,
+     'email'::public.pix_key_type, 'bruno@exemplo.com'),
+    -- Carla: sem telefone, chave aleatória.
+    ('00000000-0000-0000-0000-00000000000c'::uuid, null, false,
+     'random'::public.pix_key_type, '123e4567-e89b-12d3-a456-426614174000'),
+    -- Diego: nada além do nome.
+    ('00000000-0000-0000-0000-00000000000d'::uuid, null, false, null, null)
+) as v (user_id, phone, phone_visible, pix_key_type, pix_key)
+where pp.user_id = v.user_id;
+
+-- Termos e Privacidade aceitos na versão vigente (docs/setup.md, seção 8), lida
+-- da própria função: quando uma migração trocar a versão, o seed acompanha.
 insert into public.terms_acceptances (user_id, document, version)
-select p.id, d.document, '1.0'
+select p.id, v.document, v.version
 from public.profiles p
-cross join (values ('terms_of_use'::public.legal_document), ('privacy_policy'::public.legal_document)) as d (document);
+cross join public.current_terms_versions() as v;

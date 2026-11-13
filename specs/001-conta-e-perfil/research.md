@@ -31,6 +31,7 @@ Decisões técnicas que os documentos deixam para a implementação. Regra de pr
 - **Decision:** depois de confirmar o código do cadastro, o app grava de novo a senha digitada (`updateUser`), ignorando `same_password`.
 - **Rationale:** quando alguém repete o cadastro de um e-mail ainda não confirmado, o Supabase Auth reenvia o código, mas **mantém a senha do primeiro pedido**. Quem cadastrasse antes o e-mail de outra pessoa ficaria sabendo a senha da conta que ela confirmar. O v0 já tratava assim. A conferência do comportamento no Supabase local é a primeira tarefa da fase de base (T009).
 - **Documento:** `docs/ui/telas.md` (5.3) não cita esse passo. A correção entra no mesmo PR e é sinalizada ao responsável.
+- **Conferido em 13/11/2026 (T017)**, no Supabase local (CLI 3.0.0-next.20): dois `signup` seguidos do mesmo e-mail não confirmado, com `primeira-123` e `segunda-456`, devolvem o mesmo `id` e reenviam o código. Depois do `verify` (`type = signup`), o login aceita `primeira-123` e recusa `segunda-456` (`invalid_credentials`). O comportamento se confirma, e o passo do `updateUser` fica.
 
 ## R6. Dígitos de CPF e CNPJ na constraint
 
