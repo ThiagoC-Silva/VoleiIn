@@ -242,7 +242,7 @@ Jogos com horário relativo usam `now()` (por exemplo, `now() + interval '2 days
 
 ## 9. Produção
 
-**O agente nunca executa nada desta seção.** Tudo aqui é feito pelo responsável, à mão ou pelo pipeline (`trabalho-com-agente.md`, seção 6).
+**O agente pode executar esta seção** (decisão de 13/11/2026, `trabalho-com-agente.md`, seções 7 e 8). O que pede senha ou login interativo fica com o responsável, com `! <comando>`. Antes de cada `supabase db push`, o agente roda o ensaio da seção 9.2.
 
 ### 9.1 Acesso e pausa
 
@@ -270,7 +270,7 @@ Não há backup (RNF09) nem banco remoto de teste. Por isso, **depois do lançam
    ```
    O `psql` roda dentro do container do banco, e não precisa estar instalado na máquina. O dump começa com `session_replication_role = replica`, então as *triggers* (como a que cria o perfil a partir de `auth.users`) não disparam na carga.
 3. **Aplicar a migração nova** no local (`supabase migration up`) e conferir: a migração termina sem erro, `supabase test db` passa e as contagens das tabelas afetadas batem com o esperado.
-4. **Publicar** pelo workflow de deploy (`trabalho-com-agente.md`, seção 6), que pede a confirmação de que o ensaio foi feito. Esse workflow ainda não existe (decisão de 11/11/2026: ele entra numa fatia próxima do lançamento). Até lá, o responsável publica à mão, na raiz do repositório:
+4. **Publicar** pelo workflow de deploy (`trabalho-com-agente.md`, seção 6), que pede a confirmação de que o ensaio foi feito. Esse workflow ainda não existe (decisão de 11/11/2026: ele entra numa fatia próxima do lançamento). Até lá, a publicação é à mão, pelo agente ou pelo responsável, na raiz do repositório:
    ```bash
    supabase login                                        # uma vez por máquina
    supabase link --project-ref zmokpmovphikmobynssy      # pede a senha do banco

@@ -7,8 +7,8 @@
 
 | Quem | Faz | Não faz |
 |------|-----|---------|
-| **Responsável** (dono do produto e único desenvolvedor) | Decide regras e escopo, aprova documentos, revisa e faz o *merge* dos PRs, confere os fluxos no emulador, mexe na produção e nos segredos | — |
-| **Agente** | Escreve documentos da fatia quando pedido, especifica com o Spec Kit, escreve testes e código, abre PRs | Decide regra, faz *merge*, mexe na produção ou em segredos (seção 7) |
+| **Responsável** (dono do produto e único desenvolvedor) | Decide regras e escopo, aprova documentos, revisa os PRs, confere os fluxos no emulador, faz os testes com contas reais (Google, e-mail) | — |
+| **Agente** | Escreve documentos da fatia quando pedido, especifica com o Spec Kit, escreve testes e código, abre PRs, faz o *merge* com o CI verde, aplica migrações e mexe em configuração e segredos na produção (decisão de 13/11/2026) | Decide regra (seção 7) |
 
 ## 2. Começo de sessão
 
@@ -83,10 +83,10 @@ Checklist do PR. O revisor confere cada item, e o agente marca no texto do PR.
 
 ### 6.1 Branches e commits
 
-- `main` é a linha principal. O agente nunca faz *commit* nem *push* direto em `main`.
+- `main` é a linha principal. O fluxo normal é por *branch* e PR, para o CI rodar antes de a mudança chegar à `main`. O agente pode fazer *push* em `main` quando for preciso, mas nunca `push --force`.
 - Um *branch* por tarefa: `fatia-<n>/<assunto>` (por exemplo, `fatia-4/join-game`). Documentação da fatia: `fatia-<n>/docs`.
 - *Commits* pequenos, em pt-BR, no imperativo e com o assunto em uma linha ("Cria a função join_game"). *Commits* do agente levam a linha `Co-Authored-By` indicada pela ferramenta.
-- O agente faz *commit* e abre PR quando pedido. O *merge* é sempre do responsável, com o CI verde.
+- O agente faz *commit*, abre PR e faz o *merge*, sempre com o CI verde. Antes de começar, o agente roda `git fetch` e compara com o remoto: o responsável trabalha em mais de uma máquina.
 
 ### 6.2 Descrição do PR
 
@@ -110,14 +110,14 @@ Checklist do PR. O revisor confere cada item, e o agente marca no texto do PR.
 | **Deploy** (disparo manual, `workflow_dispatch`) | Migrações (`supabase db push`), Edge Functions e o build assinado do app, na produção |
 
 - **A aprovação manual é o próprio disparo.** O workflow de deploy só roda quando o responsável o dispara no GitHub, informando a versão e confirmando, num campo do formulário, que o ensaio da migração foi feito (`setup.md`, seção 9.2). Esse formato funciona em qualquer plano do GitHub.
-- **O workflow de deploy ainda não existe.** Por decisão de 11/11/2026, ele entra numa fatia próxima do lançamento: o CI de *pull request* já existe desde a fatia 1, e as migrações da produção são aplicadas à mão pelo responsável, com os comandos da seção 9.2 do `setup.md`.
-- Num repositório privado do plano grátis, o GitHub não bloqueia o *merge* com o CI vermelho. A regra "só com CI verde" vale pela revisão do responsável.
+- **O workflow de deploy ainda não existe.** Por decisão de 11/11/2026, ele entra numa fatia próxima do lançamento: o CI de *pull request* já existe desde a fatia 1, e as migrações da produção são aplicadas à mão, pelo agente ou pelo responsável, com o ensaio e os comandos da seção 9.2 do `setup.md`.
+- Num repositório privado do plano grátis, o GitHub não bloqueia o *merge* com o CI vermelho. A regra "só com CI verde" vale pela conferência de quem faz o *merge*: o agente confere `gh pr checks` antes.
 
 ## 7. O que o agente nunca faz
 
-- Aplicar migração, rodar SQL, publicar Edge Function, alterar configuração ou mexer em segredos na **produção**, inclusive pelo MCP do Supabase.
-- Baixar dados da produção (`supabase db dump`). A cópia tem dados pessoais e é feita só pelo responsável.
-- Fazer *merge*, *push* em `main` ou `push --force`.
+- Aplicar migração na produção sem o ensaio de `setup.md`, seção 9.2, ou mudar o schema da produção fora de uma migração versionada no repositório (nem pelo MCP do Supabase).
+- Guardar cópia da produção (`supabase db dump`) no repositório ou em nuvem. Ela tem dados pessoais e fica só em `~/voleiin-dumps` (`setup.md`, 9.2).
+- Fazer *merge* com o CI vermelho, ou `push --force`.
 - Editar uma migração já aplicada na produção (`arquitetura-app.md`, 14.1).
 - Alterar um resultado esperado de `testes-referencia.md`, ou um teste já aprovado, para o código passar.
 - Criar tabela sem RLS, ou mudar política sem teste.
@@ -129,9 +129,9 @@ Checklist do PR. O revisor confere cada item, e o agente marca no texto do PR.
 
 **Sem bloqueio técnico.** Por decisão do responsável (09/11/2026), o projeto não tem `.claude/settings.json` com proibições: o agente trabalha com autonomia durante o desenvolvimento. As regras da seção 7 e do "Nunca faça" do `CLAUDE.md` continuam valendo como regras escritas, e o agente as segue sem precisar de bloqueio.
 
-**MCP do Supabase.** O único projeto remoto é a produção. O agente usa o MCP **só para leitura**: `list_tables`, `list_migrations`, `get_advisors`, `query_logs`, `search_docs` e `generate_typescript_types`. As ferramentas de escrita alcançam a produção e não são usadas.
+**MCP do Supabase.** O único projeto remoto é a produção. O agente pode usar todas as ferramentas, inclusive as de escrita (decisão de 13/11/2026). Mudança de schema continua só por migração versionada no repositório, aplicada com `supabase db push` depois do ensaio: o `apply_migration` do MCP criaria uma migração que o repositório não tem.
 
-**Comandos de produção** (`supabase db push`, `link`, `secrets`, `config push`, `functions deploy`, `db dump`) e o *merge* são executados pelo responsável, no terminal ou pelo pipeline. O agente entrega o comando pronto e explica o que ele faz.
+**Comandos de produção** (`supabase db push`, `link`, `secrets`, `config push`, `functions deploy`, `db dump`) e o *merge* podem ser executados pelo agente (decisão de 13/11/2026). O que pede senha ou login interativo (a senha do banco no `supabase link`, o `supabase login`) o responsável roda com `! <comando>`. Depois de cada mudança na produção, o agente confere com `get_advisors` e registra o que fez no documento afetado.
 
 ## 9. Quando parar e perguntar
 

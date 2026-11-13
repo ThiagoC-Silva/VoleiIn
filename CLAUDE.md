@@ -2,7 +2,7 @@
 
 App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de presença, calcula o rateio e as multas ao concluir o jogo e acompanha os pagamentos por Pix entre os participantes, com leitura automática de comprovantes. O app não processa pagamentos.
 
-**Estado atual:** fatia 1 concluída e na `main` (12/11/2026). **Fatia 2 (Conta e perfil) com o código pronto** no *branch* `fatia-2/conta-e-perfil` (13/11/2026): migrações, RLS, seed, telas e testes, com `dart analyze`, `flutter test`, `supabase test db` e `deno test` verdes. L06 a L11 verdes no emulador, nas APIs 29 e 36, acessibilidade (T049) e matriz de rastreabilidade feitas (13/11/2026). Falta, com o responsável: conferir cada tela contra o PNG (T051), M01 e M02 (Google), as migrações na produção (`setup.md`, 9.2), M03 e M04 e o merge. Depois, marcar a T053 e os RFs como concluídos.
+**Estado atual:** fatia 1 concluída e na `main` (12/11/2026). **Fatia 2 (Conta e perfil) com o código pronto** no *branch* `fatia-2/conta-e-perfil` (13/11/2026): migrações, RLS, seed, telas e testes, com `dart analyze`, `flutter test`, `supabase test db` e `deno test` verdes. L06 a L11 verdes no emulador, nas APIs 29 e 36, acessibilidade (T049) e matriz de rastreabilidade feitas (13/11/2026). PR #3 com o CI verde. Falta: o *merge* e as migrações na produção (`setup.md`, 9.2), que o agente pode fazer; e, com o responsável, conferir cada tela contra o PNG (T051) e os testes com contas reais, M01 a M04 (Google e Resend). Depois, marcar a T053 e os RFs como concluídos.
 
 ## Antes de implementar
 
@@ -96,7 +96,7 @@ Primeira execução, variáveis e problemas comuns: `docs/setup.md`. Há dois am
 - **Confiar no relógio do aparelho.** Prazos e início usam o relógio do servidor (RN02).
 - **Colocar segredo no app ou no repositório.** No app, só identificadores públicos: a URL e a chave pública do Supabase, o ID do cliente web do Google e a configuração do Firebase. O resto fica nos *secrets* do GitHub e do Supabase (`setup.md`, seção 5).
 - **Criar tabela sem RLS ou alterar política sem teste.** O RLS é o que protege telefone, chave Pix e comprovantes.
-- **Aplicar migração, alterar dados ou mexer em segredos em produção.** Produção só muda pelo pipeline, com aprovação manual. O projeto não tem backup do banco (`requisitos-nao-funcionais.md`, seção 8), então um erro pode não ter volta.
+- **Aplicar migração na produção sem o ensaio.** O agente pode mexer na produção (decisão de 13/11/2026), mas o projeto não tem backup do banco (`requisitos-nao-funcionais.md`, seção 8): antes de cada `supabase db push`, o agente roda o ensaio de `setup.md`, seção 9.2.
 - **Mudar um resultado esperado de `testes-referencia.md` para o teste passar.** Ele vem da regra. Se a regra parecer errada, pare e pergunte.
 - **Implementar algo fora do escopo da fatia atual.**
 
