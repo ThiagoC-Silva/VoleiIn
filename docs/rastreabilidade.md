@@ -9,22 +9,22 @@ Liga cada requisito funcional (RF) às regras (RN), à fatia, ao banco, às tela
 
 A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos por `supabase/tests/database/` e pelas seções 1 a 8 de `testes-referencia.md`.
 
-**Fatia 2, em 13/11/2026:** RFs com testes automáticos verdes e L06 a L11 nas APIs 29 e 36. Falta o M01 e o M02 (Google, no local) e o M03 e o M04 (Resend e fluxos, na produção) para passar a *Concluído*.
+**Fatia 2, em 13/11/2026:** RFs com testes automáticos verdes e L06 a L11 nas APIs 29 e 36. M01 e M02 conferidos no celular contra o Supabase local, e M03 e M04 na produção, em 13/11/2026. Os 16 RFs da fatia estão concluídos.
 
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
-| RF01 | 2 | — | Auth; `profiles`, `profile_private` (`on_auth_user_confirmed`) | `/signup` | S01, S02, L08 | Feito no local |
-| RF02 | 2 | — | Auth, código de 6 dígitos (ADR 0017, ADR 0018) | `/confirm-email` | S03 a S06, L08 | Feito no local |
-| RF03 | 2 | — | Auth, Google | `/login` | S07, M01 | Falta M01 |
-| RF04 | 2 | — | Auth | `/login` | L01 a L03, L06 | Feito no local |
-| RF05 | 2 | — | Auth (sessão persistida) | Roteador | S10, L06 | Feito no local |
-| RF06 | 2 | — | Auth, código de recuperação | `/forgot-password` | S08, L09 | Feito no local |
-| RF07 | 2 | — | Auth | `/profile` | L07 | Feito no local |
-| RF08 | 2 | RN100 | `profiles.nickname`, `display_name` | `/profile/edit`, `/profile` | P02, S17, L10 | Feito no local |
-| RF09 | 2 | RN106 | `profiles.photo_path`; Storage `avatars` | `/profile/edit` | P05, P15, P16, A01 a A06, S12 | Feito no local |
-| RF10 | 2 | RN101 | `profile_private.phone`, `phone_visible` | `/profile/edit` | P08, S12, U03, U04, L10 | Feito no local |
-| RF11 | 2 | RN102, RN105 | `profile_private.pix_key_type`, `pix_key`; `private.is_valid_cpf`, `private.is_valid_cnpj` | `/profile/pix` | X01 a X14, U01, U02, U05, U06, S13 | Feito no local |
-| RF12 | 2 | RN105 | `profiles`, `profile_private`; `profile_private_guard_pix_key_removal` | `/profile/edit`, `/profile/pix` | P01 a P09, N01 a N09, S12, S13, L10 | Feito no local |
+| RF01 | 2 | — | Auth; `profiles`, `profile_private` (`on_auth_user_confirmed`) | `/signup` | S01, S02, L08 | Concluído |
+| RF02 | 2 | — | Auth, código de 6 dígitos (ADR 0017, ADR 0018) | `/confirm-email` | S03 a S06, L08 | Concluído |
+| RF03 | 2 | — | Auth, Google | `/login` | S07, M01 | Concluído |
+| RF04 | 2 | — | Auth | `/login` | L01 a L03, L06 | Concluído |
+| RF05 | 2 | — | Auth (sessão persistida) | Roteador | S10, L06 | Concluído |
+| RF06 | 2 | — | Auth, código de recuperação | `/forgot-password` | S08, L09 | Concluído |
+| RF07 | 2 | — | Auth | `/profile` | L07 | Concluído |
+| RF08 | 2 | RN100 | `profiles.nickname`, `display_name` | `/profile/edit`, `/profile` | P02, S17, L10 | Concluído |
+| RF09 | 2 | RN106 | `profiles.photo_path`; Storage `avatars` | `/profile/edit` | P05, P15, P16, A01 a A06, S12 | Concluído |
+| RF10 | 2 | RN101 | `profile_private.phone`, `phone_visible` | `/profile/edit` | P08, S12, U03, U04, L10 | Concluído |
+| RF11 | 2 | RN102, RN105 | `profile_private.pix_key_type`, `pix_key`; `private.is_valid_cpf`, `private.is_valid_cnpj` | `/profile/pix` | X01 a X14, U01, U02, U05, U06, S13 | Concluído |
+| RF12 | 2 | RN105 | `profiles`, `profile_private`; `profile_private_guard_pix_key_removal` | `/profile/edit`, `/profile/pix` | P01 a P09, N01 a N09, S12, S13, L10 | Concluído |
 | RF13 | 6 | RN65, RN103, RN104 | — | — | — | Pendente |
 | RF14 | 3 | RN10, RN106 | — | — | — | Pendente |
 | RF15 | 3 | RN11 | — | — | — | Pendente |
@@ -117,7 +117,7 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF102 | 4 | — | — | — | — | Pendente |
 | RF103 | 3 | RN13, RN17 | — | — | — | Pendente |
 | RF104 | 7 | RN17, RN58, RN66, RN80 | — | — | — | Pendente |
-| RF105 | 2 | — | `terms_acceptances`; `current_terms_versions()` | `/terms`, `/terms/:document` | P10 a P14, S09, S10, L08 | Feito no local |
-| RF106 | 2 | — | Auth, código no endereço novo | `/profile/email` | S11, S14, L11 | Feito no local |
-| RF107 | 2 | — | Auth | `/profile/password` | S11, S15 | Feito no local |
-| RF108 | 2 | — | Auth, vinculação de identidades | `/login`, `/profile` | U07, S11, M02 | Falta M02 |
+| RF105 | 2 | — | `terms_acceptances`; `current_terms_versions()` | `/terms`, `/terms/:document` | P10 a P14, S09, S10, L08 | Concluído |
+| RF106 | 2 | — | Auth, código no endereço novo | `/profile/email` | S11, S14, L11 | Concluído |
+| RF107 | 2 | — | Auth | `/profile/password` | S11, S15 | Concluído |
+| RF108 | 2 | — | Auth, vinculação de identidades | `/login`, `/profile` | U07, S11, M02 | Concluído |
