@@ -112,29 +112,33 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
           ],
         ),
         const SizedBox(height: 24),
-        InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: busy ? null : () => setState(() => _checked = !_checked),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Checkbox(
-                value: _checked,
-                onChanged: busy
-                    ? null
-                    : (value) => setState(() => _checked = value ?? false),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    l10n.termsCheckbox,
-                    style: theme.textTheme.bodyLarge,
+        // Um nó só para o TalkBack: a caixa é lida com o texto dela
+        // (docs/ui/design-system.md, seção 8).
+        MergeSemantics(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: busy ? null : () => setState(() => _checked = !_checked),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(
+                  value: _checked,
+                  onChanged: busy
+                      ? null
+                      : (value) => setState(() => _checked = value ?? false),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      l10n.termsCheckbox,
+                      style: theme.textTheme.bodyLarge,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

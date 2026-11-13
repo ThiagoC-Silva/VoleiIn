@@ -2,7 +2,7 @@
 
 App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de presença, calcula o rateio e as multas ao concluir o jogo e acompanha os pagamentos por Pix entre os participantes, com leitura automática de comprovantes. O app não processa pagamentos.
 
-**Estado atual:** fatia 1 concluída e na `main` (12/11/2026). **Fatia 2 (Conta e perfil) com o código pronto** no *branch* `fatia-2/conta-e-perfil` (13/11/2026): migrações, RLS, seed, telas e testes, com `dart analyze`, `flutter test`, `supabase test db` e `deno test` verdes. L06 a L11 verdes no emulador, nas APIs 29 e 36 (13/11/2026). Falta conferir cada tela contra o PNG (T051), a lista de acessibilidade (T049) e o fechamento (T053). M01 a M03 e a produção são do responsável.
+**Estado atual:** fatia 1 concluída e na `main` (12/11/2026). **Fatia 2 (Conta e perfil) com o código pronto** no *branch* `fatia-2/conta-e-perfil` (13/11/2026): migrações, RLS, seed, telas e testes, com `dart analyze`, `flutter test`, `supabase test db` e `deno test` verdes. L06 a L11 verdes no emulador, nas APIs 29 e 36, acessibilidade (T049) e matriz de rastreabilidade feitas (13/11/2026). Falta, com o responsável: conferir cada tela contra o PNG (T051), M01 e M02 (Google), as migrações na produção (`setup.md`, 9.2), M03 e M04 e o merge. Depois, marcar a T053 e os RFs como concluídos.
 
 ## Antes de implementar
 
@@ -26,6 +26,7 @@ App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de 
 | `docs/ui/telas.md` | Mapa de todas as telas e rotas, navegação e o detalhe das telas de cada fatia |
 | `docs/copy.md` | Textos da interface (chaves do ARB), tom de voz, formatos e mensagens de erro |
 | `docs/rls-matriz.md` | Privilégios e políticas de RLS por tabela, e a fatia que libera cada uma |
+| `docs/rastreabilidade.md` | Cada RF com as RNs, a fatia, o banco, as telas, os testes e o status |
 | `docs/adr/` | Decisões de arquitetura já tomadas, que não devem ser reabertas |
 | `plan-docs.md` | Documentos ainda a escrever e o que cada fatia exige antes do código |
 

@@ -170,12 +170,14 @@
 
 ## Phase 12: Polish e fechamento
 
-- [ ] T049 Passar S16 (fonte em 150%) e a lista de acessibilidade de `docs/ui/design-system.md`, seção 8, em todas as telas novas
+- [x] T049 Passar S16 (fonte em 150%) e a lista de acessibilidade de `docs/ui/design-system.md`, seção 8, em todas as telas novas
+  - `text_scale_test.dart` (S16) e `accessibility_test.dart` (área de toque de 48 dp, rótulo em todo alvo de toque e contraste de 4,5:1, com as diretrizes do `flutter_test`). Corrigida a caixa do aceite dos termos, sem rótulo para o TalkBack.
 - [x] T050 Rodar os comandos do `quickstart.md` até ficarem verdes: `dart format`, `dart analyze`, `flutter test`, `supabase db reset`, `supabase db lint`, `supabase test db`, `deno fmt --check`, `deno lint` e `deno test`
 - [ ] T051 Rodar L06 a L11 no emulador (`app/integration_test/`) e conferir cada tela contra o PNG
   - L06 a L11 verdes nas APIs 29 e 36 em 13/11/2026, por `scripts/integration-test.sh`. A primeira rodada achou o `SubmitController` nascendo em carregamento (campos desabilitados no primeiro quadro, *autofocus* perdido), corrigido com teste. Falta a conferência das telas contra o PNG.
 - [x] T052 Atualizar os documentos afetados: `docs/arquitetura-app.md` (seções 3, 5 e 12), `docs/ui/telas.md` (5.3, research R5), `docs/rls-matriz.md` (research R6), `docs/setup.md` (Google e CI), `docs/ui/design-system.md` (componentes novos) e um ADR para a senha do cadastro pendente
 - [ ] T053 Fechar a fatia (`docs/trabalho-com-agente.md`, seção 11): matriz de rastreabilidade do `plan-docs.md` (5.4), linha "Estado atual" do `CLAUDE.md` e a lista do que fica para o responsável (M01 a M04 e a produção)
+  - Feito em 13/11/2026: `docs/rastreabilidade.md` (os 108 RFs com fatia; os 16 da fatia 2 com testes), "Estado atual" do `CLAUDE.md`, seed conferido contra o `setup.md` (seção 8) e a lista do responsável no PR. Falta marcar a tarefa e os RFs como concluídos depois de T051, M01 a M04 e a produção.
 
 ---
 
