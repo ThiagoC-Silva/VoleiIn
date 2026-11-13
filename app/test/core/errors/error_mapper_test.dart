@@ -51,12 +51,56 @@ void main() {
     },
   );
 
-  test('E06: AuthException que a fatia 1 não mapeia vira internalError', () {
+  // Até a fatia 1, o exemplo era weak_password, que a fatia 2 mapeia.
+  test('E06: AuthException que o app não mapeia vira internalError', () {
     final exception = AuthException(
-      'Password is too weak',
-      code: 'weak_password',
+      'Unexpected failure',
+      code: 'unexpected_failure',
     );
     expect(toAppException(exception).code, ErrorCode.internalError);
+  });
+
+  // E09: cada código da tabela 6.8 do docs/copy.md.
+  const authCodes = {
+    'weak_password': ErrorCode.authWeakPassword,
+    'otp_expired': ErrorCode.authInvalidCode,
+    'email_address_invalid': ErrorCode.authInvalidEmail,
+    'email_exists': ErrorCode.authEmailInUse,
+    'user_already_exists': ErrorCode.authEmailInUse,
+    'same_password': ErrorCode.authSamePassword,
+    'over_email_send_rate_limit': ErrorCode.authEmailRateLimited,
+  };
+  for (final entry in authCodes.entries) {
+    test('E09: AuthException ${entry.key} vira ${entry.value.name}', () {
+      final exception = AuthException('x', code: entry.key);
+      expect(toAppException(exception).code, entry.value);
+    });
+  }
+
+  test('E10: P0001 com PIX_KEY_IN_USE vira pixKeyInUse', () {
+    final exception = PostgrestException(
+      message: 'PIX_KEY_IN_USE',
+      code: 'P0001',
+    );
+    expect(toAppException(exception).code, ErrorCode.pixKeyInUse);
+  });
+
+  test('E11: StorageException 413 vira photoTooLarge', () {
+    const exception = StorageException(
+      'The object exceeded the maximum allowed size',
+      error: 'Payload too large',
+      statusCode: '413',
+    );
+    expect(toAppException(exception).code, ErrorCode.photoTooLarge);
+  });
+
+  test('E11: StorageException invalid_mime_type vira photoInvalidType', () {
+    const exception = StorageException(
+      'mime type image/gif is not supported',
+      error: 'invalid_mime_type',
+      statusCode: '415',
+    );
+    expect(toAppException(exception).code, ErrorCode.photoInvalidType);
   });
 
   test('E07: falhas de rede viram noConnection', () {
