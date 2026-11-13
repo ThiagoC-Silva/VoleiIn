@@ -53,3 +53,7 @@ env/*.json
 
 # Textos gerados por `flutter gen-l10n` a partir de lib/l10n/app_pt.arb
 lib/l10n/app_localizations*.dart
+
+# Gerados por freezed e json_serializable; o CI roda o build_runner.
+*.freezed.dart
+*.g.dart

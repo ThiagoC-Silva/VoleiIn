@@ -31,7 +31,11 @@ void main() {
     expect(
       repository.signInWithGoogle(),
       throwsA(
-        isA<AppException>().having((e) => e.code, 'code', ErrorCode.authGoogleFailed),
+        isA<AppException>().having(
+          (e) => e.code,
+          'code',
+          ErrorCode.authGoogleFailed,
+        ),
       ),
     );
   });

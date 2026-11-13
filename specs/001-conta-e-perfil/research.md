@@ -83,8 +83,8 @@ Decisões técnicas que os documentos deixam para a implementação. Nenhuma mud
 
 ## 14. Título com "e-mail" que não quebra
 
-- **Decisão**: o widget do título da `/confirm-email` troca o hífen por U+2011 (hífen não separável) na exibição, mantendo o ARB igual ao `copy.md`. Se a fonte não tiver o glifo, usa um `Text.rich` com o "e-mail" num `WidgetSpan` sem quebra.
-- **Motivo**: conferência dos PNGs (`docs/ui/referencias/README.md`).
+- **Decisão**: o widget do título da `/confirm-email` cerca o hífen com a junção de palavras (U+2060, invisível) na exibição, mantendo o ARB igual ao `copy.md`.
+- **Motivo**: conferência dos PNGs (`docs/ui/referencias/README.md`). A Montserrat não tem o glifo do hífen não separável (U+2011, conferido com `fc-query`); ele cairia na fonte do sistema. A junção não precisa de glifo.
 
 ## 15. Seed da fatia 2
 

@@ -12,12 +12,24 @@ void main() {
 
   // Base dos cenários S09 e S10: a conferência que leva à /terms (RF105).
   group('TermsStatus.compare', () {
-    const terms10 = TermsVersion(document: LegalDocument.termsOfUse, version: '1.0');
-    const privacy10 = TermsVersion(document: LegalDocument.privacyPolicy, version: '1.0');
-    const terms11 = TermsVersion(document: LegalDocument.termsOfUse, version: '1.1');
+    const terms10 = TermsVersion(
+      document: LegalDocument.termsOfUse,
+      version: '1.0',
+    );
+    const privacy10 = TermsVersion(
+      document: LegalDocument.privacyPolicy,
+      version: '1.0',
+    );
+    const terms11 = TermsVersion(
+      document: LegalDocument.termsOfUse,
+      version: '1.1',
+    );
 
     test('sem aceite: faltam os dois, primeira vez', () {
-      final status = TermsStatus.compare(current: [terms10, privacy10], accepted: []);
+      final status = TermsStatus.compare(
+        current: [terms10, privacy10],
+        accepted: [],
+      );
       expect(status.missing, [terms10, privacy10]);
       expect(status.hadPreviousAcceptance, isFalse);
     });

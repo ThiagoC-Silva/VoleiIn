@@ -24,9 +24,8 @@ void main() {
           code: any(named: 'code'),
         ),
       ).thenAnswer((_) async {});
-      when(
-        () => auth.updatePassword(any()),
-      ).thenThrow(const AppException(ErrorCode.authSamePassword));
+      when(() => auth.updatePassword(any()))
+          .thenThrow(const AppException(ErrorCode.authSamePassword));
 
       await pumpRouterApp(
         tester,
@@ -37,7 +36,10 @@ void main() {
 
       // Etapa 1.
       await tester.enterText(find.byType(TextFormField), 'bruno@voleiin.test');
-      await tester.tap(find.widgetWithText(FilledButton, l10nPt.authSendCode));
+      await tapVisible(
+        tester,
+        find.widgetWithText(FilledButton, l10nPt.authSendCode),
+      );
       await tester.pumpAndSettle();
       verify(() => auth.sendRecoveryCode('bruno@voleiin.test')).called(1);
 
@@ -48,13 +50,17 @@ void main() {
       );
       await tester.enterText(find.byType(TextField).first, '123456');
       await tester.enterText(find.byType(TextFormField).last, 'mesmasenha');
-      await tester.tap(
+      await tapVisible(
+        tester,
         find.widgetWithText(FilledButton, l10nPt.authSaveNewPassword),
       );
       await tester.pumpAndSettle();
 
       verify(
-        () => auth.verifyRecoveryCode(email: 'bruno@voleiin.test', code: '123456'),
+        () => auth.verifyRecoveryCode(
+          email: 'bruno@voleiin.test',
+          code: '123456',
+        ),
       ).called(1);
       expect(find.text(l10nPt.errorAuthSamePassword), findsOneWidget);
       // Só o campo de senha continua: o código já valeu e criou a sessão.
@@ -62,7 +68,8 @@ void main() {
       expect(find.byType(TextFormField), findsOneWidget);
 
       await tester.enterText(find.byType(TextFormField), 'outrasenha');
-      await tester.tap(
+      await tapVisible(
+        tester,
         find.widgetWithText(FilledButton, l10nPt.authSaveNewPassword),
       );
       await tester.pumpAndSettle();

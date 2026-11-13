@@ -22,7 +22,8 @@ void main() {
   setUp(() {
     profile = MockProfileRepository();
     picker = MockPhotoPicker();
-    when(() => profile.signedPhotoUrl(any())).thenAnswer((_) async => 'https://x/y.png');
+    when(() => profile.signedPhotoUrl(any()))
+        .thenAnswer((_) async => 'https://x/y.png');
     when(
       () => profile.updateProfile(
         name: any(named: 'name'),
@@ -80,7 +81,7 @@ void main() {
   testWidgets('S12c: telefone com 9 dígitos dá erro', (tester) async {
     await pump(tester, ownProfile());
     await tester.enterText(phoneField(), '869999912');
-    await tester.tap(save());
+    await tapVisible(tester, save());
     await tester.pumpAndSettle();
 
     expect(find.text(l10nPt.profilePhoneInvalid), findsOneWidget);
@@ -101,14 +102,15 @@ void main() {
     when(
       () => picker.pick(PhotoSource.gallery),
     ).thenAnswer((_) async => PickedPhoto(bytes: tinyPng, type: ImageType.png));
-    when(() => profile.uploadPhoto(any(), any())).thenAnswer((_) async => newPath);
+    when(() => profile.uploadPhoto(any(), any()))
+        .thenAnswer((_) async => newPath);
     await pump(tester, ownProfile(photoPath: oldPath));
 
-    await tester.tap(find.text(l10nPt.profileChangePhoto));
+    await tapVisible(tester, find.text(l10nPt.profileChangePhoto));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10nPt.profilePhotoGallery));
+    await tapVisible(tester, find.text(l10nPt.profilePhotoGallery));
     await tester.pumpAndSettle();
-    await tester.tap(save());
+    await tapVisible(tester, save());
     await tester.pumpAndSettle();
 
     verifyInOrder([

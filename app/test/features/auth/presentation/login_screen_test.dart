@@ -46,7 +46,10 @@ void main() {
   ) async {
     await pumpLogin(tester);
 
-    await tester.tap(find.widgetWithText(FilledButton, l10nPt.authLoginButton));
+    await tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10nPt.authLoginButton),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(l10nPt.authEmailRequired), findsOneWidget);
@@ -68,7 +71,8 @@ void main() {
       final fields = find.byType(TextFormField);
       await tester.enterText(fields.at(0), 'ana@voleiin.test');
       await tester.enterText(fields.at(1), 'errada');
-      await tester.tap(
+      await tapVisible(
+        tester,
         find.widgetWithText(FilledButton, l10nPt.authLoginButton),
       );
       await tester.pumpAndSettle();
@@ -86,7 +90,10 @@ void main() {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), 'ana@voleiin.test');
     await tester.enterText(fields.at(1), 'voleiin123');
-    await tester.tap(find.widgetWithText(FilledButton, l10nPt.authLoginButton));
+    await tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10nPt.authLoginButton),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(l10nPt.errorNoConnection), findsOneWidget);
@@ -118,13 +125,17 @@ void main() {
       final fields = find.byType(TextFormField);
       await tester.enterText(fields.at(0), 'carla@voleiin.test');
       await tester.enterText(fields.at(1), 'voleiin123');
-      await tester.tap(
+      await tapVisible(
+        tester,
         find.widgetWithText(FilledButton, l10nPt.authLoginButton),
       );
       await tester.pumpAndSettle();
 
       expect(find.text(l10nPt.errorAuthEmailNotConfirmed), findsOneWidget);
-      await tester.tap(find.widgetWithText(SnackBarAction, l10nPt.authConfirmAction));
+      await tapVisible(
+        tester,
+        find.widgetWithText(SnackBarAction, l10nPt.authConfirmAction),
+      );
       await tester.pumpAndSettle();
 
       verify(() => repository.resendSignupCode('carla@voleiin.test')).called(1);
@@ -142,14 +153,13 @@ void main() {
       OutlinedButton,
       l10nPt.authContinueWithGoogle,
     );
-    await tester.tap(google);
+    await tapVisible(tester, google);
     await tester.pumpAndSettle();
     expect(find.byType(SnackBar), findsNothing);
 
-    when(
-      () => repository.signInWithGoogle(),
-    ).thenThrow(const AppException(ErrorCode.authGoogleFailed));
-    await tester.tap(google);
+    when(() => repository.signInWithGoogle())
+        .thenThrow(const AppException(ErrorCode.authGoogleFailed));
+    await tapVisible(tester, google);
     await tester.pumpAndSettle();
     expect(find.text(l10nPt.errorAuthGoogleFailed), findsOneWidget);
   });

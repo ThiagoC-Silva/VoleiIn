@@ -85,35 +85,48 @@ void main() {
   testWidgets('S10b: sessão com aceite da versão vigente vai para /games', (
     tester,
   ) async {
-    currentTerms(const [termsOfUse10, privacy10], const [termsOfUse10, privacy10]);
+    currentTerms(
+      const [termsOfUse10, privacy10],
+      const [termsOfUse10, privacy10],
+    );
     final router = await pumpApp(tester);
     expect(pathOf(router), Routes.gamesPath);
   });
 
-  testWidgets('S10c: vigente 1.1 e aceite 1.0 vai para /terms com a frase de atualização', (
-    tester,
-  ) async {
-    currentTerms(const [termsOfUse11, privacy10], const [termsOfUse10, privacy10]);
-    final router = await pumpApp(tester);
-    expect(pathOf(router), Routes.termsPath);
-    expect(find.text(l10nPt.termsSubtitleUpdated), findsOneWidget);
-  });
+  testWidgets(
+    'S10c: vigente 1.1 e aceite 1.0 vai para /terms com a frase de atualização',
+    (tester) async {
+      currentTerms(
+        const [termsOfUse11, privacy10],
+        const [termsOfUse10, privacy10],
+      );
+      final router = await pumpApp(tester);
+      expect(pathOf(router), Routes.termsPath);
+      expect(find.text(l10nPt.termsSubtitleUpdated), findsOneWidget);
+    },
+  );
 
   testWidgets('S10d: com sessão, abrir /signup leva a /games', (tester) async {
-    currentTerms(const [termsOfUse10, privacy10], const [termsOfUse10, privacy10]);
+    currentTerms(
+      const [termsOfUse10, privacy10],
+      const [termsOfUse10, privacy10],
+    );
     final router = await pumpApp(tester, location: Routes.signupPath);
     expect(pathOf(router), Routes.gamesPath);
   });
 
-  testWidgets('S11c: conta só com Google abrindo /profile/email volta ao perfil', (
-    tester,
-  ) async {
-    when(() => auth.hasEmailPassword).thenReturn(false);
-    when(
-      () => profile.fetchOwn(),
-    ).thenAnswer((_) async => ownProfile(hasEmailPassword: false));
-    currentTerms(const [termsOfUse10, privacy10], const [termsOfUse10, privacy10]);
-    final router = await pumpApp(tester, location: Routes.profileEmailPath);
-    expect(pathOf(router), Routes.profilePath);
-  });
+  testWidgets(
+    'S11c: conta só com Google abrindo /profile/email volta ao perfil',
+    (tester) async {
+      when(() => auth.hasEmailPassword).thenReturn(false);
+      when(() => profile.fetchOwn())
+          .thenAnswer((_) async => ownProfile(hasEmailPassword: false));
+      currentTerms(
+        const [termsOfUse10, privacy10],
+        const [termsOfUse10, privacy10],
+      );
+      final router = await pumpApp(tester, location: Routes.profileEmailPath);
+      expect(pathOf(router), Routes.profilePath);
+    },
+  );
 }

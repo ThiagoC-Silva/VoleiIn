@@ -39,6 +39,11 @@ Future<ProviderContainer> pumpRouterApp(
   void Function(ProviderContainer container)? setUp,
   double textScale = 1.0,
 }) async {
+  // Celular comum (412 x 915 dp), como nos PNGs de referência.
+  tester.view.physicalSize = const Size(1080, 2400);
+  tester.view.devicePixelRatio = 2.625;
+  addTearDown(tester.view.reset);
+
   final container = ProviderContainer(overrides: overrides);
   addTearDown(container.dispose);
   setUp?.call(container);
@@ -68,9 +73,8 @@ Future<ProviderContainer> pumpRouterApp(
         supportedLocales: AppLocalizations.supportedLocales,
         routerConfig: router,
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
           child: child!,
         ),
       ),
@@ -78,4 +82,12 @@ Future<ProviderContainer> pumpRouterApp(
   );
   await tester.pumpAndSettle();
   return container;
+}
+
+/// Rola até o widget e toca nele: com a fonte grande ou o teclado, o botão
+/// pode ficar fora da tela.
+Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
 }

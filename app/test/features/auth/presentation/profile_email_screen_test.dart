@@ -17,9 +17,8 @@ void main() {
   ) async {
     final auth = MockAuthRepository();
     when(() => auth.currentEmail).thenReturn('ana@voleiin.test');
-    when(
-      () => auth.requestEmailChange(any()),
-    ).thenThrow(const AppException(ErrorCode.authEmailInUse));
+    when(() => auth.requestEmailChange(any()))
+        .thenThrow(const AppException(ErrorCode.authEmailInUse));
 
     await pumpRouterApp(
       tester,
@@ -30,13 +29,13 @@ void main() {
 
     final send = find.widgetWithText(FilledButton, l10nPt.authSendCode);
     await tester.enterText(find.byType(TextFormField), 'ana@voleiin.test');
-    await tester.tap(send);
+    await tapVisible(tester, send);
     await tester.pumpAndSettle();
     expect(find.text(l10nPt.emailSameAsCurrent), findsOneWidget);
     verifyNever(() => auth.requestEmailChange(any()));
 
     await tester.enterText(find.byType(TextFormField), 'bruno@voleiin.test');
-    await tester.tap(send);
+    await tapVisible(tester, send);
     await tester.pumpAndSettle();
     verify(() => auth.requestEmailChange('bruno@voleiin.test')).called(1);
     expect(find.text(l10nPt.errorAuthEmailInUse), findsOneWidget);

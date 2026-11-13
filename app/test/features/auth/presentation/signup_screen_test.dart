@@ -32,70 +32,72 @@ void main() {
   Finder submit() =>
       find.widgetWithText(FilledButton, l10nPt.authCreateAccountButton);
 
-  testWidgets('S01: campos vazios e senha curta dão erro sem chamar o servidor', (
-    tester,
-  ) async {
-    await pump(tester);
+  testWidgets(
+    'S01: campos vazios e senha curta dão erro sem chamar o servidor',
+    (tester) async {
+      await pump(tester);
 
-    await tester.tap(submit());
-    await tester.pumpAndSettle();
-    expect(find.text(l10nPt.authNameRequired), findsOneWidget);
-    expect(find.text(l10nPt.authEmailRequired), findsOneWidget);
-    expect(find.text(l10nPt.authPasswordRequired), findsOneWidget);
+      await tapVisible(tester, submit());
+      await tester.pumpAndSettle();
+      expect(find.text(l10nPt.authNameRequired), findsOneWidget);
+      expect(find.text(l10nPt.authEmailRequired), findsOneWidget);
+      expect(find.text(l10nPt.authPasswordRequired), findsOneWidget);
 
-    final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), 'Ana Souza');
-    await tester.enterText(fields.at(1), 'ana@exemplo.com');
-    await tester.enterText(fields.at(2), '1234567');
-    await tester.tap(submit());
-    await tester.pumpAndSettle();
-    expect(find.text(l10nPt.authPasswordTooShort), findsOneWidget);
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), 'Ana Souza');
+      await tester.enterText(fields.at(1), 'ana@exemplo.com');
+      await tester.enterText(fields.at(2), '1234567');
+      await tapVisible(tester, submit());
+      await tester.pumpAndSettle();
+      expect(find.text(l10nPt.authPasswordTooShort), findsOneWidget);
 
-    verifyNever(
-      () => auth.signUp(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    );
-  });
+      verifyNever(
+        () => auth.signUp(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      );
+    },
+  );
 
-  testWidgets('S02: cadastro aceito abre a confirmação e o voltar não volta ao cadastro', (
-    tester,
-  ) async {
-    when(
-      () => auth.signUp(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer((_) async {});
-    await pump(tester);
+  testWidgets(
+    'S02: cadastro aceito abre a confirmação e o voltar não volta ao cadastro',
+    (tester) async {
+      when(
+        () => auth.signUp(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) async {});
+      await pump(tester);
 
-    final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), 'Ana Souza');
-    await tester.enterText(fields.at(1), 'ana@exemplo.com');
-    await tester.enterText(fields.at(2), 'senha1234');
-    await tester.tap(submit());
-    await tester.pumpAndSettle();
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), 'Ana Souza');
+      await tester.enterText(fields.at(1), 'ana@exemplo.com');
+      await tester.enterText(fields.at(2), 'senha1234');
+      await tapVisible(tester, submit());
+      await tester.pumpAndSettle();
 
-    verify(
-      () => auth.signUp(
-        name: 'Ana Souza',
-        email: 'ana@exemplo.com',
-        password: 'senha1234',
-      ),
-    ).called(1);
-    expect(find.byType(ConfirmEmailScreen), findsOneWidget);
-    expect(
-      find.text(l10nPt.authCodeSent('ana@exemplo.com'), findRichText: true),
-      findsOneWidget,
-    );
-    expect(find.byType(SignupScreen), findsNothing);
+      verify(
+        () => auth.signUp(
+          name: 'Ana Souza',
+          email: 'ana@exemplo.com',
+          password: 'senha1234',
+        ),
+      ).called(1);
+      expect(find.byType(ConfirmEmailScreen), findsOneWidget);
+      expect(
+        find.text(l10nPt.authCodeSent('ana@exemplo.com'), findRichText: true),
+        findsOneWidget,
+      );
+      expect(find.byType(SignupScreen), findsNothing);
 
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
-    expect(find.byType(SignupScreen), findsNothing);
-    expect(find.text(stubText(Routes.login)), findsOneWidget);
-  });
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(SignupScreen), findsNothing);
+      expect(find.text(stubText(Routes.login)), findsOneWidget);
+    },
+  );
 }

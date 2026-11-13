@@ -54,9 +54,18 @@ OwnProfile ownProfile({
   hasEmailPassword: hasEmailPassword,
 );
 
-const termsOfUse10 = TermsVersion(document: LegalDocument.termsOfUse, version: '1.0');
-const privacy10 = TermsVersion(document: LegalDocument.privacyPolicy, version: '1.0');
-const termsOfUse11 = TermsVersion(document: LegalDocument.termsOfUse, version: '1.1');
+const termsOfUse10 = TermsVersion(
+  document: LegalDocument.termsOfUse,
+  version: '1.0',
+);
+const privacy10 = TermsVersion(
+  document: LegalDocument.privacyPolicy,
+  version: '1.0',
+);
+const termsOfUse11 = TermsVersion(
+  document: LegalDocument.termsOfUse,
+  version: '1.1',
+);
 
 /// Registra os valores de mentira que o mocktail exige para `any()`.
 void registerFakes() {

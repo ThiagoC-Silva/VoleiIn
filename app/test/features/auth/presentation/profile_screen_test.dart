@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:voleiin/core/router/routes.dart';
@@ -31,15 +30,16 @@ void main() {
     );
   }
 
-  testWidgets('S11a: conta só com Google não mostra Trocar e-mail e Trocar senha', (
-    tester,
-  ) async {
-    await pump(tester, ownProfile(hasEmailPassword: false));
-    expect(find.text(l10nPt.profileEdit), findsOneWidget);
-    expect(find.text(l10nPt.profilePix), findsOneWidget);
-    expect(find.text(l10nPt.profileChangeEmail), findsNothing);
-    expect(find.text(l10nPt.profileChangePassword), findsNothing);
-  });
+  testWidgets(
+    'S11a: conta só com Google não mostra Trocar e-mail e Trocar senha',
+    (tester) async {
+      await pump(tester, ownProfile(hasEmailPassword: false));
+      expect(find.text(l10nPt.profileEdit), findsOneWidget);
+      expect(find.text(l10nPt.profilePix), findsOneWidget);
+      expect(find.text(l10nPt.profileChangeEmail), findsNothing);
+      expect(find.text(l10nPt.profileChangePassword), findsNothing);
+    },
+  );
 
   testWidgets('S11b: conta com e-mail mostra as duas linhas', (tester) async {
     await pump(tester, ownProfile(hasEmailPassword: true));

@@ -12,7 +12,7 @@ class Env {
     'SUPABASE_PUBLISHABLE_KEY',
   );
 
-  /// Usado pelo login com Google, a partir da fatia 2.
+  /// ID do cliente web do Google, para o login com Google (docs/setup.md, 6.2).
   static const String googleWebClientId = String.fromEnvironment(
     'GOOGLE_WEB_CLIENT_ID',
   );
@@ -22,6 +22,7 @@ class Env {
     final missing = <String>[
       if (supabaseUrl.isEmpty) 'SUPABASE_URL',
       if (supabasePublishableKey.isEmpty) 'SUPABASE_PUBLISHABLE_KEY',
+      if (googleWebClientId.isEmpty) 'GOOGLE_WEB_CLIENT_ID',
     ];
     if (missing.isNotEmpty) {
       throw StateError(

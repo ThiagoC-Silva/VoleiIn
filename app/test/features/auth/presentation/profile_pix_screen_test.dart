@@ -32,11 +32,16 @@ void main() {
 
   Finder keyField() => find.byType(TextFormField);
 
-  testWidgets('S13a: CPF inválido dá erro sem chamar o servidor', (tester) async {
+  testWidgets('S13a: CPF inválido dá erro sem chamar o servidor', (
+    tester,
+  ) async {
     await pump(tester, ownProfile());
 
     await tester.enterText(keyField(), '52998224724');
-    await tester.tap(find.widgetWithText(FilledButton, l10nPt.commonSave));
+    await tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10nPt.commonSave),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(l10nPt.pixInvalidCpf), findsOneWidget);
@@ -47,9 +52,9 @@ void main() {
     await pump(tester, ownProfile());
 
     await tester.enterText(keyField(), '529.982.247-25');
-    await tester.tap(find.text(l10nPt.pixTypeCpf));
+    await tapVisible(tester, find.text(l10nPt.pixTypeCpf));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10nPt.pixTypeEmail).last);
+    await tapVisible(tester, find.text(l10nPt.pixTypeEmail).last);
     await tester.pumpAndSettle();
 
     expect(tester.widget<TextFormField>(keyField()).controller!.text, '');
@@ -59,18 +64,23 @@ void main() {
   testWidgets('S13c: remoção recusada mostra o aviso e a chave continua', (
     tester,
   ) async {
-    when(
-      () => profile.removePixKey(),
-    ).thenThrow(const AppException(ErrorCode.pixKeyInUse));
+    when(() => profile.removePixKey())
+        .thenThrow(const AppException(ErrorCode.pixKeyInUse));
     await pump(
       tester,
       ownProfile(pixKeyType: PixKeyType.cpf, pixKey: '52998224725'),
     );
 
-    await tester.tap(find.widgetWithText(OutlinedButton, l10nPt.pixRemove));
+    await tapVisible(
+      tester,
+      find.widgetWithText(OutlinedButton, l10nPt.pixRemove),
+    );
     await tester.pumpAndSettle();
     expect(find.text(l10nPt.pixRemoveTitle), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, l10nPt.pixRemoveConfirm));
+    await tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10nPt.pixRemoveConfirm),
+    );
     await tester.pumpAndSettle();
 
     verify(() => profile.removePixKey()).called(1);

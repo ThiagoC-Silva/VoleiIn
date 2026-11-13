@@ -30,31 +30,40 @@ void main() {
         screens: {Routes.confirmEmail: (_) => const ConfirmEmailScreen()},
       );
 
-  testWidgets('S03: o sexto dígito confirma sozinho; código errado limpa o campo', (
+  testWidgets(
+    'S03: o sexto dígito confirma sozinho; código errado limpa o campo',
+    (tester) async {
+      when(
+        () => auth.verifySignupCode(
+          email: any(named: 'email'),
+          code: any(named: 'code'),
+        ),
+      ).thenThrow(const AppException(ErrorCode.authInvalidCode));
+      await pump(tester);
+
+      await tester.enterText(find.byType(TextField), '123456');
+      await tester.pumpAndSettle();
+
+      verify(
+        () => auth.verifySignupCode(email: 'ana@exemplo.com', code: '123456'),
+      ).called(1);
+      expect(find.text(l10nPt.errorAuthInvalidCode), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '',
+      );
+    },
+  );
+
+  testWidgets('S04: Reenviar código fica desabilitado por 60 s', (
     tester,
   ) async {
-    when(
-      () => auth.verifySignupCode(
-        email: any(named: 'email'),
-        code: any(named: 'code'),
-      ),
-    ).thenThrow(const AppException(ErrorCode.authInvalidCode));
     await pump(tester);
 
-    await tester.enterText(find.byType(TextField), '123456');
-    await tester.pumpAndSettle();
-
-    verify(
-      () => auth.verifySignupCode(email: 'ana@exemplo.com', code: '123456'),
-    ).called(1);
-    expect(find.text(l10nPt.errorAuthInvalidCode), findsOneWidget);
-    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, '');
-  });
-
-  testWidgets('S04: Reenviar código fica desabilitado por 60 s', (tester) async {
-    await pump(tester);
-
-    final waiting = find.widgetWithText(TextButton, l10nPt.authResendCodeIn('60'));
+    final waiting = find.widgetWithText(
+      TextButton,
+      l10nPt.authResendCodeIn('60'),
+    );
     expect(waiting, findsOneWidget);
     expect(tester.widget<TextButton>(waiting).onPressed, isNull);
 

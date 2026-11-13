@@ -16,9 +16,8 @@ void main() {
     tester,
   ) async {
     final auth = MockAuthRepository();
-    when(
-      () => auth.reauthenticate(any()),
-    ).thenThrow(const AppException(ErrorCode.authInvalidCredentials));
+    when(() => auth.reauthenticate(any()))
+        .thenThrow(const AppException(ErrorCode.authInvalidCredentials));
 
     await pumpRouterApp(
       tester,
@@ -30,7 +29,10 @@ void main() {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), 'errada123');
     await tester.enterText(fields.at(1), 'novasenha1');
-    await tester.tap(find.widgetWithText(FilledButton, l10nPt.commonSave));
+    await tapVisible(
+      tester,
+      find.widgetWithText(FilledButton, l10nPt.commonSave),
+    );
     await tester.pumpAndSettle();
 
     verify(() => auth.reauthenticate('errada123')).called(1);
