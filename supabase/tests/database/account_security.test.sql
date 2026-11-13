@@ -1,19 +1,18 @@
 -- RLS da conta (fatia 2).
 -- Cenários P01 a P16 de docs/testes-referencia.md, seção 10.1.
--- Políticas e privilégios: docs/rls-matriz.md, "Fatia 2".
+-- Políticas e privilégios: docs/rls-matriz.md, fatia 2.
 --
--- "Ana logada" é `role authenticated` com o `sub` da Ana, como a API faz
--- (docs/arquitetura-app.md, 14.4). Os dados de preparo são gravados como postgres.
+-- "Ana logada" é o papel authenticated com o sub da Ana, como a API faz
+-- (docs/arquitetura-app.md, 14.4). O que prepara o cenário roda como postgres.
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(38);
+select plan(42);
 
--- Ajudantes ------------------------------------------------------------------
-
--- Personagens do seed, criados aqui se faltarem (docs/arquitetura-app.md, 14.4).
+-- Personagens do seed (docs/setup.md, seção 8), criados aqui se faltarem, para o
+-- teste rodar também sem o seed (docs/setup.md, 9.2).
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
@@ -31,17 +30,49 @@ from (
 ) as u (id, email, name)
 on conflict do nothing;
 
--- Estado conhecido, independente do seed: Ana sem apelido e sem foto.
-update public.profiles set nickname = null, photo_path = null, deleted_at = null
-where id = '00000000-0000-0000-0000-00000000000a';
+-- Estado inicial dos cenários, igual com ou sem o seed.
+update public.profiles
+set name = v.name, nickname = null, photo_path = null, deleted_at = null
+from (
+  values
+    ('00000000-0000-0000-0000-00000000000a'::uuid, 'Ana'),
+    ('00000000-0000-0000-0000-00000000000b'::uuid, 'Bruno')
+) as v (id, name)
+where profiles.id = v.id;
 
--- Linhas alteradas por um comando, para provar "nenhuma linha alterada".
-create function pg_temp.affected(p_sql text)
-returns integer
+update public.profile_private
+set phone = null, phone_visible = false, pix_key_type = null, pix_key = null
+where user_id in (
+  '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b'
+);
+
+delete from public.terms_acceptances
+where user_id in (
+  '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b'
+);
+
+-- Entra como a pessoa, do jeito que a API faz.
+create function pg_temp.login_as(p_user uuid)
+returns void
+language plpgsql
+as $fn$
+begin
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('sub', p_user, 'role', 'authenticated')::text,
+    true
+  );
+end;
+$fn$;
+
+-- Quantas linhas a escrita alterou, rodando com o papel de quem chama (o RLS
+-- vale). Um update com returning não cabe numa subconsulta escalar.
+create function pg_temp.rows_changed(p_sql text)
+returns bigint
 language plpgsql
 as $fn$
 declare
-  v_count integer;
+  v_count bigint;
 begin
   execute p_sql;
   get diagnostics v_count = row_count;
@@ -49,295 +80,330 @@ begin
 end;
 $fn$;
 
-grant execute on function pg_temp.affected(text) to authenticated;
-
-create function pg_temp.login_as(p_user uuid)
-returns void
-language sql
-as $fn$
-  select set_config(
-    'request.jwt.claims',
-    json_build_object('sub', p_user::text, 'role', 'authenticated')::text,
-    true
-  );
-$fn$;
-
--- profiles -------------------------------------------------------------------
-
 select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
 set local role authenticated;
 
--- P01
+-- P01. Ana lê só o próprio perfil.
 select results_eq(
   $$ select id from public.profiles $$,
   $$ values ('00000000-0000-0000-0000-00000000000a'::uuid) $$,
-  'P01: Ana lê só a própria linha de profiles'
+  'P01: Ana logada vê só a própria linha de profiles'
 );
 
--- P02 (RN100)
-select is(
-  pg_temp.affected($$ update public.profiles set nickname = 'Aninha'
-                      where id = '00000000-0000-0000-0000-00000000000a' $$),
-  1,
+-- P02. O apelido muda o nome exibido, e apagá-lo devolve o nome (RN100).
+select lives_ok(
+  $$ update public.profiles set nickname = 'Aninha'
+     where id = '00000000-0000-0000-0000-00000000000a' $$,
   'P02a: Ana grava o próprio apelido'
 );
 select is(
   (select display_name from public.profiles where id = '00000000-0000-0000-0000-00000000000a'),
   'Aninha',
-  'P02b: com apelido, display_name é o apelido (RN100)'
+  'P02b: o display_name vira o apelido (RN100)'
 );
-select pg_temp.affected($$ update public.profiles set nickname = null
-                           where id = '00000000-0000-0000-0000-00000000000a' $$);
+select lives_ok(
+  $$ update public.profiles set nickname = null
+     where id = '00000000-0000-0000-0000-00000000000a' $$,
+  'P02c: Ana apaga o próprio apelido'
+);
 select is(
-  (select display_name = name from public.profiles where id = '00000000-0000-0000-0000-00000000000a'),
-  true,
-  'P02c: sem apelido, display_name volta ao nome (RN100)'
+  (select display_name from public.profiles where id = '00000000-0000-0000-0000-00000000000a'),
+  'Ana',
+  'P02d: sem apelido, o display_name volta ao name (RN100)'
 );
 
--- P03
+-- P03. Ana não altera o perfil do Bruno.
 select is(
-  pg_temp.affected($$ update public.profiles set name = 'Invadido'
-                      where id = '00000000-0000-0000-0000-00000000000b' $$),
-  0,
-  'P03a: Ana não altera o perfil do Bruno'
+  pg_temp.rows_changed(
+    $$ update public.profiles set name = 'Outro nome'
+       where id = '00000000-0000-0000-0000-00000000000b' $$
+  ),
+  0::bigint,
+  'P03a: update do name do Bruno não altera nenhuma linha'
 );
+
 reset role;
-select isnt(
+select is(
   (select name from public.profiles where id = '00000000-0000-0000-0000-00000000000b'),
-  'Invadido',
+  'Bruno',
   'P03b: o perfil do Bruno não muda'
 );
 set local role authenticated;
 
--- P04
+-- P04. Colunas fora da lista não são graváveis.
 select throws_ok(
-  $$ update public.profiles set deleted_at = now() where id = '00000000-0000-0000-0000-00000000000a' $$,
+  $$ update public.profiles set deleted_at = now()
+     where id = '00000000-0000-0000-0000-00000000000a' $$,
   '42501', null,
-  'P04a: Ana não grava o próprio deleted_at'
+  'P04a: update do próprio deleted_at devolve 42501'
 );
 select throws_ok(
-  $$ update public.profiles set id = gen_random_uuid() where id = '00000000-0000-0000-0000-00000000000a' $$,
+  $$ update public.profiles set id = gen_random_uuid()
+     where id = '00000000-0000-0000-0000-00000000000a' $$,
   '42501', null,
-  'P04b: Ana não grava o próprio id'
+  'P04b: update do próprio id devolve 42501'
 );
 
--- P05
+-- P05. O photo_path só aponta para a pasta da própria pessoa.
 select throws_ok(
   $$ update public.profiles
      set photo_path = 'profiles/00000000-0000-0000-0000-00000000000b/x.png'
      where id = '00000000-0000-0000-0000-00000000000a' $$,
   '42501', null,
-  'P05a: Ana não aponta a foto para a pasta do Bruno'
+  'P05a: photo_path na pasta do Bruno é recusado pelo RLS'
 );
 select lives_ok(
   $$ update public.profiles
      set photo_path = 'profiles/00000000-0000-0000-0000-00000000000a/x.png'
      where id = '00000000-0000-0000-0000-00000000000a' $$,
-  'P05b: Ana aponta a foto para a própria pasta'
+  'P05b: photo_path na própria pasta é aceito'
 );
 select lives_ok(
-  $$ update public.profiles set photo_path = null where id = '00000000-0000-0000-0000-00000000000a' $$,
-  'P05c: Ana remove a própria foto'
+  $$ update public.profiles set photo_path = null
+     where id = '00000000-0000-0000-0000-00000000000a' $$,
+  'P05c: photo_path nulo é aceito'
 );
 
--- P06
+-- P06. Perfil anonimizado não é editável.
 reset role;
-update public.profiles set deleted_at = now() where id = '00000000-0000-0000-0000-00000000000a';
+update public.profiles set deleted_at = now()
+where id = '00000000-0000-0000-0000-00000000000a';
 set local role authenticated;
+
 select is(
-  pg_temp.affected($$ update public.profiles set name = 'Outro nome'
-                      where id = '00000000-0000-0000-0000-00000000000a' $$),
-  0,
-  'P06: perfil anonimizado não é editado pela própria pessoa'
+  pg_temp.rows_changed(
+    $$ update public.profiles set name = 'Ana de novo'
+       where id = '00000000-0000-0000-0000-00000000000a' $$
+  ),
+  0::bigint,
+  'P06: com deleted_at preenchido, o update do próprio name não altera nenhuma linha'
 );
+
 reset role;
-update public.profiles set deleted_at = null where id = '00000000-0000-0000-0000-00000000000a';
+update public.profiles set deleted_at = null
+where id = '00000000-0000-0000-0000-00000000000a';
 set local role authenticated;
 
--- P07
+-- P07. As duas linhas nascem pela trigger, nunca pelo app.
 select throws_ok(
-  $$ insert into public.profiles (id, name) values (gen_random_uuid(), 'Novo') $$,
+  $$ insert into public.profiles (id, name) values (gen_random_uuid(), 'Intruso') $$,
   '42501', null,
-  'P07a: Ana não insere em profiles'
+  'P07a: insert em profiles devolve 42501'
 );
 select throws_ok(
-  $$ insert into public.profile_private (user_id) values ('00000000-0000-0000-0000-00000000000a') $$,
+  $$ insert into public.profile_private (user_id)
+     values ('00000000-0000-0000-0000-00000000000a') $$,
   '42501', null,
-  'P07b: Ana não insere em profile_private'
+  'P07b: insert em profile_private devolve 42501'
 );
 
--- profile_private ------------------------------------------------------------
-
--- P08
+-- P08. Dados privados: só os próprios.
 select results_eq(
   $$ select user_id from public.profile_private $$,
   $$ values ('00000000-0000-0000-0000-00000000000a'::uuid) $$,
-  'P08a: Ana lê só a própria linha de profile_private'
+  'P08a: Ana logada vê só a própria linha de profile_private'
 );
-select is(
-  pg_temp.affected($$ update public.profile_private set phone = '+5586999991234'
-                      where user_id = '00000000-0000-0000-0000-00000000000a' $$),
-  1,
+select lives_ok(
+  $$ update public.profile_private set phone = '+5586999991234'
+     where user_id = '00000000-0000-0000-0000-00000000000a' $$,
   'P08b: Ana grava o próprio telefone'
 );
 select is(
-  pg_temp.affected($$ update public.profile_private set phone = '+5586999991234'
-                      where user_id = '00000000-0000-0000-0000-00000000000b' $$),
-  0,
-  'P08c: Ana não altera o telefone do Bruno'
+  (select phone from public.profile_private
+   where user_id = '00000000-0000-0000-0000-00000000000a'),
+  '+5586999991234',
+  'P08c: o telefone ficou gravado'
+);
+select is(
+  pg_temp.rows_changed(
+    $$ update public.profile_private set phone = '+5586999990000'
+       where user_id = '00000000-0000-0000-0000-00000000000b' $$
+  ),
+  0::bigint,
+  'P08d: update do phone do Bruno não altera nenhuma linha'
 );
 
--- P09
+-- P09. O dono da linha privada não muda.
 select throws_ok(
   $$ update public.profile_private set user_id = '00000000-0000-0000-0000-00000000000b'
      where user_id = '00000000-0000-0000-0000-00000000000a' $$,
   '42501', null,
-  'P09: Ana não grava o próprio user_id'
+  'P09: update do próprio user_id em profile_private devolve 42501'
 );
 
--- terms_acceptances e current_terms_versions() -------------------------------
-
--- P10
+-- P10. Versões vigentes dos termos.
 select set_eq(
   $$ select document::text, version from public.current_terms_versions() $$,
   $$ values ('terms_of_use', '1.0'), ('privacy_policy', '1.0') $$,
-  'P10: current_terms_versions() devolve os dois documentos na versão 1.0'
+  'P10: current_terms_versions() devolve terms_of_use e privacy_policy na versão 1.0'
 );
 
--- P11: Ana sem aceite.
-reset role;
-delete from public.terms_acceptances where user_id = '00000000-0000-0000-0000-00000000000a';
-set local role authenticated;
+-- P11. Aceite próprio, com o instante do servidor.
 select lives_ok(
   $$ insert into public.terms_acceptances (user_id, document, version)
      values ('00000000-0000-0000-0000-00000000000a', 'terms_of_use', '1.0') $$,
-  'P11a: Ana aceita a versão vigente dos Termos de Uso'
+  'P11a: Ana insere o próprio aceite da versão vigente'
 );
 select is(
   (select accepted_at from public.terms_acceptances
    where user_id = '00000000-0000-0000-0000-00000000000a' and document = 'terms_of_use'),
   now(),
-  'P11b: accepted_at vem do now() do servidor (RN02)'
+  'P11b: o accepted_at é o now() do servidor (RN02)'
 );
 select throws_ok(
   $$ insert into public.terms_acceptances (user_id, document, version, accepted_at)
-     values ('00000000-0000-0000-0000-00000000000a', 'privacy_policy', '1.0', now() - interval '1 day') $$,
+     values ('00000000-0000-0000-0000-00000000000a', 'privacy_policy', '1.0',
+             now() - interval '1 year') $$,
   '42501', null,
-  'P11c: Ana não informa accepted_at'
+  'P11c: aceite com accepted_at informado devolve 42501'
 );
 
--- P12
+-- P12. Só a versão vigente e só em nome próprio.
 select throws_ok(
   $$ insert into public.terms_acceptances (user_id, document, version)
      values ('00000000-0000-0000-0000-00000000000a', 'privacy_policy', '0.9') $$,
   '42501', null,
-  'P12a: aceite de versão que não é a vigente é recusado'
+  'P12a: aceite da versão 0.9 devolve 42501'
 );
 select throws_ok(
   $$ insert into public.terms_acceptances (user_id, document, version)
      values ('00000000-0000-0000-0000-00000000000b', 'privacy_policy', '1.0') $$,
   '42501', null,
-  'P12b: aceite em nome de outra pessoa é recusado'
+  'P12b: aceite em nome do Bruno devolve 42501'
 );
 
--- P13: Ana e Bruno com aceites.
+-- P13. Ana lê só os próprios aceites.
 reset role;
 insert into public.terms_acceptances (user_id, document, version)
-values ('00000000-0000-0000-0000-00000000000b', 'terms_of_use', '1.0')
-on conflict do nothing;
+values
+  ('00000000-0000-0000-0000-00000000000a', 'privacy_policy', '1.0'),
+  ('00000000-0000-0000-0000-00000000000b', 'terms_of_use', '1.0'),
+  ('00000000-0000-0000-0000-00000000000b', 'privacy_policy', '1.0');
 set local role authenticated;
+
 select results_eq(
   $$ select distinct user_id from public.terms_acceptances $$,
   $$ values ('00000000-0000-0000-0000-00000000000a'::uuid) $$,
-  'P13: Ana lê só os próprios aceites'
+  'P13a: Ana logada vê só os próprios aceites'
+);
+select is(
+  (select count(*) from public.terms_acceptances),
+  2::bigint,
+  'P13b: são os dois aceites da Ana'
 );
 
--- P14: sem login.
+-- P14. Sem login, nada.
 reset role;
+select set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
 set local role anon;
-select throws_ok($$ select 1 from public.profiles $$, '42501', null, 'P14a: anon não lê profiles');
+
 select throws_ok(
-  $$ select 1 from public.profile_private $$, '42501', null, 'P14b: anon não lê profile_private'
+  $$ select id from public.profiles $$, '42501', null,
+  'P14a: anon não lê profiles'
 );
 select throws_ok(
-  $$ select 1 from public.terms_acceptances $$, '42501', null, 'P14c: anon não lê terms_acceptances'
+  $$ select user_id from public.profile_private $$, '42501', null,
+  'P14b: anon não lê profile_private'
+);
+select throws_ok(
+  $$ select id from public.terms_acceptances $$, '42501', null,
+  'P14c: anon não lê terms_acceptances'
 );
 select throws_ok(
   $$ select * from public.current_terms_versions() $$, '42501', null,
   'P14d: anon não executa current_terms_versions()'
 );
+
+-- P15. Envio de foto: só na própria pasta de profiles/.
 reset role;
-
--- Storage, bucket avatars ----------------------------------------------------
-
--- P15
 select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
 set local role authenticated;
+
 select lives_ok(
   $$ insert into storage.objects (bucket_id, name)
-     values ('avatars', 'profiles/00000000-0000-0000-0000-00000000000a/' || gen_random_uuid() || '.png') $$,
-  'P15a: Ana envia foto para a própria pasta'
+     values ('avatars',
+             'profiles/00000000-0000-0000-0000-00000000000a/11111111-1111-4111-8111-111111111111.png') $$,
+  'P15a: Ana envia arquivo para a própria pasta'
 );
 select throws_ok(
   $$ insert into storage.objects (bucket_id, name)
-     values ('avatars', 'profiles/00000000-0000-0000-0000-00000000000b/' || gen_random_uuid() || '.png') $$,
+     values ('avatars',
+             'profiles/00000000-0000-0000-0000-00000000000b/22222222-2222-4222-8222-222222222222.png') $$,
   '42501', null,
-  'P15b: Ana não envia foto para a pasta do Bruno'
+  'P15b: Ana não envia arquivo para a pasta do Bruno'
 );
 select throws_ok(
   $$ insert into storage.objects (bucket_id, name)
-     values ('avatars', 'groups/' || gen_random_uuid() || '/' || gen_random_uuid() || '.png') $$,
+     values ('avatars',
+             'groups/33333333-3333-4333-8333-333333333333/44444444-4444-4444-8444-444444444444.png') $$,
   '42501', null,
-  'P15c: Ana não envia foto para groups/ (fatia 3)'
+  'P15c: a pasta groups/ continua fechada até a fatia 3'
 );
-reset role;
 
--- P16: um arquivo da Ana e um do Bruno.
+-- P16. Leitura, alteração e remoção: só os próprios arquivos.
+reset role;
 insert into storage.objects (bucket_id, name)
-values
-  ('avatars', 'profiles/00000000-0000-0000-0000-00000000000a/p16.png'),
-  ('avatars', 'profiles/00000000-0000-0000-0000-00000000000b/p16.png');
-
+values ('avatars',
+        'profiles/00000000-0000-0000-0000-00000000000b/55555555-5555-4555-8555-555555555555.png');
 set local role authenticated;
-select is_empty(
-  $$ select name from storage.objects
-     where bucket_id = 'avatars'
-       and name not like 'profiles/00000000-0000-0000-0000-00000000000a/%' $$,
-  'P16a: Ana não vê arquivo fora da própria pasta'
-);
-select ok(
-  exists (select 1 from storage.objects
-          where name = 'profiles/00000000-0000-0000-0000-00000000000a/p16.png'),
-  'P16b: Ana vê o próprio arquivo'
+
+select results_eq(
+  $$ select name from storage.objects where bucket_id = 'avatars' $$,
+  $$ values ('profiles/00000000-0000-0000-0000-00000000000a/11111111-1111-4111-8111-111111111111.png') $$,
+  'P16a: Ana vê só o próprio arquivo'
 );
 select is(
-  pg_temp.affected($$ update storage.objects set metadata = '{}'::jsonb
-                      where bucket_id = 'avatars' and name like '%/p16.png' $$),
-  0,
-  'P16c: update em storage.objects não altera nenhuma linha (sem política de update)'
+  pg_temp.rows_changed(
+    $$ update storage.objects set name = name || '.bak' where bucket_id = 'avatars' $$
+  ),
+  0::bigint,
+  'P16b: update em storage.objects não altera nenhuma linha (sem política de update)'
 );
 
--- A API do Storage liga esta opção para apagar; o teste faz o mesmo, para que
--- quem decida seja o RLS (trigger storage.protect_delete).
+-- O Storage bloqueia o delete direto na tabela, fora da API dele. O teste liga a
+-- mesma chave que a API liga, para exercitar só a política.
 set local storage.allow_delete_query = 'true';
+
 select is(
-  pg_temp.affected($$ delete from storage.objects
-                      where name = 'profiles/00000000-0000-0000-0000-00000000000b/p16.png' $$),
-  0,
-  'P16d: Ana não apaga o arquivo do Bruno'
+  pg_temp.rows_changed(
+    $$ delete from storage.objects where bucket_id = 'avatars' $$
+  ),
+  1::bigint,
+  'P16c: o delete apaga só o arquivo da Ana'
 );
-select is(
-  pg_temp.affected($$ delete from storage.objects
-                      where name = 'profiles/00000000-0000-0000-0000-00000000000a/p16.png' $$),
-  1,
-  'P16e: Ana apaga o próprio arquivo'
-);
+
 reset role;
-select ok(
-  exists (select 1 from storage.objects
-          where name = 'profiles/00000000-0000-0000-0000-00000000000b/p16.png'),
-  'P16f: o arquivo do Bruno continua no bucket'
+select is(
+  (select count(*) from storage.objects
+   where bucket_id = 'avatars'
+     and name like 'profiles/00000000-0000-0000-0000-00000000000b/%'),
+  1::bigint,
+  'P16d: o arquivo do Bruno continua lá'
 );
+select is(
+  (select count(*) from storage.objects
+   where bucket_id = 'avatars'
+     and name like 'profiles/00000000-0000-0000-0000-00000000000a/%'),
+  0::bigint,
+  'P16e: o arquivo da Ana foi apagado'
+);
+
+-- Bruno, por sua vez, vê só o dele: a regra vale para os dois lados.
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+
+select results_eq(
+  $$ select id from public.profiles $$,
+  $$ values ('00000000-0000-0000-0000-00000000000b'::uuid) $$,
+  'P01b: Bruno logado vê só a própria linha de profiles'
+);
+select results_eq(
+  $$ select name from storage.objects where bucket_id = 'avatars' $$,
+  $$ values ('profiles/00000000-0000-0000-0000-00000000000b/55555555-5555-4555-8555-555555555555.png') $$,
+  'P16f: Bruno vê só o próprio arquivo'
+);
+
+reset role;
 
 select * from finish();
 rollback;

@@ -25,9 +25,7 @@ app/lib/
     router/                 # go_router: rotas, redirects, nomes de rota
     theme/app_theme.dart    # docs/ui/design-system.md, seção 9
     errors/                 # AppException, ErrorCode, conversão e texto
-    format/                 # dinheiro, data e hora (seção 8); CPF, CNPJ, telefone,
-                            # tipo de imagem e UUID (fatia 2)
-    submit_controller.dart  # ActionController, base das ações (seção 5)
+    format/                 # dinheiro, data e hora (seção 8)
     realtime.dart           # ajudante de assinatura (seção 6)
   l10n/app_pt.arb           # todos os textos da interface
   shared/widgets/           # componentes do design system
@@ -63,7 +61,8 @@ app/integration_test/       # fluxos de ponta a ponta no emulador
 | `timezone` | Conversão para `America/Fortaleza` (RN01) |
 | `material_symbols_icons` | Ícones (`design-system.md`, seção 6) |
 | `google_sign_in` | Login com Google |
-| `image_picker`, `file_picker`, `share_plus`, `app_links`, `firebase_core`, `firebase_messaging`, `flutter_local_notifications` | Entram nas fatias que os usam (`stacks.md`, 3.1) |
+| `image_picker` | Foto do perfil, da galeria ou da câmera, já reduzida a 1024 px no maior lado (fatia 2) |
+| `file_picker`, `share_plus`, `app_links`, `firebase_core`, `firebase_messaging`, `flutter_local_notifications` | Entram nas fatias que os usam (`stacks.md`, 3.1) |
 | `http` | Já vem com `supabase_flutter`; declarada porque a conversão de erros cita `ClientException` (seção 7) |
 | `mocktail` (dev) | Dublês nos testes |
 | `flutter_lints` (dev) | Regras do `dart analyze` |
@@ -96,16 +95,16 @@ Riverpod 3, com providers escritos à mão, sem `riverpod_generator`. A geraçã
 | Cliente ou repositório | `Provider` | `profileRepositoryProvider` |
 | Dados de uma tela | `FutureProvider.autoDispose` ou `.family` | `gameDetailProvider(gameId)` |
 | Dados com Realtime | `AsyncNotifierProvider.autoDispose.family`, que assina no `build` (seção 6) | `attendanceProvider(gameId)` |
-| Ação do usuário (formulário, botão) | `AsyncNotifierProvider.autoDispose<ActionController, void>`, um por tela, com o estado da submissão | `_saveProvider` em `profile_edit_screen.dart` |
-| Estado de tela em memória (e-mail do código pendente) | `NotifierProvider` | `pendingEmailProvider` |
+| Ação do usuário (formulário, botão) | `AsyncNotifierProvider.autoDispose`, com o estado da submissão | `profileEditControllerProvider` |
 | Sessão | `StreamProvider` sobre `onAuthStateChange` | `authStateProvider` |
 
 Regras:
-- `ActionController` (`core/submit_controller.dart`) tem só `run(ação)`, que devolve `true` se deu certo e deixa o erro em `state.error`. A tela decide o que fazer com o erro: no campo (código errado, senha atual errada) ou em `SnackBar`.
-- Depois de uma mutação, a tela ou o controller chama `ref.invalidate` nos providers de leitura afetados. O app não monta a resposta à mão: ela vem do servidor na próxima leitura.
+- Depois de uma mutação, o controller chama `ref.invalidate` nos providers de leitura afetados. O app não monta a resposta à mão: ela vem do servidor na próxima leitura.
 - Tela de dados usa `.autoDispose`: ao sair da tela, a assinatura e o dado somem (RNF07, nada guardado para consulta offline).
 - Widgets leem com `ref.watch` e chamam ações com `ref.read(...notifier)`. Nunca `ref.read` no `build`.
 - Nos testes, repositórios são trocados com `ProviderScope(overrides: [...])`.
+- **Sem repetição automática:** o Riverpod 3 repete sozinho uma leitura que falhou. O `ProviderScope` do `main` e o dos testes desligam isso (`retry: (_, _) => null`): quem tenta de novo é a pessoa, pelo botão "Tentar de novo" (research R4 de `specs/001-conta-e-perfil`).
+- **Formulários:** o controller estende `SubmitController` (`features/auth/presentation/submit_controller.dart`). O estado é o da submissão, e cada ação devolve `AppException?`, nulo no sucesso, para a tela decidir se o erro vai para o campo ou para o `SnackBar`. O `build` dele é síncrono, para o controller nascer em `AsyncData`: com um `build` assíncrono, a tela começa "ocupada", desabilita os campos no primeiro quadro e perde o `autofocus`.
 
 ## 6. Realtime
 
@@ -154,11 +153,12 @@ Tudo o que sai do Supabase passa por uma conversão única, em `core/errors/`, e
 | Sem rede | `SocketException`, `ClientException`, `TimeoutException` | `ErrorCode.noConnection` (RNF07) |
 | Qualquer outra coisa, ou código desconhecido | — | `ErrorCode.internalError` |
 
-- `guard(chamada)` (`core/errors/error_mapper.dart`) executa a chamada e converte qualquer exceção em `AppException` por esta tabela. Todo método de repositório passa por ele.
 - `ErrorCode` é um enum com os códigos do `contratos-api.md` (seção 2) que o app já usa, mais `noConnection` e os de autenticação. Ele cresce a cada fatia, junto com os textos do `docs/copy.md`. Ao fim da fatia 8, tem todos os códigos do catálogo.
 - O texto vem de uma função com `switch` exaustivo sobre `ErrorCode`, que lê o `app_pt.arb` (`errorGameFull`, `errorNotFound` etc.). Código novo sem texto não compila.
 - A tela não lê `message` do Postgres nem mostra texto técnico.
 - Erro ao carregar a tela vira o estado de erro ou de sem conexão (`design-system.md`, 7.16). Erro de uma ação vira `SnackBar`, e a tela continua como estava.
+- **Erro do servidor num campo** (e-mail em uso, senha atual errada) vai pelo `forceErrorText` do campo. Ele só sai do campo no quadro seguinte ao `setState`, então a tela limpa o erro e espera `afterServerErrorCleared()` (`shared/widgets/form_fields.dart`) antes de chamar o `validate()`. Sem isso, o novo envio é barrado pelo erro antigo.
+- **Campos fora da tela também são validados:** o `FormScrollView` monta todos os campos de uma vez. Uma lista sob demanda (`ListView`, `SliverList`) tira da árvore o campo que saiu da tela, e o `Form.validate()` deixa de conferi-lo.
 
 ## 8. Dinheiro, data e hora
 
@@ -192,24 +192,108 @@ Tudo o que sai do Supabase passa por uma conversão única, em `core/errors/`, e
 | Integração | `app/integration_test/` | Os fluxos de "Pronto quando" de cada fatia | No emulador, contra o Supabase local com o seed |
 
 - O arquivo de teste espelha o caminho do arquivo testado: `lib/core/format/money.dart` → `test/core/format/money_test.dart`.
-- **Ajudantes** (`test/helpers/`): `TestApp` monta uma tela solta; `pumpRouterApp` monta um `go_router` em que as telas do teste são reais e as outras rotas mostram `stub:<nome>`, num celular de 412 × 915 dp, e devolve o `ProviderContainer`; `tapVisible` rola até o widget antes de tocar; `fakes.dart` tem os dublês dos repositórios e os dados de exemplo (`ownProfile`, versões dos termos).
-- O teste do roteador (`test/core/router/app_router_test.dart`) usa o `routerProvider` real, com os repositórios trocados.
+- **Testes de tela montam o app inteiro** pelo `TestHarness` (`test/helpers/harness.dart`): o roteador real, os repositórios trocados por dublês e um celular de 360 × 760 dp. Cada teste diz só o que muda (`h.signedIn()`, `h.ownProfile(...)`, `h.termsAccepted(...)`).
+- **Integração** lê os códigos dos e-mails pela API do Mailpit (`integration_test/mailpit.dart`).
 - O resultado esperado vem dos documentos (`testes-referencia.md`, RN, RF), nunca do que o código devolve.
 
-## 12. Exemplo: a feature de conta (fatia 2)
+## 12. Exemplo: perfil (fatia 2)
 
-A fatia 2 trocou o exemplo escrito antes do código pela feature real, em `features/auth/`. Os padrões a copiar:
+A feature real de perfil, em `app/lib/features/auth/`, mostra o padrão completo: leitura direta, escrita direta permitida, erro de *trigger* e foto no Storage. Os trechos abaixo são resumidos; o código é a referência.
 
-| Camada | Arquivo | Padrão |
-|--------|---------|--------|
-| `domain` | `profile.dart`, `terms.dart`, `pix_key_type.dart` | Modelos `freezed` com JSON em `snake_case`. `TermsStatus.compare` só compara versões; a regra de qual versão vale está no servidor (`current_terms_versions()`) |
-| `data` | `profile_repository.dart` | Leitura e escrita direta permitida (`contratos-api.md`, seção 9), cada método dentro de `guard` |
-| `data` | `auth_repository.dart`, `google_auth_client.dart`, `photo_picker.dart` | Serviços de fora (Google, câmera) atrás de uma interface, trocada por dublê nos testes |
-| `presentation` | `profile_providers.dart` | `ownProfileProvider` (`FutureProvider.autoDispose`), relido ao voltar de cada edição |
-| `presentation` | `profile_edit_screen.dart` | Tela que lê com `switch` sobre o `AsyncValue` (carregando, erro, dados) e grava com um `ActionController` próprio |
-| Roteador | `core/router/app_router.dart` | Redirecionamentos da seção 9, inclusive a conferência dos termos, que o roteador escuta com `ref.listen` |
+**`domain/`:** um modelo `freezed` por linha lida (`Profile`, `ProfilePrivate`) e um que junta as duas para a tela (`OwnProfile`). O tipo da chave Pix é um enum com o valor do banco (`PixKeyType`), e a conferência, a normalização e a exibição por tipo ficam em `pix_key.dart`, repetindo a regra do banco só para o aviso no campo.
 
-Os testes de cada tela estão em `test/features/auth/presentation/`, com os IDs de `testes-referencia.md` (seção 10.4) no nome.
+**`data/profile_repository.dart`**
+```dart
+class ProfileRepository {
+  ProfileRepository(this._db);
+  final SupabaseClient _db;
+
+  String get _uid => _db.auth.currentUser!.id;
+
+  Future<OwnProfile> fetchOwn() => guard(() async {
+    final results = await Future.wait([
+      _db.from('profiles')
+          .select('id, name, nickname, display_name, photo_path')
+          .eq('id', _uid).single(),
+      _db.from('profile_private')
+          .select('phone, phone_visible, pix_key_type, pix_key')
+          .eq('user_id', _uid).single(),
+    ]);
+    return OwnProfile(
+      profile: Profile.fromJson(results[0]),
+      private: ProfilePrivate.fromJson(results[1]),
+    );
+  });
+
+  // Escrita direta permitida: contratos-api.md, seção 9. Os dois nulos
+  // removem a chave, e a trigger da RN105 recusa com PIX_KEY_IN_USE.
+  Future<void> updatePixKey({required PixKeyType? type, required String? key}) =>
+      guard(() async {
+        await _db.from('profile_private')
+            .update({'pix_key_type': type?.value, 'pix_key': key})
+            .eq('user_id', _uid);
+      });
+}
+```
+
+`guard` (em `core/errors/`) executa a chamada e converte qualquer exceção em `AppException` pela tabela da seção 7. Um repositório que chama função SQL segue o mesmo formato, com `_db.rpc('create_group', params: {'p_name': name})`.
+
+**`presentation/profile_providers.dart` e o controller**
+```dart
+final ownProfileProvider = FutureProvider.autoDispose<OwnProfile>(
+  (ref) => ref.watch(profileRepositoryProvider).fetchOwn(),
+);
+
+class ProfilePixController extends SubmitController {
+  Future<AppException?> remove() async {
+    final error = await submit(
+      () => ref.read(profileRepositoryProvider).updatePixKey(type: null, key: null),
+    );
+    // Depois da mutação, o perfil relê do servidor.
+    if (error == null && ref.mounted) ref.invalidate(ownProfileProvider);
+    return error;
+  }
+}
+```
+
+**`presentation/profile_pix_screen.dart`**
+```dart
+final profile = ref.watch(ownProfileProvider);
+return Scaffold(
+  appBar: InnerAppBar(title: l10n.profilePix),
+  body: switch (profile) {
+    AsyncValue(:final value?) => _PixForm(private: value.private),
+    AsyncError(:final error) => ErrorStateView(
+      error: error,
+      onRetry: () => ref.invalidate(ownProfileProvider),
+    ),
+    _ => const LoadingState(),
+  },
+);
+```
+
+Na remoção, a tela abre a confirmação destrutiva, chama `remove()` e, se voltar `PIX_KEY_IN_USE`, mostra o `SnackBar` com o texto do código, e a chave continua (`docs/ui/telas.md`, 5.9).
+
+**`test/features/auth/presentation/profile_pix_screen_test.dart`**
+```dart
+setUp(() {
+  h = TestHarness();
+  h.signedIn();
+  h.ownProfile(pixKeyType: PixKeyType.cpf, pixKey: '52998224725');
+});
+
+testWidgets('S13: CPF com dígito errado mostra erro e não chama o servidor', (tester) async {
+  await h.pumpApp(tester, location: '/profile');
+  await h.push(tester, '/profile/pix');
+
+  await tester.enterText(find.byType(TextFormField), '52998224724');
+  await tester.tap(buttonWithText<FilledButton>(l10nPt.commonSave));
+  await tester.pumpAndSettle();
+
+  expect(find.text(l10nPt.pixInvalidCpf), findsOneWidget);
+  verifyNever(() => h.profiles.updatePixKey(type: any(named: 'type'), key: any(named: 'key')));
+});
+```
 
 ## 13. Anti-padrões
 

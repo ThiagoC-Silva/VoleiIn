@@ -2,85 +2,139 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:voleiin/core/errors/error_code.dart';
-import 'package:voleiin/core/router/routes.dart';
-import 'package:voleiin/features/auth/data/auth_repository.dart';
-import 'package:voleiin/features/auth/presentation/forgot_password_screen.dart';
 import 'package:voleiin/shared/widgets/code_field.dart';
 
-import '../../../helpers/fakes.dart';
+import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
-import '../../../helpers/test_router.dart';
 
-/// Cenário S08 de docs/testes-referencia.md, seção 10.4.
+/// Cenário S08 de docs/testes-referencia.md, seção 10.4 (docs/ui/telas.md, 5.4).
 void main() {
+  late TestHarness h;
+
+  setUp(() {
+    h = TestHarness();
+    when(() => h.auth.sendPasswordRecovery(any())).thenAnswer((_) async {});
+    when(
+      () => h.auth.verifyRecoveryCode(
+        email: any(named: 'email'),
+        code: any(named: 'code'),
+      ),
+    ).thenAnswer((_) async {});
+    when(() => h.auth.updatePassword(any())).thenAnswer((_) async {});
+  });
+
+  Future<void> goToStepTwo(WidgetTester tester) async {
+    await h.pumpApp(tester, location: '/forgot-password');
+    await tester.enterText(find.byType(TextFormField), 'bruno@voleiin.test');
+    await tester.tap(buttonWithText<FilledButton>(l10nPt.authSendCode));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> save(WidgetTester tester) async {
+    await tester.tap(buttonWithText<FilledButton>(l10nPt.authSaveNewPassword));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('etapa 1: e-mail vazio mostra erro e não chama o servidor', (
+    tester,
+  ) async {
+    await h.pumpApp(tester, location: '/forgot-password');
+
+    await tester.tap(buttonWithText<FilledButton>(l10nPt.authSendCode));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nPt.authEmailRequired), findsOneWidget);
+    verifyNever(() => h.auth.sendPasswordRecovery(any()));
+  });
+
   testWidgets(
-    'S08: código válido com senha recusada fica só no campo de senha',
+    'S08: código aceito e senha recusada deixam só o campo de senha; o novo toque chama só o updateUser',
     (tester) async {
-      final auth = MockAuthRepository();
-      when(() => auth.sendRecoveryCode(any())).thenAnswer((_) async {});
-      when(
-        () => auth.verifyRecoveryCode(
-          email: any(named: 'email'),
-          code: any(named: 'code'),
-        ),
-      ).thenAnswer((_) async {});
-      when(() => auth.updatePassword(any()))
+      when(() => h.auth.updatePassword('voleiin123'))
           .thenThrow(const AppException(ErrorCode.authSamePassword));
 
-      await pumpRouterApp(
-        tester,
-        initialLocation: Routes.forgotPasswordPath,
-        overrides: [authRepositoryProvider.overrideWithValue(auth)],
-        screens: {Routes.forgotPassword: (_) => const ForgotPasswordScreen()},
-      );
+      await goToStepTwo(tester);
 
-      // Etapa 1.
-      await tester.enterText(find.byType(TextFormField), 'bruno@voleiin.test');
-      await tapVisible(
-        tester,
-        find.widgetWithText(FilledButton, l10nPt.authSendCode),
-      );
-      await tester.pumpAndSettle();
-      verify(() => auth.sendRecoveryCode('bruno@voleiin.test')).called(1);
-
-      // Etapa 2.
+      // Passa à etapa 2.
+      verify(() => h.auth.sendPasswordRecovery('bruno@voleiin.test')).called(1);
+      expect(find.byType(CodeField), findsOneWidget);
       expect(
-        find.widgetWithText(FilledButton, l10nPt.authSaveNewPassword),
+        find.text(
+          l10nPt.authCodeSent('bruno@voleiin.test'),
+          findRichText: true,
+        ),
         findsOneWidget,
       );
-      await tester.enterText(find.byType(TextField).first, '123456');
-      await tester.enterText(find.byType(TextFormField).last, 'mesmasenha');
-      await tapVisible(
-        tester,
-        find.widgetWithText(FilledButton, l10nPt.authSaveNewPassword),
-      );
-      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(CodeField), '123456');
+      await tester.enterText(find.byType(TextFormField), 'voleiin123');
+      await save(tester);
+
+      // O código valeu, mas a senha é a mesma: só o campo de senha, com o erro.
+      expect(find.byType(CodeField), findsNothing);
+      expect(find.text(l10nPt.errorAuthSamePassword), findsOneWidget);
+      expect(find.text(l10nPt.authResendCode), findsNothing);
+
+      await tester.enterText(find.byType(TextFormField), 'outra-senha-1');
+      await save(tester);
 
       verify(
-        () => auth.verifyRecoveryCode(
+        () => h.auth.verifyRecoveryCode(
           email: 'bruno@voleiin.test',
           code: '123456',
         ),
       ).called(1);
-      expect(find.text(l10nPt.errorAuthSamePassword), findsOneWidget);
-      // Só o campo de senha continua: o código já valeu e criou a sessão.
-      expect(find.byType(CodeField), findsNothing);
-      expect(find.byType(TextFormField), findsOneWidget);
-
-      await tester.enterText(find.byType(TextFormField), 'outrasenha');
-      await tapVisible(
-        tester,
-        find.widgetWithText(FilledButton, l10nPt.authSaveNewPassword),
-      );
-      await tester.pumpAndSettle();
-
-      verify(() => auth.updatePassword('outrasenha')).called(1);
-      verifyNever(
-        () => auth.verifyRecoveryCode(
-          email: any(named: 'email'),
-          code: any(named: 'code'),
-        ),
-      );
+      verify(() => h.auth.updatePassword('voleiin123')).called(1);
+      verify(() => h.auth.updatePassword('outra-senha-1')).called(1);
+      expect(find.text(l10nPt.authPasswordChanged), findsOneWidget);
     },
   );
+
+  testWidgets('etapa 2: código errado mostra o erro no campo de código', (
+    tester,
+  ) async {
+    when(
+      () => h.auth.verifyRecoveryCode(
+        email: any(named: 'email'),
+        code: any(named: 'code'),
+      ),
+    ).thenThrow(const AppException(ErrorCode.authInvalidCode));
+
+    await goToStepTwo(tester);
+    await tester.enterText(find.byType(CodeField), '000000');
+    await tester.enterText(find.byType(TextFormField), 'voleiin123');
+    await save(tester);
+
+    expect(find.text(l10nPt.errorAuthInvalidCode), findsOneWidget);
+    expect(find.byType(CodeField), findsOneWidget);
+    verifyNever(() => h.auth.updatePassword(any()));
+  });
+
+  testWidgets('etapa 2: senha com menos de 8 caracteres não chama o servidor', (
+    tester,
+  ) async {
+    await goToStepTwo(tester);
+    await tester.enterText(find.byType(CodeField), '123456');
+    await tester.enterText(find.byType(TextFormField), '1234567');
+    await save(tester);
+
+    expect(find.text(l10nPt.authPasswordTooShort), findsOneWidget);
+    verifyNever(
+      () => h.auth.verifyRecoveryCode(
+        email: any(named: 'email'),
+        code: any(named: 'code'),
+      ),
+    );
+  });
+
+  testWidgets('etapa 2: o voltar leva de volta à etapa 1', (tester) async {
+    await goToStepTwo(tester);
+
+    await tester.tap(find.byTooltip(l10nPt.commonBack));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CodeField), findsNothing);
+    expect(find.text(l10nPt.authForgotSubtitle), findsOneWidget);
+    expect(h.location, '/forgot-password');
+  });
 }

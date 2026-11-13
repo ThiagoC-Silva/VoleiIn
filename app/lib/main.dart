@@ -20,5 +20,7 @@ Future<void> main() async {
     publishableKey: Env.supabasePublishableKey,
   );
 
-  runApp(const ProviderScope(child: VoleiInApp()));
+  // Sem repetição automática das leituras que falham: quem tenta de novo é a
+  // pessoa, no botão "Tentar de novo" (research R4).
+  runApp(ProviderScope(retry: (_, _) => null, child: const VoleiInApp()));
 }

@@ -2,42 +2,118 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:voleiin/core/errors/error_code.dart';
-import 'package:voleiin/core/router/routes.dart';
-import 'package:voleiin/features/auth/data/auth_repository.dart';
-import 'package:voleiin/features/auth/presentation/profile_email_screen.dart';
+import 'package:voleiin/shared/widgets/code_field.dart';
 
-import '../../../helpers/fakes.dart';
+import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
-import '../../../helpers/test_router.dart';
 
-/// Cenário S14 de docs/testes-referencia.md, seção 10.4 (RF106).
+/// Cenário S14 de docs/testes-referencia.md, seção 10.4 (docs/ui/telas.md, 5.10).
 void main() {
-  testWidgets('S14: mesmo e-mail e e-mail de outra conta dão erro no campo', (
+  late TestHarness h;
+
+  setUp(() {
+    h = TestHarness();
+    h.signedIn(email: 'ana@exemplo.com');
+    when(() => h.auth.requestEmailChange(any())).thenAnswer((_) async {});
+    when(
+      () => h.auth.confirmEmailChange(
+        newEmail: any(named: 'newEmail'),
+        code: any(named: 'code'),
+      ),
+    ).thenAnswer((_) async {});
+  });
+
+  Future<void> open(WidgetTester tester) async {
+    await h.pumpApp(tester, location: '/profile');
+    await h.push(tester, '/profile/email');
+  }
+
+  Future<void> sendCode(WidgetTester tester, String email) async {
+    await tester.enterText(find.byType(TextFormField), email);
+    await tester.tap(buttonWithText<FilledButton>(l10nPt.authSendCode));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('a etapa 1 mostra o e-mail atual', (tester) async {
+    await open(tester);
+
+    expect(
+      find.text(l10nPt.emailCurrent('ana@exemplo.com'), findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.text(l10nPt.emailKeepsWorking), findsOneWidget);
+  });
+
+  testWidgets(
+    'S14: novo e-mail igual ao atual mostra erro e não chama o servidor',
+    (tester) async {
+      await open(tester);
+
+      await sendCode(tester, ' Ana@Exemplo.com ');
+
+      expect(find.text(l10nPt.emailSameAsCurrent), findsOneWidget);
+      verifyNever(() => h.auth.requestEmailChange(any()));
+    },
+  );
+
+  testWidgets('S14: e-mail de outra conta mostra o erro no campo', (
     tester,
   ) async {
-    final auth = MockAuthRepository();
-    when(() => auth.currentEmail).thenReturn('ana@voleiin.test');
-    when(() => auth.requestEmailChange(any()))
+    when(() => h.auth.requestEmailChange(any()))
         .thenThrow(const AppException(ErrorCode.authEmailInUse));
+    await open(tester);
 
-    await pumpRouterApp(
-      tester,
-      initialLocation: Routes.profileEmailPath,
-      overrides: [authRepositoryProvider.overrideWithValue(auth)],
-      screens: {Routes.profileEmail: (_) => const ProfileEmailScreen()},
+    await sendCode(tester, 'bruno@exemplo.com');
+
+    expect(find.text(l10nPt.errorAuthEmailInUse), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.byType(CodeField), findsNothing);
+  });
+
+  testWidgets('código completo confirma a troca e volta ao perfil', (
+    tester,
+  ) async {
+    await open(tester);
+
+    await sendCode(tester, 'novo@exemplo.com');
+
+    verify(() => h.auth.requestEmailChange('novo@exemplo.com')).called(1);
+    expect(
+      find.text(l10nPt.authCodeSent('novo@exemplo.com'), findRichText: true),
+      findsOneWidget,
     );
 
-    final send = find.widgetWithText(FilledButton, l10nPt.authSendCode);
-    await tester.enterText(find.byType(TextFormField), 'ana@voleiin.test');
-    await tapVisible(tester, send);
+    h.signedIn(email: 'novo@exemplo.com');
+    await tester.enterText(find.byType(CodeField), '123456');
     await tester.pumpAndSettle();
-    expect(find.text(l10nPt.emailSameAsCurrent), findsOneWidget);
-    verifyNever(() => auth.requestEmailChange(any()));
 
-    await tester.enterText(find.byType(TextFormField), 'bruno@voleiin.test');
-    await tapVisible(tester, send);
+    verify(
+      () => h.auth.confirmEmailChange(
+        newEmail: 'novo@exemplo.com',
+        code: '123456',
+      ),
+    ).called(1);
+    expect(find.text(l10nPt.emailChanged), findsOneWidget);
+    expect(h.location, '/profile');
+    expect(find.text('novo@exemplo.com'), findsOneWidget);
+  });
+
+  testWidgets('código errado mostra o erro no campo, e o e-mail não muda', (
+    tester,
+  ) async {
+    when(
+      () => h.auth.confirmEmailChange(
+        newEmail: any(named: 'newEmail'),
+        code: any(named: 'code'),
+      ),
+    ).thenThrow(const AppException(ErrorCode.authInvalidCode));
+    await open(tester);
+
+    await sendCode(tester, 'novo@exemplo.com');
+    await tester.enterText(find.byType(CodeField), '000000');
     await tester.pumpAndSettle();
-    verify(() => auth.requestEmailChange('bruno@voleiin.test')).called(1);
-    expect(find.text(l10nPt.errorAuthEmailInUse), findsOneWidget);
+
+    expect(find.text(l10nPt.errorAuthInvalidCode), findsOneWidget);
+    expect(h.location, '/profile/email');
   });
 }

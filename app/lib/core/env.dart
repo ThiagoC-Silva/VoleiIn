@@ -12,7 +12,8 @@ class Env {
     'SUPABASE_PUBLISHABLE_KEY',
   );
 
-  /// ID do cliente web do Google, para o login com Google (docs/setup.md, 6.2).
+  /// Cliente web do Google: o `aud` do ID token que o Supabase Auth confere
+  /// (docs/setup.md, seção 6).
   static const String googleWebClientId = String.fromEnvironment(
     'GOOGLE_WEB_CLIENT_ID',
   );

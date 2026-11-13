@@ -1,17 +1,16 @@
--- Segurança da base (fatia 1).
+-- Segurança da base.
 -- Cenários B01 a B10 de docs/testes-referencia.md, seção 9.1.
 -- Documento de referência das políticas e privilégios: docs/rls-matriz.md.
 --
--- B03, B04, B06 e B10 comparam o banco com uma LISTA ESPERADA. Na fatia 1 as
--- listas eram vazias. Cada fatia acrescenta aqui, no mesmo PR, as políticas, os
--- privilégios e as funções que concede (docs/rls-matriz.md, 5). As listas abaixo
--- são as da fatia 2 (docs/testes-referencia.md, seção 10).
+-- B03, B04, B06 e B10 comparam o banco com uma LISTA ESPERADA. Cada fatia
+-- acrescenta aqui, no mesmo PR, as políticas, os privilégios e as funções que
+-- concede (docs/rls-matriz.md, 5). Listas atuais: as da fatia 2.
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(22);
+select plan(24);
 
 -- B01. Nenhuma tabela de public sem RLS. É o teste "tabela sem RLS" do CI.
 select is_empty(
@@ -44,7 +43,8 @@ select set_eq(
   'B02: public tem exatamente as 20 tabelas do modelo de dados'
 );
 
--- B03. Políticas de public. Lista esperada da fatia 2 (rls-matriz.md, Fatia 2).
+-- B03. Políticas de public. Lista esperada: as seis da fatia 2
+-- (docs/rls-matriz.md, fatia 2).
 select set_eq(
   $$ select tablename || '.' || policyname from pg_policies where schemaname = 'public' $$,
   array[
@@ -55,11 +55,11 @@ select set_eq(
     'terms_acceptances.terms_acceptances_select_own',
     'terms_acceptances.terms_acceptances_insert_own'
   ],
-  'B03: as políticas de public são exatamente as da fatia 2'
+  'B03: as políticas de public são exatamente as da lista esperada (fatia 2)'
 );
 
 -- B04. Privilégios de tabela e de coluna de anon e authenticated em public.
--- Lista esperada da fatia 2. anon continua sem nenhum.
+-- Lista esperada: a da fatia 2. anon continua sem nenhum.
 select set_eq(
   $$ select a.grantee::regrole::text || ' ' || c.relname || ' ' || a.privilege_type
      from pg_class c
@@ -72,7 +72,7 @@ select set_eq(
     'authenticated profile_private SELECT',
     'authenticated terms_acceptances SELECT'
   ],
-  'B04a: privilégios de tabela de anon e authenticated são os da fatia 2'
+  'B04a: privilégios de tabela iguais à lista esperada (fatia 2)'
 );
 
 select set_eq(
@@ -95,24 +95,32 @@ select set_eq(
     'authenticated terms_acceptances.document INSERT',
     'authenticated terms_acceptances.version INSERT'
   ],
-  'B04b: privilégios de coluna de anon e authenticated são os da fatia 2'
+  'B04b: privilégios de coluna iguais à lista esperada (fatia 2)'
 );
 
 -- B06. Funções de public que anon ou authenticated podem executar, fora as de
--- extensões. Lista esperada da fatia 2: só current_terms_versions(), e só por
--- authenticated (contratos-api.md, seção 9).
--- Este é o teste que cobra o `revoke execute ... from public, anon` de toda
--- função nova (docs/arquitetura-app.md, 14.3).
+-- extensões. Lista esperada da fatia 2: current_terms_versions(), só para
+-- authenticated. Este é o teste que cobra o `revoke execute ... from public, anon`
+-- de toda função nova (docs/arquitetura-app.md, 14.3).
 select set_eq(
-  $$ select r.rolname || ' ' || p.oid::regprocedure::text
+  $$ select p.oid::regprocedure::text
      from pg_proc p
      join pg_namespace n on n.oid = p.pronamespace
-     cross join (values ('anon'), ('authenticated')) as r (rolname)
      where n.nspname = 'public'
        and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
-       and has_function_privilege(r.rolname, p.oid, 'execute') $$,
-  array['authenticated current_terms_versions()'],
-  'B06: as funções de public executáveis pelo app são as da fatia 2'
+       and has_function_privilege('authenticated', p.oid, 'execute') $$,
+  array['current_terms_versions()'],
+  'B06a: authenticated executa só as funções da lista esperada (fatia 2)'
+);
+
+select is_empty(
+  $$ select p.oid::regprocedure::text
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+       and has_function_privilege('anon', p.oid, 'execute') $$,
+  'B06b: nenhuma função de public é executável por anon'
 );
 
 -- B05. Tabela e função criadas depois da primeira migração nascem fechadas.
@@ -163,8 +171,10 @@ select ok(
   'B07d: authenticated sem execute em private.emit_notification'
 );
 
--- B08. Usuário autenticado não lê nem escreve nada.
--- Simulação do usuário como a API faz (docs/arquitetura-app.md, 14.4).
+-- B08. Usuário autenticado não lê nem escreve o que nenhuma fatia liberou.
+-- Até a fatia 1, o select era em profiles, que a fatia 2 libera para a própria
+-- linha (cenários P01 a P16). Simulação do usuário como a API faz
+-- (docs/arquitetura-app.md, 14.4).
 select set_config(
   'request.jwt.claims',
   json_build_object('sub', '00000000-0000-0000-0000-00000000000a', 'role', 'authenticated')::text,
@@ -172,8 +182,6 @@ select set_config(
 );
 set local role authenticated;
 
--- Até a fatia 1 o select era em profiles, que a fatia 2 libera para a própria
--- linha (testes-referencia.md, 9.1).
 select throws_ok(
   $$ select id from public.groups $$,
   '42501',
@@ -223,17 +231,17 @@ select is(
   'B09f: receipts aceita imagem e PDF (RN87)'
 );
 
--- B10. Comprovantes continuam fechados; avatars tem só as políticas da fatia 2.
--- Até a fatia 1 o caminho testado era avatars/profiles/<uid>/x.png, que a
--- fatia 2 libera ao próprio usuário (testes-referencia.md, 9.1).
+-- B10. Ninguém envia comprovante: o bucket receipts só abre na fatia 6. Até a
+-- fatia 1, o caminho testado era avatars/profiles/<uid>/x.png, que a fatia 2
+-- libera ao próprio usuário (P15).
 set local role authenticated;
 
 select throws_ok(
   $$ insert into storage.objects (bucket_id, name)
-     values ('receipts', gen_random_uuid()::text || '/x.png') $$,
+     values ('receipts', '00000000-0000-0000-0000-0000000000c1/x.png') $$,
   '42501',
   null,
-  'B10a: insert em storage.objects, bucket receipts, como authenticated é recusado'
+  'B10a: insert em storage.objects, bucket receipts, é recusado pelo RLS'
 );
 
 reset role;
@@ -244,8 +252,21 @@ select set_eq(
      where schemaname = 'storage'
        and tablename = 'objects'
        and (coalesce(qual, '') || coalesce(with_check, '')) like any (array['%avatars%', '%receipts%']) $$,
-  array['avatars_profile_select_own', 'avatars_profile_insert_own', 'avatars_profile_delete_own'],
-  'B10b: as políticas de storage.objects que citam avatars ou receipts são as da fatia 2'
+  array[
+    'avatars_profile_select_own',
+    'avatars_profile_insert_own',
+    'avatars_profile_delete_own'
+  ],
+  'B10b: as políticas de storage.objects são exatamente as três de avatars (fatia 2)'
+);
+
+select is_empty(
+  $$ select policyname::text
+     from pg_policies
+     where schemaname = 'storage'
+       and tablename = 'objects'
+       and policyname not like 'avatars_profile_%' $$,
+  'B10c: não há outra política em storage.objects'
 );
 
 select * from finish();

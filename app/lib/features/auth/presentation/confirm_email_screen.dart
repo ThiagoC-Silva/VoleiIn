@@ -6,26 +6,19 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../core/errors/error_code.dart';
 import '../../../core/errors/error_text.dart';
 import '../../../core/router/routes.dart';
-import '../../../core/submit_controller.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/bold_value_text.dart';
+import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/code_field.dart';
-import '../../../shared/widgets/inner_scaffold.dart';
-import '../../../shared/widgets/loading_button.dart';
+import '../../../shared/widgets/form_scroll_view.dart';
+import '../../../shared/widgets/icon_square.dart';
 import '../../../shared/widgets/resend_code_button.dart';
-import '../data/auth_repository.dart';
-import 'code_sent_text.dart';
-import 'pending_email_provider.dart';
+import '../../../shared/widgets/snack.dart';
+import 'auth_providers.dart';
+import 'confirm_email_controller.dart';
 
-final _confirmProvider =
-    AsyncNotifierProvider.autoDispose<ActionController, void>(
-      ActionController.new,
-    );
-
-/// Confirmar o e-mail do cadastro com o código (RF02, ADR 0017;
-/// docs/ui/telas.md, 5.3; confirmEmail.png).
-///
-/// Chega aqui pelo cadastro ou pelo erro `email_not_confirmed` do login, com o
-/// e-mail em memória. Sem ele (app reaberto), volta ao login.
+/// Confirmar e-mail com o código (docs/ui/telas.md, 5.3; confirmEmail.png).
+/// Sem o e-mail em memória, o roteador volta ao login.
 class ConfirmEmailScreen extends ConsumerStatefulWidget {
   const ConfirmEmailScreen({super.key});
 
@@ -40,12 +33,11 @@ class _ConfirmEmailScreenState extends ConsumerState<ConfirmEmailScreen> {
   @override
   void initState() {
     super.initState();
-    _code.addListener(_clearErrorWhileTyping);
-    if (ref.read(pendingEmailProvider) == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.goNamed(Routes.login);
-      });
-    }
+    _code.addListener(() {
+      if (_codeError != null && _code.text.isNotEmpty) {
+        setState(() => _codeError = null);
+      }
+    });
   }
 
   @override
@@ -54,140 +46,95 @@ class _ConfirmEmailScreenState extends ConsumerState<ConfirmEmailScreen> {
     super.dispose();
   }
 
-  void _clearErrorWhileTyping() {
-    if (_codeError != null && _code.text.isNotEmpty) {
-      setState(() => _codeError = null);
-    }
-  }
-
-  Future<void> _verify(String code) async {
-    final email = ref.read(pendingEmailProvider);
-    if (email == null || code.length != CodeField.length) return;
-    if (ref.read(_confirmProvider).isLoading) return;
-
-    final ok = await ref
-        .read(_confirmProvider.notifier)
-        .run(
-          () => ref
-              .read(authRepositoryProvider)
-              .verifySignupCode(email: email, code: code),
-        );
-    if (!mounted) return;
-    if (ok) {
-      // A sessão nasceu: o roteador leva à conferência dos termos.
-      ref.read(pendingEmailProvider.notifier).set(null);
-      ref.read(signupDraftProvider.notifier).set(null);
-      return;
-    }
+  Future<void> _confirm() async {
+    if (_code.text.length != CodeField.length) return;
     final l10n = AppLocalizations.of(context);
-    final error = ref.read(_confirmProvider).error!;
-    if (error is AppException && error.code == ErrorCode.authInvalidCode) {
-      // Código errado ou vencido: erro no campo, que é limpo.
-      setState(() => _codeError = errorTextFor(l10n, error));
+    final error = await ref
+        .read(confirmEmailControllerProvider.notifier)
+        .confirm(_code.text);
+    if (!mounted || error == null) return;
+    if (error.code == ErrorCode.authInvalidCode) {
+      // Erro no campo, que é limpo para digitar de novo.
       _code.clear();
+      setState(() => _codeError = errorText(l10n, error.code));
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(errorTextFor(l10n, error))));
+      showErrorSnack(context, error);
     }
   }
 
-  Future<bool> _resend() async {
-    final email = ref.read(pendingEmailProvider);
-    if (email == null) return false;
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await ref.read(authRepositoryProvider).resendSignupCode(email);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.authCodeResent)));
-      return true;
-    } catch (error) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(errorTextFor(l10n, error))),
-      );
-      return false;
-    }
-  }
+  void _useAnotherEmail() => context.pushReplacementNamed(Routes.signup);
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final email = ref.watch(pendingEmailProvider) ?? '';
-    final verifying = ref.watch(_confirmProvider).isLoading;
+    final email = ref.watch(accessDraftProvider)?.email ?? '';
+    final busy = ref.watch(confirmEmailControllerProvider).isLoading;
 
-    return PopScope(
-      canPop: false,
-      // O voltar leva ao login, e não ao cadastro (S02).
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) context.goNamed(Routes.login);
-      },
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      AccessHeader(
-                        icon: Symbols.mark_email_unread,
-                        // O hífen de "e-mail" não quebra (referencias/README).
-                        title: Text(
-                          nonBreakingHyphens(l10n.authConfirmEmailTitle),
-                        ),
-                        subtitle: BoldValueText(
-                          text: l10n.authCodeSent(email),
-                          value: email,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      CodeField(
-                        controller: _code,
-                        enabled: !verifying,
-                        errorText: _codeError,
-                        semanticLabel: l10n.authCodeLabel,
-                        onCompleted: _verify,
-                      ),
-                      const SizedBox(height: 24),
-                      PrimaryButton(
-                        label: l10n.authConfirmButton,
-                        loading: verifying,
-                        onPressed: () => _verify(_code.text),
-                      ),
-                      const SizedBox(height: 16),
-                      ResendCodeButton(onResend: _resend),
-                      const SizedBox(height: 16),
-                      Text(
-                        l10n.authConfirmEmailHelp,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+    return Scaffold(
+      body: SafeArea(
+        child: FormScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+          content: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconSquare(
+                icon: Symbols.mark_email_unread,
+                size: 56,
+                background: theme.colorScheme.primary,
+                foreground: theme.colorScheme.onPrimary,
               ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: TextButton(
-                  onPressed: verifying
-                      ? null
-                      : () => context.goNamed(Routes.signup),
-                  child: Text(l10n.authUseAnotherEmail),
-                ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.authConfirmEmailTitle,
+              style: theme.textTheme.headlineLarge,
+            ),
+            const SizedBox(height: 16),
+            BoldValueText(message: l10n.authCodeSent(email), value: email),
+            const SizedBox(height: 24),
+            CodeField(
+              controller: _code,
+              enabled: !busy,
+              autofocus: true,
+              errorText: _codeError,
+              onCompleted: (_) => _confirm(),
+            ),
+            const SizedBox(height: 24),
+            ListenableBuilder(
+              listenable: _code,
+              builder: (context, _) => PrimaryButton(
+                label: l10n.authConfirmButton,
+                loading: busy,
+                onPressed: _code.text.length == CodeField.length
+                    ? _confirm
+                    : null,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            ResendCodeButton(
+              onResend: () =>
+                  ref.read(confirmEmailControllerProvider.notifier).resend(),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.authConfirmEmailHelp,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          footer: [
+            Center(
+              child: TextButton(
+                onPressed: busy ? null : _useAnotherEmail,
+                child: Text(l10n.authUseAnotherEmail),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
-/// Cerca o hífen com a junção de palavras (U+2060), para "e-mail" não quebrar
-/// no fim da linha. A Montserrat não tem o hífen não separável (U+2011), e a
-/// junção é invisível: não depende de glifo.
-String nonBreakingHyphens(String text) => text.replaceAll('-', '\u2060-\u2060');

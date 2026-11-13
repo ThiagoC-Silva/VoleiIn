@@ -180,7 +180,7 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-# VoleiIn: 8, decisão de 12/11/2026 (docs/setup.md, 6.1; docs/ui/telas.md, seção 5).
+# Fatia 2: pelo menos 8 caracteres, sem exigir número ou símbolo (docs/setup.md, 6.1).
 minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
@@ -198,7 +198,7 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-# VoleiIn: 30 no local, para o "Reenviar código" e os testes de integração (docs/setup.md, 6.1).
+# Fatia 2: o padrão (2) trava o "Reenviar código" e os testes de integração (docs/setup.md, 6.1).
 email_sent = 30
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
@@ -224,10 +224,10 @@ web3 = 30
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
-# VoleiIn: o código vai só ao endereço novo (RF106, docs/setup.md, 6.1).
+# Fatia 2: na troca de e-mail, o código vai só ao endereço novo (RF106).
 double_confirm_changes = false
 # If enabled, users need to confirm their email address before signing in.
-# VoleiIn: sem confirmação não há sessão (RF02, ADR 0017).
+# Fatia 2: sem confirmação não há sessão (RF02). A confirmação é por código (ADR 0017).
 enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
@@ -248,15 +248,9 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
-
-# Modelos dos e-mails de conta, com o código de 6 dígitos (ADR 0017).
-# Textos e assuntos: docs/copy.md, seção 6.9. Na produção, os mesmos textos vão
-# no painel (Authentication -> Email Templates), porque o SMTP do Resend e os
-# limites não vão pelo `supabase config push` (docs/setup.md, 5.2 e 6.1).
+# E-mails de conta com código de 6 dígitos no lugar de link (ADR 0017).
+# Textos e assuntos: docs/copy.md, seção 6.9. Na produção, os mesmos modelos são
+# ajustados no painel (docs/setup.md, 6.1).
 [auth.email.template.confirmation]
 subject = "Seu código do VoleiIn: {{ .Token }}"
 content_path = "./supabase/templates/confirmation.html"
@@ -341,6 +335,16 @@ max_frequency = "5s"
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
+# Login com Google (RF03, RF108; docs/setup.md, 6.2). O client_id é o do cliente
+# web do projeto VoleiIn no Google Cloud, o mesmo GOOGLE_WEB_CLIENT_ID do app: é
+# um identificador público. O segredo fica em supabase/.env.
+[auth.external.google]
+enabled = true
+client_id = "612447030412-5ebk5kbdou3rmrt51d8tp4gn6fjh0age.apps.googleusercontent.com"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+# O app troca o ID token por sessão (signInWithIdToken) e não envia nonce.
+skip_nonce_check = true
+
 [auth.external.apple]
 enabled = false
 client_id = ""
@@ -354,19 +358,6 @@ url = ""
 # If enabled, the nonce check will be skipped. Required for local sign in with Google auth.
 skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
-email_optional = false
-
-# Login com Google (RF03, RF108; docs/setup.md, 6.2). O app entrega o idToken
-# do google_sign_in ao signInWithIdToken. O client_id é o ID do cliente web,
-# um identificador público; o segredo fica em supabase/.env.
-[auth.external.google]
-enabled = true
-client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
-secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
-redirect_uri = ""
-url = ""
-# Exigido pelo login nativo do Google no Supabase local.
-skip_nonce_check = true
 email_optional = false
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
@@ -421,7 +412,9 @@ deno_version = 2
 # secret_key = "env(SECRET_VALUE)"
 
 [analytics]
-enabled = true
+# Desligado para poupar memória (setup.md, seção 3.1): o analytics e o vector
+# somam uns 400 MB e só servem à tela de logs do Studio, que o projeto não usa.
+enabled = false
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"

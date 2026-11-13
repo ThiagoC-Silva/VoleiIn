@@ -1,213 +1,243 @@
-# Especificação: Fatia 2 — Conta e perfil
+# Feature Specification: Conta e perfil (fatia 2)
 
-**Branch**: `fatia-2/conta-e-perfil` (o *branch* numérico do Spec Kit não é usado, `docs/trabalho-com-agente.md`, seção 3)
+**Feature Branch**: `fatia-2/conta-e-perfil` (o *branch* numérico do Spec Kit não é usado, `docs/trabalho-com-agente.md`, seção 3)
 
-**Criada**: 2026-11-12
+**Created**: 2026-11-12
 
-**Status**: Rascunho
+**Status**: Draft
 
-**Entrada**: Fatia 2 do `docs/plano-implementacao.md` (seção 3). RFs: RF01 a RF12, RF105 a RF108. RNs: RN100, RN105, RN106.
+**Input**: User description: "Fatia 2 — Conta e perfil. A pessoa cria a conta (e-mail e senha com código de 6 dígitos, ou Google), entra, aceita os Termos de Uso e a Política de Privacidade e cuida do próprio perfil (nome, apelido, foto, telefone e visibilidade, chave Pix, troca de e-mail e de senha, sair)."
 
-> Esta especificação **cita** os documentos e não copia o texto deles. `docs/` é a fonte da verdade (constituição, princípio I). Em caso de divergência, vale o documento citado.
+> **Como ler.** Este documento **cita** os requisitos, as regras e as seções de `docs/`, sem copiar o texto (constituição, princípio I). Em caso de divergência, vale o documento citado. Escopo, "Pronto quando" e "Fora de escopo": `docs/plano-implementacao.md`, seção 3, Fatia 2.
 
-| Assunto | Fonte |
-|---------|-------|
-| Requisitos | `docs/requisitos.md`, seção 1 |
-| Regras | `docs/regras-negocio.md`, seção 10 (RN100, RN105, RN106) e seção 2 (RN01, RN02) |
-| Telas e navegação | `docs/ui/telas.md`, seções 3 e 5 |
-| Aparência | `docs/ui/referencias/fatia-2/*.png` e a conferência em `docs/ui/referencias/README.md` |
-| Textos e erros | `docs/copy.md`, seção 6 |
-| Banco | `docs/modelo-dados.md`, seção 4.1 e seção 7 |
-| Acesso (RLS e Storage) | `docs/rls-matriz.md`, "Fatia 2" |
-| Contratos | `docs/contratos-api.md`, seção 2 (`PIX_KEY_IN_USE`) e seção 9 (escritas diretas e `current_terms_versions()`) |
-| Cenários de teste | `docs/testes-referencia.md`, seção 10 (P, X, N, A, U, E, S, L, M) e as listas B03, B04, B06 e B10 da seção 9.1 |
-| Auth por código | ADR 0017 e `docs/setup.md`, seção 6 |
+## User Scenarios & Testing *(mandatory)*
 
-## Cenários de uso e testes *(obrigatório)*
+### User Story 1 - Criar a conta com e-mail e confirmar por código (Priority: P1)
 
-### História 1 — Criar a conta por e-mail e confirmar com o código (Prioridade: P1)
+Uma pessoa nova informa nome, e-mail e senha, recebe um código de 6 dígitos por e-mail, digita o código e fica dentro do app.
 
-Uma pessoa sem conta se cadastra com nome, e-mail e senha, recebe um código de 6 dígitos no e-mail, digita o código e entra no app (RF01, RF02, RF04, RF05; `telas.md` 5.2 e 5.3).
+**Regras:** RF01, RF02, RF04, RF05, ADR 0017. **Telas:** `docs/ui/telas.md`, 5.1 a 5.3. **Textos:** `docs/copy.md`, 6.1 a 6.3, 6.8 e 6.9.
 
-**Por que esta prioridade**: sem conta, nenhuma outra função do app existe.
+**Why this priority**: sem conta não há nenhum outro fluxo. É o primeiro item do "Pronto quando" da fatia.
 
-**Teste independente**: cenário L08 (`testes-referencia.md`, 10.4), do cadastro até a aba Jogos, com o código lido do Mailpit.
+**Independent Test**: com o Supabase local, criar uma conta com um e-mail novo, ler o código no Mailpit e confirmar. Cenários S01 a S06 e L08 de `docs/testes-referencia.md`, seção 10.4.
 
-**Cenários de aceite**:
+**Acceptance Scenarios**:
 
-1. **Dado** o cadastro com campos vazios ou senha curta, **quando** a pessoa toca em Criar conta, **então** os erros aparecem nos campos e nada é enviado (S01).
-2. **Dado** o cadastro aceito, **quando** a tela de confirmação abre, **então** mostra o e-mail e o voltar não retorna ao cadastro (S02).
-3. **Dado** a tela de confirmação, **quando** o sexto dígito é digitado, **então** a confirmação começa sozinha; código errado mostra o erro no campo e o limpa (S03).
-4. **Dado** um envio de código, **quando** passam 60 s, **então** o Reenviar código volta a ficar habilitado (S04).
-5. **Dado** o app reaberto na confirmação sem e-mail em memória, **então** a pessoa vai ao login (S05); ao entrar com e-mail não confirmado, a ação Confirmar pede um código novo e volta à confirmação (S06).
-6. **Dado** um cadastro confirmado, **então** o perfil nasce com o nome informado, sem perfil para cadastros nunca confirmados (`modelo-dados.md`, 4.1; B15 a B23 já cobertos na fatia 1).
+1. **Given** a tela de cadastro com os campos vazios, **When** a pessoa toca em Criar conta, **Then** cada campo mostra o seu erro e o servidor não é chamado (S01).
+2. **Given** um cadastro aceito, **When** o app troca de tela, **Then** a confirmação mostra o e-mail na frase e o voltar não retorna ao cadastro (S02).
+3. **Given** a tela de confirmação, **When** a pessoa digita o sexto dígito, **Then** o código é conferido sem tocar no botão, e um código errado ou vencido limpa o campo e mostra o erro nele (S03).
+4. **Given** um código recém-enviado, **When** passam 60 segundos, **Then** o Reenviar código sai da contagem e volta a ficar habilitado (S04).
+5. **Given** um e-mail ainda não confirmado, **When** a pessoa tenta entrar e toca em Confirmar no aviso, **Then** um código novo é pedido e a confirmação abre (S06).
+6. **Given** a rota de confirmação sem e-mail em memória, **When** ela é aberta, **Then** o app vai para o login (S05).
 
 ---
 
-### História 2 — Aceitar os termos (Prioridade: P1)
+### User Story 2 - Aceitar os termos na versão vigente (Priority: P1)
 
-Toda pessoa logada aceita os Termos de Uso e a Política de Privacidade na versão vigente antes de usar o app, e aceita de novo quando uma versão muda (RF105; `telas.md` 3.1 e 5.5).
+Logo depois do primeiro acesso, por qualquer forma de entrada, a pessoa aceita os Termos de Uso e a Política de Privacidade. O aceite volta a ser pedido quando a versão de algum documento muda.
 
-**Por que esta prioridade**: é condição legal de uso e porteiro de todas as outras telas.
+**Regras:** RF105. **Telas:** `docs/ui/telas.md`, 3.1, 5.5 e 5.6. **Acesso:** `docs/rls-matriz.md`, fatia 2; `docs/contratos-api.md`, seção 9 (`current_terms_versions()`). **Textos:** `docs/copy.md`, 6.5.
 
-**Teste independente**: S09 e S10 (widget), P10 a P13 (pgTAP) e o fim do L08.
+**Why this priority**: o aceite é a porta entre o login e o resto do app, e é um item do "Pronto quando".
 
-**Cenários de aceite**:
+**Independent Test**: uma conta sem aceite cai na tela de aceite; depois de aceitar, chega à aba Jogos. Cenários P10 a P14, S09 e S10.
 
-1. **Dado** uma sessão sem aceite, **então** o app abre a tela de aceite, com o botão desabilitado até a caixa ser marcada; ao aceitar, grava um aceite por documento que falta e vai para a aba Jogos (S09, S10).
-2. **Dado** a versão vigente diferente da aceita, **então** a tela volta com a frase de documentos atualizados (S10).
-3. **Dado** uma tentativa de aceite de versão que não é a vigente, ou em nome de outra pessoa, **então** o servidor recusa (P12).
-4. **Dado** um aceite gravado, **então** o instante é o do servidor, e o app não consegue informá-lo (P11, RN02).
+**Acceptance Scenarios**:
 
----
-
-### História 3 — Entrar e sair (Prioridade: P1)
-
-A pessoa entra com e-mail e senha ou com o Google, continua logada nas próximas aberturas e pode sair (RF03, RF04, RF05, RF07, RF108; `telas.md` 5.1 e 5.7).
-
-**Por que esta prioridade**: completa o acesso para quem já tem conta e para quem prefere o Google.
-
-**Teste independente**: S06, S07 (widget); M01 e M02 (conferência manual com conta Google real).
-
-**Cenários de aceite**:
-
-1. **Dado** o seletor do Google fechado sem escolha, **então** nada acontece; uma falha do Google mostra o aviso próprio (S07, E12).
-2. **Dado** uma conta nova pelo Google, **então** o perfil nasce com o nome do Google e o aceite dos termos aparece (M01).
-3. **Dado** o Google com o e-mail de uma conta de e-mail e senha, **então** entra na mesma conta, sem criar outra, e as opções de trocar e-mail e senha continuam visíveis (M02, RF108).
-4. **Dado** a pessoa logada, **quando** toca em Sair, **então** volta ao login, e o seletor do Google aparece de novo na próxima entrada (`telas.md` 5.7).
+1. **Given** uma sessão sem aceite, **When** o app abre, **Then** a pessoa vai para o aceite, com a frase de primeiro aceite (S09, S10).
+2. **Given** a caixa desmarcada, **When** a tela abre, **Then** o botão de aceitar está desabilitado até a caixa ser marcada (S09).
+3. **Given** a caixa marcada, **When** a pessoa aceita, **Then** fica gravada uma linha por documento que faltava, com o instante do servidor, e o app vai para a aba Jogos (S09, P11).
+4. **Given** um aceite da versão anterior, **When** a versão vigente muda, **Then** o aceite é pedido de novo, com a frase de documento atualizado (S10).
+5. **Given** uma versão que não é a vigente, ou o aceite em nome de outra pessoa, **When** o aceite é enviado, **Then** o servidor recusa (P12).
 
 ---
 
-### História 4 — Recuperar a senha esquecida (Prioridade: P2)
+### User Story 3 - Entrar com Google e vincular as duas formas de acesso (Priority: P2)
 
-A pessoa pede um código pelo e-mail, digita o código e uma senha nova, e entra (RF06; `telas.md` 5.4).
+A pessoa toca em Continuar com Google, escolhe a conta e entra. Se ainda não tem conta, ela é criada com o nome do Google. Se o e-mail do Google já é de uma conta, as duas formas de acesso ficam na mesma conta.
 
-**Por que esta prioridade**: sem ela, quem esquece a senha perde a conta, mas o app funciona sem ela no primeiro uso.
+**Regras:** RF03, RF108. **Telas:** `docs/ui/telas.md`, 5.1. **Textos:** `docs/copy.md`, 6.1 e 6.8.
 
-**Teste independente**: S08 (widget) e L09 (integração).
+**Why this priority**: é a segunda forma de entrada. Depende de conta Google real, por isso parte da conferência é manual.
 
-**Cenários de aceite**:
+**Independent Test**: no app, o seletor fechado não mostra nada e a falha mostra o aviso (S07, E12). No emulador com conta Google, M01 e M02.
 
-1. **Dado** um e-mail informado, **então** o app sempre avança para a etapa do código, com ou sem conta para esse e-mail.
-2. **Dado** o código válido e a senha nova recusada, **então** a tela fica só com o campo de senha e o novo toque não pede o código de novo (S08).
-3. **Dado** a senha trocada, **então** a senha antiga não entra mais (L09).
+**Acceptance Scenarios**:
 
----
-
-### História 5 — Cuidar do próprio perfil (Prioridade: P2)
-
-A pessoa vê o próprio perfil e edita nome, apelido, foto, telefone e a visibilidade do telefone (RF08, RF09, RF10, RF12, RN100, RN106; `telas.md` 5.7 e 5.8).
-
-**Por que esta prioridade**: o nome exibido e a foto aparecem em todas as listas das fatias seguintes.
-
-**Teste independente**: S11, S12, S17 (widget), P01 a P09 e P15, P16 (pgTAP), A01 a A06 (Deno), L10 (integração).
-
-**Cenários de aceite**:
-
-1. **Dado** um apelido, **então** o perfil mostra o apelido; sem ele, o nome (S17, P02, RN100).
-2. **Dado** o telefone vazio, **então** o interruptor de visibilidade fica desabilitado; apagar o telefone o desliga; telefone fora do formato mostra erro (S12, RN101).
-3. **Dado** uma foto nova no lugar da antiga, **quando** a pessoa salva, **então** a ordem é: enviar a foto nova, gravar o perfil, gravar os dados privados, apagar a antiga (S12).
-4. **Dado** uma foto acima de 2 MB ou fora de JPEG, PNG e WebP, **então** o servidor recusa e o app mostra o aviso (A02 a A04, E11, RN106).
-5. **Dado** outra pessoa, **então** ninguém lê nem edita o perfil, os dados privados, os aceites ou as fotos de outra pessoa (P01, P03, P08, P13, P15, P16, A05, A06).
-6. **Dado** uma conta só com Google, **então** o perfil não mostra Trocar e-mail e Trocar senha, nem pela rota (S11).
+1. **Given** o login, **When** a pessoa fecha o seletor do Google sem escolher, **Then** nada acontece, sem mensagem (S07, E12).
+2. **Given** uma falha do Google, **When** ela ocorre, **Then** aparece o aviso próprio do Google (S07).
+3. **Given** uma conta nova pelo Google, **When** a entrada conclui, **Then** o perfil nasce com o nome do Google e o aceite dos termos aparece (M01).
+4. **Given** uma conta criada por e-mail e senha, **When** a pessoa entra pelo Google com o mesmo e-mail, **Then** entra na mesma conta, sem criar outra (M02).
 
 ---
 
-### História 6 — Cadastrar, trocar e remover a chave Pix (Prioridade: P2)
+### User Story 4 - Ver o perfil e sair (Priority: P2)
 
-A pessoa cadastra a chave Pix por tipo, troca quando quiser e remove quando não estiver comprometida com jogos ou valores a receber (RF11, RF12, RN105; `telas.md` 5.9).
+Na aba Perfil, a pessoa vê a foto ou as iniciais, o nome exibido, o e-mail e os caminhos para cada edição, e pode sair da conta.
 
-**Por que esta prioridade**: a chave é pré-requisito para ser recebedor (fatia 4), e a regra de remoção protege os pagadores.
+**Regras:** RF07, RN100. **Telas:** `docs/ui/telas.md`, 5.7. **Textos:** `docs/copy.md`, 6.6.
 
-**Teste independente**: X01 a X10, N01 a N09 (pgTAP), U01, U02, U05, U06 (unitários), S13 (widget).
+**Why this priority**: é a porta de entrada das edições e substitui a aba provisória da fatia 1.
 
-**Cenários de aceite**:
+**Independent Test**: abrir a aba Perfil com contas de tipos diferentes. Cenários P01, S11 e S17.
 
-1. **Dado** um CPF ou CNPJ com dígito verificador errado ou sequência repetida, **então** o app avisa no campo, e o banco recusa se o app falhar (U01, U02, X01 a X06, S13).
-2. **Dado** a pessoa recebedora de um jogo Aberto ou Confirmado, ou com valor a receber Pendente ou Em análise, **quando** remove a chave, **então** a remoção é recusada e a chave continua (N01, N02, N04, N05, S13).
-3. **Dado** o mesmo caso, **quando** troca a chave por outra válida, **então** a troca é aceita (N07).
+**Acceptance Scenarios**:
 
----
-
-### História 7 — Trocar e-mail e senha logado (Prioridade: P3)
-
-Quem tem acesso por e-mail e senha troca o e-mail, com código no endereço novo, e troca a senha informando a atual (RF106, RF107; `telas.md` 5.10 e 5.11).
-
-**Por que esta prioridade**: manutenção da conta, sem impacto nas fatias seguintes.
-
-**Teste independente**: S14, S15 (widget), L11 (integração).
-
-**Cenários de aceite**:
-
-1. **Dado** o novo e-mail igual ao atual, **então** erro no campo sem chamar o servidor; e-mail de outra conta, erro no campo (S14).
-2. **Dado** o código confirmado, **então** o e-mail novo passa a valer, e o antigo deixa de entrar (L11). Até a confirmação, o antigo continua valendo (RF106).
-3. **Dado** a senha atual errada, **então** erro no campo Senha atual e a senha não muda (S15).
+1. **Given** um perfil com nome e apelido, **When** a aba abre, **Then** o cabeçalho mostra o apelido (S17).
+2. **Given** uma conta que entrou só pelo Google, **When** a aba abre, **Then** não aparecem Trocar e-mail nem Trocar senha, e as rotas delas voltam ao perfil (S11).
+3. **Given** a pessoa logada, **When** toca em Sair, **Then** a sessão termina sem confirmação e o app volta ao login.
+4. **Given** duas pessoas com perfil, **When** uma lê os perfis, **Then** vê só o próprio (P01, P08, P13).
 
 ---
 
-### Casos de borda
+### User Story 5 - Editar nome, apelido, foto e telefone (Priority: P2)
 
-- E-mail que já tem conta no cadastro: o app segue para a confirmação, sem revelar que a conta existe, e a frase de ajuda orienta (`telas.md` 5.2, 5.3).
-- Versão dos termos trocada entre abrir a tela e aceitar: o servidor recusa, o app relê as versões e mostra a tela de novo (`telas.md` 5.5).
-- Erro depois de enviar a foto: nada mais é gravado, e a foto sem uso fica para a limpeza da fatia 6 (`telas.md` 5.8).
-- Falha ao apagar a foto antiga: ignorada, porque o perfil já está salvo (`telas.md` 5.8).
-- Perfil anonimizado (`deleted_at` preenchido): a própria pessoa não edita mais o perfil (P06).
-- Sem conexão: as telas mostram o estado sem conexão; as ações mostram o aviso e preservam os campos (`design-system.md`, 7.16; `arquitetura-app.md`, seção 7).
-- Fonte do sistema em 150%: nenhuma tela quebra (S16, RNF05).
+A pessoa edita os próprios dados e grava tudo de uma vez.
 
-## Requisitos *(obrigatório)*
+**Regras:** RF08, RF09, RF10, RF12, RN100, RN101, RN106. **Telas:** `docs/ui/telas.md`, 5.8. **Acesso:** `docs/rls-matriz.md`, fatia 2 (tabelas e bucket `avatars`).
 
-### Requisitos funcionais
+**Why this priority**: o apelido e a foto são o que os outros veem nas listas das próximas fatias.
 
-Cada item aponta para a regra de origem. O comportamento detalhado está no documento citado.
+**Independent Test**: editar e salvar, e reabrir o perfil. Cenários P02 a P09, P15, P16, A01 a A06, S12, U03, U04 e L10.
 
-- **FR-001**: Cadastro por e-mail e senha com nome obrigatório (RF01), com a validação local de `telas.md` 5 ("Regras comuns").
-- **FR-002**: Confirmação do e-mail por código de 6 dígitos antes do primeiro acesso (RF02, ADR 0017), com reenvio limitado a um a cada 60 s na tela.
-- **FR-003**: Entrada e cadastro pelo Google, com o nome vindo da conta Google (RF03), e vinculação ao cadastro por e-mail com o mesmo e-mail verificado (RF108).
-- **FR-004**: Entrada por e-mail e senha (RF04) e sessão mantida entre aberturas (RF05). Falta de conexão não encerra a sessão (RNF07).
-- **FR-005**: Recuperação de senha por código (RF06), em duas etapas na mesma tela (`telas.md` 5.4).
-- **FR-006**: Saída da conta, encerrando também a sessão do Google (RF07).
-- **FR-007**: Apelido opcional; o nome exibido é o apelido ou, sem ele, o nome (RF08, RN100).
-- **FR-008**: Foto de perfil em JPEG, PNG ou WebP, redimensionada no app para até 1024 px e recusada pelo servidor acima de 2 MB ou fora do tipo (RF09, RN106).
-- **FR-009**: Telefone opcional do Brasil e a escolha de visibilidade, oculta por padrão (RF10, RN101). A exibição a terceiros fica para a fatia 4 (RF101).
-- **FR-010**: Chave Pix por tipo, com formato e dígitos verificadores conferidos no app e no banco (RF11, `modelo-dados.md` 4.1).
-- **FR-011**: Edição de todos os dados de perfil (RF12), com a remoção da chave Pix bloqueada pelo servidor nos casos da RN105 e a troca sempre livre.
-- **FR-012**: Aceite dos documentos na versão vigente ao entrar pela primeira vez e a cada mudança de versão, com versão e instante do servidor gravados (RF105, RN02).
-- **FR-013**: Troca do e-mail de acesso com código enviado só ao endereço novo, mantendo o antigo até a confirmação (RF106).
-- **FR-014**: Troca da senha logado, conferindo a senha atual (RF107).
-- **FR-015**: Trocar e-mail e trocar senha só existem para quem tem acesso por e-mail e senha (`telas.md` 5.7, U07, S11).
-- **FR-016**: Cada pessoa lê e grava só a própria linha de perfil, de dados privados e de aceites, e só as próprias fotos; sem login, nada (`rls-matriz.md`, Fatia 2; P01 a P16).
-- **FR-017**: Todo erro mostrado vem do catálogo de textos (`copy.md` 5.5 e 6.8), sem texto técnico (E09 a E12).
-- **FR-018**: Os e-mails de conta levam o código também no assunto e saem, na produção, pelo Resend (`copy.md` 6.9, M03).
+**Acceptance Scenarios**:
 
-### Entidades principais
+1. **Given** o telefone vazio, **When** a tela abre, **Then** o interruptor de mostrar o telefone está desabilitado; apagar o telefone o desliga (S12).
+2. **Given** um telefone incompleto, **When** a pessoa salva, **Then** o campo mostra o erro (S12).
+3. **Given** uma foto nova no lugar da antiga, **When** a pessoa salva, **Then** as gravações acontecem na ordem do `telas.md`, 5.8 (S12).
+4. **Given** um apelido apagado, **When** a pessoa salva, **Then** o nome exibido volta a ser o nome (P02).
+5. **Given** uma foto acima de 2 MB ou fora dos tipos aceitos, **When** ela é enviada, **Then** o servidor recusa (A02, A04).
+6. **Given** outra pessoa, **When** ela tenta ler, editar ou enviar arquivo na pasta de alguém, **Then** o servidor recusa (P03, P05, P15, P16, A05, A06).
 
-- **Perfil** (`profiles`): nome, apelido, nome exibido derivado, caminho da foto, marca de anonimização.
-- **Dados privados** (`profile_private`): telefone, visibilidade do telefone, tipo e valor da chave Pix. Só o dono lê.
-- **Aceite dos termos** (`terms_acceptances`): documento, versão e instante do aceite, um por documento e versão.
-- **Versão vigente dos termos**: uma versão por documento, definida no servidor e trocada por migração (`contratos-api.md`, seção 9).
-- **Foto de perfil**: arquivo no armazenamento privado, na pasta da própria pessoa (`modelo-dados.md`, seção 7).
+---
 
-## Critérios de sucesso *(obrigatório)*
+### User Story 6 - Cadastrar, trocar e remover a chave Pix (Priority: P2)
 
-### Resultados mensuráveis
+A pessoa escolhe o tipo, informa a chave e salva. Pode trocar quando quiser e só não pode remover enquanto for recebedora de algo em aberto.
 
-Os critérios são os de "Pronto quando" da fatia 2 (`plano-implementacao.md`) e a definição de pronto (`trabalho-com-agente.md`, seção 5).
+**Regras:** RF11, RF12, RN105. **Telas:** `docs/ui/telas.md`, 5.9. **Dados:** `docs/modelo-dados.md`, 4.1 (formatos e dígitos verificadores).
 
-- **SC-001**: Uma pessoa nova cria a conta por e-mail, confirma com o código e chega à aba Jogos no Supabase local e na produção sem usuários reais (L08, M04).
-- **SC-002**: Entrar com o Google cria a conta ou entra na existente com o mesmo e-mail, sem duplicar (M01, M02).
-- **SC-003**: Os três e-mails de conta chegam pelo Resend com o código no assunto (M03).
-- **SC-004**: Mudar a versão de um documento faz todas as pessoas verem o aceite de novo na abertura seguinte (S10).
-- **SC-005**: 100% das tentativas de remover a chave nos casos da RN105 são recusadas, e 100% das trocas são aceitas (N01 a N09).
-- **SC-006**: 100% das fotos acima de 2 MB ou fora do tipo são recusadas pelo servidor (A02, A04).
-- **SC-007**: Nenhum teste negativo de acesso encontra dado de outra pessoa (P01 a P16, A05, A06).
-- **SC-008**: Todos os cenários da seção 10 do `testes-referencia.md` passam, e os comandos da definição de pronto ficam verdes.
-- **SC-009**: Todas as telas da fatia funcionam com a fonte do sistema em 150% (S16, RNF05) e abrem dentro dos tempos da RNF04.
+**Why this priority**: a chave Pix é pré-requisito do recebedor nas fatias 4 a 6, e o teste da RN105 é um item do "Pronto quando".
 
-## Premissas
+**Independent Test**: salvar chaves válidas e inválidas de cada tipo, e tentar remover em cada situação da RN105. Cenários X01 a X10, N01 a N09, S13, U01, U02, U05 e U06.
 
-- A fatia 1 está concluída: banco completo, *trigger* do perfil, buckets, CI e login técnico.
-- O Supabase Auth faz a vinculação do RF108 sozinho, por e-mail verificado; o app não tem código próprio para isso (`telas.md` 5.1).
-- Os textos jurídicos ainda não existem; a tela do documento mostra a frase provisória (`telas.md` 5.6).
-- A conferência com conta Google real e com o Resend (M01 a M04) é manual, feita pelo responsável, inclusive a configuração do painel da produção (`setup.md`, 5.2 e 6).
-- **Fora de escopo** (`plano-implementacao.md`, fatia 2): excluir conta (RF13, fatia 6), telefone visível para outros (RF101, fatia 4), leitura de perfis por contexto (RN107, fatia 3) e remoção do token de push no logout (fatia 7).
+**Acceptance Scenarios**:
+
+1. **Given** uma chave inválida para o tipo, **When** a pessoa salva, **Then** o campo mostra o erro e o servidor não é chamado (S13).
+2. **Given** um tipo escolhido, **When** a pessoa troca o tipo, **Then** o campo é limpo (S13).
+3. **Given** a pessoa é recebedora de um jogo em aberto ou tem valor a receber em aberto, **When** remove a chave, **Then** a remoção é recusada e a chave continua (N01, N02, N04, N05, S13).
+4. **Given** a mesma situação, **When** a pessoa troca a chave por outra válida, **Then** a troca é aceita (N07).
+5. **Given** uma chave fora do formato, **When** ela é gravada direto no banco, **Then** o banco recusa (X01 a X10).
+
+---
+
+### User Story 7 - Recuperar a senha esquecida (Priority: P3)
+
+A pessoa informa o e-mail, recebe um código, digita o código e a senha nova, e entra.
+
+**Regras:** RF06, ADR 0017. **Telas:** `docs/ui/telas.md`, 5.4. **Textos:** `docs/copy.md`, 6.4.
+
+**Why this priority**: caminho de recuperação, usado poucas vezes.
+
+**Independent Test**: recuperar a senha de uma conta do seed com o código do Mailpit. Cenários S08 e L09.
+
+**Acceptance Scenarios**:
+
+1. **Given** a etapa 1, **When** a pessoa envia o e-mail, **Then** o app avança para a etapa 2, exista ou não conta com aquele e-mail.
+2. **Given** um código aceito e uma senha nova recusada, **When** isso acontece, **Then** a tela fica só com o campo de senha e o erro nele, e o novo toque muda só a senha (S08).
+3. **Given** um código válido e uma senha válida, **When** a pessoa salva, **Then** entra no app, e a senha antiga não entra mais (L09).
+
+---
+
+### User Story 8 - Trocar o e-mail e a senha estando logado (Priority: P3)
+
+Quem tem acesso por e-mail e senha troca o e-mail, com código enviado ao endereço novo, e troca a senha informando a atual.
+
+**Regras:** RF106, RF107, ADR 0017. **Telas:** `docs/ui/telas.md`, 5.10 e 5.11. **Textos:** `docs/copy.md`, 6.7.
+
+**Why this priority**: manutenção da conta, usada poucas vezes.
+
+**Independent Test**: trocar o e-mail e a senha de contas do seed. Cenários S14, S15, U07 e L11.
+
+**Acceptance Scenarios**:
+
+1. **Given** um novo e-mail igual ao atual, **When** a pessoa envia, **Then** o campo mostra o erro e o servidor não é chamado (S14).
+2. **Given** um e-mail que já é de outra conta, **When** a pessoa envia, **Then** o campo mostra o erro (S14).
+3. **Given** o código do novo endereço, **When** a pessoa confirma, **Then** o e-mail novo passa a valer e o antigo não entra mais (L11).
+4. **Given** a senha atual errada, **When** a pessoa salva, **Then** o erro aparece no campo Senha atual e a senha não muda (S15).
+
+---
+
+### Edge Cases
+
+Cada caso está decidido no documento citado:
+
+- E-mail que já tem conta no cadastro: `docs/ui/telas.md`, 5.2.
+- App reaberto no meio da confirmação: `docs/ui/telas.md`, 5.3 (S05).
+- Versão dos termos mudando entre abrir a tela e aceitar: `docs/ui/telas.md`, 5.5.
+- Falha ou falta de conexão na conferência dos termos: `docs/ui/telas.md`, 3.1.
+- Erro depois de enviar a foto, e falha ao apagar a foto antiga: `docs/ui/telas.md`, 5.8.
+- Código válido com senha nova recusada na recuperação: `docs/ui/telas.md`, 5.4 (S08).
+- Sessão invalidada e falta de conexão: `docs/ui/telas.md`, 3.1 (RNF07).
+- Fonte do sistema em 150% em todas as telas: S16 (RNF05).
+- Remoção da chave Pix em cada situação da RN105: N01 a N09.
+- Quem não tem `login`: `anon` não lê nada (P14).
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+Os requisitos são os de `docs/requisitos.md` e as regras, as de `docs/regras-negocio.md`. Esta lista só os liga às histórias e aos cenários.
+
+| ID | Requisito | História | Cenários (`testes-referencia.md`, seção 10) |
+|----|-----------|----------|---------------------------------------------|
+| FR-001 | RF01 | 1 | S01, S02, L08 |
+| FR-002 | RF02 | 1 | S03 a S06, L08 |
+| FR-003 | RF03 | 3 | S07, E12, M01 |
+| FR-004 | RF04 | 1 | L01 a L07 (fatia 1), S06 |
+| FR-005 | RF05 | 1 | L05 (fatia 1), S10 |
+| FR-006 | RF06 | 7 | S08, L09 |
+| FR-007 | RF07 | 4 | L07 (fatia 1), S11 |
+| FR-008 | RF08, RN100 | 4, 5 | P02, S17, L10 |
+| FR-009 | RF09, RN106 | 5 | P05, P15, P16, A01 a A06, S12 |
+| FR-010 | RF10, RN101 | 5 | P08, S12, U03, U04, L10 |
+| FR-011 | RF11 | 6 | X01 a X10, S13, U01, U02, U05, U06 |
+| FR-012 | RF12, RN105 | 5, 6 | N01 a N09, S12, S13 |
+| FR-013 | RF105 | 2 | P10 a P13, S09, S10, L08 |
+| FR-014 | RF106 | 8 | S14, L11 |
+| FR-015 | RF107 | 8 | S15, U07 |
+| FR-016 | RF108 | 3 | M02 |
+| FR-017 | Acesso só à própria linha e às próprias fotos (`docs/rls-matriz.md`, fatia 2) | 4, 5 | P01 a P16, B03, B04, B06, B10 |
+| FR-018 | Erros convertidos em texto do catálogo (`docs/copy.md`, 6.8) | Todas | E09 a E12 |
+| FR-019 | E-mails de conta com código, pelos modelos do `docs/copy.md`, 6.9 | 1, 7, 8 | L08, L09, L11, M03 |
+
+### Key Entities
+
+Definidas em `docs/modelo-dados.md`, 4.1 e seção 7. Nenhuma tabela nova nesta fatia.
+
+- **Perfil (`profiles`)**: nome, apelido, nome exibido e foto.
+- **Dados privados (`profile_private`)**: telefone, visibilidade do telefone e chave Pix.
+- **Aceite (`terms_acceptances`)**: documento, versão e instante do aceite.
+- **Versão vigente dos termos**: devolvida por `current_terms_versions()` (`docs/contratos-api.md`, seção 9).
+- **Foto de perfil**: arquivo no bucket `avatars`, na pasta da pessoa.
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: Os cinco itens de "Pronto quando" da fatia 2 (`docs/plano-implementacao.md`) são conferidos, cada um com o seu cenário ou a sua conferência manual.
+- **SC-002**: Todos os cenários automáticos da seção 10 de `docs/testes-referencia.md` passam, e nenhum resultado esperado foi alterado.
+- **SC-003**: Uma pessoa nova vai do cadastro à aba Jogos, com código e aceite, no fluxo L08, sem ajuda.
+- **SC-004**: Nenhuma pessoa lê nem altera dados, aceites ou fotos de outra: todos os casos negativos da `docs/rls-matriz.md` (fatia 2) têm teste que passa.
+- **SC-005**: Todas as telas da seção 5 do `docs/ui/telas.md` funcionam com a fonte do sistema em 150%, sem nada cortado (S16).
+- **SC-006**: Nenhum texto de interface fora do catálogo (`docs/copy.md`, seção 6) e nenhuma cor fora do tema.
+
+## Assumptions
+
+- A documentação da fatia 2 foi aprovada no PR #2 (12/11/2026), com os PNGs obrigatórios em `docs/ui/referencias/fatia-2/`. A conferência dos PNGs está em `docs/ui/referencias/README.md`.
+- A fatia 1 está concluída: banco completo, RLS ativado sem políticas, login técnico e CI.
+- **Fora de escopo** (`docs/plano-implementacao.md`, fatia 2): excluir conta (RF13, fatia 6), telefone visível para outros (RF101, fatia 4), remoção do token de push no logout (fatia 7) e leitura do perfil de outra pessoa (RN107, fatia 3).
+- As abas Jogos, Grupos e Cobranças continuam com o estado provisório da fatia 1.
+- O texto jurídico dos documentos é provisório até o lançamento (`docs/ui/telas.md`, 5.6).
+- **Conferência manual:** M01 a M04 dependem de conta Google real, do Resend e da produção, e são feitas pelo responsável (`docs/trabalho-com-agente.md`, seção 7).

@@ -5,31 +5,21 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/error_code.dart';
 import '../../../core/errors/error_text.dart';
 import '../../../core/router/routes.dart';
-import '../../../core/submit_controller.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/bold_value_text.dart';
+import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/code_field.dart';
-import '../../../shared/widgets/field_label.dart';
-import '../../../shared/widgets/inner_scaffold.dart';
-import '../../../shared/widgets/loading_button.dart';
-import '../../../shared/widgets/password_field.dart';
+import '../../../shared/widgets/form_fields.dart';
+import '../../../shared/widgets/form_scroll_view.dart';
+import '../../../shared/widgets/inner_app_bar.dart';
 import '../../../shared/widgets/resend_code_button.dart';
-import '../data/auth_repository.dart';
-import 'code_sent_text.dart';
-import 'pending_email_provider.dart';
-import 'signup_screen.dart' show minPasswordLength;
+import '../../../shared/widgets/snack.dart';
+import 'access_validators.dart';
+import 'auth_providers.dart';
+import 'forgot_password_controller.dart';
 
-final _sendProvider = AsyncNotifierProvider.autoDispose<ActionController, void>(
-  ActionController.new,
-);
-final _saveProvider = AsyncNotifierProvider.autoDispose<ActionController, void>(
-  ActionController.new,
-);
-
-/// Recuperar a senha com um código enviado ao e-mail (RF06, ADR 0017;
-/// docs/ui/telas.md, 5.4; forgotPassword-etapa1.png e -etapa2.png).
-///
-/// Duas etapas sem trocar de rota. O código, ao valer, cria a sessão; se a
-/// senha nova for recusada depois disso, a tela fica só com o campo de senha.
+/// Recuperar senha (docs/ui/telas.md, 5.4; forgotPassword-etapa1.png e
+/// forgotPassword-etapa2.png). Duas etapas na mesma rota.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -46,20 +36,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _password = TextEditingController();
   final _passwordFocus = FocusNode();
 
-  int _step = 1;
-
-  /// O código já valeu e a sessão existe: falta só a senha nova.
-  bool _verified = false;
+  RecoveryStep _step = RecoveryStep.email;
   String? _codeError;
   String? _passwordError;
-  late final RecoveryInProgressNotifier _recovery;
+
+  ForgotPasswordController get _controller =>
+      ref.read(forgotPasswordControllerProvider.notifier);
 
   @override
   void initState() {
     super.initState();
-    // Vem do login com o e-mail digitado, se houver (telas.md, 5.1).
-    _email = TextEditingController(text: ref.read(pendingEmailProvider));
-    _recovery = ref.read(recoveryInProgressProvider.notifier);
+    // Preenchido com o e-mail digitado no login, se houver.
+    _email = TextEditingController(text: ref.read(accessDraftProvider)?.email);
   }
 
   @override
@@ -68,49 +56,25 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     _code.dispose();
     _password.dispose();
     _passwordFocus.dispose();
-    // Saiu da tela: o roteador volta a tratar a sessão normalmente.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _recovery.set(false));
     super.dispose();
-  }
-
-  AuthRepository get _auth => ref.read(authRepositoryProvider);
-
-  void _snack(Object error) {
-    final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(errorTextFor(l10n, error))));
   }
 
   Future<void> _sendCode() async {
     if (!(_emailForm.currentState?.validate() ?? false)) return;
-    final email = _email.text.trim();
-    final ok = await ref
-        .read(_sendProvider.notifier)
-        .run(() => _auth.sendRecoveryCode(email));
+    final error = await _controller.sendCode(_email.text);
     if (!mounted) return;
-    if (!ok) return _snack(ref.read(_sendProvider).error!);
-    // O Auth responde igual para e-mail com e sem conta: o app sempre avança.
-    setState(() => _step = 2);
-  }
-
-  Future<bool> _resend() async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await _auth.sendRecoveryCode(_email.text.trim());
-      messenger.showSnackBar(SnackBar(content: Text(l10n.authCodeResent)));
-      return true;
-    } catch (error) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(errorTextFor(l10n, error))),
-      );
-      return false;
+    if (error != null) {
+      showErrorSnack(context, error);
+      return;
     }
+    setState(() => _step = RecoveryStep.code);
   }
 
-  void _onCodeCompleted(String code) {
-    // O código confirma sozinho; sem senha nova ainda, o foco vai para ela.
-    if (_password.text.length >= minPasswordLength) {
+  /// O sexto dígito leva à senha; se ela já está digitada, salva.
+  void _codeCompleted() {
+    if (AccessValidators(AppLocalizations.of(context))
+            .newPassword(_password.text) ==
+        null) {
       _save();
     } else {
       _passwordFocus.requestFocus();
@@ -119,116 +83,120 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context);
+    setState(() {
+      _codeError = null;
+      _passwordError = null;
+    });
+    await afterServerErrorCleared();
+    if (!mounted) return;
     if (!(_passwordForm.currentState?.validate() ?? false)) return;
-    if (!_verified && _code.text.length != CodeField.length) {
-      setState(() => _codeError = l10n.errorAuthInvalidCode);
-      return;
-    }
-    if (ref.read(_saveProvider).isLoading) return;
-    setState(() => _passwordError = null);
 
-    final email = _email.text.trim();
-    final password = _password.text;
-    final controller = ref.read(_saveProvider.notifier);
-
-    if (!_verified) {
-      _recovery.set(true);
-      final ok = await controller.run(
-        () => _auth.verifyRecoveryCode(email: email, code: _code.text),
-      );
-      if (!mounted) return;
-      if (!ok) {
-        _recovery.set(false);
-        final error = ref.read(_saveProvider).error!;
-        if (error is AppException && error.code == ErrorCode.authInvalidCode) {
-          setState(() => _codeError = errorTextFor(l10n, error));
-          _code.clear();
-        } else {
-          _snack(error);
-        }
+    final (RecoveryStep, AppException?) result;
+    if (_step == RecoveryStep.password) {
+      result = await _controller.updatePassword(_password.text);
+    } else {
+      if (_code.text.length != CodeField.length) {
+        setState(() => _codeError = l10n.errorAuthInvalidCode);
         return;
       }
-      setState(() => _verified = true);
+      result = await _controller.savePassword(
+        email: _email.text,
+        code: _code.text,
+        password: _password.text,
+      );
     }
-
-    final ok = await controller.run(() => _auth.updatePassword(password));
     if (!mounted) return;
-    if (!ok) {
-      final error = ref.read(_saveProvider).error!;
-      final code = error is AppException ? error.code : null;
-      if (code == ErrorCode.authSamePassword ||
-          code == ErrorCode.authWeakPassword) {
-        // A sessão já existe: só a senha precisa de outra tentativa.
-        setState(() => _passwordError = errorTextFor(l10n, error));
-      } else {
-        _snack(error);
-      }
+    final (step, error) = result;
+
+    if (error == null) {
+      _controller.finish();
+      // Com a sessão criada, o roteador segue para os termos ou para Jogos.
+      showSnack(context, l10n.authPasswordChanged);
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(l10n.authPasswordChanged)));
-    _recovery.set(false);
-    ref.read(pendingEmailProvider.notifier).set(null);
-    // Logado: o roteador faz a conferência dos termos.
-    context.goNamed(Routes.games);
+    final text = errorText(l10n, error.code);
+    setState(() {
+      _step = step;
+      if (step == RecoveryStep.code &&
+          error.code == ErrorCode.authInvalidCode) {
+        _codeError = text;
+      } else if (error.code == ErrorCode.authSamePassword ||
+          error.code == ErrorCode.authWeakPassword) {
+        _passwordError = text;
+      }
+    });
+    if (_codeError == null && _passwordError == null) {
+      showErrorSnack(context, error);
+    }
   }
 
   void _back() {
-    if (_step == 2 && !_verified) {
-      setState(() {
-        _step = 1;
-        _code.clear();
-        _codeError = null;
-      });
-    } else {
-      context.pop();
+    switch (_step) {
+      case RecoveryStep.email:
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.goNamed(Routes.login);
+        }
+      case RecoveryStep.code:
+        setState(() {
+          _step = RecoveryStep.email;
+          _code.clear();
+          _codeError = null;
+          _passwordError = null;
+        });
+      case RecoveryStep.password:
+        // A sessão já existe: quem sai daqui segue logado com a senha antiga.
+        _controller.finish();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final busy = ref.watch(forgotPasswordControllerProvider).isLoading;
 
     return PopScope(
-      canPop: _step == 1 || _verified,
+      canPop: _step == RecoveryStep.email,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _back();
       },
-      child: InnerScaffold(
-        title: l10n.authForgotTitle,
-        onBack: _back,
-        body: _step == 1 ? _stepOne(l10n, theme) : _stepTwo(l10n),
+      child: Scaffold(
+        appBar: InnerAppBar(title: l10n.authForgotTitle, onBack: _back),
+        body: _step == RecoveryStep.email
+            ? _emailStep(l10n, busy)
+            : _codeStep(l10n, busy),
       ),
     );
   }
 
-  Widget _stepOne(AppLocalizations l10n, ThemeData theme) {
-    final sending = ref.watch(_sendProvider).isLoading;
+  Widget _emailStep(AppLocalizations l10n, bool busy) {
+    final theme = Theme.of(context);
+    final validators = AccessValidators(l10n);
     return Form(
       key: _emailForm,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      child: FormScrollView(
+        content: [
           Text(l10n.authForgotSubtitle, style: theme.textTheme.bodyLarge),
           const SizedBox(height: 24),
-          FieldLabel(l10n.authEmailLabel),
-          TextFormField(
+          LabeledField(
+            label: l10n.authEmailLabel,
             controller: _email,
-            enabled: !sending,
+            enabled: !busy,
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
             autofillHints: const [AutofillHints.email],
             textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => _sendCode(),
-            validator: (value) =>
-                (value ?? '').trim().isEmpty ? l10n.authEmailRequired : null,
+            validator: validators.email,
+            onFieldSubmitted: (_) {
+              if (!busy) _sendCode();
+            },
           ),
           const SizedBox(height: 24),
           PrimaryButton(
             label: l10n.authSendCode,
-            loading: sending,
+            loading: busy,
             onPressed: _sendCode,
           ),
         ],
@@ -236,57 +204,52 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     );
   }
 
-  Widget _stepTwo(AppLocalizations l10n) {
-    final saving = ref.watch(_saveProvider).isLoading;
+  Widget _codeStep(AppLocalizations l10n, bool busy) {
+    final validators = AccessValidators(l10n);
     final email = _email.text.trim();
+    final withCode = _step == RecoveryStep.code;
     return Form(
       key: _passwordForm,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (!_verified) ...[
-            BoldValueText(text: l10n.authCodeSent(email), value: email),
+      child: FormScrollView(
+        content: [
+          if (withCode) ...[
+            BoldValueText(message: l10n.authCodeSent(email), value: email),
             const SizedBox(height: 24),
             CodeField(
               controller: _code,
-              enabled: !saving,
+              enabled: !busy,
+              autofocus: true,
               errorText: _codeError,
-              semanticLabel: l10n.authCodeLabel,
-              onCompleted: _onCodeCompleted,
+              onCompleted: (_) => _codeCompleted(),
             ),
             const SizedBox(height: 24),
           ],
-          FieldLabel(l10n.authNewPasswordLabel),
           PasswordField(
+            label: l10n.authNewPasswordLabel,
             controller: _password,
             focusNode: _passwordFocus,
-            enabled: !saving,
+            enabled: !busy,
             newPassword: true,
-            errorText: _passwordError,
+            forceErrorText: _passwordError,
+            validator: validators.newPassword,
             onChanged: (_) {
               if (_passwordError != null) {
                 setState(() => _passwordError = null);
               }
             },
-            onSubmitted: (_) => _save(),
-            validator: (value) {
-              final password = value ?? '';
-              if (password.isEmpty) return l10n.authPasswordRequired;
-              if (password.length < minPasswordLength) {
-                return l10n.authPasswordTooShort;
-              }
-              return null;
+            onFieldSubmitted: (_) {
+              if (!busy) _save();
             },
           ),
           const SizedBox(height: 24),
           PrimaryButton(
             label: l10n.authSaveNewPassword,
-            loading: saving,
+            loading: busy,
             onPressed: _save,
           ),
-          if (!_verified) ...[
+          if (withCode) ...[
             const SizedBox(height: 16),
-            ResendCodeButton(onResend: _resend),
+            ResendCodeButton(onResend: () => _controller.resend(email)),
           ],
         ],
       ),

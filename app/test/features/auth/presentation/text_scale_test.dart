@@ -1,110 +1,151 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:voleiin/core/router/routes.dart';
-import 'package:voleiin/features/auth/data/auth_repository.dart';
-import 'package:voleiin/features/auth/data/photo_picker.dart';
-import 'package:voleiin/features/auth/data/profile_repository.dart';
-import 'package:voleiin/features/auth/data/terms_repository.dart';
-import 'package:voleiin/features/auth/domain/pix_key_type.dart';
-import 'package:voleiin/features/auth/domain/terms.dart';
-import 'package:voleiin/features/auth/presentation/confirm_email_screen.dart';
-import 'package:voleiin/features/auth/presentation/forgot_password_screen.dart';
-import 'package:voleiin/features/auth/presentation/login_screen.dart';
-import 'package:voleiin/features/auth/presentation/pending_email_provider.dart';
-import 'package:voleiin/features/auth/presentation/profile_edit_screen.dart';
-import 'package:voleiin/features/auth/presentation/profile_email_screen.dart';
-import 'package:voleiin/features/auth/presentation/profile_password_screen.dart';
-import 'package:voleiin/features/auth/presentation/profile_pix_screen.dart';
-import 'package:voleiin/features/auth/presentation/profile_screen.dart';
-import 'package:voleiin/features/auth/presentation/signup_screen.dart';
-import 'package:voleiin/features/auth/presentation/terms_document_screen.dart';
-import 'package:voleiin/features/auth/presentation/terms_screen.dart';
+import 'package:voleiin/features/auth/domain/pix_key.dart';
+import 'package:voleiin/features/auth/presentation/auth_providers.dart';
 
-import '../../../helpers/fakes.dart';
-import '../../../helpers/test_router.dart';
+import '../../../helpers/harness.dart';
+import '../../../helpers/test_app.dart';
 
-/// Cenário S16 de docs/testes-referencia.md, seção 10.4 (RNF05): todas as telas
-/// da seção 5 do docs/ui/telas.md com a fonte do sistema em 150%, sem overflow.
+/// Cenário S16 de docs/testes-referencia.md, seção 10.4: todas as telas da
+/// seção 5 do docs/ui/telas.md com a fonte do sistema em 150%, num celular
+/// pequeno (360 x 640 dp), sem overflow (RNF05).
 void main() {
-  setUpAll(registerFakes);
+  late TestHarness h;
+  const small = Size(360, 640);
 
-  final screens = <String, Widget Function(GoRouterState)>{
-    Routes.login: (_) => const LoginScreen(),
-    Routes.signup: (_) => const SignupScreen(),
-    Routes.confirmEmail: (_) => const ConfirmEmailScreen(),
-    Routes.forgotPassword: (_) => const ForgotPasswordScreen(),
-    Routes.terms: (_) => const TermsScreen(),
-    Routes.termsDocument: (s) =>
-        TermsDocumentScreen(document: s.pathParameters['document'] ?? ''),
-    Routes.profile: (_) => const ProfileScreen(),
-    Routes.profileEdit: (_) => const ProfileEditScreen(),
-    Routes.profilePix: (_) => const ProfilePixScreen(),
-    Routes.profileEmail: (_) => const ProfileEmailScreen(),
-    Routes.profilePassword: (_) => const ProfilePasswordScreen(),
-  };
+  setUp(() => h = TestHarness());
 
-  final locations = {
-    Routes.login: Routes.loginPath,
-    Routes.signup: Routes.signupPath,
-    Routes.confirmEmail: Routes.confirmEmailPath,
-    Routes.forgotPassword: Routes.forgotPasswordPath,
-    Routes.terms: Routes.termsPath,
-    Routes.termsDocument: '/terms/privacy_policy',
-    Routes.profile: Routes.profilePath,
-    Routes.profileEdit: Routes.profileEditPath,
-    Routes.profilePix: Routes.profilePixPath,
-    Routes.profileEmail: Routes.profileEmailPath,
-    Routes.profilePassword: Routes.profilePasswordPath,
-  };
-
-  for (final entry in locations.entries) {
-    testWidgets('S16: ${entry.key} com a fonte em 150% não estoura', (
-      tester,
-    ) async {
-      final auth = MockAuthRepository();
-      when(() => auth.currentUserId).thenReturn(anaId);
-      when(() => auth.currentEmail)
-          .thenReturn('ana.souza.do.volei@exemplo.com');
-      when(() => auth.onAuthStateChange)
-          .thenAnswer((_) => const Stream.empty());
-      final terms = MockTermsRepository();
-      when(() => terms.fetchStatus()).thenAnswer(
-        (_) async => TermsStatus.compare(
-          current: const [termsOfUse11, privacy10],
-          accepted: const [termsOfUse10],
-        ),
-      );
-      final profile = MockProfileRepository();
-      when(() => profile.fetchOwn()).thenAnswer(
-        (_) async => ownProfile(
-          name: 'Ana Beatriz Souza de Albuquerque',
-          phone: '+5586999991234',
-          phoneVisible: true,
-          pixKeyType: PixKeyType.cnpj,
-          pixKey: '11222333000181',
-        ),
-      );
-
-      await pumpRouterApp(
-        tester,
-        initialLocation: entry.value,
-        textScale: 1.5,
-        overrides: [
-          authRepositoryProvider.overrideWithValue(auth),
-          termsRepositoryProvider.overrideWithValue(terms),
-          profileRepositoryProvider.overrideWithValue(profile),
-          photoPickerProvider.overrideWithValue(MockPhotoPicker()),
-        ],
-        setUp: (container) => container
-            .read(pendingEmailProvider.notifier)
-            .set('ana.souza.do.volei@exemplo.com'),
-        screens: screens,
-      );
-
-      expect(tester.takeException(), isNull);
-      expect(find.text(stubText(entry.key)), findsNothing);
-    });
+  Future<void> open(
+    WidgetTester tester,
+    String location, {
+    String? under,
+  }) async {
+    await h.pumpApp(tester, textScale: 1.5, size: small, location: under);
+    if (under == null) {
+      await h.go(tester, location);
+    } else {
+      await h.push(tester, location);
+    }
+    expect(h.location, location);
+    expect(tester.takeException(), isNull, reason: location);
   }
+
+  void pendingSignup() => h.container
+      .read(accessDraftProvider.notifier)
+      .save(
+        name: 'Ana Souza',
+        email: 'ana.souza.de.oliveira@exemplo.com.br',
+        password: 'voleiin123',
+      );
+
+  void fullProfile() {
+    h.signedIn(email: 'ana.souza.de.oliveira@exemplo.com.br');
+    h.ownProfile(
+      name: 'Ana Souza de Oliveira Albuquerque',
+      nickname: 'Aninha do vôlei de praia',
+      phone: '+5586999991234',
+      phoneVisible: true,
+      pixKeyType: PixKeyType.cnpj,
+      pixKey: '11222333000181',
+    );
+  }
+
+  testWidgets('S16: login', (tester) async {
+    await open(tester, '/login');
+  });
+
+  testWidgets('S16: cadastro, com os erros nos campos', (tester) async {
+    await open(tester, '/signup');
+
+    await tester.ensureVisible(
+      buttonWithText<FilledButton>(l10nPt.authCreateAccountButton),
+    );
+    await tester.tap(
+      buttonWithText<FilledButton>(l10nPt.authCreateAccountButton),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('S16: confirmar e-mail', (tester) async {
+    pendingSignup();
+    await open(tester, '/confirm-email');
+  });
+
+  testWidgets('S16: recuperar senha, etapas 1 e 2', (tester) async {
+    when(() => h.auth.sendPasswordRecovery(any())).thenAnswer((_) async {});
+    await open(tester, '/forgot-password');
+
+    await tester.enterText(
+      find.byType(TextFormField),
+      'ana.souza.de.oliveira@exemplo.com.br',
+    );
+    await tester.tap(buttonWithText<FilledButton>(l10nPt.authSendCode));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('S16: aceite dos termos', (tester) async {
+    h.signedIn();
+    h.termsAccepted(accepted: null);
+    await open(tester, '/terms');
+  });
+
+  testWidgets('S16: texto de um documento', (tester) async {
+    h.signedIn();
+    h.termsAccepted(accepted: null);
+    await open(tester, '/terms/terms_of_use', under: '/terms');
+  });
+
+  testWidgets('S16: meu perfil', (tester) async {
+    fullProfile();
+    await open(tester, '/profile');
+  });
+
+  testWidgets('S16: editar perfil e a sheet da foto', (tester) async {
+    fullProfile();
+    await open(tester, '/profile/edit', under: '/profile');
+
+    await tester.tap(find.text(l10nPt.profileChangePhoto));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('S16: chave Pix, o menu do tipo e a confirmação de remoção', (
+    tester,
+  ) async {
+    fullProfile();
+    await open(tester, '/profile/pix', under: '/profile');
+
+    await tester.tap(find.byKey(const Key('pixTypeSelector')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text(l10nPt.pixTypeCnpj).last);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text(l10nPt.pixRemove));
+    await tester.tap(find.text(l10nPt.pixRemove));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('S16: trocar e-mail, etapas 1 e 2', (tester) async {
+    fullProfile();
+    when(() => h.auth.requestEmailChange(any())).thenAnswer((_) async {});
+    await open(tester, '/profile/email', under: '/profile');
+
+    await tester.enterText(
+      find.byType(TextFormField),
+      'novo.endereco.bem.comprido@exemplo.com.br',
+    );
+    await tester.tap(buttonWithText<FilledButton>(l10nPt.authSendCode));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('S16: trocar senha', (tester) async {
+    fullProfile();
+    await open(tester, '/profile/password', under: '/profile');
+  });
 }

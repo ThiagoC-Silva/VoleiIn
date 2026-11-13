@@ -5,36 +5,35 @@ import '../../../core/errors/error_mapper.dart';
 import '../../../core/supabase.dart';
 import '../domain/terms.dart';
 
-/// Versões vigentes e aceites dos termos (RF105; contratos-api.md, seção 9).
+/// Versões vigentes e aceites dos termos (RF105; docs/contratos-api.md, 9).
 class TermsRepository {
-  TermsRepository(this._client);
+  TermsRepository(this._db);
 
-  final SupabaseClient _client;
+  final SupabaseClient _db;
 
-  Future<TermsStatus> fetchStatus() => guard(() async {
-    final current = await _client.rpc<List<dynamic>>('current_terms_versions');
-    final accepted = await _client
-        .from('terms_acceptances')
-        .select('document, version');
-    return TermsStatus.compare(
-      current: current
-          .map((row) => TermsVersion.fromJson(row as Map<String, dynamic>))
-          .toList(),
-      accepted: accepted.map(TermsVersion.fromJson).toList(),
-    );
+  Future<List<TermsVersion>> currentVersions() => guard(() async {
+    final rows = await _db.rpc<List<dynamic>>('current_terms_versions');
+    return [
+      for (final row in rows)
+        TermsVersion.fromJson(row as Map<String, dynamic>),
+    ];
   });
 
-  /// Uma linha por documento que falta. O instante vem do servidor (RN02); a
-  /// versão que deixou de ser a vigente é recusada pelo RLS.
-  Future<void> accept(List<TermsVersion> missing) => guard(() async {
-    final userId = _client.auth.currentUser!.id;
-    await _client.from('terms_acceptances').insert([
-      for (final v in missing)
-        {
-          'user_id': userId,
-          'document': v.document.dbValue,
-          'version': v.version,
-        },
+  Future<List<TermsVersion>> ownAcceptances() => guard(() async {
+    final rows = await _db
+        .from('terms_acceptances')
+        .select('document, version')
+        .eq('user_id', _db.auth.currentUser!.id);
+    return [for (final row in rows) TermsVersion.fromJson(row)];
+  });
+
+  /// Uma linha por documento. O instante vem do `now()` do servidor (RN02), e
+  /// o RLS recusa a versão que não é a vigente.
+  Future<void> accept(List<TermsVersion> versions) => guard(() async {
+    final uid = _db.auth.currentUser!.id;
+    await _db.from('terms_acceptances').insert([
+      for (final v in versions)
+        {'user_id': uid, 'document': v.document.value, 'version': v.version},
     ]);
   });
 }

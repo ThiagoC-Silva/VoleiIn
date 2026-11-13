@@ -210,7 +210,7 @@ Comuns à confirmação do cadastro, à recuperação de senha e à troca de e-m
 | `pixTypeRandom` | Aleatória | Rótulo de `random` |
 | `pixKeyLabel` | Chave | Rótulo do campo |
 | `pixInvalidCpf` | CPF inválido. Confira os números. | Erro do campo |
-| `pixInvalidCnpj` | CNPJ inválido. Confira os números. | Erro do campo |
+| `pixInvalidCnpj` | CNPJ inválido. Confira as letras e os números. | Erro do campo. O CNPJ pode ter letras (formato alfanumérico da Receita) |
 | `pixInvalidEmail` | E-mail inválido. | Erro do campo |
 | `pixInvalidPhone` | Informe o DDD e o número, com 10 ou 11 dígitos. | Erro do campo |
 | `pixInvalidRandom` | Chave aleatória inválida. Copie e cole a chave do seu banco. | Erro do campo |

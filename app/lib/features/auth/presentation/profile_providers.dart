@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/profile_repository.dart';
-import '../domain/profile.dart';
+import '../domain/own_profile.dart';
 
-/// Próprio perfil: `profiles`, `profile_private` e o e-mail da conta. Relido ao
-/// voltar de cada edição (docs/ui/telas.md, 5.7).
+/// Perfil da própria pessoa (docs/ui/telas.md, 5.7). As edições chamam
+/// `ref.invalidate` depois de gravar, e o perfil relê do servidor.
 final ownProfileProvider = FutureProvider.autoDispose<OwnProfile>(
   (ref) => ref.watch(profileRepositoryProvider).fetchOwn(),
 );
 
-/// URL assinada da foto, por caminho no bucket.
-final photoUrlProvider = FutureProvider.autoDispose.family<String, String>(
-  (ref, path) => ref.watch(profileRepositoryProvider).signedPhotoUrl(path),
+/// URL assinada da foto no bucket privado `avatars`.
+final avatarUrlProvider = FutureProvider.autoDispose.family<String, String>(
+  (ref, photoPath) => ref.watch(profileRepositoryProvider).avatarUrl(photoPath),
 );

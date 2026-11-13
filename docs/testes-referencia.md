@@ -355,6 +355,10 @@ pgTAP, em `supabase/tests/database/account_pix.test.sql`. Os formatos rodam como
 | X04 | `cnpj` | `11222333000181` | Aceito |
 | X05 | `cnpj` | `11222333000180` | Recusado |
 | X06 | `cnpj` | `00000000000000` | Recusado |
+| X11 | `cnpj` | `12ABC34501DE35` (alfanumérico, exemplo da Receita Federal) | Aceito |
+| X12 | `cnpj` | `12ABC34501DE36` (último dígito trocado) | Recusado |
+| X13 | `cnpj` | `12abc34501de35` (letras minúsculas) | Recusado: a chave é gravada em maiúsculas |
+| X14 | `cnpj` | `12ABC34501DEA5` (letra no dígito verificador) | Recusado |
 | X07 | `email` | `Ana@Exemplo.com`; `ana@exemplo.com` | Recusado; aceito |
 | X08 | `phone` | `+5586999991234`; `86999991234` | Aceito; recusado |
 | X09 | `random` | `123e4567-e89b-12d3-a456-426614174000`; a mesma em maiúsculas | Aceito; recusado |
@@ -394,11 +398,11 @@ Deno test, em `supabase/functions/_tests/avatars_test.ts`, contra a API do Stora
 | ID | Entrada | Função | Resultado |
 |----|---------|--------|-----------|
 | U01 | `52998224725`, `529.982.247-25`, `52998224724`, `11111111111` | Validação de CPF | Verdadeiro, verdadeiro, falso, falso. A mesma regra do banco (X01 a X03) |
-| U02 | `11222333000181`, `11.222.333/0001-81`, `11222333000180`, `00000000000000` | Validação de CNPJ | Verdadeiro, verdadeiro, falso, falso |
+| U02 | `11222333000181`, `11.222.333/0001-81`, `11222333000180`, `00000000000000`, `12ABC34501DE35`, `12.ABC.345/01DE-35`, `12abc34501de35`, `12ABC34501DE36`, `12ABC34501DEA5` | Validação de CNPJ | Verdadeiro, verdadeiro, falso, falso, verdadeiro, verdadeiro, verdadeiro (o app passa para maiúsculas antes de conferir), falso, falso. A mesma regra do banco (X04 a X06, X11 a X14) |
 | U03 | `(86) 99999-1234`, `(86) 3322-1234`, `(86) 9999-123` | Telefone digitado para E.164 | `+5586999991234`, `+558633221234`, inválido |
 | U04 | `+5586999991234`, `+558633221234` | E.164 para exibição | `(86) 99999-1234`, `(86) 3322-1234` |
-| U05 | CPF `52998224725`, CNPJ `11222333000181`, telefone `+5586999991234` | Chave Pix para exibição | `529.982.247-25`, `11.222.333/0001-81`, `(86) 99999-1234` |
-| U06 | E-mail ` Ana@Exemplo.com `, aleatória em maiúsculas | Normalização da chave | `ana@exemplo.com`, a mesma em minúsculas |
+| U05 | CPF `52998224725`, CNPJ `11222333000181`, CNPJ `12ABC34501DE35`, telefone `+5586999991234` | Chave Pix para exibição | `529.982.247-25`, `11.222.333/0001-81`, `12.ABC.345/01DE-35`, `(86) 99999-1234` |
+| U06 | E-mail ` Ana@Exemplo.com `, aleatória em maiúsculas, CNPJ `12.abc.345/01de-35` | Normalização da chave | `ana@exemplo.com`, a mesma em minúsculas, `12ABC34501DE35` |
 | U07 | Identidades `[email]`, `[google]`, `[email, google]` | Tem acesso por e-mail e senha | Verdadeiro, falso, verdadeiro |
 
 **Conversão de erros**, em `app/test/core/errors/`:
@@ -438,7 +442,7 @@ Deno test, em `supabase/functions/_tests/avatars_test.ts`, contra a API do Stora
 |----|------|--------|-------|
 | L08 | Sem sessão, e-mail novo | Cria a conta com o nome `Carla Souza`, lê o código no Mailpit, confirma e aceita os termos | Chega à aba Jogos. O perfil mostra `Carla Souza` |
 | L09 | Bruno sem sessão | Recupera a senha com o código do Mailpit e uma senha nova; sai e entra com a senha nova | Entra nas duas vezes. A senha antiga não entra mais |
-| L10 | Ana logada | Muda o apelido para `Aninha` e o telefone, salva e reabre o app | O perfil mostra `Aninha` e o telefone formatado |
+| L10 | Ana logada | Muda o apelido para `Aninha` e o telefone, salva e reabre o app | O perfil mostra `Aninha`, e Editar perfil mostra o telefone formatado (a tela Meu perfil não mostra telefone, `telas.md`, 5.7) |
 | L11 | Diego logado | Troca o e-mail com o código do Mailpit, sai e entra com o e-mail novo | Entra com o novo. O antigo não entra mais |
 
 **Conferência manual**, no emulador e na produção, porque depende de conta Google real e do Resend (`plano-implementacao.md`, fatia 2, "Pronto quando"):

@@ -59,8 +59,16 @@ jobs:
         with:
           version: latest
 
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # O CI não faz login com Google, mas o config.toml cita a variável e o
+      # start exige um valor (research R11 de specs/001-conta-e-perfil).
       - name: Sobe o Supabase local
         run: supabase start
+        env:
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-sem-google
 
       # As migrações acabaram de ser aplicadas em um banco limpo pelo start.
       - name: Lint do schema
@@ -72,13 +80,10 @@ jobs:
       - name: Testes pgTAP
         run: supabase test db
 
-      # Testes que precisam do Supabase de pé (fotos, A01 a A06; depois, os de
-      # concorrência da fatia 4). Ficam em supabase/functions/_tests/.
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Testes Deno contra o Supabase local
+      # Testes que falam com o Supabase de pé: Storage (A01 a A06) e, da fatia 4
+      # em diante, concorrência (docs/arquitetura-app.md, 14.4). A chave
+      # pública vem do próprio start.
+      - name: Testes contra o Supabase local (Deno)
         working-directory: supabase/functions
         run: |
           eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY)=')"
@@ -106,13 +111,13 @@ jobs:
       - name: Lint
         run: deno lint --permit-no-files
 
-      # Só os testes que não precisam do Supabase. Os de _tests/ rodam no job
-      # database, com o Supabase de pé. A primeira Edge Function chega na
-      # fatia 3; sem arquivo de teste, `deno test` falharia por não achar nenhum.
+      # A primeira Edge Function chega na fatia 3; sem arquivo de teste,
+      # `deno test` falharia por não achar nenhum. A pasta _tests/ precisa do
+      # Supabase de pé e roda no job database.
       - name: Testes
         run: |
           if find . -path ./_tests -prune -o -name '*_test.ts' -print | grep -q .; then
-            deno test --allow-net --allow-env --ignore=_tests
+            deno test --allow-net --allow-env --ignore=_tests/
           else
-            echo 'Nenhum teste de Edge Function sem Supabase nesta fatia.'
+            echo 'Nenhum teste de Edge Function nesta fatia.'
           fi

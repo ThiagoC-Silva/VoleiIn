@@ -5,7 +5,6 @@
 class Routes {
   const Routes._();
 
-  // Acesso
   static const String login = 'login';
   static const String loginPath = '/login';
 
@@ -21,18 +20,10 @@ class Routes {
   static const String terms = 'terms';
   static const String termsPath = '/terms';
 
+  /// `/terms/:document`, com o valor do enum `legal_document`.
   static const String termsDocument = 'termsDocument';
-  static const String termsDocumentPath = '/terms/:document';
+  static const String termsDocumentPath = ':document';
 
-  /// Rotas abertas sem sessão (docs/arquitetura-app.md, seção 9).
-  static const Set<String> accessPaths = {
-    loginPath,
-    signupPath,
-    confirmEmailPath,
-    forgotPasswordPath,
-  };
-
-  // Abas
   static const String games = 'games';
   static const String gamesPath = '/games';
 
@@ -45,16 +36,29 @@ class Routes {
   static const String profile = 'profile';
   static const String profilePath = '/profile';
 
-  // Perfil, fora das abas
   static const String profileEdit = 'profileEdit';
-  static const String profileEditPath = '/profile/edit';
+  static const String profileEditPath = 'edit';
 
   static const String profilePix = 'profilePix';
-  static const String profilePixPath = '/profile/pix';
+  static const String profilePixPath = 'pix';
 
   static const String profileEmail = 'profileEmail';
-  static const String profileEmailPath = '/profile/email';
+  static const String profileEmailPath = 'email';
 
   static const String profilePassword = 'profilePassword';
-  static const String profilePasswordPath = '/profile/password';
+  static const String profilePasswordPath = 'password';
+
+  /// Rotas de acesso: abrem sem sessão (docs/ui/telas.md, 3.1).
+  static const Set<String> accessPaths = {
+    loginPath,
+    signupPath,
+    confirmEmailPath,
+    forgotPasswordPath,
+  };
+
+  /// Só para quem tem acesso por e-mail e senha (docs/ui/telas.md, 5.7).
+  static const Set<String> emailAccessPaths = {
+    '$profilePath/$profileEmailPath',
+    '$profilePath/$profilePasswordPath',
+  };
 }

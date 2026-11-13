@@ -1,41 +1,30 @@
-/// Telefone do Brasil: o que a pessoa digita, o E.164 gravado e a exibição.
-///
-/// O app só aceita números do Brasil: mostra `+55` fixo e a pessoa digita DDD e
-/// número, com 10 ou 11 dígitos (docs/modelo-dados.md, 4.1, decisão de
-/// 12/11/2026). O formato E.164 é conferido pela constraint do banco.
-library;
-
-import 'br_documents.dart';
+// Telefone brasileiro: DDD e número, com 10 (fixo) ou 11 (celular) dígitos,
+// gravado em E.164 com o `+55` (docs/ui/telas.md, 5.8 e 5.9).
+import 'documents.dart';
 
 /// `(86) 99999-1234` → `+5586999991234`. Nulo se não tiver 10 ou 11 dígitos.
-String? phoneToE164(String input) {
-  final digits = digitsOnly(input);
+String? phoneToE164(String typed) {
+  final digits = digitsOnly(typed);
   if (digits.length != 10 && digits.length != 11) return null;
   return '+55$digits';
 }
 
-/// `+5586999991234` → `(86) 99999-1234`; `+558633221234` → `(86) 3322-1234`.
-String formatPhoneE164(String e164) {
-  final local = nationalDigits(e164);
-  if (local.length != 10 && local.length != 11) return e164;
-  return formatNationalPhone(local);
+/// `+5586999991234` → `(86) 99999-1234`. Outro país fica como veio.
+String formatPhone(String e164) {
+  if (!e164.startsWith('+55')) return e164;
+  return formatPhoneDigits(e164.substring(3));
 }
 
-/// DDD e número de um E.164 do Brasil, sem o `+55`.
-String nationalDigits(String e164) {
-  final digits = digitsOnly(e164);
-  return digits.startsWith('55') ? digits.substring(2) : digits;
-}
-
-/// Máscara progressiva `(86) 99999-1234`, usada também enquanto se digita.
-String formatNationalPhone(String digits) {
-  final d = digitsOnly(digits);
+/// Máscara do número sem o `+55`, parcial enquanto se digita:
+/// `(86) 3322-1234` com 10 dígitos e `(86) 99999-1234` com 11.
+String formatPhoneDigits(String text) {
+  final d = digitsOnly(text);
   if (d.isEmpty) return '';
   if (d.length <= 2) return '($d';
-  final ddd = d.substring(0, 2);
-  final rest = d.substring(2);
-  // Com 11 dígitos, o número tem 5 + 4; com até 10, 4 + 4.
-  final split = d.length == 11 ? 5 : 4;
-  if (rest.length <= split) return '($ddd) $rest';
-  return '($ddd) ${rest.substring(0, split)}-${rest.substring(split)}';
+  final area = d.substring(0, 2);
+  final number = d.substring(2);
+  // Até 10 dígitos, o hífen fica depois do quarto número; com 11, do quinto.
+  final split = d.length <= 10 ? 4 : 5;
+  if (number.length <= split) return '($area) $number';
+  return '($area) ${number.substring(0, split)}-${number.substring(split)}';
 }

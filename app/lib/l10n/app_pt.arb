@@ -49,6 +49,7 @@
   "authCodeLabel": "Código",
   "authCodeSent": "Enviamos um código de 6 dígitos para {email}.",
   "@authCodeSent": {
+    "description": "O e-mail aparece em negrito",
     "placeholders": {
       "email": {
         "type": "String"
@@ -60,12 +61,15 @@
   "@authResendCodeIn": {
     "placeholders": {
       "seconds": {
-        "type": "String"
+        "type": "int"
       }
     }
   },
   "authCodeResent": "Enviamos um novo código.",
-  "authConfirmEmailTitle": "Confirme o seu e-mail",
+  "authConfirmEmailTitle": "Confirme o seu e‑mail",
+  "@authConfirmEmailTitle": {
+    "description": "Hífen que não quebra (U+2011), para o título não partir em \"e-\" / \"mail\""
+  },
   "authConfirmButton": "Confirmar",
   "authConfirmEmailHelp": "Não chegou? Confira o spam. Se este e-mail já tem conta, entre ou recupere a senha.",
   "authUseAnotherEmail": "Usar outro e-mail",
@@ -91,6 +95,9 @@
   "termsDocumentTermsOfUse": "Termos de Uso",
   "termsDocumentPrivacyPolicy": "Política de Privacidade",
   "termsPlaceholderBody": "O texto definitivo deste documento chega antes do lançamento do app.",
+  "@termsPlaceholderBody": {
+    "description": "Provisório: sai quando os textos jurídicos entrarem (plan-docs.md, seção 6.1)"
+  },
   "profileEdit": "Editar perfil",
   "profileEditSubtitle": "Nome, apelido, foto e telefone",
   "profilePix": "Chave Pix",
@@ -129,7 +136,7 @@
   "pixTypeRandom": "Aleatória",
   "pixKeyLabel": "Chave",
   "pixInvalidCpf": "CPF inválido. Confira os números.",
-  "pixInvalidCnpj": "CNPJ inválido. Confira os números.",
+  "pixInvalidCnpj": "CNPJ inválido. Confira as letras e os números.",
   "pixInvalidEmail": "E-mail inválido.",
   "pixInvalidPhone": "Informe o DDD e o número, com 10 ou 11 dígitos.",
   "pixInvalidRandom": "Chave aleatória inválida. Copie e cole a chave do seu banco.",
@@ -139,8 +146,12 @@
   "pixRemoveBody": "Sem chave Pix, você não pode ser recebedor de jogos.",
   "pixRemoveConfirm": "Remover",
   "commonBack": "Voltar",
+  "@commonBack": {
+    "description": "Botão de contorno das confirmações e rótulo do botão de voltar da barra superior"
+  },
   "emailCurrent": "E-mail atual: {email}",
   "@emailCurrent": {
+    "description": "O e-mail aparece em negrito",
     "placeholders": {
       "email": {
         "type": "String"
@@ -159,8 +170,8 @@
   "errorAuthEmailInUse": "Este e-mail já é usado por outra conta.",
   "errorAuthSamePassword": "A nova senha precisa ser diferente da atual.",
   "errorAuthEmailRateLimited": "Muitos e-mails enviados. Espere alguns minutos e tente de novo.",
+  "errorAuthGoogleFailed": "Não foi possível entrar com o Google. Tente de novo.",
   "errorPixKeyInUse": "Você pode trocar a chave, mas não removê-la enquanto tiver jogos em aberto ou valores a receber.",
   "errorPhotoTooLarge": "A foto passa de 2 MB. Escolha outra.",
-  "errorPhotoInvalidType": "Use uma foto JPEG, PNG ou WebP.",
-  "errorAuthGoogleFailed": "Não foi possível entrar com o Google. Tente de novo."
+  "errorPhotoInvalidType": "Use uma foto JPEG, PNG ou WebP."
 }

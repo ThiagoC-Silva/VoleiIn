@@ -4,17 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'snack.dart';
 
-/// "Reenviar código", desabilitado por 60 s depois de cada envio, com a contagem
-/// no rótulo (docs/ui/telas.md, seção 5). A espera é só da tela: quem limita os
-/// envios de verdade é o Supabase Auth.
+/// Reenviar código (docs/ui/telas.md, regras comuns da seção 5): desabilitado
+/// por 60 s depois de cada envio, com a contagem no rótulo. A espera é só da
+/// tela: quem limita os envios de verdade é o Supabase Auth.
+///
+/// A contagem começa ao abrir, porque a tela abre logo depois de um envio.
 class ResendCodeButton extends StatefulWidget {
   const ResendCodeButton({required this.onResend, super.key});
 
-  static const wait = Duration(seconds: 60);
+  static const wait = 60;
 
-  /// Devolve `true` quando o código foi reenviado, para reiniciar a contagem.
-  final Future<bool> Function() onResend;
+  /// Pede o código novo. Lança `AppException` na falha, que vira `SnackBar`.
+  final Future<void> Function() onResend;
 
   @override
   State<ResendCodeButton> createState() => _ResendCodeButtonState();
@@ -22,13 +25,12 @@ class ResendCodeButton extends StatefulWidget {
 
 class _ResendCodeButtonState extends State<ResendCodeButton> {
   Timer? _timer;
-  int _remaining = 0;
+  int _remaining = ResendCodeButton.wait;
   bool _sending = false;
 
   @override
   void initState() {
     super.initState();
-    // A tela abre logo depois de um envio.
     _start();
   }
 
@@ -40,20 +42,26 @@ class _ResendCodeButtonState extends State<ResendCodeButton> {
 
   void _start() {
     _timer?.cancel();
-    setState(() => _remaining = ResendCodeButton.wait.inSeconds);
+    _remaining = ResendCodeButton.wait;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
       setState(() => _remaining--);
       if (_remaining <= 0) timer.cancel();
     });
   }
 
   Future<void> _resend() async {
+    final l10n = AppLocalizations.of(context);
     setState(() => _sending = true);
-    final ok = await widget.onResend();
-    if (!mounted) return;
-    setState(() => _sending = false);
-    if (ok) _start();
+    try {
+      await widget.onResend();
+      if (!mounted) return;
+      setState(_start);
+      showSnack(context, l10n.authCodeResent);
+    } catch (error) {
+      if (mounted) showErrorSnack(context, error);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   @override
@@ -63,9 +71,10 @@ class _ResendCodeButtonState extends State<ResendCodeButton> {
     return Center(
       child: TextButton.icon(
         onPressed: waiting || _sending ? null : _resend,
-        icon: Icon(waiting ? Symbols.schedule : Symbols.refresh),
+        icon: const Icon(Symbols.schedule, size: 22),
         label: Text(
-          waiting ? l10n.authResendCodeIn('$_remaining') : l10n.authResendCode,
+          waiting ? l10n.authResendCodeIn(_remaining) : l10n.authResendCode,
+          textAlign: TextAlign.center,
         ),
       ),
     );

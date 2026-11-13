@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Quadrado de ícone, raio 14 (design-system.md, 6).
+/// Quadrado de ícone, raio 14 (design-system.md, 6 e 7.14).
 class IconSquare extends StatelessWidget {
   const IconSquare({
     required this.icon,
@@ -17,18 +17,21 @@ class IconSquare extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     return Container(
       width: size,
       height: size,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: background ?? scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(size >= 56 ? 22 : 14),
+        color: background ?? theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(size >= 56 ? 18 : 14),
       ),
-      child: Icon(
-        icon,
-        size: size >= 56 ? 32 : 24,
-        color: foreground ?? scheme.onSurface,
+      child: ExcludeSemantics(
+        child: Icon(
+          icon,
+          size: size >= 56 ? 32 : 22,
+          color: foreground ?? theme.colorScheme.onSurface,
+        ),
       ),
     );
   }

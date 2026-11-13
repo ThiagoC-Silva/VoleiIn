@@ -207,7 +207,7 @@ Não há projeto remoto de homologação (ADR 0011). O app é um só, `br.com.vo
  
 | Gatilho | O que roda |
 |---------|------------|
-| *Pull request* | `dart analyze`, `flutter test`, formatação, validação das migrações (`supabase db lint` e aplicação em banco limpo), `supabase test db` e `deno test` |
+| *Pull request* | `dart analyze`, `flutter test`, formatação, validação das migrações (`supabase db lint` e aplicação em banco limpo), `supabase test db` e `deno test`. Os testes Deno de `supabase/functions/_tests/`, que falam com o Supabase de pé (Storage e concorrência), rodam no job do banco, depois do `supabase db reset` |
 | *Merge* na branch principal | Nada no Supabase. Publicação da página de convite no Cloudflare Pages |
 | Deploy (disparo manual) | Migrações e functions em **produção**, mais build assinado do app (Android App Bundle). O disparo é a aprovação manual e exige o ensaio da migração (`setup.md`, seção 9.2) |
  

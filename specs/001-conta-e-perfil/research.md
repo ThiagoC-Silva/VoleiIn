@@ -1,96 +1,70 @@
-# Pesquisa: Fatia 2 — Conta e perfil
+# Research: Conta e perfil (fatia 2)
 
-Decisões técnicas que os documentos deixam para a implementação. Nenhuma muda regra. As que puderem ser contestadas depois vão para o `arquitetura-app.md` ou viram ADR no fechamento da fatia (`trabalho-com-agente.md`, seção 10).
+Decisões técnicas que os documentos deixam para a implementação. Regra de produto não é decidida aqui.
 
-## 1. Ambiente da máquina
+## R1. `google_sign_in` 7.2: seletor fechado chega como exceção
 
-- **Decisão**: Flutter estável (3.50, Dart 3.14) instalado por `git clone` em `~/development/flutter` e Deno 2.9 em `~/.deno`, os dois no `PATH` pelo `~/.bashrc`, sem `sudo` (autorizado pelo responsável em 12/11/2026).
-- **Motivo**: a máquina não tinha nenhum dos dois. O `setup.md` (seção 3) sugere `snap`, que exige `sudo`.
-- **Alternativas**: `snap install flutter --classic` (exige `sudo`).
+- **Decision:** o pacote fica atrás de uma classe pequena, `GoogleIdTokenSource`, que devolve o ID token ou **nulo** quando a pessoa fecha o seletor. O repositório troca o token por sessão com `signInWithIdToken`.
+- **Rationale:** na versão 7, `authenticate()` não devolve nulo: lança `GoogleSignInException` com o código `canceled`. A classe converte esse caso em nulo, que é o que `docs/copy.md` (6.8) e o cenário E12 descrevem. Qualquer outra exceção vira `authGoogleFailed`. A classe também torna o Google trocável por dublê nos testes.
+- **Alternatives considered:** usar `GoogleSignIn.instance` direto no repositório (não dá para testar sem o plugin).
+- **Lição do v0:** sem o SHA-1 da chave cadastrado, o Play Services também responde `canceled`. Nesse caso a tela fica muda. O `setup.md` (6.2) já descreve o sintoma no `logcat`.
 
-## 2. Ordem das migrações
+## R2. Sessão criada no meio da recuperação de senha
 
-- **Decisão**: cinco migrações novas, nesta ordem: `create_current_terms_versions` (a política de aceite depende dela), `account_rls`, `avatars_profile_policies`, `pix_key_check_digits`, `pix_key_removal_trigger`.
-- **Motivo**: uma migração por assunto (`arquitetura-app.md`, 14.1). As 13 da fatia 1 já estão na produção e não são editadas.
+- **Decision:** um provider em memória marca "recuperação em andamento". Enquanto ele está ligado, o roteador não tira a pessoa da `/forgot-password`, embora ela já tenha sessão.
+- **Rationale:** o `verifyOTP` de recuperação cria a sessão antes do `updateUser` (`docs/ui/telas.md`, 5.4). Sem a marca, o redirecionamento "com sessão numa rota de acesso → `/games`" trocaria de tela antes de a senha ser gravada, e o caso do S08 (senha recusada depois do código) não teria tela.
+- **Alternatives considered:** navegar à mão depois do `updateUser` (o roteador redirecionaria antes).
 
-## 3. Dígitos verificadores na constraint
+## R3. Conferência dos termos no roteador
 
-- **Decisão**: `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)`, `language plpgsql immutable`, com `search_path` vazio. A constraint `profile_private_pix_format` é recriada (`drop constraint` + `add constraint`) chamando as duas para `cpf` e `cnpj`. A sequência de um dígito só é recusada dentro das funções.
-- **Motivo**: constraint de `check` só aceita função `immutable`. O esquema `private` não é exposto (ADR 0015).
-- **Privilégio**: a constraint roda com o privilégio de quem grava, e sem `execute` o `update` do app dá `42501` (medido nos testes N07 e P08). As duas funções recebem `execute` para `authenticated`; sem `usage` no esquema, o app não as alcança pela API. Registrado na `rls-matriz.md` (Fatia 2).
-- **Cuidado**: recriar a constraint valida as linhas existentes. Na produção não há chave cadastrada (sem usuários reais, fatia 1), então não há risco. No ensaio de migração (`setup.md`, 9.2), uma chave inválida faria a migração falhar, e isso é o comportamento desejado.
+- **Decision:** um `FutureProvider` por usuário logado calcula o que falta aceitar. Com sessão e sem o resultado "em dia" (carregando, erro ou faltando), o roteador manda para `/terms`, e é a própria tela que mostra carregando, erro com "Tentar de novo" ou o aceite. Quando o resultado fica em dia, o roteador segue para `/games`.
+- **Rationale:** é o que `docs/ui/telas.md` (3.1) pede, com um lugar só para os três estados.
+- **Alternatives considered:** uma rota de carregamento separada (uma tela a mais, sem ganho).
 
-## 4. *Trigger* da RN105
+## R4. Riverpod 3 repete sozinho uma leitura que falhou
 
-- **Decisão**: `private.guard_pix_key_removal()`, `security definer`, `before update of pix_key_type, pix_key on public.profile_private`, que só age quando `old.pix_key is not null and new.pix_key is null`. Consulta `public.games` (`receiver_id = new.user_id and status in ('open','confirmed')`) e `public.charges` (`receiver_id = new.user_id and status in ('pending','under_review')`) e levanta `P0001` com `message = 'PIX_KEY_IN_USE'`.
-- **Motivo**: `security definer` para ler jogos e valores, que o usuário não lê pelo RLS nesta fatia. Os índices `(receiver_id)` de `games` e `(receiver_id, status)` de `charges` já existem.
-- **Corrida com a fatia 4**: o `update` bloqueia a linha de `profile_private`. Para que `create_game` e `change_receiver` não escolham um recebedor que está removendo a chave, essas funções devem ler a linha do recebedor com `for share`. Registro para a fatia 4, não implementado agora.
+- **Decision:** a repetição automática fica desligada no `ProviderScope` do app e dos testes.
+- **Rationale:** o Riverpod 3 tenta de novo, com espera crescente, todo provider que falha. O `design-system.md` (7.16) define o estado de erro com o botão "Tentar de novo": a repetição é da pessoa. Entra em `docs/arquitetura-app.md`, seção 5.
 
-## 5. `current_terms_versions()`
+## R5. Senha do cadastro pendente (divergência a sinalizar)
 
-- **Decisão**: `language sql immutable security invoker`, `set search_path = ''`, `returns table (document public.legal_document, version text)`, com `values ('terms_of_use', '1.0'), ('privacy_policy', '1.0')`. `revoke execute ... from public, anon` e `grant ... to authenticated`.
-- **Motivo**: contrato do `contratos-api.md` (seção 9). A política `terms_acceptances_insert_own` chama a função; como o `insert` roda como `authenticated`, o `grant` basta.
+- **Decision:** depois de confirmar o código do cadastro, o app grava de novo a senha digitada (`updateUser`), ignorando `same_password`.
+- **Rationale:** quando alguém repete o cadastro de um e-mail ainda não confirmado, o Supabase Auth reenvia o código, mas **mantém a senha do primeiro pedido**. Quem cadastrasse antes o e-mail de outra pessoa ficaria sabendo a senha da conta que ela confirmar. O v0 já tratava assim. A conferência do comportamento no Supabase local é a primeira tarefa da fase de base (T009).
+- **Documento:** `docs/ui/telas.md` (5.3) não cita esse passo. A correção entra no mesmo PR e é sinalizada ao responsável.
+- **Conferido em 13/11/2026 (T017)**, no Supabase local (CLI 3.0.0-next.20): dois `signup` seguidos do mesmo e-mail não confirmado, com `primeira-123` e `segunda-456`, devolvem o mesmo `id` e reenviam o código. Depois do `verify` (`type = signup`), o login aceita `primeira-123` e recusa `segunda-456` (`invalid_credentials`). O comportamento se confirma, e o passo do `updateUser` fica.
 
-## 6. Storage: políticas e teste
+## R6. Dígitos de CPF e CNPJ na constraint
 
-- **Decisão**: três políticas em `storage.objects` (`avatars_profile_select_own`, `_insert_own`, `_delete_own`) `to authenticated`, com a condição da `rls-matriz.md`. Testadas em pgTAP (P15, P16, insert direto em `storage.objects`) e em Deno (A01 a A06, pela API do Storage, que é onde o tamanho e o tipo são conferidos).
-- **Motivo**: o pgTAP não passa pela API, então não testa os limites do bucket; o Deno não alcança o caso do `update`.
-- **CI**: o `avatars_test.ts` precisa do Supabase de pé. Ele passa a rodar no job `database`, depois do `supabase test db`, com `SUPABASE_URL` e a chave pública lidas de `supabase status -o env`. O job `functions` continua com `fmt`, `lint` e os testes que não precisam do Supabase (ignora `_tests/`).
+- **Decision:** `private.is_valid_cpf` e `private.is_valid_cnpj` recebem `execute` para `authenticated`, sem `usage` no esquema.
+- **Rationale:** a constraint roda com os privilégios de quem faz o `update`. Sem o `execute`, a escrita do próprio app falharia. Sem `usage` no esquema `private`, a função continua inalcançável pela API. Entra na `docs/rls-matriz.md`, fatia 2.
+- **Alternatives considered:** validar numa *trigger* `security definer` (o `modelo-dados.md` pede constraint).
 
-## 7. Supabase Auth no local
+## R7. Nome e tipo do arquivo da foto
 
-- **Decisão** (`setup.md`, 6.1): `enable_confirmations = true`, `double_confirm_changes = false`, `minimum_password_length = 8`, `[auth.rate_limit] email_sent = 30`, modelos `confirmation`, `recovery` e `email_change` em `supabase/templates/` com os assuntos do `copy.md` (6.9).
-- **Google**: `[auth.external.google] enabled = true`, `client_id` = o ID do cliente web (identificador público, `setup.md`, 6.2), `secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"` e `skip_nonce_check = true` (exigido pelo login nativo no local, comentário do próprio `config.toml`). **Pendência:** o ID do cliente web não está no `app/env/local.json` desta máquina; o responsável informa o valor. Sem ele, o resto da fatia funciona e só M01 e M02 esperam.
+- **Decision:** o tipo vem da extensão do arquivo devolvido pelo `image_picker` (`jpg`, `jpeg`, `png`, `webp`). O nome é um UUID v4 gerado no app com `Random.secure`.
+- **Rationale:** evita dois pacotes (`mime` e `uuid`) para duas funções de poucas linhas (`docs/arquitetura-app.md`, seção 3: pacote novo precisa de motivo).
 
-## 8. Login com Google no app
+## R8. Máscaras dos campos
 
-- **Decisão**: `google_sign_in` 7.x. `GoogleSignIn.instance.initialize(serverClientId: Env.googleWebClientId)` uma vez; `authenticate()` devolve a conta; `account.authentication.idToken` vai para `supabase.auth.signInWithIdToken(provider: OAuthProvider.google, idToken: ...)`. `GoogleSignInException` com `code == canceled` (seletor fechado) vira retorno nulo, sem erro (E12); outra exceção vira `authGoogleFailed`. No Sair, `GoogleSignIn.instance.signOut()` antes do `auth.signOut()` (`telas.md`, 5.7), ignorando falha do Google.
-- **Motivo**: a versão 7 trocou a API (`signIn()` deu lugar a `authenticate()`, sobre o Credential Manager no Android). O `idToken` basta para o Supabase; o `accessToken` é opcional.
-- **Vinculação (RF108)**: feita pelo Supabase Auth, que liga identidades com o mesmo e-mail verificado. O app não faz nada além do `signInWithIdToken`.
+- **Decision:** `TextInputFormatter` próprios para CPF, CNPJ e telefone, em `core/format/input_masks.dart`.
+- **Rationale:** sem pacote novo, e as mesmas funções de formatação servem para exibir (U04, U05).
 
-## 9. Fluxos de código (ADR 0017)
+## R9. Texto do `errorAuthEmailNotConfirmed` no ARB
 
-| Fluxo | Pedido | Confirmação | Reenvio |
-|-------|--------|-------------|---------|
-| Cadastro | `signUp(email, password, data: {'name': nome})` | `verifyOTP(type: OtpType.email, email, token)` | `resend(type: OtpType.signup, email)` |
-| Senha esquecida | `resetPasswordForEmail(email)` | `verifyOTP(type: OtpType.recovery, email, token)` e `updateUser(UserAttributes(password))` | `resetPasswordForEmail(email)` |
-| Troca de e-mail | `updateUser(UserAttributes(email: novo))` | `verifyOTP(type: OtpType.emailChange, email: novo, token)` | `updateUser` de novo |
-| Troca de senha | `signInWithPassword(email atual, senha atual)` | `updateUser(UserAttributes(password: nova))` | — |
+- **Decision:** o ARB passa a ter o texto do `docs/copy.md` (5.5): "Confirme o seu e-mail antes de entrar."
+- **Rationale:** o ARB da fatia 1 ainda fala em "link", que o ADR 0017 trocou por código. O documento prevalece.
 
-- O e-mail do código pendente fica num `Notifier` em memória (`pendingEmailProvider`), nunca na rota nem no aparelho (`arquitetura-app.md`, seção 9).
-- A contagem de 60 s do Reenviar usa um `Timer` de tela; não decide nada no servidor.
+## R10. Teste do Storage no CI
 
-## 10. Conferência dos termos no roteador
+- **Decision:** o `avatars_test.ts` roda no job `database`, depois do `supabase db reset`, com a URL e a chave pública lidas de `supabase status`.
+- **Rationale:** o job `functions` não sobe o Supabase (`docs/testes-referencia.md`, 10.3: "roda no job do CI que sobe o Supabase").
 
-- **Decisão**: `termsStatusProvider` (`FutureProvider`, sem `autoDispose`, invalidado na mudança de usuário e depois do aceite) devolve os documentos que faltam aceitar, comparando `current_terms_versions()` com `terms_acceptances` do próprio usuário. O `redirect` do `go_router`, com sessão: se o estado não tem valor (carregando ou erro), ou se falta algum documento, vai para `/terms` (exceto `/terms/:document`); se não falta nada e está em `/terms`, vai para `/games`. A `/terms` mostra os estados carregando, erro e sem conexão do próprio provider (`telas.md`, 3.1).
-- **Motivo**: o `redirect` é síncrono. Mandar para a própria `/terms` durante a carga dá o "estado carregando" que o `telas.md` pede sem criar uma rota a mais. O `refreshListenable` passa a ouvir também o provider dos termos.
-- **Frase da tela**: `termsSubtitleUpdated` quando a pessoa tem algum aceite anterior de um documento que falta; senão `termsSubtitleFirst` (S09, S10).
+## R11. Google no Supabase local e no CI
 
-## 11. Acesso por e-mail e senha (U07)
+- **Decision:** `[auth.external.google]` com o `client_id` do cliente web (identificador público, o mesmo do v0), `secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"` e `skip_nonce_check = true`. No CI, a variável recebe um valor qualquer.
+- **Rationale:** o app não envia *nonce*, e o CLI exige a opção para o Google no local. O CI não faz login com Google, mas o `supabase start` precisa da variável.
 
-- **Decisão**: `hasEmailPassword(identities)` é verdadeiro quando alguma identidade do usuário tem `provider == 'email'`. As rotas `/profile/email` e `/profile/password` redirecionam para `/profile` quando é falso (S11).
+## R12. "Confirme o seu e-mail" sem quebra no hífen
 
-## 12. Foto: escolha, tipo e envio
-
-- **Decisão**: `image_picker` com `maxWidth: 1024, maxHeight: 1024` (RN106). O tipo é deduzido dos primeiros bytes do arquivo (assinaturas de JPEG, PNG e WebP), e não do nome nem do `mimeType` do `XFile`, que pode vir nulo. Tipo fora dos três: `photoInvalidType` sem enviar. Envio com `uploadBinary(path, bytes, fileOptions: FileOptions(contentType: tipo, upsert: false))` em `profiles/{uid}/{uuid}.{ext}`. A imagem exibida vem de `createSignedUrl(path, 3600)`.
-- **UUID do nome do arquivo**: 16 bytes de `Random.secure()` formatados como UUID v4, numa função de `core/`, sem pacote novo. O `gen_random_uuid()` do banco não serve, porque o envio vem antes da gravação.
-- **Motivo**: a ordem de gravação do `telas.md` (5.8) e o "nome sempre novo" da `rls-matriz.md`.
-
-## 13. Validação e formatação no app
-
-- **Decisão**: funções puras em `core/format/`: `br_documents.dart` (CPF e CNPJ: dígitos, validação, máscara) e `phone.dart` (digitado ↔ E.164 ↔ exibição, só Brasil, 10 ou 11 dígitos). A chave Pix usa uma extensão do enum `PixKeyType` (`features/auth/domain/pix_key_type.dart`: `normalize`, `isValid`, `format`), porque `core/` não importa de `features/`. Máscaras dos campos com `TextInputFormatter` próprios em `shared/widgets/`, sem pacote.
-- **Motivo**: são formato e validação de entrada, não regra de negócio; o banco decide de verdade (constraints).
-
-## 14. Título com "e-mail" que não quebra
-
-- **Decisão**: o widget do título da `/confirm-email` cerca o hífen com a junção de palavras (U+2060, invisível) na exibição, mantendo o ARB igual ao `copy.md`.
-- **Motivo**: conferência dos PNGs (`docs/ui/referencias/README.md`). A Montserrat não tem o glifo do hífen não separável (U+2011, conferido com `fc-query`); ele cairia na fonte do sistema. A junção não precisa de glifo.
-
-## 15. Seed da fatia 2
-
-- **Decisão** (`setup.md`, seção 8): Ana com telefone visível (`+5586999991234`) e chave CPF `52998224725`; Bruno com apelido `Bruninho` e telefone oculto (`+5586988887777`); Carla e Diego sem dados opcionais. Aceites na versão `1.0`, iguais a `current_terms_versions()`.
-- **Motivo**: o `setup.md` pede "apelido, telefone visível e oculto, chave Pix" sem fixar valores. L10 muda o apelido da Ana para `Aninha` e devolve o original; por isso a Ana começa sem apelido.
-
-## 16. Integração no emulador
-
-- **Decisão**: L08 a L11 em `app/integration_test/account_flows_test.dart`, lendo o código pela API do Mailpit (`http://10.0.2.2:54324/api/v1/...`) com o pacote `http`, que já é dependência. Rodam no emulador do responsável; nesta máquina não há SDK Android configurado para o agente.
+- **Decision:** o texto do ARB usa o hífen que não quebra (U+2011) nesse título, se a Montserrat tiver o glifo. Sem o glifo, usa o hífen comum entre dois U+2060.
+- **Rationale:** `docs/ui/referencias/README.md`, conferência dos PNGs.

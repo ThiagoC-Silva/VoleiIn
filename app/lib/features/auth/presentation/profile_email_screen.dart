@@ -4,30 +4,21 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/error_code.dart';
 import '../../../core/errors/error_text.dart';
-import '../../../core/router/routes.dart';
-import '../../../core/submit_controller.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/bold_value_text.dart';
+import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/code_field.dart';
-import '../../../shared/widgets/field_label.dart';
-import '../../../shared/widgets/inner_scaffold.dart';
-import '../../../shared/widgets/loading_button.dart';
+import '../../../shared/widgets/form_fields.dart';
+import '../../../shared/widgets/form_scroll_view.dart';
+import '../../../shared/widgets/inner_app_bar.dart';
 import '../../../shared/widgets/resend_code_button.dart';
+import '../../../shared/widgets/snack.dart';
 import '../data/auth_repository.dart';
-import 'code_sent_text.dart';
-import 'profile_providers.dart';
+import 'access_validators.dart';
+import 'profile_email_controller.dart';
 
-final _sendProvider = AsyncNotifierProvider.autoDispose<ActionController, void>(
-  ActionController.new,
-);
-final _verifyProvider =
-    AsyncNotifierProvider.autoDispose<ActionController, void>(
-      ActionController.new,
-    );
-
-/// Trocar o e-mail de acesso com código no endereço novo (RF106, ADR 0017;
-/// docs/ui/telas.md, 5.10; profileEmail-etapa1.png e -etapa2.png). Até o
-/// código, o e-mail atual continua valendo. Só para quem tem acesso por e-mail e
-/// senha: o roteador manda os outros de volta ao perfil.
+/// Trocar e-mail (docs/ui/telas.md, 5.10; profileEmail-etapa1.png e
+/// profileEmail-etapa2.png). Duas etapas na mesma rota.
 class ProfileEmailScreen extends ConsumerStatefulWidget {
   const ProfileEmailScreen({super.key});
 
@@ -37,90 +28,71 @@ class ProfileEmailScreen extends ConsumerStatefulWidget {
 
 class _ProfileEmailScreenState extends ConsumerState<ProfileEmailScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _newEmail = TextEditingController();
+  final _email = TextEditingController();
   final _code = TextEditingController();
-  int _step = 1;
+  bool _codeStep = false;
   String? _emailError;
   String? _codeError;
 
+  ProfileEmailController get _controller =>
+      ref.read(profileEmailControllerProvider.notifier);
+
+  String get _newEmail => _email.text.trim();
+
   @override
   void dispose() {
-    _newEmail.dispose();
+    _email.dispose();
     _code.dispose();
     super.dispose();
   }
 
-  AuthRepository get _auth => ref.read(authRepositoryProvider);
+  /// Erros do Auth que dizem respeito ao endereço digitado ficam no campo.
+  static const _fieldErrors = {
+    ErrorCode.authEmailInUse,
+    ErrorCode.authInvalidEmail,
+  };
 
-  String get _email => _newEmail.text.trim();
-
-  void _snack(String text) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
-
-  Future<void> _send() async {
+  Future<void> _sendCode() async {
     setState(() => _emailError = null);
+    await afterServerErrorCleared();
+    if (!mounted) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final l10n = AppLocalizations.of(context);
-    final ok = await ref
-        .read(_sendProvider.notifier)
-        .run(() => _auth.requestEmailChange(_email));
+    final error = await _controller.sendCode(_newEmail);
     if (!mounted) return;
-    if (ok) return setState(() => _step = 2);
-
-    final error = ref.read(_sendProvider).error!;
-    final code = error is AppException ? error.code : null;
-    if (code == ErrorCode.authEmailInUse ||
-        code == ErrorCode.authInvalidEmail) {
-      setState(() => _emailError = errorTextFor(l10n, error));
+    if (error == null) {
+      setState(() => _codeStep = true);
+    } else if (_fieldErrors.contains(error.code)) {
+      setState(() => _emailError = errorText(l10n, error.code));
     } else {
-      _snack(errorTextFor(l10n, error));
+      showErrorSnack(context, error);
     }
   }
 
-  Future<bool> _resend() async {
+  Future<void> _confirm() async {
+    if (_code.text.length != CodeField.length) return;
     final l10n = AppLocalizations.of(context);
-    try {
-      await _auth.requestEmailChange(_email);
-      if (mounted) _snack(l10n.authCodeResent);
-      return true;
-    } catch (error) {
-      if (mounted) _snack(errorTextFor(l10n, error));
-      return false;
-    }
-  }
-
-  Future<void> _verify(String code) async {
-    if (code.length != CodeField.length) return;
-    if (ref.read(_verifyProvider).isLoading) return;
-    final l10n = AppLocalizations.of(context);
-    final ok = await ref
-        .read(_verifyProvider.notifier)
-        .run(() => _auth.verifyEmailChange(newEmail: _email, code: code));
+    final error = await _controller.confirm(
+      newEmail: _newEmail,
+      code: _code.text,
+    );
     if (!mounted) return;
-    if (ok) {
-      _snack(l10n.emailChanged);
-      ref.invalidate(ownProfileProvider);
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.goNamed(Routes.profile);
-      }
-      return;
-    }
-    final error = ref.read(_verifyProvider).error!;
-    if (error is AppException && error.code == ErrorCode.authInvalidCode) {
+    if (error == null) {
+      showSnack(context, l10n.emailChanged);
+      context.pop();
+    } else if (error.code == ErrorCode.authInvalidCode) {
       // O e-mail atual continua valendo.
-      setState(() => _codeError = errorTextFor(l10n, error));
       _code.clear();
+      setState(() => _codeError = errorText(l10n, error.code));
     } else {
-      _snack(errorTextFor(l10n, error));
+      showErrorSnack(context, error);
     }
   }
 
   void _back() {
-    if (_step == 2) {
+    if (_codeStep) {
       setState(() {
-        _step = 1;
+        _codeStep = false;
         _code.clear();
         _codeError = null;
       });
@@ -132,93 +104,89 @@ class _ProfileEmailScreenState extends ConsumerState<ProfileEmailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final busy = ref.watch(profileEmailControllerProvider).isLoading;
     return PopScope(
-      canPop: _step == 1,
+      canPop: !_codeStep,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _back();
       },
-      child: InnerScaffold(
-        title: l10n.profileChangeEmail,
-        onBack: _back,
-        body: _step == 1 ? _stepOne(l10n) : _stepTwo(l10n),
+      child: Scaffold(
+        appBar: InnerAppBar(title: l10n.profileChangeEmail, onBack: _back),
+        body: _codeStep ? _codeContent(l10n, busy) : _emailContent(l10n, busy),
       ),
     );
   }
 
-  Widget _stepOne(AppLocalizations l10n) {
-    final theme = Theme.of(context);
-    final sending = ref.watch(_sendProvider).isLoading;
-    final current = _auth.currentEmail ?? '';
+  Widget _emailContent(AppLocalizations l10n, bool busy) {
+    final current = ref.watch(authRepositoryProvider).currentEmail ?? '';
+    final validators = AccessValidators(l10n);
     return Form(
       key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          BoldValueText(text: l10n.emailCurrent(current), value: current),
+      child: FormScrollView(
+        content: [
+          BoldValueText(
+            message: l10n.emailCurrent(current),
+            value: current,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
           const SizedBox(height: 24),
-          FieldLabel(l10n.emailNewLabel),
-          TextFormField(
-            controller: _newEmail,
-            enabled: !sending,
+          LabeledField(
+            label: l10n.emailNewLabel,
+            controller: _email,
+            enabled: !busy,
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
             autofillHints: const [AutofillHints.email],
-            textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => _send(),
+            helperText: l10n.emailKeepsWorking,
+            forceErrorText: _emailError,
             onChanged: (_) {
               if (_emailError != null) setState(() => _emailError = null);
             },
-            decoration: InputDecoration(errorText: _emailError),
-            validator: (value) {
-              final email = (value ?? '').trim();
-              if (email.isEmpty) return l10n.authEmailRequired;
-              // Igual ao atual: erro no campo, sem chamar o servidor.
-              if (email.toLowerCase() == current.toLowerCase()) {
-                return l10n.emailSameAsCurrent;
-              }
-              return null;
+            onFieldSubmitted: (_) {
+              if (!busy) _sendCode();
             },
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.emailKeepsWorking,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            validator: (value) {
+              final required = validators.email(value);
+              if (required != null) return required;
+              return value!.trim().toLowerCase() == current.toLowerCase()
+                  ? l10n.emailSameAsCurrent
+                  : null;
+            },
           ),
           const SizedBox(height: 24),
           PrimaryButton(
             label: l10n.authSendCode,
-            loading: sending,
-            onPressed: _send,
+            loading: busy,
+            onPressed: _sendCode,
           ),
         ],
       ),
     );
   }
 
-  Widget _stepTwo(AppLocalizations l10n) {
-    final verifying = ref.watch(_verifyProvider).isLoading;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        BoldValueText(text: l10n.authCodeSent(_email), value: _email),
+  Widget _codeContent(AppLocalizations l10n, bool busy) {
+    return FormScrollView(
+      content: [
+        BoldValueText(message: l10n.authCodeSent(_newEmail), value: _newEmail),
         const SizedBox(height: 24),
         CodeField(
           controller: _code,
-          enabled: !verifying,
+          enabled: !busy,
+          autofocus: true,
           errorText: _codeError,
-          semanticLabel: l10n.authCodeLabel,
-          onCompleted: _verify,
+          onCompleted: (_) => _confirm(),
         ),
         const SizedBox(height: 24),
-        PrimaryButton(
-          label: l10n.authConfirmButton,
-          loading: verifying,
-          onPressed: () => _verify(_code.text),
+        ListenableBuilder(
+          listenable: _code,
+          builder: (context, _) => PrimaryButton(
+            label: l10n.authConfirmButton,
+            loading: busy,
+            onPressed: _code.text.length == CodeField.length ? _confirm : null,
+          ),
         ),
         const SizedBox(height: 16),
-        ResendCodeButton(onResend: _resend),
+        ResendCodeButton(onResend: () => _controller.resend(_newEmail)),
       ],
     );
   }

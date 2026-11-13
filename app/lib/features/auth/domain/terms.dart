@@ -1,30 +1,12 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'legal_document.dart';
+
 part 'terms.freezed.dart';
 part 'terms.g.dart';
 
-/// Documento legal (enum `legal_document`, docs/modelo-dados.md, seção 3).
-enum LegalDocument {
-  @JsonValue('terms_of_use')
-  termsOfUse,
-  @JsonValue('privacy_policy')
-  privacyPolicy;
-
-  /// Valor do banco, usado também na rota `/terms/:document`.
-  String get dbValue => switch (this) {
-    LegalDocument.termsOfUse => 'terms_of_use',
-    LegalDocument.privacyPolicy => 'privacy_policy',
-  };
-
-  static LegalDocument? fromDbValue(String value) {
-    for (final document in values) {
-      if (document.dbValue == value) return document;
-    }
-    return null;
-  }
-}
-
-/// Uma linha de `current_terms_versions()` ou de `terms_acceptances`.
+/// Versão de um documento: a vigente, de `current_terms_versions()`, ou a
+/// aceita, de `terms_acceptances` (docs/contratos-api.md, seção 9).
 @freezed
 abstract class TermsVersion with _$TermsVersion {
   const factory TermsVersion({
@@ -36,35 +18,42 @@ abstract class TermsVersion with _$TermsVersion {
       _$TermsVersionFromJson(json);
 }
 
-/// Resultado da conferência dos termos (RF105, docs/ui/telas.md, 3.1).
-///
-/// [current] são as versões vigentes, na ordem do servidor; [missing], as que a
-/// pessoa ainda não aceitou. [hadPreviousAcceptance] escolhe a frase da tela.
+/// Resultado da conferência dos termos (docs/ui/telas.md, 3.1 e 5.5). Montado
+/// no provider, não vem de JSON.
 @freezed
 abstract class TermsStatus with _$TermsStatus {
-  const TermsStatus._();
-
   const factory TermsStatus({
+    /// Versão vigente de cada documento.
     required List<TermsVersion> current,
+
+    /// Versões vigentes que a pessoa ainda não aceitou.
     required List<TermsVersion> missing,
+
+    /// Se a pessoa já aceitou uma versão anterior de algum documento que
+    /// falta. Muda a frase de apoio da `/terms`.
     required bool hadPreviousAcceptance,
   }) = _TermsStatus;
 
-  /// Compara as versões vigentes com os aceites da pessoa.
-  factory TermsStatus.compare({
+  const TermsStatus._();
+
+  /// Calcula o que falta a partir das versões vigentes e dos aceites.
+  factory TermsStatus.from({
     required List<TermsVersion> current,
     required List<TermsVersion> accepted,
   }) {
-    final missing = current.where((v) => !accepted.contains(v)).toList();
-    final missingDocs = missing.map((v) => v.document).toSet();
+    final missing = [
+      for (final version in current)
+        if (!accepted.contains(version)) version,
+    ];
+    final previous = missing.any(
+      (m) => accepted.any((a) => a.document == m.document),
+    );
     return TermsStatus(
       current: current,
       missing: missing,
-      hadPreviousAcceptance: accepted.any(
-        (a) => missingDocs.contains(a.document),
-      ),
+      hadPreviousAcceptance: previous,
     );
   }
 
-  bool get accepted => missing.isEmpty;
+  bool get upToDate => missing.isEmpty;
 }

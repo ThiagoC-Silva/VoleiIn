@@ -137,7 +137,7 @@ Decisões de 12/11/2026. A pessoa lê e edita **só a própria linha** de `profi
 
 **Funções** (lista esperada do B06): `public.current_terms_versions()`, com `execute` só para `authenticated` (`contratos-api.md`, seção 9).
 
-- `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)` também têm `execute` para `authenticated`, porque a constraint de `check` da chave Pix roda com o privilégio de quem grava (medido em 12/11/2026). São puras e não leem nada. O esquema `private` continua sem `usage` para o app (B07), então elas não são alcançáveis pela API.
+**Funções do esquema `private` usadas por constraint.** `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)` conferem os dígitos da chave Pix na constraint `profile_private_pix_format` (`modelo-dados.md`, 4.1). A constraint roda com os privilégios de quem faz o `update`, inclusive o app, então as duas recebem `execute` para `authenticated` (research R6 de `specs/001-conta-e-perfil`). O `authenticated` continua **sem `usage`** no esquema `private` (B07): a constraint guarda a função pelo OID, e a API não alcança o esquema. A *trigger* da RN105, `private.guard_pix_key_removal()`, é `security definer` e não recebe `execute` de ninguém.
 
 **Storage, bucket `avatars`.** Políticas em `storage.objects`, todas com `bucket_id = 'avatars' and (storage.foldername(name))[1] = 'profiles' and (storage.foldername(name))[2] = uid::text`:
 

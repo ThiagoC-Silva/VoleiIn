@@ -1,111 +1,99 @@
-# Plano de implementação: Fatia 2 — Conta e perfil
+# Implementation Plan: Conta e perfil (fatia 2)
 
-**Branch**: `fatia-2/conta-e-perfil` | **Data**: 2026-11-12 | **Especificação**: [spec.md](spec.md)
+**Branch**: `fatia-2/conta-e-perfil` | **Date**: 2026-11-12 | **Spec**: [spec.md](./spec.md)
 
-**Entrada**: `specs/001-conta-e-perfil/spec.md`
+**Input**: Feature specification from `specs/001-conta-e-perfil/spec.md`
 
-## Resumo
+## Summary
 
-Completar o acesso (cadastro por e-mail com código, Google, recuperação de senha, aceite dos termos) e trocar a aba Perfil vazia pelo perfil real (edição, foto, telefone, chave Pix, troca de e-mail e de senha). No servidor: privilégios e políticas da fatia 2 (`rls-matriz.md`), `current_terms_versions()`, dígitos verificadores de CPF e CNPJ na constraint da chave Pix, *trigger* da RN105, políticas do bucket `avatars` e configuração do Supabase Auth com os modelos de e-mail. No app: oito telas novas, a `/login` completada, a conferência dos termos no roteador e a conversão dos novos erros. Decisões técnicas em [research.md](research.md).
+A fatia 2 completa o acesso (cadastro com código por e-mail, Google, recuperação de senha, aceite dos termos) e troca a aba Perfil provisória pela tela real, com as edições de perfil, chave Pix, e-mail e senha (`docs/plano-implementacao.md`, fatia 2).
 
-## Contexto técnico
+No servidor, não há tabela nova: a fatia concede o acesso da própria linha em `profiles`, `profile_private` e `terms_acceptances`, cria `current_terms_versions()`, a *trigger* da RN105, a conferência dos dígitos de CPF e CNPJ e as três políticas do bucket `avatars` (`docs/rls-matriz.md`, fatia 2). O Supabase Auth passa a confirmar por código (ADR 0017), com os três modelos de e-mail.
 
-**Linguagem/versão**: Dart 3.13 com Flutter estável 3.47 ou superior (app); SQL do Postgres 17 (Supabase); TypeScript no Deno 2.x (teste das fotos).
+No app, a feature `auth` ganha as camadas `domain` e `data` completas e as telas da seção 5 do `docs/ui/telas.md`, seguindo os PNGs de `docs/ui/referencias/fatia-2/`.
 
-**Dependências principais**: as do `app/pubspec.yaml` mais `google_sign_in` e `image_picker`, ambos na tabela da seção 3 do `arquitetura-app.md` e no `stacks.md` (3.1). Nenhum pacote fora das listas.
+## Technical Context
 
-**Armazenamento**: Postgres (`profiles`, `profile_private`, `terms_acceptances`, já criadas na fatia 1) e Storage (bucket `avatars`, já criado).
+**Language/Version**: Dart 3.13 (Flutter 3.47, estável); SQL (Postgres 17 do Supabase local); TypeScript no Deno 2.x, só para o teste do Storage.
 
-**Testes**: pgTAP (`supabase test db`), Deno test contra o Storage local, `flutter_test` (unitário e widget) e `integration_test` no emulador (`arquitetura-app.md`, seção 11 e 14.4).
+**Primary Dependencies**: as de `docs/arquitetura-app.md`, seção 3. Entram nesta fatia `google_sign_in` 7.2 e `image_picker` 1.2, ambos já previstos na tabela.
 
-**Plataforma alvo**: Android, API 29 a 36 (`requisitos-nao-funcionais.md`).
+**Storage**: Postgres do Supabase (tabelas da seção 4.1 do `docs/modelo-dados.md`) e o bucket privado `avatars`.
 
-**Tipo de projeto**: app móvel com backend Supabase.
+**Testing**: pgTAP (`supabase test db`), Deno test (Storage), `flutter_test` com `mocktail` (unitário e widget) e `integration_test` no emulador (`docs/testes-referencia.md`, seção 10).
 
-**Metas de desempenho**: abertura em até 3 s e telas comuns em até 2 s (RNF04).
+**Target Platform**: Android, API 29 a 36 (RNF01, RNF02).
 
-**Restrições**: nada guardado no aparelho além da sessão do Supabase (RNF07); textos só do ARB; cores só do tema; fonte em 150% sem *overflow* (RNF05); sem segredo no app.
+**Project Type**: app móvel com backend gerenciado (`app/` e `supabase/`).
 
-**Escala/escopo**: 9 rotas novas ou completadas, 5 migrações novas, 3 arquivos de teste no servidor e ~20 no app.
+**Performance Goals**: os da RNF04. Nenhuma meta nova nesta fatia.
 
-## Verificação da constituição
+**Constraints**: só modo escuro; fonte do sistema em 150% (RNF05); nada guardado no aparelho além da sessão (RNF07); o servidor decide e o app exibe.
 
-*Portão: antes da fase 0 e de novo depois da fase 1.*
+**Scale/Scope**: 10 rotas novas ou completadas, 5 migrações, 3 modelos de e-mail e os cenários P, X, N, A, U, E, S e L da seção 10 do `docs/testes-referencia.md`.
 
-| Princípio | Como o plano cumpre | Situação |
-|-----------|--------------------|----------|
-| I. Documentos são a fonte da verdade | `spec.md` só cita; valores, textos e políticas vêm de `rls-matriz.md`, `copy.md`, `telas.md` e `testes-referencia.md` | Passa |
-| II. Uma fatia por vez | Fora de escopo da fatia respeitado: sem RF13, RF101, RN107 e token de push | Passa |
-| III. Testes antes do código | Ordem de tarefas: testes pgTAP, Deno e Flutter num *commit* antes de cada implementação, com a falha registrada | Passa |
-| IV. O servidor decide | RN105 e formato da chave no banco (*trigger* e constraint); tipo e tamanho da foto no bucket; instante do aceite pelo `now()`; o app só repete as validações para avisar no campo | Passa |
-| V. Produção é do responsável | O plano entrega os comandos da produção (migrações, painel do Auth, SMTP do Resend) para o responsável executar | Passa |
+## Constitution Check
 
-**Depois da fase 1**: sem violação. Nenhuma tabela, coluna, enum ou função nova além das previstas nos documentos. `private.is_valid_cpf` e `private.is_valid_cnpj` estão no `modelo-dados.md` (4.1); `current_terms_versions()` no `contratos-api.md` (9).
+*GATE: conferido antes da pesquisa e de novo depois do desenho.*
 
-## Estrutura do projeto
+| Princípio | Situação |
+|-----------|----------|
+| I. Os documentos são a fonte da verdade | Passa. O spec e este plano citam `docs/`. As duas divergências achadas na pesquisa (R5 e R9 do `research.md`) viram correção de documento no mesmo PR, sinalizada ao responsável |
+| II. Uma fatia por vez | Passa. Ficam de fora RF13, RF101, o token de push e a leitura por contexto |
+| III. Testes antes do código | Passa. A fase 2 do `tasks.md` é só de testes, com *commit* próprio e a saída da falha |
+| IV. O servidor decide | Passa. Formato da chave Pix, RN105, versão dos termos e limites da foto são do banco e do Storage. O app repete as conferências só para o aviso no campo |
+| V. Produção é do responsável | Passa. O plano entrega os comandos e a lista do painel no `quickstart.md`. M01 a M04 são do responsável |
 
-### Documentação (esta fatia)
+Nenhuma violação a justificar.
+
+## Project Structure
+
+### Documentation (this feature)
 
 ```text
 specs/001-conta-e-perfil/
-├── spec.md
-├── plan.md              # este arquivo
-├── research.md          # fase 0
-├── data-model.md        # fase 1
-├── quickstart.md        # fase 1
+├── plan.md
+├── research.md
+├── data-model.md
+├── quickstart.md
 ├── contracts/
-│   └── app-servidor.md  # fase 1: o que o app chama no Auth, no banco e no Storage
+│   └── repositories.md
+├── checklists/requirements.md
 └── tasks.md             # /speckit-tasks
 ```
 
-### Código
+### Source Code (repository root)
 
 ```text
 supabase/
-├── config.toml                                   # Auth: confirmação, OTP, senha 8, Google, modelos, limite de e-mail
-├── templates/
-│   ├── confirmation.html
-│   ├── recovery.html
-│   └── email_change.html
-├── migrations/
-│   ├── <ts>_create_current_terms_versions.sql
-│   ├── <ts>_account_rls.sql                      # grants e políticas das três tabelas
-│   ├── <ts>_avatars_profile_policies.sql         # storage.objects, pasta profiles/{uid}
-│   ├── <ts>_pix_key_check_digits.sql             # private.is_valid_cpf/cnpj e constraint nova
-│   └── <ts>_pix_key_removal_trigger.sql          # RN105
-├── seed.sql                                      # perfis completos da fatia 2
+├── config.toml                      # código por e-mail, senha de 8, Google, modelos, limite de envio
+├── templates/                       # confirmation.html, recovery.html, email_change.html
+├── migrations/                      # 5 migrações novas (data-model.md)
+├── seed.sql                         # perfis completos (setup.md, seção 8)
 ├── tests/database/
-│   ├── base_security.test.sql                    # B03, B04, B06, B10 com as listas da fatia 2
-│   ├── account_security.test.sql                 # P01 a P16
-│   └── account_pix.test.sql                      # X01 a X10, N01 a N09
-└── functions/_tests/avatars_test.ts              # A01 a A06
+│   ├── base_security.test.sql       # listas esperadas da fatia 2 (B03, B04, B06, B08, B10)
+│   ├── account_security.test.sql    # P01 a P16
+│   └── account_pix.test.sql         # X01 a X10, N01 a N09
+└── functions/_tests/avatars_test.ts # A01 a A06
 
 app/lib/
 ├── core/
-│   ├── errors/        # ErrorCode, mapper e textos novos (E09 a E12)
-│   ├── format/        # phone.dart, br_documents.dart, pix_key.dart (U01 a U06)
-│   └── router/        # rotas novas, redirect dos termos e das rotas de e-mail e senha
-├── shared/widgets/    # AppAvatar, CodeField, ResendCodeButton, PasswordField, FieldLabel, NavRow, ConfirmDialog
-└── features/auth/
-    ├── data/          # auth_repository.dart (Auth e Google), profile_repository.dart, terms_repository.dart
-    ├── domain/        # Profile, ProfilePrivate, PixKeyType, LegalDocument, TermsStatus
-    └── presentation/  # telas e controllers da seção 5 do telas.md
+│   ├── errors/                      # códigos e textos novos; Storage e Auth sem rede
+│   ├── format/                      # phone.dart, pix_key.dart, input_masks.dart
+│   └── router/                      # rotas e redirecionamentos da fatia 2
+├── features/auth/
+│   ├── domain/                      # profile, profile_private, pix_key_type, legal_document, terms, auth_access
+│   ├── data/                        # auth_repository, google_id_token_source, profile_repository, terms_repository
+│   └── presentation/                # providers, controllers, telas e widgets da feature
+└── shared/widgets/                  # componentes do design system usados por mais de uma tela
 
-app/test/            # espelha lib/ (U, E, S)
-app/integration_test/ # L08 a L11
-.github/workflows/ci.yml  # Deno do avatars_test no job do banco
+app/test/                            # espelha lib/ (U, E, S)
+app/integration_test/                # account_flow_test.dart (L08 a L11)
+.github/workflows/ci.yml             # o teste do Storage roda no job que sobe o Supabase
 ```
 
-**Decisão de estrutura**: a do `arquitetura-app.md` (seção 2). Tudo da conta fica em `features/auth`, como o próprio guia define (RF01 a RF13, RF105 a RF108). Componentes usados por mais de uma tela sobem para `shared/widgets/`.
+**Structure Decision**: a estrutura é a de `docs/arquitetura-app.md`, seção 2, e de `docs/setup.md`, seção 2. Tudo da fatia fica na feature `auth`, que já cobre RF01 a RF13 e RF105 a RF108. Os contratos internos do app (o que cada repositório expõe às telas e aos dublês dos testes) estão em `contracts/repositories.md`.
 
-## Ordem de execução
+## Complexity Tracking
 
-1. Servidor: testes pgTAP (falham) → migrações → testes verdes. Depois o teste Deno das fotos.
-2. Auth local: `config.toml` e modelos de e-mail.
-3. App, base: erros, formatação e validação (testes unitários primeiro), modelos, repositórios.
-4. App, telas: por história, na ordem de prioridade da especificação, cada uma com o teste de widget antes.
-5. Fluxos de integração (L08 a L11), seed, CI e documentos.
-
-## Acompanhamento de complexidade
-
-Sem violação a justificar.
+Sem violações.

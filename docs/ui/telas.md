@@ -206,7 +206,7 @@ Mantém tudo da seção 4.1 e acrescenta:
 
 | Situação | O que acontece |
 |----------|----------------|
-| Código completo | `verifyOTP`, tipo `email`. O Supabase Auth confirma o e-mail e cria a sessão, e o perfil nasce pela *trigger* (`modelo-dados.md`, 4.1). Depois, a conferência dos termos leva à `/terms` |
+| Código completo | `verifyOTP`, tipo `email`. O Supabase Auth confirma o e-mail e cria a sessão, e o perfil nasce pela *trigger* (`modelo-dados.md`, 4.1). Em seguida, o app grava de novo a senha digitada (`updateUser`), ignorando `same_password`, porque o Supabase mantém a senha do primeiro cadastro de um e-mail não confirmado (ADR 0018). Depois, a conferência dos termos leva à `/terms` |
 | Código errado ou vencido (`otp_expired`) | Erro no campo, que é limpo. A pessoa pode digitar de novo ou pedir outro |
 | Reenviar código | `resend`, tipo `signup`. `SnackBar` "Enviamos um novo código" |
 | Rota aberta sem e-mail em memória (app reaberto) | Volta ao login. Entrar com o e-mail não confirmado traz de volta a esta tela (5.1) |
@@ -302,7 +302,7 @@ Barra superior interna com voltar e o rótulo do documento como título. O corpo
    | Tipo | Teclado e máscara | O app confere | Grava |
    |------|-------------------|---------------|-------|
    | CPF | Numérico, `000.000.000-00` | 11 dígitos e dígitos verificadores | Só os dígitos |
-   | CNPJ | Numérico, `00.000.000/0000-00` | 14 dígitos e dígitos verificadores | Só os dígitos |
+   | CNPJ | Texto em maiúsculas, sem correção automática, `AA.AAA.AAA/AAAA-00`: os 12 primeiros caracteres aceitam letras e números, e os 2 últimos só números | 14 caracteres e dígitos verificadores, no formato alfanumérico da Receita (`modelo-dados.md`, 4.1) | Sem pontuação, em maiúsculas |
    | E-mail | E-mail | Um `@` e um ponto depois dele | Em minúsculas |
    | Telefone | Numérico, `+55` fixo e `(86) 99999-1234` | 10 ou 11 dígitos | E.164 |
    | Aleatória | Texto, sem correção automática | Formato de UUID | Em minúsculas, com hífens |

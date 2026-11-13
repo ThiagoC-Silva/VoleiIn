@@ -2,7 +2,7 @@
 
 App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de presença, calcula o rateio e as multas ao concluir o jogo e acompanha os pagamentos por Pix entre os participantes, com leitura automática de comprovantes. O app não processa pagamentos.
 
-**Estado atual:** fatia 1 concluída e na `main` (12/11/2026). **Fatia 2 (Conta e perfil) implementada no *branch* `fatia-2/conta-e-perfil`** (12/11/2026): documentos aprovados (PR #2), Spec Kit em `specs/001-conta-e-perfil/`, migrações, testes pgTAP, Deno e Flutter verdes. Falta o responsável rodar os fluxos L08 a L11 no emulador, conferir M01 a M04 (Google real e Resend) e aplicar as 5 migrações novas na produção. Depois, fechar a fatia (`trabalho-com-agente.md`, seção 11).
+**Estado atual:** fatia 1 concluída e na `main` (12/11/2026). **Fatia 2 (Conta e perfil) com o código pronto** no *branch* `fatia-2/conta-e-perfil` (13/11/2026): migrações, RLS, seed, telas e testes, com `dart analyze`, `flutter test`, `supabase test db` e `deno test` verdes. L06 a L11 verdes no emulador, nas APIs 29 e 36, acessibilidade (T049) e matriz de rastreabilidade feitas (13/11/2026). PR #3 com o CI verde. Falta: o *merge* e as migrações na produção (`setup.md`, 9.2), que o agente pode fazer; e, com o responsável, conferir cada tela contra o PNG (T051) e os testes com contas reais, M01 a M04 (Google e Resend). Depois, marcar a T053 e os RFs como concluídos.
 
 ## Antes de implementar
 
@@ -26,6 +26,7 @@ App Android para grupos de vôlei de Parnaíba (PI). Organiza jogos e listas de 
 | `docs/ui/telas.md` | Mapa de todas as telas e rotas, navegação e o detalhe das telas de cada fatia |
 | `docs/copy.md` | Textos da interface (chaves do ARB), tom de voz, formatos e mensagens de erro |
 | `docs/rls-matriz.md` | Privilégios e políticas de RLS por tabela, e a fatia que libera cada uma |
+| `docs/rastreabilidade.md` | Cada RF com as RNs, a fatia, o banco, as telas, os testes e o status |
 | `docs/adr/` | Decisões de arquitetura já tomadas, que não devem ser reabertas |
 | `plan-docs.md` | Documentos ainda a escrever e o que cada fatia exige antes do código |
 
@@ -52,6 +53,8 @@ supabase test db                # testes pgTAP
 supabase migration new <nome>   # cria uma migração
 supabase functions serve        # Edge Functions locais
 deno test                       # testes das Edge Functions e de concorrência
+scripts/emulator.sh 36          # abre o emulador (29 ou 36) com memória limitada
+scripts/integration-test.sh     # testes de integração no emulador aberto
 ```
 
 Primeira execução, variáveis e problemas comuns: `docs/setup.md`. Há dois ambientes: o **Supabase local** (desenvolvimento e homologação, com o app no emulador) e a **produção** (um projeto remoto só, ADR 0011).
@@ -65,6 +68,7 @@ Primeira execução, variáveis e problemas comuns: `docs/setup.md`. Há dois am
 - **Tempo:** `timestamptz` em UTC, exibido em `America/Fortaleza`.
 - **Erros:** funções devolvem os códigos estáveis de `contratos-api.md`. O app converte o código em texto.
 - **Textos:** nenhuma string de interface solta no código.
+- **Memória:** emulador e testes de integração só pelos scripts de `scripts/`. Com o emulador aberto, um comando pesado por vez: nada de `flutter test`, `supabase test db`, `deno test` ou build em paralelo ao teste de integração. A soma já derrubou a sessão gráfica por falta de memória (`setup.md`, seção 3.1).
 
 ## Glossário
 
@@ -92,7 +96,7 @@ Primeira execução, variáveis e problemas comuns: `docs/setup.md`. Há dois am
 - **Confiar no relógio do aparelho.** Prazos e início usam o relógio do servidor (RN02).
 - **Colocar segredo no app ou no repositório.** No app, só identificadores públicos: a URL e a chave pública do Supabase, o ID do cliente web do Google e a configuração do Firebase. O resto fica nos *secrets* do GitHub e do Supabase (`setup.md`, seção 5).
 - **Criar tabela sem RLS ou alterar política sem teste.** O RLS é o que protege telefone, chave Pix e comprovantes.
-- **Aplicar migração, alterar dados ou mexer em segredos em produção.** Produção só muda pelo pipeline, com aprovação manual. O projeto não tem backup do banco (`requisitos-nao-funcionais.md`, seção 8), então um erro pode não ter volta.
+- **Aplicar migração na produção sem o ensaio.** O agente pode mexer na produção (decisão de 13/11/2026), mas o projeto não tem backup do banco (`requisitos-nao-funcionais.md`, seção 8): antes de cada `supabase db push`, o agente roda o ensaio de `setup.md`, seção 9.2.
 - **Mudar um resultado esperado de `testes-referencia.md` para o teste passar.** Ele vem da regra. Se a regra parecer errada, pare e pergunte.
 - **Implementar algo fora do escopo da fatia atual.**
 

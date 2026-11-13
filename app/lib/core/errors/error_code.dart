@@ -13,10 +13,12 @@ enum ErrorCode {
   // Só do app
   noConnection,
 
-  // Supabase Auth (docs/copy.md, seções 5.5 e 6.8)
+  // Supabase Auth (docs/copy.md, seção 5.5)
   authInvalidCredentials,
   authEmailNotConfirmed,
   authRateLimited,
+
+  // Supabase Auth da fatia 2 (docs/copy.md, 6.8)
   authWeakPassword,
   authInvalidCode,
   authInvalidEmail,
@@ -24,10 +26,10 @@ enum ErrorCode {
   authSamePassword,
   authEmailRateLimited,
 
-  // Login com Google, só do app (docs/copy.md, seção 6.8)
+  // Google, só do app (docs/copy.md, 6.8)
   authGoogleFailed,
 
-  // Banco e Storage (docs/copy.md, seção 6.8)
+  // Banco e Storage (docs/copy.md, 6.8)
   pixKeyInUse,
   photoTooLarge,
   photoInvalidType,

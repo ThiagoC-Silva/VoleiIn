@@ -2,29 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/errors/error_text.dart';
 import '../../../core/router/routes.dart';
-import '../../../core/submit_controller.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../shared/widgets/field_label.dart';
-import '../../../shared/widgets/footer_link.dart';
-import '../../../shared/widgets/inner_scaffold.dart';
-import '../../../shared/widgets/loading_button.dart';
-import '../../../shared/widgets/password_field.dart';
-import '../data/auth_repository.dart';
-import 'pending_email_provider.dart';
+import '../../../shared/widgets/buttons.dart';
+import '../../../shared/widgets/form_fields.dart';
+import '../../../shared/widgets/form_scroll_view.dart';
+import '../../../shared/widgets/inner_app_bar.dart';
+import '../../../shared/widgets/snack.dart';
+import 'access_validators.dart';
+import 'auth_providers.dart';
+import 'signup_controller.dart';
 
-final _signupProvider =
-    AsyncNotifierProvider.autoDispose<ActionController, void>(
-      ActionController.new,
-    );
-
-/// Tamanho mínimo da senha, igual ao `minimum_password_length` do Supabase Auth
-/// (docs/ui/telas.md, seção 5; docs/setup.md, 6.1).
-const minPasswordLength = 8;
-
-/// Cadastro com nome, e-mail e senha (RF01; docs/ui/telas.md, 5.2; signup.png).
-/// Não há caixa de aceite: o aceite é feito na `/terms`.
+/// Cadastro (docs/ui/telas.md, 5.2; signup.png). Sem caixa de aceite: o aceite
+/// é na `/terms`, depois do primeiro acesso.
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
 
@@ -41,8 +31,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   void initState() {
     super.initState();
-    // "Usar outro e-mail" volta com os campos preenchidos (telas.md, 5.3).
-    final draft = ref.read(signupDraftProvider);
+    // "Usar outro e-mail" volta para cá com os campos preenchidos.
+    final draft = ref.read(accessDraftProvider);
     _name = TextEditingController(text: draft?.name);
     _email = TextEditingController(text: draft?.email);
     _password = TextEditingController(text: draft?.password);
@@ -58,114 +48,122 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final name = _name.text.trim();
-    final email = _email.text.trim();
-    final password = _password.text;
-
-    final ok = await ref
-        .read(_signupProvider.notifier)
-        .run(
-          () => ref
-              .read(authRepositoryProvider)
-              .signUp(name: name, email: email, password: password),
-        );
+    final error = await ref
+        .read(signupControllerProvider.notifier)
+        .signUp(name: _name.text, email: _email.text, password: _password.text);
     if (!mounted) return;
-    if (!ok) {
-      final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorTextFor(l10n, ref.read(_signupProvider).error!)),
-        ),
-      );
+    if (error != null) {
+      showErrorSnack(context, error);
       return;
     }
-    // E-mail que já tem conta também chega aqui: o Auth não revela quem tem
-    // conta, e a confirmação explica o que fazer (telas.md, 5.2).
-    ref
-        .read(signupDraftProvider.notifier)
-        .set(SignupDraft(name: name, email: email, password: password));
-    ref.read(pendingEmailProvider.notifier).set(email);
-    // Troca a tela: o cadastro sai da pilha (S02).
-    context.goNamed(Routes.confirmEmail);
+    // A confirmação sai da pilha do cadastro: o voltar não retorna.
+    context.pushReplacementNamed(Routes.confirmEmail);
+  }
+
+  void _goToLogin() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.goNamed(Routes.login);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final submitting = ref.watch(_signupProvider).isLoading;
+    final validators = AccessValidators(l10n);
+    final busy = ref.watch(signupControllerProvider).isLoading;
 
-    return InnerScaffold(
-      title: l10n.authCreateAccount,
-      footer: FooterLink(
-        text: l10n.authHasAccount,
-        action: l10n.authGoToLogin,
-        onPressed: submitting ? null : () => context.goNamed(Routes.login),
-      ),
+    return Scaffold(
+      appBar: InnerAppBar(title: l10n.authCreateAccount),
       body: AutofillGroup(
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: FormScrollView(
+            content: [
               Text(l10n.authSignupSubtitle, style: theme.textTheme.bodyLarge),
               const SizedBox(height: 24),
-              FieldLabel(l10n.authNameLabel),
-              TextFormField(
+              LabeledField(
+                label: l10n.authNameLabel,
                 controller: _name,
-                enabled: !submitting,
-                textCapitalization: TextCapitalization.words,
+                enabled: !busy,
                 autofillHints: const [AutofillHints.name],
+                textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
-                validator: (value) {
-                  final name = (value ?? '').trim();
-                  if (name.isEmpty) return l10n.authNameRequired;
-                  if (name.length > 80) return l10n.authNameTooLong;
-                  return null;
-                },
+                validator: validators.name,
               ),
               const SizedBox(height: 16),
-              FieldLabel(l10n.authEmailLabel),
-              TextFormField(
+              LabeledField(
+                label: l10n.authEmailLabel,
                 controller: _email,
-                enabled: !submitting,
+                enabled: !busy,
                 keyboardType: TextInputType.emailAddress,
                 autocorrect: false,
                 autofillHints: const [AutofillHints.email],
                 textInputAction: TextInputAction.next,
-                validator: (value) => (value ?? '').trim().isEmpty
-                    ? l10n.authEmailRequired
-                    : null,
+                validator: validators.email,
               ),
               const SizedBox(height: 16),
-              FieldLabel(l10n.authPasswordLabel),
               PasswordField(
+                label: l10n.authPasswordLabel,
                 controller: _password,
-                enabled: !submitting,
+                enabled: !busy,
                 newPassword: true,
-                onSubmitted: (_) {
-                  if (!submitting) _submit();
-                },
-                validator: (value) {
-                  final password = value ?? '';
-                  if (password.isEmpty) return l10n.authPasswordRequired;
-                  if (password.length < minPasswordLength) {
-                    return l10n.authPasswordTooShort;
-                  }
-                  return null;
+                helperText: l10n.authPasswordHint,
+                validator: validators.newPassword,
+                onFieldSubmitted: (_) {
+                  if (!busy) _submit();
                 },
               ),
-              FieldHint(l10n.authPasswordHint),
               const SizedBox(height: 24),
               PrimaryButton(
                 label: l10n.authCreateAccountButton,
-                loading: submitting,
+                loading: busy,
                 onPressed: _submit,
+              ),
+            ],
+            footer: [
+              _FooterLink(
+                text: l10n.authHasAccount,
+                action: l10n.authGoToLogin,
+                onPressed: busy ? null : _goToLogin,
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Frase do pé da tela com o botão de texto ("Já tem conta? Entrar").
+class _FooterLink extends StatelessWidget {
+  const _FooterLink({
+    required this.text,
+    required this.action,
+    required this.onPressed,
+  });
+
+  final String text;
+  final String action;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          text,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        TextButton(onPressed: onPressed, child: Text(action)),
+      ],
     );
   }
 }

@@ -1,48 +1,56 @@
-# Validação: Fatia 2 — Conta e perfil
+# Quickstart: conferir a fatia 2
 
-Como provar que a fatia funciona. Primeira execução e variáveis: `docs/setup.md`.
+Roteiro para provar que a fatia funciona de ponta a ponta. Ambiente e primeira execução: `docs/setup.md`.
 
 ## Pré-requisitos
 
-- Docker, Supabase CLI, Flutter estável e Deno 2.x (`setup.md`, seção 3).
-- `app/env/local.json` com `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `GOOGLE_WEB_CLIENT_ID`.
-- `supabase/.env` com `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` (só para o Google no local).
+- Docker rodando, Supabase CLI, Flutter e Deno (`docs/setup.md`, seção 3).
+- `supabase/.env` com `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` e `app/env/local.json` com as três variáveis (`docs/setup.md`, seção 5).
+- Para o login com Google: SHA-1 da chave de debug cadastrado (`docs/setup.md`, 6.2) e uma conta Google no emulador.
 
-## Servidor
+## Comandos (os mesmos do CI)
 
 ```bash
-supabase start
-supabase db reset          # migrações + seed
+# na raiz
+supabase stop && supabase start   # relê o config.toml (código por e-mail, modelos, Google)
+supabase db reset
 supabase db lint
-supabase test db           # B01..B36, P01..P16, X01..X10, N01..N09
-cd supabase/functions
+supabase test db                  # B, P, X e N
+
+# em supabase/functions, com a URL e a chave pública de `supabase status`
+SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_PUBLISHABLE_KEY=<chave> \
+  deno test --allow-net --allow-env   # A01 a A06
 deno fmt --check && deno lint
-SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_PUBLISHABLE_KEY=<chave de supabase status> \
-  deno test --allow-net --allow-env --allow-read _tests/   # A01..A06
-```
 
-Esperado: tudo verde. Os IDs aparecem no nome de cada asserção.
-
-## App
-
-```bash
-cd app
-flutter pub get && flutter gen-l10n
+# em app/
+flutter pub get
 dart run build_runner build --delete-conflicting-outputs
 dart format --output=none --set-exit-if-changed .
 dart analyze
-flutter test                                 # U01..U07, E09..E12, S01..S17
-flutter test integration_test -d emulator-5554 --dart-define-from-file=env/local.json   # L08..L11
+flutter test                      # U, E e S
+flutter test integration_test -d emulator-5554 --dart-define-from-file=env/local.json   # L06 a L11
 ```
 
-## No emulador (conferência do responsável)
+## "Pronto quando" da fatia (`docs/plano-implementacao.md`)
 
-1. Criar conta com um e-mail novo, ler o código no Mailpit (`http://127.0.0.1:54324`), confirmar, aceitar os termos e chegar à aba Jogos.
-2. No perfil: editar apelido, telefone e foto; cadastrar a chave CPF `52998224725`; tentar `52998224724` (erro no campo).
-3. Trocar a senha e o e-mail; sair e entrar com os dados novos.
-4. Esquecer a senha no login e recuperar pelo código.
-5. Com o `GOOGLE_WEB_CLIENT_ID` e o SHA-1 cadastrados: M01 e M02 (`testes-referencia.md`, 10.4).
+| Item | Como conferir |
+|------|---------------|
+| Cadastro por e-mail com código, no local | L08. À mão: criar a conta no emulador, ler o código em `http://127.0.0.1:54324` e confirmar |
+| Login com Google e vinculação (RF108) | M01 e M02, no emulador com conta Google |
+| O e-mail chega pelo Resend | M03, na produção |
+| Novo aceite quando a versão muda | S10. À mão: recriar `current_terms_versions()` com `1.1` no banco local e reabrir o app |
+| RN105 recusa a remoção da chave Pix | N01 a N09 e S13 |
+| Fotos fora do formato ou acima de 2 MB recusadas no servidor | A02 e A04 |
+| Na produção, ainda sem usuários reais | M04, depois de o responsável publicar as migrações e ajustar o painel (abaixo) |
 
-## Produção (responsável)
+## Produção (feito pelo responsável)
 
-Migrações pelo roteiro do `setup.md` (9.2); Auth no painel (`setup.md`, 6.1: confirmação, `double_confirm_changes`, senha 8, modelos, SMTP do Resend, limite de 30 e-mails por hora); depois M03 e M04.
+O agente não executa nada disto (`docs/trabalho-com-agente.md`, seção 7).
+
+1. Migrações: `supabase db push`, com os passos de `docs/setup.md`, 9.2.
+2. Painel do Supabase, Authentication (`docs/setup.md`, 6.1):
+   - confirmação de e-mail ligada, troca de e-mail sem dupla confirmação, código de 6 dígitos com 1 hora, senha mínima de 8;
+   - os três modelos de e-mail com os assuntos e os corpos de `supabase/templates/`;
+   - limite de 30 e-mails por hora;
+   - Google: o mesmo cliente web, com *skip nonce check* ligado.
+3. M01 a M04 de `docs/testes-referencia.md`, seção 10.4.

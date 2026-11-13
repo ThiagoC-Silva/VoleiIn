@@ -1,36 +1,47 @@
-# Modelo de dados: Fatia 2 — Conta e perfil
+# Data Model: Conta e perfil (fatia 2)
 
-As tabelas já existem desde a fatia 1 (`docs/modelo-dados.md`, 4.1). Esta fatia não cria tabela nem coluna: só funções, uma constraint recriada, uma *trigger*, privilégios e políticas. O que vale está no documento citado em cada linha.
+As tabelas, colunas e constraints são as de `docs/modelo-dados.md`, 4.1. Os privilégios e as políticas são os de `docs/rls-matriz.md`, fatia 2. Este arquivo só diz **o que a fatia acrescenta** e em que migração.
 
-## Banco
+## Migrações
 
-| Objeto | Mudança | Fonte |
-|--------|---------|-------|
-| `profiles` | `select` de todas as colunas e `update` de `name`, `nickname`, `photo_path` para `authenticated`; políticas `profiles_select_own` e `profiles_update_own` | `rls-matriz.md`, Fatia 2 |
-| `profile_private` | `select` e `update` de `phone`, `phone_visible`, `pix_key_type`, `pix_key`; políticas `_select_own` e `_update_own` | idem |
-| `profile_private_pix_format` | Recriada: CPF e CNPJ passam por `private.is_valid_cpf` e `private.is_valid_cnpj` | `modelo-dados.md`, 4.1; X01 a X10 |
-| `private.guard_pix_key_removal()` | *Trigger* `before update` que recusa a remoção da chave nos casos da RN105 com `PIX_KEY_IN_USE` | `modelo-dados.md`, 4.1; N01 a N09 |
-| `terms_acceptances` | `select` e `insert` de `user_id`, `document`, `version`; políticas `_select_own` e `_insert_own` (só a versão vigente) | `rls-matriz.md`, Fatia 2 |
-| `public.current_terms_versions()` | Nova; `terms_of_use` e `privacy_policy` na `1.0` | `contratos-api.md`, 9; P10 |
-| `storage.objects` (bucket `avatars`) | `avatars_profile_select_own`, `_insert_own`, `_delete_own`, pasta `profiles/{uid}/` | `rls-matriz.md`, Fatia 2; P15, P16, A01 a A06 |
+Criadas com `supabase migration new`, nesta ordem:
 
-## App (`features/auth/domain`)
+| Migração | Conteúdo | Documento |
+|----------|----------|-----------|
+| `create_current_terms_versions` | `public.current_terms_versions()`, com `revoke` de `public` e `anon` e `grant` a `authenticated` | `contratos-api.md`, seção 9 |
+| `create_pix_key_validators` | `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)`; a constraint `profile_private_pix_format` passa a conferir os dígitos | `modelo-dados.md`, 4.1; X01 a X10 |
+| `create_pix_key_removal_guard` | *Trigger* da RN105 em `profile_private`, que devolve `PIX_KEY_IN_USE` | `modelo-dados.md`, 4.1; N01 a N09 |
+| `account_rls` | Privilégios por coluna e as seis políticas das três tabelas | `rls-matriz.md`, fatia 2; P01 a P14 |
+| `avatars_profile_policies` | As três políticas de `storage.objects` para `avatars/profiles/{uid}/` | `rls-matriz.md`, fatia 2; P15, P16, A01 a A06 |
 
-Modelos `freezed` com JSON em `snake_case` (`arquitetura-app.md`, seção 4). Sem regra.
+Nenhuma tabela, coluna ou enum novo.
 
-| Modelo | Campos | Origem |
+## Modelos do app (`features/auth/domain`)
+
+| Modelo | Origem | Campos |
 |--------|--------|--------|
-| `Profile` | `id`, `name`, `nickname?`, `displayName`, `photoPath?` | `profiles` |
-| `ProfilePrivate` | `userId`, `phone?`, `phoneVisible`, `pixKeyType?`, `pixKey?` | `profile_private` |
-| `PixKeyType` | `cpf`, `cnpj`, `email`, `phone`, `random` (`@JsonValue`) | enum `pix_key_type` |
-| `LegalDocument` | `termsOfUse` (`terms_of_use`), `privacyPolicy` (`privacy_policy`) | enum `legal_document` |
-| `TermsVersion` | `document`, `version` | `current_terms_versions()` |
-| `TermsStatus` | `missing` (documentos com a versão a aceitar), `hadPreviousAcceptance` | Calculado no repositório a partir das duas leituras; só decide a navegação e a frase da tela |
+| `Profile` | `profiles` | `id`, `name`, `nickname`, `displayName`, `photoPath` |
+| `ProfilePrivate` | `profile_private` | `phone`, `phoneVisible`, `pixKeyType`, `pixKey` |
+| `PixKeyType` | enum `pix_key_type` | `cpf`, `cnpj`, `email`, `phone`, `random` |
+| `LegalDocument` | enum `legal_document` | `termsOfUse`, `privacyPolicy` |
+| `TermsVersion` | `current_terms_versions()` e `terms_acceptances` | `document`, `version` |
+| `TermsStatus` | calculado no provider | `current`, `missing`, `hadPreviousAcceptance` |
+| `OwnProfile` | as duas leituras juntas | `profile`, `private` |
 
-## Estados de tela que dependem de dado
+- `freezed` e `json_serializable`, com `field_rename: snake` (`arquitetura-app.md`, seção 4).
+- `TermsStatus` e `OwnProfile` não vêm de JSON: são montados na camada `data` ou no provider.
+- O modelo não calcula regra. CPF, CNPJ e telefone (conferência e formato) ficam em `core/format/`. A conferência, a normalização e a exibição da chave **por tipo** ficam em `features/auth/domain/pix_key.dart`, ao lado do enum, para o `core` não depender da feature.
 
-| Estado | Onde fica | Vida |
-|--------|-----------|------|
-| E-mail do código pendente | `pendingEmailProvider` (memória) | Até o código ser confirmado ou o app fechar |
-| Conferência dos termos | `termsStatusProvider` (memória) | Até a sessão mudar ou o aceite ser gravado |
-| Etapa da recuperação de senha e da troca de e-mail | Estado da própria tela | Enquanto a tela está aberta |
+## Estado em memória
+
+Nada disto vai para o aparelho nem para a rota (`arquitetura-app.md`, seção 9):
+
+| Provider | Guarda | Vive até |
+|----------|--------|----------|
+| `accessDraftProvider` | Nome, e-mail e senha do cadastro ou do login em andamento | A sessão começar ou o app fechar |
+| `passwordRecoveryInProgressProvider` | Se a `/forgot-password` está entre o código e a senha (R2) | A tela fechar ou a senha ser gravada |
+| `termsStatusProvider` | Resultado da conferência dos termos (R3) | A sessão acabar ou o aceite ser gravado |
+
+## Seed
+
+`supabase/seed.sql` passa a ter os perfis completos da fatia 2 (`setup.md`, seção 8): apelido, telefone visível e oculto e chave Pix, com valores que passam nas constraints novas.

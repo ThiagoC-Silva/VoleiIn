@@ -274,6 +274,30 @@ Erro de uma ação (não da tela) aparece em `SnackBar` flutuante, fundo `surfac
 
 Ainda não existe. Até a fatia 8, usa-se um espaço reservado com o texto `VoleiIn` em `title.xl`.
 
+### 7.18 Campo de código e reenviar (fatia 2)
+
+- Campo de código: 6 dígitos, teclado numérico, com o mesmo visual do campo de texto (7.2). Confirma sozinho ao completar o sexto dígito. Código errado limpa o campo e mostra o erro abaixo dele.
+- Reenviar código: botão de texto, desabilitado por 60 segundos depois de cada envio, com a contagem no rótulo ("Reenviar código em 45 s").
+
+### 7.19 Onde ficam no código
+
+Componentes comuns em `app/lib/shared/widgets/`, criados na fatia 2:
+
+| Componente | Arquivo |
+|------------|---------|
+| Botões principal, destrutivo sólido e destrutivo contorno (7.1) | `buttons.dart` |
+| Campo com rótulo acima e campo de senha com o olho (7.2) | `form_fields.dart` |
+| Corpo de formulário que rola, com o pé da tela embaixo | `form_scroll_view.dart` |
+| Barra superior interna com voltar (7.7) | `inner_app_bar.dart` |
+| Avatar com foto ou iniciais (3.4) | `avatar.dart` |
+| Lista de linhas com seta | `arrow_rows.dart` |
+| Quadrado de ícone (7.14) | `icon_square.dart` |
+| Sheet de confirmação destrutiva (7.15) | `confirm_sheet.dart` |
+| Campo de código e reenviar (7.18) | `code_field.dart`, `resend_code_button.dart` |
+| Frase com um valor em negrito ("Enviamos um código para **ana@...**") | `bold_value_text.dart` |
+| `SnackBar` de sucesso e de erro (7.16) | `snack.dart` |
+| Estados de tela (7.16) | `state_views.dart` |
+
 ## 8. Acessibilidade (RNF05)
 
 Toda tela, antes do PR:

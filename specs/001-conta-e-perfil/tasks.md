@@ -1,187 +1,233 @@
----
-description: "Tarefas da fatia 2 — Conta e perfil"
----
+# Tasks: Conta e perfil (fatia 2)
 
-# Tarefas: Fatia 2 — Conta e perfil
+**Input**: Design documents from `specs/001-conta-e-perfil/`
 
-**Entrada**: `specs/001-conta-e-perfil/` (spec, plan, research, data-model, contracts, quickstart)
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/repositories.md, quickstart.md
 
-**Testes**: obrigatórios e **antes** do código (constituição, princípio III; `trabalho-com-agente.md`, seção 3). Em cada bloco, a tarefa de teste roda e **falha pelo motivo certo** antes da tarefa de implementação. O *commit* dos testes vem antes do *commit* da implementação. Os resultados esperados vêm de `docs/testes-referencia.md`, seção 10, e não mudam.
+**Tests**: obrigatórios e **antes do código** (constituição, princípio III; `docs/trabalho-com-agente.md`, seção 3). A fase 2 é só de testes, com *commit* próprio e a saída da falha. Os resultados esperados vêm de `docs/testes-referencia.md`, seção 10, e nenhum deles muda para o teste passar.
 
-**Formato**: `- [ ] Tnnn [P] [USn] descrição com caminho`. `[P]` = pode rodar em paralelo (arquivos diferentes, sem dependência pendente).
+**Organization**: por história do `spec.md`. Regras, contratos e textos são citados pelo documento de origem (template de tarefa, `docs/trabalho-com-agente.md`, seção 4).
 
-**Campos do template de tarefa** (`trabalho-com-agente.md`, seção 4): cada fase abaixo traz Contexto, Regras, Contratos, Arquivos, Testes, Pronto quando e Fora de escopo no cabeçalho, e cada tarefa traz o caminho e os IDs de cenário.
+## Format: `[ID] [P?] [Story] Description`
 
----
+- **[P]**: pode rodar em paralelo (arquivos diferentes, sem dependência pendente).
+- **[Story]**: história do `spec.md` (US1 a US8).
 
-## Fase 1: Preparação
+## Path Conventions
 
-- [x] T001 Acrescentar `google_sign_in: ^7.2.0` e `image_picker: ^1.2.4` em `app/pubspec.yaml`, com o comentário de uso (tabela da seção 3 do `arquitetura-app.md`), e rodar `flutter pub get`
-- [x] T002 Configurar o Supabase Auth local em `supabase/config.toml` (`research.md`, 7; `setup.md`, 6.1): `enable_confirmations = true`, `double_confirm_changes = false`, `minimum_password_length = 8`, `[auth.rate_limit] email_sent = 30`, `[auth.email.template.confirmation|recovery|email_change]` com `subject` do `copy.md` 6.9 e `content_path = "./supabase/templates/<arquivo>.html"`, e `[auth.external.google]` com `enabled`, `client_id`, `secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"` e `skip_nonce_check = true`
-- [x] T003 [P] Criar os modelos de e-mail `supabase/templates/confirmation.html`, `recovery.html` e `email_change.html` com o corpo do `copy.md` 6.9 (`{{ .Token }}`, HTML mínimo, sem imagem)
-- [x] T004 Reiniciar o Supabase local (`supabase stop && supabase start`) e conferir no Mailpit que um `signUp` manda o código de 6 dígitos com o assunto certo
+`app/` (Flutter) e `supabase/` (banco, Auth, Storage), como em `docs/setup.md`, seção 2.
 
 ---
 
-## Fase 2: Base (bloqueia todas as histórias)
+## Phase 1: Setup
 
-**Contexto**: o que todas as telas usam: erros, formatação, componentes, rotas e as listas de segurança da fatia. **Regras**: RN01, RN04 (já cobertas), `copy.md` 5.5 e 6.8. **Pronto quando**: `flutter test test/core` e `supabase test db` (B03, B04, B06, B10) verdes no fim da fatia.
+**Purpose**: dependências e esqueleto da fatia.
 
-### Testes da base (escrever e ver falhar)
-
-- [x] T005 Atualizar `supabase/tests/database/base_security.test.sql`: B03 vira `set_eq` com as 6 políticas da `rls-matriz.md` (Fatia 2); B04a/B04b com os privilégios de tabela e de coluna da fatia; B06 com `current_terms_versions()` executável só por `authenticated`; B10 passa a inserir em `receipts` (`<uuid>/x.png`, recusado) e a exigir exatamente as 3 políticas `avatars_profile_*` em `storage.objects`; B08a passa a fazer `select` em `groups` (`42501`), como manda o `testes-referencia.md` 9.1. Rodar `supabase test db` e registrar a falha
-- [x] T006 [P] Testes de conversão de erros E09 a E11 em `app/test/core/errors/error_mapper_test.dart` (cada código da tabela 6.8 do `copy.md`, `P0001`/`PIX_KEY_IN_USE`, `StorageException` 413 e `invalid_mime_type`) e o texto de cada `ErrorCode` novo em `app/test/core/errors/error_text_test.dart`
-- [x] T007 [P] Testes U01 a U06 em `app/test/core/format/br_documents_test.dart`, `phone_test.dart` e `pix_key_test.dart`
-- [x] T008 Rodar `flutter test test/core` e registrar a falha de compilação/asserção esperada
-
-### Implementação da base
-
-- [x] T009 Acrescentar ao `ErrorCode` em `app/lib/core/errors/error_code.dart`: `authWeakPassword`, `authInvalidCode`, `authInvalidEmail`, `authEmailInUse`, `authSamePassword`, `authEmailRateLimited`, `authGoogleFailed`, `pixKeyInUse`, `photoTooLarge`, `photoInvalidType`; mapear em `app/lib/core/errors/error_mapper.dart` (`_authCodes` da tabela 6.8, `PIX_KEY_IN_USE` em `_serverCodes`, `StorageException` por `statusCode == '413'` e `invalid_mime_type`) e os textos em `app/lib/core/errors/error_text.dart`
-- [x] T010 Acrescentar ao `app/lib/l10n/app_pt.arb` **todas** as chaves do `copy.md` seção 6 (6.1 a 6.8), com o mesmo texto, e corrigir `errorAuthEmailNotConfirmed` para o texto atual da seção 5.5 ("Confirme o seu e-mail antes de entrar."); rodar `flutter gen-l10n`
-- [x] T011 [P] Implementar `app/lib/core/format/br_documents.dart` (CPF e CNPJ: `digitsOnly`, `isValidCpf`, `isValidCnpj` com sequência repetida recusada, `formatCpf`, `formatCnpj`)
-- [x] T012 [P] Implementar `app/lib/core/format/phone.dart` (só Brasil: `phoneToE164` com 10 ou 11 dígitos, `formatPhoneE164`)
-- [x] T013 [P] Implementar `app/lib/core/format/pix_key.dart` (`normalizePixKey`, `validatePixKey` por tipo com as regras da tabela do `telas.md` 5.9, `formatPixKey`) e o enum `PixKeyType` em `app/lib/features/auth/domain/pix_key_type.dart` com `@JsonValue`
-- [x] T014 Rodar `flutter test test/core` até verde
-- [x] T015 [P] Componentes em `app/lib/shared/widgets/`: `field_label.dart` (tirar o `_FieldLabel` do login), `password_field.dart` (olho com rótulo para o TalkBack e área de 48), `code_field.dart` (6 dígitos, `AutofillHints.oneTimeCode`, `onCompleted`), `resend_code_button.dart` (60 s com `authResendCodeIn`), `nav_row.dart` (linha com seta, `design-system.md` 7.13), `app_avatar.dart` (foto ou iniciais, `design-system.md` 3.4), `confirm_dialog.dart` (destrutiva, `design-system.md` 7.15), `masked_input_formatters.dart` (CPF, CNPJ, telefone), `loading_button.dart` (botão carregando)
-- [x] T016 Rotas novas em `app/lib/core/router/routes.dart` (`signup`, `confirmEmail`, `forgotPassword`, `terms`, `termsDocument`, `profileEdit`, `profilePix`, `profileEmail`, `profilePassword`), com caminhos do `telas.md` 2.2
-
-**Ponto de controle**: base pronta; as histórias podem começar.
+- [x] T001 Acrescentar `google_sign_in` e `image_picker` em `app/pubspec.yaml`, com o comentário de uso, e rodar `flutter pub get` (`docs/arquitetura-app.md`, seção 3)
+- [x] T002 [P] Criar os modelos de e-mail `supabase/templates/confirmation.html`, `recovery.html` e `email_change.html`, com os corpos de `docs/copy.md`, 6.9
+- [x] T003 Ajustar `supabase/config.toml` com as opções de `docs/setup.md`, 6.1 (confirmação por código, senha de 8, `double_confirm_changes = false`, modelos, `email_sent = 30`) e o `[auth.external.google]` (research R11); reiniciar o Supabase local
+- [x] T004 [P] Preencher `GOOGLE_WEB_CLIENT_ID` em `app/env/local.json` e exigir a variável em `app/lib/core/env.dart` (`docs/setup.md`, 5.1)
 
 ---
 
-## Fase 3: História 1 — Criar a conta por e-mail e confirmar com o código (P1) 🎯 MVP
+## Phase 2: Testes primeiro (bloqueia todo o resto)
 
-**Contexto**: cadastro, confirmação e o login completado no que toca o e-mail não confirmado. **Regras**: RF01, RF02, RF04, RF05; ADR 0017. **Contratos**: `AuthRepository.signUp`, `verifySignupCode`, `resendSignupCode`. **Testes**: S01 a S06 (widget), L08 (integração). **Pronto quando**: S01 a S06 verdes e o L08 passa no emulador. **Fora de escopo**: Google (US3).
+**Purpose**: todos os cenários automáticos da seção 10 de `docs/testes-referencia.md`, escritos e **falhando pelo motivo certo** (o objeto ainda não existe). Um *commit* só de testes.
 
-- [x] T017 [P] [US1] Testes S01 e S02 em `app/test/features/auth/presentation/signup_screen_test.dart`
-- [x] T018 [P] [US1] Testes S03, S04 e S05 em `app/test/features/auth/presentation/confirm_email_screen_test.dart`
-- [x] T019 [P] [US1] Teste S06 em `app/test/features/auth/presentation/login_screen_test.dart` (acrescentar ao arquivo da fatia 1)
-- [x] T020 [US1] Rodar os três e registrar a falha
-- [x] T021 [US1] `AuthRepository` em `app/lib/features/auth/data/auth_repository.dart`: `signUp`, `verifySignupCode` (`OtpType.email`), `resendSignupCode` (`OtpType.signup`), tudo com `guard` (`contracts/app-servidor.md`)
-- [x] T022 [US1] `pendingEmailProvider` (`Notifier<String?>`, memória) em `app/lib/features/auth/presentation/pending_email_provider.dart`
-- [x] T023 [US1] `SignupScreen` e `SignupController` em `app/lib/features/auth/presentation/signup_screen.dart` e `signup_controller.dart` (`telas.md` 5.2, `signup.png`): validação local (nome vazio ou acima de 80, e-mail vazio, senha abaixo de 8), `goNamed(confirmEmail)` substituindo a pilha
-- [x] T024 [US1] `ConfirmEmailScreen` e controller em `app/lib/features/auth/presentation/confirm_email_screen.dart` (`telas.md` 5.3, `confirmEmail.png`): confirma ao completar o código, limpa o campo no erro, reenviar com 60 s, sem e-mail em memória vai ao login, título sem quebrar o "e-mail" (`research.md`, 14)
-- [x] T025 [US1] Login completado, parte do e-mail: `SnackBar` com a ação Confirmar no `authEmailNotConfirmed` em `app/lib/features/auth/presentation/login_screen.dart` (`telas.md` 5.1, `login.png`), mais o pé "Não tem conta? Criar conta"
-- [x] T026 [US1] Rotas `/signup` e `/confirm-email` em `app/lib/core/router/app_router.dart`, liberadas sem sessão (`arquitetura-app.md`, seção 9)
-- [x] T027 [US1] Rodar S01 a S06 até verde
+- [x] T005 [P] Atualizar as listas esperadas de B03, B04, B06, B08 e B10 em `supabase/tests/database/base_security.test.sql` (`docs/rls-matriz.md`, fatia 2; `docs/testes-referencia.md`, 9.1)
+- [x] T006 [P] Escrever P01 a P16 em `supabase/tests/database/account_security.test.sql`
+- [x] T007 [P] Escrever X01 a X10 e N01 a N09 em `supabase/tests/database/account_pix.test.sql`
+- [x] T008 [P] Escrever A01 a A06 em `supabase/functions/_tests/avatars_test.ts`
+- [x] T009 [P] Escrever U01 e U02 em `app/test/core/format/documents_test.dart`, U03 e U04 em `app/test/core/format/phone_test.dart`, U05 e U06 em `app/test/features/auth/domain/pix_key_test.dart` e U07 em `app/test/features/auth/domain/auth_access_test.dart`
+- [x] T010 [P] Escrever E09 a E11 (e o novo exemplo do E06) em `app/test/core/errors/error_mapper_test.dart`, e E12 em `app/test/features/auth/data/auth_repository_test.dart`
+- [x] T011 [P] Escrever S01 e S02 em `app/test/features/auth/presentation/signup_screen_test.dart`, S03 a S05 em `confirm_email_screen_test.dart` e S06 e S07 em `login_screen_test.dart`
+- [x] T012 [P] Escrever S08 em `app/test/features/auth/presentation/forgot_password_screen_test.dart`, S09 em `terms_screen_test.dart` e S10 em `app/test/core/router/app_router_test.dart`
+- [x] T013 [P] Escrever S11 e S17 em `app/test/features/auth/presentation/profile_screen_test.dart`, S12 em `profile_edit_screen_test.dart`, S13 em `profile_pix_screen_test.dart`, S14 em `profile_email_screen_test.dart` e S15 em `profile_password_screen_test.dart`
+- [x] T014 [P] Escrever S16 (fonte em 150% em todas as telas da seção 5 do `docs/ui/telas.md`) em `app/test/features/auth/presentation/text_scale_test.dart`
+- [x] T015 [P] Escrever L08 a L11 em `app/integration_test/account_flow_test.dart`, com a leitura do código no Mailpit
+- [x] T016 Rodar `supabase test db`, `deno test` e `flutter test`, guardar a saída da falha e fazer o *commit* só de testes
 
----
-
-## Fase 4: História 2 — Aceitar os termos (P1)
-
-**Contexto**: `current_terms_versions()`, RLS de `terms_acceptances`, a conferência no roteador e a tela. **Regras**: RF105, RN02. **Contratos**: `current_terms_versions()` (`contratos-api.md`, 9), `TermsRepository`. **Testes**: P10 a P14 (pgTAP), S09, S10 (widget). **Pronto quando**: os cenários verdes; um seed com `1.0` passa direto e uma versão `1.1` local manda à `/terms`. **Fora de escopo**: textos jurídicos (provisório, `telas.md` 5.6).
-
-- [x] T028 [P] [US2] Testes P10 a P14 (a parte de `terms_acceptances` e `current_terms_versions()`, e o `anon` nas três tabelas) em `supabase/tests/database/account_security.test.sql`, com Ana e Bruno inseridos no começo da transação (`arquitetura-app.md`, 14.4)
-- [x] T029 [P] [US2] Testes S09 em `app/test/features/auth/presentation/terms_screen_test.dart` e S10 em `app/test/core/router/app_router_test.dart`
-- [x] T030 [US2] Rodar e registrar a falha
-- [x] T031 [US2] Migração `supabase/migrations/<ts>_create_current_terms_versions.sql` (`research.md`, 5), com o `revoke` de `public, anon` e o `grant` a `authenticated`
-- [x] T032 [US2] Migração `supabase/migrations/<ts>_account_rls.sql`: privilégios e as 6 políticas da `rls-matriz.md` (Fatia 2) para `profiles`, `profile_private` e `terms_acceptances`, com `(select auth.uid())`
-- [x] T033 [US2] Modelos `LegalDocument`, `TermsVersion` e `TermsStatus` em `app/lib/features/auth/domain/terms.dart` e `TermsRepository` em `app/lib/features/auth/data/terms_repository.dart` (`fetchStatus`, `accept`)
-- [x] T034 [US2] `termsStatusProvider` e `AcceptTermsController` em `app/lib/features/auth/presentation/terms_providers.dart`; invalidar na troca de usuário (`authStateProvider`)
-- [x] T035 [US2] `TermsScreen` (`telas.md` 5.5, `terms.png`) e `TermsDocumentScreen` (`telas.md` 5.6, `termsDocument.png`) em `app/lib/features/auth/presentation/`; versão trocada no meio (`42501`): reler e desmarcar a caixa
-- [x] T036 [US2] Redirecionamento dos termos em `app/lib/core/router/app_router.dart` (`research.md`, 10), com o `refreshListenable` ouvindo também o status dos termos
-- [x] T037 [US2] `supabase db reset` e `supabase test db` (P10 a P14) e `flutter test` (S09, S10) até verde
+**Checkpoint**: testes vermelhos pelo motivo certo.
 
 ---
 
-## Fase 5: História 3 — Entrar e sair, inclusive pelo Google (P1)
+## Phase 3: Foundational (bloqueia as histórias)
 
-**Contexto**: Google no login e o Sair definitivo. **Regras**: RF03, RF05, RF07, RF108. **Contratos**: `signInWithGoogle`, `signOut`. **Testes**: S07, E12 (app); M01, M02 (manual, responsável). **Pronto quando**: S07 e E12 verdes; M01 e M02 conferidos no emulador com o ID do cliente web. **Fora de escopo**: token de push no logout (fatia 7).
+**Purpose**: o que todas as histórias usam: acesso no banco, conversão de erros, textos e componentes.
 
-- [x] T038 [P] [US3] Teste S07 em `app/test/features/auth/presentation/login_screen_test.dart` e E12 em `app/test/features/auth/data/auth_repository_test.dart` (seletor fechado devolve `false`, sem erro)
-- [x] T039 [US3] Rodar e registrar a falha
-- [x] T040 [US3] `signInWithGoogle` e `signOut` com Google no `AuthRepository` (`research.md`, 8), com o cliente do Google atrás de uma interface para os testes
-- [x] T041 [US3] Login: botão "Continuar com Google", divisor "ou" e "Esqueci minha senha" em `app/lib/features/auth/presentation/login_screen.dart` (`login.png`), os dois botões bloqueados durante o Google
-- [x] T042 [US3] `Env.ensureComplete` passa a exigir `GOOGLE_WEB_CLIENT_ID` em `app/lib/core/env.dart`
-- [x] T043 [US3] Rodar S07 e E12 até verde
+- [x] T017 Conferir no Supabase local o comportamento do cadastro repetido de um e-mail não confirmado (research R5) e registrar o resultado em `specs/001-conta-e-perfil/research.md`
+- [x] T018 Criar a migração `create_current_terms_versions` em `supabase/migrations/` (`docs/contratos-api.md`, seção 9): `sql`, `immutable`, `security invoker`, `revoke execute ... from public, anon` e `grant` a `authenticated`
+- [x] T019 Criar a migração `create_pix_key_validators`: `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)`, `immutable`, que recusam sequência de um dígito só, e a constraint `profile_private_pix_format` com os dígitos verificadores (`docs/modelo-dados.md`, 4.1; research R6)
+- [x] T020 Criar a migração `create_pix_key_removal_guard`: *trigger* em `profile_private` que rejeita `pix_key = null` com `PIX_KEY_IN_USE` "se o usuário for `receiver_id` de um jogo `open`/`confirmed` ou de um `charge` `pending`/`under_review`" (`docs/modelo-dados.md`, 4.1)
+- [x] T021 Criar a migração `account_rls`: privilégios por coluna e as seis políticas de `docs/rls-matriz.md`, fatia 2, com `(select auth.uid())`
+- [x] T022 Criar a migração `avatars_profile_policies`: `avatars_profile_select_own`, `avatars_profile_insert_own` e `avatars_profile_delete_own` em `storage.objects` (`docs/rls-matriz.md`, fatia 2)
+- [x] T023 Completar `supabase/seed.sql` com os perfis da fatia 2 (`docs/setup.md`, seção 8) e rodar `supabase db reset`, `supabase db lint` e `supabase test db` até B, P, X e N passarem
+- [x] T024 Fazer o teste do Storage rodar no job `database` de `.github/workflows/ci.yml` (research R10) e passar A01 a A06 no local
+- [x] T025 [P] Acrescentar os `ErrorCode` de `docs/copy.md`, 6.8, em `app/lib/core/errors/error_code.dart`, a conversão em `error_mapper.dart` (Auth, `PIX_KEY_IN_USE`, Storage) e os textos em `error_text.dart`
+- [x] T026 [P] Acrescentar ao `app/lib/l10n/app_pt.arb` todas as chaves de `docs/copy.md`, seção 6, corrigir `errorAuthEmailNotConfirmed` (research R9) e gerar com `flutter gen-l10n`
+- [x] T027 [P] Criar `app/lib/core/format/documents.dart` (CPF e CNPJ), `phone.dart` e `input_masks.dart`, e `app/lib/features/auth/domain/pix_key.dart` com o enum do tipo e a conferência, a normalização e a exibição por tipo (U01 a U06; research R8)
+- [x] T028 [P] Criar os modelos de `data-model.md` em `app/lib/features/auth/domain/` (`profile.dart`, `profile_private.dart`, `own_profile.dart`, `legal_document.dart`, `terms.dart`, `auth_access.dart`) e rodar o `build_runner`
+- [x] T029 [P] Criar os componentes comuns em `app/lib/shared/widgets/`: campo com rótulo, campo de senha, botão com carregando, barra superior interna, campo de código, reenviar código, avatar, lista de linhas com seta, quadrado de ícone e sheet de confirmação (`docs/ui/design-system.md`, seção 7; PNGs de `docs/ui/referencias/fatia-2/`)
+- [x] T030 Criar `google_id_token_source.dart` e completar `auth_repository.dart` em `app/lib/features/auth/data/`, conforme `contracts/repositories.md` (E12)
+- [x] T031 [P] Criar `profile_repository.dart`, `terms_repository.dart` e `photo_picker.dart` (a escolha da foto, trocável por dublê) em `app/lib/features/auth/data/`, conforme `contracts/repositories.md`
+- [x] T032 Criar os providers de sessão, rascunho de acesso, recuperação em andamento e conferência dos termos em `app/lib/features/auth/presentation/auth_providers.dart`, e desligar a repetição automática no `ProviderScope` de `app/lib/main.dart` (research R2 a R4)
 
----
-
-## Fase 6: História 4 — Recuperar a senha (P2)
-
-**Regras**: RF06; ADR 0017. **Contratos**: `sendRecoveryCode`, `verifyRecoveryCode`, `updatePassword`. **Testes**: S08, L09. **Pronto quando**: S08 verde e L09 no emulador.
-
-- [x] T044 [P] [US4] Teste S08 em `app/test/features/auth/presentation/forgot_password_screen_test.dart`
-- [x] T045 [US4] Rodar e registrar a falha
-- [x] T046 [US4] Métodos de recuperação no `AuthRepository` e `ForgotPasswordScreen` com controller em `app/lib/features/auth/presentation/forgot_password_screen.dart` (`telas.md` 5.4, `forgotPassword-etapa1.png` e `-etapa2.png`); rota `/forgot-password` liberada sem sessão
-- [x] T047 [US4] Rodar S08 até verde
-
----
-
-## Fase 7: História 5 — Cuidar do próprio perfil (P2)
-
-**Contexto**: perfil, edição e foto. **Regras**: RF08, RF09, RF10, RF12, RN100, RN101, RN106. **Contratos**: `ProfileRepository` (`contracts/app-servidor.md`). **Testes**: P01 a P09, P15, P16 (pgTAP), A01 a A06 (Deno), S11, S12, S17 (widget), U07 (unitário), L10. **Pronto quando**: todos verdes e L10 no emulador. **Fora de escopo**: telefone visível para outros (RF101), fotos de outras pessoas (RN107).
-
-- [x] T048 [P] [US5] Testes P01 a P09 em `supabase/tests/database/account_security.test.sql`
-- [x] T049 [P] [US5] Testes P15 e P16 (Storage) no mesmo arquivo
-- [x] T050 [P] [US5] Testes A01 a A06 em `supabase/functions/_tests/avatars_test.ts` (Ana e Bruno logados por senha; arquivos de teste gerados em memória; remove o que enviou)
-- [x] T051 [P] [US5] Testes U07 em `app/test/features/auth/domain/identities_test.dart`, S11 e S17 em `app/test/features/auth/presentation/profile_screen_test.dart` e S12 em `profile_edit_screen_test.dart`
-- [x] T052 [US5] Rodar os quatro e registrar a falha
-- [x] T053 [US5] Migração `supabase/migrations/<ts>_avatars_profile_policies.sql` (3 políticas em `storage.objects`, `research.md`, 6)
-- [x] T054 [US5] Modelos `Profile` e `ProfilePrivate` em `app/lib/features/auth/domain/profile.dart` (`freezed`) e `hasEmailPassword` em `app/lib/features/auth/domain/identities.dart`
-- [x] T055 [US5] `ProfileRepository` em `app/lib/features/auth/data/profile_repository.dart` (`fetchOwn`, `uploadPhoto`, `updateProfile`, `updatePrivate`, `deletePhoto`, `signedPhotoUrl`) e o detector de tipo da imagem pelos primeiros bytes em `app/lib/core/format/image_type.dart` (`research.md`, 12)
-- [x] T056 [US5] `ProfileScreen` real em `app/lib/features/auth/presentation/profile_screen.dart` (`telas.md` 5.7, `profile.png` e `profile-google.png`), com o Sair definitivo
-- [x] T057 [US5] `ProfileEditScreen`, a sheet da foto e o controller em `app/lib/features/auth/presentation/profile_edit_screen.dart` e `profile_edit_controller.dart` (`telas.md` 5.8, `profileEdit.png`, `profileEdit-foto.png`): ordem de gravação foto → `profiles` → `profile_private` → remoção da antiga
-- [x] T058 [US5] Rotas `/profile/edit`, `/profile/email` e `/profile/password` (estas duas voltam ao perfil sem acesso por e-mail e senha, S11) em `app/lib/core/router/app_router.dart`
-- [x] T059 [US5] `supabase db reset`, `supabase test db`, `deno test` e `flutter test` até verde
+**Checkpoint**: B, P, X, N, A, U e E verdes.
 
 ---
 
-## Fase 8: História 6 — Chave Pix (P2)
+## Phase 4: User Story 1 - Criar a conta com e-mail e confirmar por código (P1) 🎯 MVP
 
-**Regras**: RF11, RF12, RN105. **Contratos**: `savePixKey`, `removePixKey`; erro `PIX_KEY_IN_USE`. **Testes**: X01 a X10, N01 a N09 (pgTAP), S13 (widget). **Pronto quando**: todos verdes.
+**Goal**: cadastro, confirmação por código e login completado (`docs/ui/telas.md`, 5.1 a 5.3).
 
-- [x] T060 [P] [US6] Testes X01 a X10 e N01 a N09 em `supabase/tests/database/account_pix.test.sql` (jogos e valores inseridos como `postgres`; N01 a N09 rodam como Ana logada)
-- [x] T061 [P] [US6] Teste S13 em `app/test/features/auth/presentation/profile_pix_screen_test.dart`
-- [x] T062 [US6] Rodar e registrar a falha
-- [x] T063 [US6] Migração `supabase/migrations/<ts>_pix_key_check_digits.sql` (`research.md`, 3)
-- [x] T064 [US6] Migração `supabase/migrations/<ts>_pix_key_removal_trigger.sql` (`research.md`, 4)
-- [x] T065 [US6] `savePixKey`/`removePixKey` no `ProfileRepository` e `ProfilePixScreen` com controller em `app/lib/features/auth/presentation/profile_pix_screen.dart` (`telas.md` 5.9, `profilePix.png`, `profilePix-tipo.png`, `profilePix-remover.png`): menu suspenso com ícones, máscara por tipo, confirmação destrutiva
-- [x] T066 [US6] Rota `/profile/pix`; `supabase test db` e `flutter test` até verde
+**Independent Test**: S01 a S06 verdes; L08 no emulador.
 
----
+- [x] T033 [US1] Acrescentar as rotas `/signup`, `/confirm-email` e `/forgot-password` e os redirecionamentos de acesso em `app/lib/core/router/routes.dart` e `app_router.dart` (`docs/ui/telas.md`, 3.1)
+- [x] T034 [US1] Completar `app/lib/features/auth/presentation/login_screen.dart` e `login_controller.dart` conforme `login.png`: bloco do topo, Esqueci minha senha, divisor, Continuar com Google, Criar conta e a ação Confirmar do e-mail não confirmado (S06, S07)
+- [x] T035 [P] [US1] Criar `signup_screen.dart` e `signup_controller.dart` conforme `signup.png` (S01, S02)
+- [x] T036 [US1] Criar `confirm_email_screen.dart` e `confirm_email_controller.dart` conforme `confirmEmail.png`, com a senha regravada depois do código (S03 a S05; research R5)
 
-## Fase 9: História 7 — Trocar e-mail e senha (P3)
-
-**Regras**: RF106, RF107. **Contratos**: `requestEmailChange`, `verifyEmailChange`, `reauthenticate`, `updatePassword`. **Testes**: S14, S15, L11. **Pronto quando**: S14 e S15 verdes e L11 no emulador.
-
-- [x] T067 [P] [US7] Testes S14 em `app/test/features/auth/presentation/profile_email_screen_test.dart` e S15 em `profile_password_screen_test.dart`
-- [x] T068 [US7] Rodar e registrar a falha
-- [x] T069 [US7] Métodos no `AuthRepository`, `ProfileEmailScreen` (`telas.md` 5.10, `profileEmail-etapa1.png` e `-etapa2.png`) e `ProfilePasswordScreen` (`telas.md` 5.11, `profilePassword.png`) em `app/lib/features/auth/presentation/`
-- [x] T070 [US7] Rodar S14 e S15 até verde
+**Checkpoint**: uma conta nova chega ao app.
 
 ---
 
-## Fase 10: Acabamento e transversais
+## Phase 5: User Story 2 - Aceitar os termos na versão vigente (P1)
 
-- [x] T071 Teste S16 (fonte em 150% em todas as telas da seção 5 do `telas.md`) em `app/test/features/auth/presentation/text_scale_test.dart`, e corrigir os *overflows*
-- [x] T072 [P] Fluxos L08 a L11 em `app/integration_test/account_flows_test.dart`, com o código lido do Mailpit (`research.md`, 16); adaptar `app/integration_test/auth_flow_test.dart` da fatia 1 ao login completado (escrito; roda no emulador do responsável)
-- [x] T073 [P] Seed da fatia 2 em `supabase/seed.sql` (`research.md`, 15)
-- [x] T074 [P] CI em `.github/workflows/ci.yml`: Deno no job `database` rodando `_tests/` com o Supabase de pé; job `functions` ignorando `_tests/` (`research.md`, 6)
-- [x] T075 Documentos: `arquitetura-app.md` (seção 12 com a feature real; `core/format` com validação; `core/` com o gerador de UUID), `setup.md` (6.2 com o `client_id` no `config.toml`, seção 3 com a instalação sem `sudo`, se o responsável quiser), `rls-matriz.md` (se algo mudar), `CLAUDE.md` ("Estado atual")
-- [x] T076 Definição de pronto completa (`trabalho-com-agente.md`, seção 5): `dart format`, `dart analyze`, `flutter test`, `supabase db reset`, `supabase test db`, `supabase db lint`, `deno fmt --check`, `deno lint`, `deno test`; conferir a acessibilidade (`design-system.md`, seção 8)
-- [ ] T077 `/speckit-converge` e o texto do PR (`trabalho-com-agente.md`, 6.2), com os passos do emulador e os comandos da produção para o responsável
+**Goal**: aceite obrigatório depois do primeiro acesso e a cada versão nova (`docs/ui/telas.md`, 3.1, 5.5 e 5.6).
+
+**Independent Test**: S09 e S10 verdes.
+
+- [x] T037 [US2] Acrescentar as rotas `/terms` e `/terms/:document` e o redirecionamento dos termos em `app/lib/core/router/app_router.dart` (S10; research R3)
+- [x] T038 [US2] Criar `terms_screen.dart` e `terms_controller.dart` em `app/lib/features/auth/presentation/` conforme `terms.png`, com os estados carregando e erro e a releitura quando o RLS recusa (S09)
+- [x] T039 [P] [US2] Criar `terms_document_screen.dart` conforme `termsDocument.png`, com "não encontrado" para outro valor de `:document`
+
+**Checkpoint**: do cadastro à aba Jogos, com aceite.
 
 ---
 
-## Dependências
+## Phase 6: User Story 3 - Entrar com Google e vincular (P2)
 
-- Fase 1 → Fase 2 → histórias.
-- US1 e US2 são o MVP: sem elas não se chega à aba Jogos com uma conta nova.
-- US2 traz a migração `account_rls`, de que US5 e US6 dependem (leitura e escrita da própria linha).
-- US3 e US4 dependem só da base e do `AuthRepository` da US1.
-- US7 depende das rotas da US5 (redirecionamento de quem não tem acesso por e-mail e senha).
-- Fase 10 depois de todas.
+**Goal**: RF03 e RF108 (`docs/ui/telas.md`, 5.1).
 
-## Paralelismo
+**Independent Test**: S07 e E12 verdes; M01 e M02 pelo responsável.
 
-- Na base: T006, T007 e T011 a T013 em paralelo; T015 em paralelo com T009 e T010.
-- US1: T017, T018 e T019 em paralelo.
-- US5: T048 a T051 em paralelo (pgTAP, Deno e Flutter em arquivos diferentes).
-- Depois da US2, US3, US4 e US6 podem andar em paralelo.
+- [x] T040 [US3] Ligar o Continuar com Google ao `signInWithGoogle` em `app/lib/features/auth/presentation/login_controller.dart`, com os dois botões bloqueados até o fim (S07)
 
-## Estratégia
+---
 
-1. MVP: Fases 1 e 2, US1 e US2. Uma conta nova chega à aba Jogos com os termos aceitos (L08).
-2. Depois, US3 (Google), US5 e US6 (perfil e chave, que a fatia 4 exige), US4 e US7.
-3. A fatia só fecha com todos os "Pronto quando" do `plano-implementacao.md` e M01 a M04 conferidos pelo responsável.
+## Phase 7: User Story 4 - Ver o perfil e sair (P2)
+
+**Goal**: a aba Perfil real (`docs/ui/telas.md`, 5.7).
+
+**Independent Test**: S11 e S17 verdes.
+
+- [x] T041 [US4] Criar `profile_providers.dart` (perfil próprio e URL da foto) em `app/lib/features/auth/presentation/`
+- [x] T042 [US4] Refazer `profile_screen.dart` conforme `profile.png` e `profile-google.png`, com os estados carregando, erro e sem conexão e o Sair definitivo da fatia 2 (S11, S17)
+- [x] T043 [US4] Acrescentar as rotas `/profile/edit`, `/profile/pix`, `/profile/email` e `/profile/password`, fora das abas, com a volta ao perfil de quem não tem acesso por e-mail e senha, em `app/lib/core/router/app_router.dart` (S11)
+
+---
+
+## Phase 8: User Story 5 - Editar nome, apelido, foto e telefone (P2)
+
+**Goal**: `docs/ui/telas.md`, 5.8.
+
+**Independent Test**: S12 verde; L10 no emulador.
+
+- [x] T044 [US5] Criar `profile_edit_screen.dart` e `profile_edit_controller.dart` conforme `profileEdit.png` e `profileEdit-foto.png` (sheet sem título): nome até 80, apelido até 30, telefone com `+55` fixo e 10 ou 11 dígitos gravado em E.164, interruptor desabilitado sem telefone, foto com no máximo 1024 px no maior lado e a ordem de gravação do `telas.md`, 5.8 (S12)
+
+---
+
+## Phase 9: User Story 6 - Chave Pix (P2)
+
+**Goal**: `docs/ui/telas.md`, 5.9.
+
+**Independent Test**: S13 verde.
+
+- [x] T045 [US6] Criar `profile_pix_screen.dart` e `profile_pix_controller.dart` conforme `profilePix.png`, `profilePix-tipo.png` e `profilePix-remover.png`: menu suspenso do tipo com ícones, máscara e conferência por tipo, e a confirmação destrutiva da remoção (S13)
+
+---
+
+## Phase 10: User Story 7 - Recuperar a senha (P3)
+
+**Goal**: `docs/ui/telas.md`, 5.4.
+
+**Independent Test**: S08 verde; L09 no emulador.
+
+- [x] T046 [US7] Criar `forgot_password_screen.dart` e `forgot_password_controller.dart` conforme `forgotPassword-etapa1.png` e `-etapa2.png`, com a marca de recuperação em andamento (S08; research R2)
+
+---
+
+## Phase 11: User Story 8 - Trocar e-mail e senha (P3)
+
+**Goal**: `docs/ui/telas.md`, 5.10 e 5.11.
+
+**Independent Test**: S14 e S15 verdes; L11 no emulador.
+
+- [x] T047 [P] [US8] Criar `profile_email_screen.dart` e `profile_email_controller.dart` conforme `profileEmail-etapa1.png` e `-etapa2.png` (S14)
+- [x] T048 [P] [US8] Criar `profile_password_screen.dart` e `profile_password_controller.dart` conforme `profilePassword.png` (S15)
+
+---
+
+## Phase 12: Polish e fechamento
+
+- [x] T049 Passar S16 (fonte em 150%) e a lista de acessibilidade de `docs/ui/design-system.md`, seção 8, em todas as telas novas
+  - `text_scale_test.dart` (S16) e `accessibility_test.dart` (área de toque de 48 dp, rótulo em todo alvo de toque e contraste de 4,5:1, com as diretrizes do `flutter_test`). Corrigida a caixa do aceite dos termos, sem rótulo para o TalkBack.
+- [x] T050 Rodar os comandos do `quickstart.md` até ficarem verdes: `dart format`, `dart analyze`, `flutter test`, `supabase db reset`, `supabase db lint`, `supabase test db`, `deno fmt --check`, `deno lint` e `deno test`
+- [ ] T051 Rodar L06 a L11 no emulador (`app/integration_test/`) e conferir cada tela contra o PNG
+  - L06 a L11 verdes nas APIs 29 e 36 em 13/11/2026, por `scripts/integration-test.sh`. A primeira rodada achou o `SubmitController` nascendo em carregamento (campos desabilitados no primeiro quadro, *autofocus* perdido), corrigido com teste. Falta a conferência das telas contra o PNG.
+- [x] T052 Atualizar os documentos afetados: `docs/arquitetura-app.md` (seções 3, 5 e 12), `docs/ui/telas.md` (5.3, research R5), `docs/rls-matriz.md` (research R6), `docs/setup.md` (Google e CI), `docs/ui/design-system.md` (componentes novos) e um ADR para a senha do cadastro pendente
+- [ ] T053 Fechar a fatia (`docs/trabalho-com-agente.md`, seção 11): matriz de rastreabilidade do `plan-docs.md` (5.4), linha "Estado atual" do `CLAUDE.md` e a lista do que fica para o responsável (M01 a M04 e a produção)
+  - Feito em 13/11/2026: `docs/rastreabilidade.md` (os 108 RFs com fatia; os 16 da fatia 2 com testes), "Estado atual" do `CLAUDE.md`, seed conferido contra o `setup.md` (seção 8) e a lista do responsável no PR. Falta marcar a tarefa e os RFs como concluídos depois de T051, M01 a M04 e a produção.
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (1)** → **Testes primeiro (2)** → **Foundational (3)** → histórias → **Polish (12)**.
+- A fase 2 vem antes de qualquer código de produção. O T016 fecha a fase com o *commit* de testes.
+
+### User Story Dependencies
+
+- **US1 (P1)**: depende da fase 3.
+- **US2 (P1)**: depende da fase 3. O fluxo L08 precisa de US1 e US2.
+- **US3 (P2)**: depende de US1 (tela de login).
+- **US4 (P2)**: depende da fase 3.
+- **US5, US6, US8**: dependem de US4 (rotas a partir do perfil).
+- **US7 (P3)**: depende de US1 (rota a partir do login).
+
+### Within Each User Story
+
+Modelos e repositórios (fase 3) antes dos providers, providers antes das telas, telas antes das rotas que as abrem.
+
+### Parallel Opportunities
+
+- Fase 2: T005 a T015 são arquivos diferentes.
+- Fase 3: T025 a T029 e T031, entre si. As migrações (T018 a T022) são em sequência, pela ordem dos arquivos.
+- US8: T047 e T048.
+
+## Parallel Example: fase 2
+
+```text
+T006 supabase/tests/database/account_security.test.sql
+T007 supabase/tests/database/account_pix.test.sql
+T008 supabase/functions/_tests/avatars_test.ts
+T009 app/test/core/format/*_test.dart
+```
+
+## Implementation Strategy
+
+### MVP First
+
+Fases 1 a 5: uma pessoa cria a conta, confirma o código, aceita os termos e chega à aba Jogos (L08).
+
+### Incremental Delivery
+
+Depois do MVP: perfil (US4), edições (US5, US6), Google (US3), recuperação (US7) e trocas (US8). Cada história fecha com os seus cenários S verdes.
+
+## Notes
+
+- *Commits* pequenos, em pt-BR, no *branch* `fatia-2/conta-e-perfil` (`docs/trabalho-com-agente.md`, 6.1). Sem *push* nem PR até o responsável pedir.
+- Nenhuma tela sem o PNG obrigatório. Se o PNG divergir do `telas.md` em conteúdo, parar e perguntar.
+- Produção, segredos e M01 a M04 são do responsável.

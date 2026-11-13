@@ -44,8 +44,6 @@ class VoleiColors extends ThemeExtension<VoleiColors> {
     required this.waiting,
     required this.neutral,
     required this.avatarPastels,
-    required this.you,
-    required this.scrim,
   });
 
   final Color game,
@@ -58,14 +56,8 @@ class VoleiColors extends ThemeExtension<VoleiColors> {
       destructive;
   final BadgeTone ok, warn, bad, info, waiting, neutral;
 
-  /// Fundos do avatar sem foto (design-system.md, 3.4). O texto é [onBlock].
+  /// Fundos do avatar sem foto (design-system.md, 3.4), escolhidos pelo `id`.
   final List<Color> avatarPastels;
-
-  /// Avatar de "você".
-  final Color you;
-
-  /// Véu atrás das sheets (design-system.md, 7.15).
-  final Color scrim;
 
   static const dark = VoleiColors(
     game: Color(0xFFFFE14F),
@@ -114,8 +106,6 @@ class VoleiColors extends ThemeExtension<VoleiColors> {
       Color(0xFFFFD27A),
       Color(0xFFF7A8D0),
     ],
-    you: _primary,
-    scrim: Color(0xB8050A19),
   );
 
   static VoleiColors of(BuildContext context) =>
@@ -276,55 +266,6 @@ final appTheme = ThemeData(
     focusedErrorBorder: _border(_errorText, 2),
   ),
   progressIndicatorTheme: const ProgressIndicatorThemeData(color: _primary),
-  // Sheet: fundo surface, cantos de cima 28, alça 36 x 4 (design-system.md, 7.15).
-  bottomSheetTheme: const BottomSheetThemeData(
-    backgroundColor: _surface,
-    modalBackgroundColor: _surface,
-    modalBarrierColor: Color(0xB8050A19),
-    showDragHandle: true,
-    dragHandleColor: _surfaceHigh,
-    dragHandleSize: Size(36, 4),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
-  ),
-  // Interruptor com trilho primary quando ligado (design-system.md, 7.4).
-  switchTheme: SwitchThemeData(
-    thumbColor: WidgetStateProperty.resolveWith((s) {
-      if (s.contains(WidgetState.selected)) return _navy;
-      return _onSurfaceVariant;
-    }),
-    trackColor: WidgetStateProperty.resolveWith((s) {
-      if (s.contains(WidgetState.disabled)) return _surface;
-      if (s.contains(WidgetState.selected)) return _primary;
-      return _surfaceHigh;
-    }),
-    trackOutlineColor: WidgetStateProperty.resolveWith(
-      (s) => s.contains(WidgetState.selected) ? _primary : _onSurfaceVariant,
-    ),
-  ),
-  checkboxTheme: CheckboxThemeData(
-    fillColor: WidgetStateProperty.resolveWith(
-      (s) => s.contains(WidgetState.selected) ? _primary : Colors.transparent,
-    ),
-    checkColor: const WidgetStatePropertyAll(_navy),
-    side: const BorderSide(color: _onSurfaceVariant, width: 2),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-  ),
-  // Menu suspenso do tipo da chave Pix (profilePix-tipo.png).
-  menuTheme: const MenuThemeData(
-    style: MenuStyle(
-      backgroundColor: WidgetStatePropertyAll(_surfaceHigh),
-      shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(22)),
-        ),
-      ),
-      shadowColor: WidgetStatePropertyAll(Color(0x80000000)),
-      elevation: WidgetStatePropertyAll(12),
-      padding: WidgetStatePropertyAll(EdgeInsets.zero),
-    ),
-  ),
   snackBarTheme: SnackBarThemeData(
     behavior: SnackBarBehavior.floating,
     backgroundColor: _surfaceHigh,

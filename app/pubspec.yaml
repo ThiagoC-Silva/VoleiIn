@@ -20,7 +20,7 @@ dependencies:
   flutter_riverpod: ^3.5.0
   # Rotas e deep links
   go_router: ^18.1.4
-  # Modelos imutáveis e JSON (usados a partir da fatia 2)
+  # Modelos imutáveis e JSON
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
   # Formatação de datas; a versão vem de flutter_localizations
@@ -29,9 +29,9 @@ dependencies:
   timezone: ^0.11.2
   # Ícones Material Symbols Rounded
   material_symbols_icons: ^4.2960.0
-  # Login com Google, entregue ao Supabase Auth (RF03, RF108)
+  # Login com Google (RF03, RF108)
   google_sign_in: ^7.2.0
-  # Foto de perfil, redimensionada para até 1024 px antes do envio (RN106)
+  # Foto de perfil, redimensionada para até 1024 px (RF09, RN106)
   image_picker: ^1.2.4
   # Já vem com supabase_flutter; declarada porque a conversão de erros cita
   # ClientException (docs/arquitetura-app.md, seção 7)
