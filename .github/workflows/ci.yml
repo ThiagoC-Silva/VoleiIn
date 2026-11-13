@@ -72,6 +72,19 @@ jobs:
       - name: Testes pgTAP
         run: supabase test db
 
+      # Testes que precisam do Supabase de pé (fotos, A01 a A06; depois, os de
+      # concorrência da fatia 4). Ficam em supabase/functions/_tests/.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Testes Deno contra o Supabase local
+        working-directory: supabase/functions
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY)=')"
+          SUPABASE_URL="$API_URL" SUPABASE_PUBLISHABLE_KEY="$PUBLISHABLE_KEY" \
+            deno test --allow-net --allow-env _tests/
+
   functions:
     name: Edge Functions (Deno)
     runs-on: ubuntu-latest
@@ -93,12 +106,13 @@ jobs:
       - name: Lint
         run: deno lint --permit-no-files
 
-      # A primeira Edge Function chega na fatia 3; sem arquivo de teste,
-      # `deno test` falharia por não achar nenhum.
+      # Só os testes que não precisam do Supabase. Os de _tests/ rodam no job
+      # database, com o Supabase de pé. A primeira Edge Function chega na
+      # fatia 3; sem arquivo de teste, `deno test` falharia por não achar nenhum.
       - name: Testes
         run: |
-          if find . -name '*_test.ts' -print -quit | grep -q .; then
-            deno test --allow-net --allow-env
+          if find . -path ./_tests -prune -o -name '*_test.ts' -print | grep -q .; then
+            deno test --allow-net --allow-env --ignore=_tests
           else
-            echo 'Nenhum teste de Edge Function nesta fatia.'
+            echo 'Nenhum teste de Edge Function sem Supabase nesta fatia.'
           fi
