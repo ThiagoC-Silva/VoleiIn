@@ -176,8 +176,8 @@
 - [x] T051 Rodar L06 a L11 no emulador (`app/integration_test/`) e conferir cada tela contra o PNG
   - L06 a L11 verdes nas APIs 29 e 36 em 13/11/2026, por `scripts/integration-test.sh`. A primeira rodada achou o `SubmitController` nascendo em carregamento (campos desabilitados no primeiro quadro, *autofocus* perdido), corrigido com teste. Conferência das 17 telas no celular (Android 17), com o responsável, em 13/11/2026: corrigidos o título das linhas de lista (Roboto 700), o item ativo da navegação (elevado, com anel), o avatar de "você" (amarelo), a ajuda do campo (na borda) e o prefixo `+55` (sempre visível), com `design_conformance_test.dart`. A sheet da foto continua sem título (`telas.md`, 5.8).
 - [x] T052 Atualizar os documentos afetados: `docs/arquitetura-app.md` (seções 3, 5 e 12), `docs/ui/telas.md` (5.3, research R5), `docs/rls-matriz.md` (research R6), `docs/setup.md` (Google e CI), `docs/ui/design-system.md` (componentes novos) e um ADR para a senha do cadastro pendente
-- [ ] T053 Fechar a fatia (`docs/trabalho-com-agente.md`, seção 11): matriz de rastreabilidade do `plan-docs.md` (5.4), linha "Estado atual" do `CLAUDE.md` e a lista do que fica para o responsável (M01 a M04 e a produção)
-  - Feito em 13/11/2026: `docs/rastreabilidade.md` (os 108 RFs com fatia; os 16 da fatia 2 com testes), "Estado atual" do `CLAUDE.md`, seed conferido contra o `setup.md` (seção 8) e a lista do responsável no PR. Falta marcar a tarefa e os RFs como concluídos depois de T051, M01 a M04 e a produção.
+- [x] T053 Fechar a fatia (`docs/trabalho-com-agente.md`, seção 11): matriz de rastreabilidade do `plan-docs.md` (5.4), linha "Estado atual" do `CLAUDE.md` e a lista do que fica para o responsável (M01 a M04 e a produção)
+  - Feito em 13/11/2026: `docs/rastreabilidade.md` (os 108 RFs com fatia; os 16 da fatia 2 com testes), "Estado atual" do `CLAUDE.md`, seed conferido contra o `setup.md` (seção 8) e a lista do responsável no PR. Fechada em 13/11/2026: T051, M01 a M04 conferidos com o responsável, migrações e Auth da produção (`setup.md`, 9.4) e os 16 RFs concluídos na matriz.
 
 ---
 
