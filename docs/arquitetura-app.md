@@ -25,7 +25,9 @@ app/lib/
     router/                 # go_router: rotas, redirects, nomes de rota
     theme/app_theme.dart    # docs/ui/design-system.md, seção 9
     errors/                 # AppException, ErrorCode, conversão e texto
-    format/                 # dinheiro, data e hora (seção 8)
+    format/                 # dinheiro, data e hora (seção 8); CPF, CNPJ, telefone,
+                            # tipo de imagem e UUID (fatia 2)
+    submit_controller.dart  # ActionController, base das ações (seção 5)
     realtime.dart           # ajudante de assinatura (seção 6)
   l10n/app_pt.arb           # todos os textos da interface
   shared/widgets/           # componentes do design system
@@ -94,11 +96,13 @@ Riverpod 3, com providers escritos à mão, sem `riverpod_generator`. A geraçã
 | Cliente ou repositório | `Provider` | `profileRepositoryProvider` |
 | Dados de uma tela | `FutureProvider.autoDispose` ou `.family` | `gameDetailProvider(gameId)` |
 | Dados com Realtime | `AsyncNotifierProvider.autoDispose.family`, que assina no `build` (seção 6) | `attendanceProvider(gameId)` |
-| Ação do usuário (formulário, botão) | `AsyncNotifierProvider.autoDispose`, com o estado da submissão | `editProfileControllerProvider` |
+| Ação do usuário (formulário, botão) | `AsyncNotifierProvider.autoDispose<ActionController, void>`, um por tela, com o estado da submissão | `_saveProvider` em `profile_edit_screen.dart` |
+| Estado de tela em memória (e-mail do código pendente) | `NotifierProvider` | `pendingEmailProvider` |
 | Sessão | `StreamProvider` sobre `onAuthStateChange` | `authStateProvider` |
 
 Regras:
-- Depois de uma mutação, o controller chama `ref.invalidate` nos providers de leitura afetados. O app não monta a resposta à mão: ela vem do servidor na próxima leitura.
+- `ActionController` (`core/submit_controller.dart`) tem só `run(ação)`, que devolve `true` se deu certo e deixa o erro em `state.error`. A tela decide o que fazer com o erro: no campo (código errado, senha atual errada) ou em `SnackBar`.
+- Depois de uma mutação, a tela ou o controller chama `ref.invalidate` nos providers de leitura afetados. O app não monta a resposta à mão: ela vem do servidor na próxima leitura.
 - Tela de dados usa `.autoDispose`: ao sair da tela, a assinatura e o dado somem (RNF07, nada guardado para consulta offline).
 - Widgets leem com `ref.watch` e chamam ações com `ref.read(...notifier)`. Nunca `ref.read` no `build`.
 - Nos testes, repositórios são trocados com `ProviderScope(overrides: [...])`.
@@ -150,6 +154,7 @@ Tudo o que sai do Supabase passa por uma conversão única, em `core/errors/`, e
 | Sem rede | `SocketException`, `ClientException`, `TimeoutException` | `ErrorCode.noConnection` (RNF07) |
 | Qualquer outra coisa, ou código desconhecido | — | `ErrorCode.internalError` |
 
+- `guard(chamada)` (`core/errors/error_mapper.dart`) executa a chamada e converte qualquer exceção em `AppException` por esta tabela. Todo método de repositório passa por ele.
 - `ErrorCode` é um enum com os códigos do `contratos-api.md` (seção 2) que o app já usa, mais `noConnection` e os de autenticação. Ele cresce a cada fatia, junto com os textos do `docs/copy.md`. Ao fim da fatia 8, tem todos os códigos do catálogo.
 - O texto vem de uma função com `switch` exaustivo sobre `ErrorCode`, que lê o `app_pt.arb` (`errorGameFull`, `errorNotFound` etc.). Código novo sem texto não compila.
 - A tela não lê `message` do Postgres nem mostra texto técnico.
@@ -187,129 +192,24 @@ Tudo o que sai do Supabase passa por uma conversão única, em `core/errors/`, e
 | Integração | `app/integration_test/` | Os fluxos de "Pronto quando" de cada fatia | No emulador, contra o Supabase local com o seed |
 
 - O arquivo de teste espelha o caminho do arquivo testado: `lib/core/format/money.dart` → `test/core/format/money_test.dart`.
+- **Ajudantes** (`test/helpers/`): `TestApp` monta uma tela solta; `pumpRouterApp` monta um `go_router` em que as telas do teste são reais e as outras rotas mostram `stub:<nome>`, num celular de 412 × 915 dp, e devolve o `ProviderContainer`; `tapVisible` rola até o widget antes de tocar; `fakes.dart` tem os dublês dos repositórios e os dados de exemplo (`ownProfile`, versões dos termos).
+- O teste do roteador (`test/core/router/app_router_test.dart`) usa o `routerProvider` real, com os repositórios trocados.
 - O resultado esperado vem dos documentos (`testes-referencia.md`, RN, RF), nunca do que o código devolve.
 
-## 12. Exemplo: perfil (fatia 2)
+## 12. Exemplo: a feature de conta (fatia 2)
 
-Um exemplo pequeno e completo, com leitura direta, escrita direta permitida e tratamento de erro. A fatia 2 substitui este exemplo pela feature real e atualiza esta seção.
+A fatia 2 trocou o exemplo escrito antes do código pela feature real, em `features/auth/`. Os padrões a copiar:
 
-**`features/auth/domain/profile.dart`**
-```dart
-@freezed
-abstract class Profile with _$Profile {
-  const factory Profile({
-    required String id,
-    required String name,
-    String? nickname,
-    required String displayName,
-    String? photoPath,
-  }) = _Profile;
+| Camada | Arquivo | Padrão |
+|--------|---------|--------|
+| `domain` | `profile.dart`, `terms.dart`, `pix_key_type.dart` | Modelos `freezed` com JSON em `snake_case`. `TermsStatus.compare` só compara versões; a regra de qual versão vale está no servidor (`current_terms_versions()`) |
+| `data` | `profile_repository.dart` | Leitura e escrita direta permitida (`contratos-api.md`, seção 9), cada método dentro de `guard` |
+| `data` | `auth_repository.dart`, `google_auth_client.dart`, `photo_picker.dart` | Serviços de fora (Google, câmera) atrás de uma interface, trocada por dublê nos testes |
+| `presentation` | `profile_providers.dart` | `ownProfileProvider` (`FutureProvider.autoDispose`), relido ao voltar de cada edição |
+| `presentation` | `profile_edit_screen.dart` | Tela que lê com `switch` sobre o `AsyncValue` (carregando, erro, dados) e grava com um `ActionController` próprio |
+| Roteador | `core/router/app_router.dart` | Redirecionamentos da seção 9, inclusive a conferência dos termos, que o roteador escuta com `ref.listen` |
 
-  factory Profile.fromJson(Map<String, dynamic> json) => _$ProfileFromJson(json);
-}
-```
-
-**`features/auth/data/profile_repository.dart`**
-```dart
-class ProfileRepository {
-  ProfileRepository(this._db);
-  final SupabaseClient _db;
-
-  Future<Profile> fetchOwn() => guard(() async {
-        final uid = _db.auth.currentUser!.id;
-        final row = await _db
-            .from('profiles')
-            .select('id, name, nickname, display_name, photo_path')
-            .eq('id', uid)
-            .single();
-        return Profile.fromJson(row);
-      });
-
-  // Escrita direta permitida: contratos-api.md, seção 9.
-  Future<void> updateNickname(String? nickname) => guard(() async {
-        final uid = _db.auth.currentUser!.id;
-        await _db.from('profiles').update({'nickname': nickname}).eq('id', uid);
-      });
-}
-
-final profileRepositoryProvider =
-    Provider((ref) => ProfileRepository(ref.watch(supabaseProvider)));
-```
-
-`guard` (em `core/errors/`) executa a chamada e converte qualquer exceção em `AppException` pela tabela da seção 7. Um repositório que chama função SQL segue o mesmo formato, trocando o `from(...)` por `_db.rpc('create_group', params: {'p_name': name})`.
-
-**`features/auth/presentation/profile_providers.dart`**
-```dart
-final ownProfileProvider = FutureProvider.autoDispose<Profile>(
-  (ref) => ref.watch(profileRepositoryProvider).fetchOwn(),
-);
-
-class EditNicknameController extends AsyncNotifier<void> {
-  @override
-  Future<void> build() async {}
-
-  Future<bool> save(String? nickname) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(profileRepositoryProvider).updateNickname(nickname),
-    );
-    if (state.hasError) return false;
-    ref.invalidate(ownProfileProvider);
-    return true;
-  }
-}
-
-final editNicknameControllerProvider =
-    AsyncNotifierProvider.autoDispose<EditNicknameController, void>(EditNicknameController.new);
-```
-
-**`features/auth/presentation/profile_screen.dart`**
-```dart
-class ProfileScreen extends ConsumerWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final profile = ref.watch(ownProfileProvider);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.profileTitle)),
-      body: profile.when(
-        loading: () => const LoadingState(),
-        error: (e, _) => ErrorState(
-          error: e,
-          onRetry: () => ref.invalidate(ownProfileProvider),
-        ),
-        data: (p) => ProfileView(profile: p),
-      ),
-    );
-  }
-}
-```
-
-`LoadingState` e `ErrorState` ficam em `shared/widgets/`. `ErrorState` mostra o estado "sem conexão" quando o código é `noConnection` e o estado de erro nos outros casos (`design-system.md`, 7.16).
-
-**`test/features/auth/presentation/profile_screen_test.dart`**
-```dart
-class MockProfileRepository extends Mock implements ProfileRepository {}
-
-void main() {
-  testWidgets('mostra o estado sem conexão e tenta de novo', (tester) async {
-    final repo = MockProfileRepository();
-    when(() => repo.fetchOwn()).thenThrow(const AppException(ErrorCode.noConnection));
-
-    await tester.pumpWidget(ProviderScope(
-      overrides: [profileRepositoryProvider.overrideWithValue(repo)],
-      child: const TestApp(child: ProfileScreen()),
-    ));
-    await tester.pumpAndSettle();
-
-    expect(find.text(lookupAppLocalizations(const Locale('pt')).errorNoConnection), findsOneWidget);
-  });
-}
-```
-
-`TestApp` (em `test/helpers/`) monta o `MaterialApp` com o tema e a localização.
+Os testes de cada tela estão em `test/features/auth/presentation/`, com os IDs de `testes-referencia.md` (seção 10.4) no nome.
 
 ## 13. Anti-padrões
 

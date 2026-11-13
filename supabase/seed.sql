@@ -56,10 +56,26 @@ select
 from auth.users u
 where u.email like '%@voleiin.test';
 
--- Termos e Privacidade aceitos na versão vigente (docs/setup.md, seção 8).
--- A versão vigente passa a vir da configuração do servidor na fatia 2 (RF105):
--- ao implementá-la, confira se este valor continua igual ao da configuração.
+-- Termos e Privacidade aceitos na versão vigente (docs/setup.md, seção 8), a
+-- mesma de public.current_terms_versions(). Quando uma migração trocar a
+-- versão, este valor muda junto.
 insert into public.terms_acceptances (user_id, document, version)
 select p.id, d.document, '1.0'
 from public.profiles p
 cross join (values ('terms_of_use'::public.legal_document), ('privacy_policy'::public.legal_document)) as d (document);
+
+-- Fatia 2: perfis completos (docs/setup.md, seção 8).
+--   Ana: telefone visível e chave Pix CPF, sem apelido (o fluxo L10 põe e tira
+--        o apelido "Aninha").
+--   Bruno: apelido e telefone oculto.
+--   Carla e Diego: sem dados opcionais.
+update public.profile_private
+set phone = '+5586999991234', phone_visible = true,
+    pix_key_type = 'cpf', pix_key = '52998224725'
+where user_id = '00000000-0000-0000-0000-00000000000a';
+
+update public.profiles set nickname = 'Bruninho'
+where id = '00000000-0000-0000-0000-00000000000b';
+
+update public.profile_private set phone = '+5586988887777', phone_visible = false
+where user_id = '00000000-0000-0000-0000-00000000000b';

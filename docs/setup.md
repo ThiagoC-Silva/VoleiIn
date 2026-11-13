@@ -42,11 +42,11 @@ specs/                # especificações do Spec Kit, uma por fatia
 | Ferramenta | Versão | Para quê | Instalação |
 |------------|--------|----------|------------|
 | Git e GitHub CLI (`gh`) | Atual | Repositório e PRs | Gerenciador de pacotes do sistema |
-| Flutter (com Dart) | Estável, 3.47 ou superior (Dart 3.13) | App | `snap install flutter --classic` |
+| Flutter (com Dart) | Estável, 3.47 ou superior (Dart 3.13) | App | `snap install flutter --classic`, ou, sem `sudo`, `git clone -b stable https://github.com/flutter/flutter.git ~/development/flutter` com `~/development/flutter/bin` no `PATH` |
 | Android Studio | Atual | SDK do Android, emuladores e `keytool` | Site oficial |
 | Docker | Atual | Supabase local | Gerenciador de pacotes; o usuário precisa estar no grupo `docker` |
 | Supabase CLI | Estável mais recente (não usar versões `-next`) | Banco local, migrações, testes pgTAP, Edge Functions | Pacote `.deb` das *releases* do GitHub |
-| Deno | 2.x | Testes das Edge Functions e de concorrência | `curl -fsSL https://deno.land/install.sh \| sh` |
+| Deno | 2.x | Testes das Edge Functions, das fotos e de concorrência | `curl -fsSL https://deno.land/install.sh \| sh` (instala em `~/.deno/bin`) |
 | `uv` e Spec Kit | `uv` atual; `specify-cli` 1.4 ou superior | Especificação de cada fatia | `curl -LsSf https://astral.sh/uv/install.sh \| sh`; `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git` |
 | Firebase CLI e FlutterFire CLI | Atual | Configurar o FCM (fatia 7) | Binário oficial do Firebase; `dart pub global activate flutterfire_cli` |
 
@@ -122,6 +122,7 @@ O app lê com `String.fromEnvironment` e para logo na abertura com uma mensagem 
 
 | Segredo | Onde fica no local | Onde fica na produção | Quem usa |
 |---------|--------------------|-----------------------|----------|
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` | `supabase/.env`, lido pelo `config.toml` com `env()` | Painel do Supabase, Auth → Google | Login com Google. Não é segredo, mas fica fora do `config.toml` para o CI subir o Supabase sem ele |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` | `supabase/.env`, lido pelo `config.toml` com `env()` | Painel do Supabase, Auth → Google | Login com Google |
 | `ANTHROPIC_API_KEY` | `supabase/functions/.env` | `supabase secrets set` | `process-receipt` (fatia 6) |
 | `RECEIPT_MODEL` | `supabase/functions/.env` | `supabase secrets set` | Modelo da Claude API, trocável sem novo deploy (`stacks.md`, 6.2) |
@@ -164,7 +165,7 @@ Os três e-mails de conta levam um código de 6 dígitos (ADR 0017). No local, a
 
 Usa o projeto `VoleiIn` do Google Cloud, já criado no v0.
 
-- **Cliente web:** seu ID é o `GOOGLE_WEB_CLIENT_ID` do app e o `client_id` de `[auth.external.google]` no `config.toml`. O segredo dele é o `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`.
+- **Cliente web:** seu ID é o `GOOGLE_WEB_CLIENT_ID` do app e o `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` do `supabase/.env`, que o `config.toml` lê em `[auth.external.google]` (`supabase/.env.example`). O segredo dele é o `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`. Sem as duas variáveis, o Supabase local sobe e só o login com Google falha. No local, o `config.toml` liga `skip_nonce_check`, exigido pelo login nativo.
 - **Clientes Android:** um por certificado que assina o app, todos com o pacote `br.com.voleiin`:
   - a chave de debug **de cada máquina** de desenvolvimento;
   - a chave de *upload* e a chave de assinatura da Google Play (no lançamento).

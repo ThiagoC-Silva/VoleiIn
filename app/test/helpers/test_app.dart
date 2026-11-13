@@ -3,7 +3,7 @@ import 'package:voleiin/core/theme/app_theme.dart';
 import 'package:voleiin/l10n/app_localizations.dart';
 
 /// Monta o `MaterialApp` com o tema e a localização do app
-/// (docs/arquitetura-app.md, seção 12).
+/// (docs/arquitetura-app.md, seção 11).
 class TestApp extends StatelessWidget {
   const TestApp({required this.child, this.textScale = 1.0, super.key});
 

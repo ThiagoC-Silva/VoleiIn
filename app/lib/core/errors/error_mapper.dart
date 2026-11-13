@@ -64,7 +64,7 @@ AppException toAppException(Object error) {
   return const AppException(ErrorCode.internalError);
 }
 
-/// Executa a chamada e converte qualquer exceção (docs/arquitetura-app.md, 12).
+/// Executa a chamada e converte qualquer exceção (docs/arquitetura-app.md, seção 7).
 Future<T> guard<T>(Future<T> Function() call) async {
   try {
     return await call();

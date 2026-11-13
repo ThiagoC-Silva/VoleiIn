@@ -78,8 +78,8 @@ Decisões técnicas que os documentos deixam para a implementação. Nenhuma mud
 
 ## 13. Validação e formatação no app
 
-- **Decisão**: funções puras em `core/format/`: `br_documents.dart` (CPF e CNPJ: dígitos, validação, máscara), `phone.dart` (digitado ↔ E.164 ↔ exibição, só Brasil, 10 ou 11 dígitos) e `pix_key.dart` (normalização, validação por tipo, exibição). Máscaras dos campos com `TextInputFormatter` próprios em `shared/widgets/`, sem pacote.
-- **Motivo**: são formato e validação de entrada, não regra de negócio; o banco decide de verdade (constraints). O `domain` fica só com modelos (`arquitetura-app.md`, seção 2).
+- **Decisão**: funções puras em `core/format/`: `br_documents.dart` (CPF e CNPJ: dígitos, validação, máscara) e `phone.dart` (digitado ↔ E.164 ↔ exibição, só Brasil, 10 ou 11 dígitos). A chave Pix usa uma extensão do enum `PixKeyType` (`features/auth/domain/pix_key_type.dart`: `normalize`, `isValid`, `format`), porque `core/` não importa de `features/`. Máscaras dos campos com `TextInputFormatter` próprios em `shared/widgets/`, sem pacote.
+- **Motivo**: são formato e validação de entrada, não regra de negócio; o banco decide de verdade (constraints).
 
 ## 14. Título com "e-mail" que não quebra
 
