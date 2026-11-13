@@ -30,9 +30,25 @@
 | 4. Testes primeiro | Os testes da tarefa são escritos e rodados, e **falham** pelo motivo certo: a função ainda não existe ou não faz o esperado | *Commit* só de testes |
 | 5. Implementar | `/speckit-implement`, tarefa por tarefa, até os testes passarem | *Commits* de implementação |
 | 6. Convergir | `/speckit-converge` e a definição de pronto (seção 5) | PR pronto para revisão |
-| 7. Fechar a fatia | Seção 9 | Fatia marcada como concluída |
+| 7. Fechar a fatia | Seção 11 | Fatia marcada como concluída |
 
-- Fatias grandes (4 e 5) seguem as etapas A, B e C do plano, cada uma como uma especificação própria.
+### 3.1 Uma sessão por etapa (decisão de 13/11/2026)
+
+Uma fatia inteira não cabe numa sessão do agente: o contexto é resumido quando a conversa fica longa, e cada resumo perde detalhe. Por isso, a fatia roda em **quatro sessões**, cada uma começada do zero, numa conversa nova:
+
+| Sessão | Etapas do ciclo | O que entrega | Termina quando |
+|--------|-----------------|---------------|----------------|
+| **1. Documentação** | 1 e 2 | Lista da seção 8.4 do `plan-docs.md`; `telas.md`, `copy.md`, `rls-matriz.md`, cenários em `testes-referencia.md` e o briefing visual de cada tela | PR só de documentação na `main`. **Entre as sessões 1 e 3, o responsável desenha os PNGs (etapa 2b)** |
+| **2. Servidor** | 3, 4 e 5 (banco) | Spec Kit da fatia; migrações, funções, RLS, Storage e Edge Functions, com os testes pgTAP e Deno escritos antes | `supabase test db`, `supabase db lint` e `deno test` verdes |
+| **3. App** | 4 e 5 (telas) | As telas, a partir dos PNGs, com os testes de widget e de acessibilidade escritos antes | `dart analyze` e `flutter test` verdes. Sem os PNGs obrigatórios, a sessão não começa |
+| **4. Validação e fechamento** | 6 e 7 | Fluxos de integração no emulador (APIs 29 e 36, pelos `scripts/`), conferência das telas e testes manuais com o responsável no celular, migrações na produção com o ensaio (`setup.md`, 9.2), *merge* e fechamento (seção 11) | Fatia concluída na `main` e na matriz de rastreabilidade |
+
+**Em toda sessão:**
+- **Começo:** `git fetch` e comparação com o remoto (o responsável usa mais de uma máquina), leitura da linha "Estado atual" do `CLAUDE.md` e do `tasks.md` da fatia.
+- **Durante:** um comando pesado por vez com o emulador aberto (`setup.md`, 3.1).
+- **Fim:** o que foi feito e a próxima sessão ficam registrados no `tasks.md` e na linha "Estado atual" do `CLAUDE.md`, e o trabalho fica no remoto (PR ou *branch* enviado).
+
+- Fatias grandes (4 e 5) seguem as etapas A, B e C do plano, cada uma como uma especificação própria, e cada uma com as suas sessões 2 a 4.
 - Na fatia 1, `/speckit-constitution` roda uma vez e aponta para o `CLAUDE.md` e para `docs/`, sem duplicar regras (`.specify/memory/constitution.md`). O Spec Kit foi testado antes num repositório descartável (`plano-implementacao.md`, fatia 1) e instalado com `specify init --here --force --non-interactive --integration claude`, que cria `.specify/` e as skills `.claude/skills/speckit-*`.
 - O `/speckit-specify` propõe um *branch* numérico (`001-nome`). Ele não é usado: o *branch* segue a seção 6.1, e a pasta `specs/<nnn>-<nome>/` fica como está.
 
