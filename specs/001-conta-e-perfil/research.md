@@ -16,7 +16,8 @@ Decisões técnicas que os documentos deixam para a implementação. Nenhuma mud
 ## 3. Dígitos verificadores na constraint
 
 - **Decisão**: `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)`, `language plpgsql immutable`, com `search_path` vazio. A constraint `profile_private_pix_format` é recriada (`drop constraint` + `add constraint`) chamando as duas para `cpf` e `cnpj`. A sequência de um dígito só é recusada dentro das funções.
-- **Motivo**: constraint de `check` só aceita função `immutable`. O esquema `private` não é exposto (ADR 0015), e a constraint roda como dono da tabela, sem precisar de `usage` de quem escreve.
+- **Motivo**: constraint de `check` só aceita função `immutable`. O esquema `private` não é exposto (ADR 0015).
+- **Privilégio**: a constraint roda com o privilégio de quem grava, e sem `execute` o `update` do app dá `42501` (medido nos testes N07 e P08). As duas funções recebem `execute` para `authenticated`; sem `usage` no esquema, o app não as alcança pela API. Registrado na `rls-matriz.md` (Fatia 2).
 - **Cuidado**: recriar a constraint valida as linhas existentes. Na produção não há chave cadastrada (sem usuários reais, fatia 1), então não há risco. No ensaio de migração (`setup.md`, 9.2), uma chave inválida faria a migração falhar, e isso é o comportamento desejado.
 
 ## 4. *Trigger* da RN105

@@ -137,6 +137,8 @@ Decisões de 12/11/2026. A pessoa lê e edita **só a própria linha** de `profi
 
 **Funções** (lista esperada do B06): `public.current_terms_versions()`, com `execute` só para `authenticated` (`contratos-api.md`, seção 9).
 
+- `private.is_valid_cpf(text)` e `private.is_valid_cnpj(text)` também têm `execute` para `authenticated`, porque a constraint de `check` da chave Pix roda com o privilégio de quem grava (medido em 12/11/2026). São puras e não leem nada. O esquema `private` continua sem `usage` para o app (B07), então elas não são alcançáveis pela API.
+
 **Storage, bucket `avatars`.** Políticas em `storage.objects`, todas com `bucket_id = 'avatars' and (storage.foldername(name))[1] = 'profiles' and (storage.foldername(name))[2] = uid::text`:
 
 | Política | Operação | Para quê |
