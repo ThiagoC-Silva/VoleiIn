@@ -88,9 +88,8 @@ void main() {
   testWidgets(
     'S13: remoção recusada (PIX_KEY_IN_USE) vira SnackBar, e a chave continua na tela',
     (tester) async {
-      when(
-        () => h.profiles.updatePixKey(type: null, key: null),
-      ).thenThrow(const AppException(ErrorCode.pixKeyInUse));
+      when(() => h.profiles.updatePixKey(type: null, key: null))
+          .thenThrow(const AppException(ErrorCode.pixKeyInUse));
       await open(tester);
 
       await tester.tap(find.text(l10nPt.pixRemove));
@@ -186,7 +185,9 @@ void main() {
     (l10nPt.pixTypePhone, '869999123', l10nPt.pixInvalidPhone),
     (l10nPt.pixTypeRandom, 'nao-e-uuid', l10nPt.pixInvalidRandom),
   ]) {
-    testWidgets('chave inválida do tipo $label mostra "$error"', (tester) async {
+    testWidgets('chave inválida do tipo $label mostra "$error"', (
+      tester,
+    ) async {
       await open(tester);
 
       await chooseType(tester, label);

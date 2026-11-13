@@ -50,9 +50,8 @@ void main() {
   testWidgets(
     'S08: código aceito e senha recusada deixam só o campo de senha; o novo toque chama só o updateUser',
     (tester) async {
-      when(
-        () => h.auth.updatePassword('voleiin123'),
-      ).thenThrow(const AppException(ErrorCode.authSamePassword));
+      when(() => h.auth.updatePassword('voleiin123'))
+          .thenThrow(const AppException(ErrorCode.authSamePassword));
 
       await goToStepTwo(tester);
 

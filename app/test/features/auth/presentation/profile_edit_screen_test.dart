@@ -110,9 +110,8 @@ void main() {
       const newPath = 'profiles/$anaId/nova.jpg';
       final bytes = Uint8List.fromList([1, 2, 3]);
       h.ownProfile(photoPath: oldPath);
-      when(
-        () => h.picker.pick(any()),
-      ).thenAnswer((_) async => PickedPhoto(bytes: bytes, extension: 'jpg'));
+      when(() => h.picker.pick(any()))
+          .thenAnswer((_) async => PickedPhoto(bytes: bytes, extension: 'jpg'));
       when(
         () => h.profiles.uploadAvatar(
           bytes: any(named: 'bytes'),
@@ -165,10 +164,8 @@ void main() {
       ),
     ).called(1);
     verify(
-      () => h.profiles.updateContact(
-        phone: '+5586999991234',
-        phoneVisible: true,
-      ),
+      () =>
+          h.profiles.updateContact(phone: '+5586999991234', phoneVisible: true),
     ).called(1);
     verifyNever(
       () => h.profiles.uploadAvatar(
@@ -249,9 +246,8 @@ void main() {
   testWidgets('foto de tipo recusado vira SnackBar e não é aceita', (
     tester,
   ) async {
-    when(
-      () => h.picker.pick(any()),
-    ).thenThrow(const AppException(ErrorCode.photoInvalidType));
+    when(() => h.picker.pick(any()))
+        .thenThrow(const AppException(ErrorCode.photoInvalidType));
     await open(tester);
 
     await tester.tap(find.text(l10nPt.profileChangePhoto));
@@ -288,23 +284,23 @@ void main() {
     expect(h.location, '/profile/edit');
   });
 
-  testWidgets('falha ao apagar a foto antiga é ignorada: o perfil já está salvo', (
-    tester,
-  ) async {
-    const oldPath = 'profiles/$anaId/antiga.png';
-    h.ownProfile(photoPath: oldPath);
-    when(
-      () => h.profiles.deleteAvatar(any()),
-    ).thenThrow(const AppException(ErrorCode.internalError));
-    await open(tester);
+  testWidgets(
+    'falha ao apagar a foto antiga é ignorada: o perfil já está salvo',
+    (tester) async {
+      const oldPath = 'profiles/$anaId/antiga.png';
+      h.ownProfile(photoPath: oldPath);
+      when(() => h.profiles.deleteAvatar(any()))
+          .thenThrow(const AppException(ErrorCode.internalError));
+      await open(tester);
 
-    await tester.tap(find.text(l10nPt.profileChangePhoto));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(l10nPt.profilePhotoRemove));
-    await tester.pumpAndSettle();
-    await save(tester);
+      await tester.tap(find.text(l10nPt.profileChangePhoto));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10nPt.profilePhotoRemove));
+      await tester.pumpAndSettle();
+      await save(tester);
 
-    expect(find.text(l10nPt.profileSaved), findsOneWidget);
-    expect(h.location, '/profile');
-  });
+      expect(find.text(l10nPt.profileSaved), findsOneWidget);
+      expect(h.location, '/profile');
+    },
+  );
 }

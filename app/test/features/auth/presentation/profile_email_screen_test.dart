@@ -44,23 +44,23 @@ void main() {
     expect(find.text(l10nPt.emailKeepsWorking), findsOneWidget);
   });
 
-  testWidgets('S14: novo e-mail igual ao atual mostra erro e não chama o servidor', (
-    tester,
-  ) async {
-    await open(tester);
+  testWidgets(
+    'S14: novo e-mail igual ao atual mostra erro e não chama o servidor',
+    (tester) async {
+      await open(tester);
 
-    await sendCode(tester, ' Ana@Exemplo.com ');
+      await sendCode(tester, ' Ana@Exemplo.com ');
 
-    expect(find.text(l10nPt.emailSameAsCurrent), findsOneWidget);
-    verifyNever(() => h.auth.requestEmailChange(any()));
-  });
+      expect(find.text(l10nPt.emailSameAsCurrent), findsOneWidget);
+      verifyNever(() => h.auth.requestEmailChange(any()));
+    },
+  );
 
   testWidgets('S14: e-mail de outra conta mostra o erro no campo', (
     tester,
   ) async {
-    when(
-      () => h.auth.requestEmailChange(any()),
-    ).thenThrow(const AppException(ErrorCode.authEmailInUse));
+    when(() => h.auth.requestEmailChange(any()))
+        .thenThrow(const AppException(ErrorCode.authEmailInUse));
     await open(tester);
 
     await sendCode(tester, 'bruno@exemplo.com');

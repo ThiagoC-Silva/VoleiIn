@@ -125,9 +125,7 @@ void main() {
         await h.pumpApp(tester);
 
         await typeCredentials(tester);
-        await tester.tap(
-          buttonWithText<FilledButton>(l10nPt.authLoginButton),
-        );
+        await tester.tap(buttonWithText<FilledButton>(l10nPt.authLoginButton));
         await tester.pumpAndSettle();
 
         expect(find.text(l10nPt.errorAuthEmailNotConfirmed), findsOneWidget);
@@ -164,9 +162,8 @@ void main() {
     });
 
     testWidgets('S07: falha do Google mostra o aviso próprio', (tester) async {
-      when(
-        () => h.auth.signInWithGoogle(),
-      ).thenThrow(const AppException(ErrorCode.authGoogleFailed));
+      when(() => h.auth.signInWithGoogle())
+          .thenThrow(const AppException(ErrorCode.authGoogleFailed));
       await h.pumpApp(tester);
 
       await tester.tap(find.text(l10nPt.authContinueWithGoogle));

@@ -34,9 +34,8 @@ void main() {
   testWidgets(
     'S15: senha atual errada mostra o erro no campo e não troca a senha',
     (tester) async {
-      when(
-        () => h.auth.verifyCurrentPassword(any()),
-      ).thenThrow(const AppException(ErrorCode.authInvalidCredentials));
+      when(() => h.auth.verifyCurrentPassword(any()))
+          .thenThrow(const AppException(ErrorCode.authInvalidCredentials));
 
       await submit(tester, current: 'errada-123', next: 'nova-senha-1');
 
@@ -51,9 +50,8 @@ void main() {
   testWidgets('nova senha igual à atual mostra o erro no campo Nova senha', (
     tester,
   ) async {
-    when(
-      () => h.auth.updatePassword(any()),
-    ).thenThrow(const AppException(ErrorCode.authSamePassword));
+    when(() => h.auth.updatePassword(any()))
+        .thenThrow(const AppException(ErrorCode.authSamePassword));
 
     await submit(tester, current: 'voleiin123', next: 'voleiin123');
 

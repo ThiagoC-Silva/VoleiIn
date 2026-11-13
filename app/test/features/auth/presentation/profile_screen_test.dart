@@ -14,20 +14,23 @@ void main() {
 
   setUp(() => h = TestHarness());
 
-  testWidgets('S11: conta só com Google não vê Trocar e-mail nem Trocar senha', (
+  testWidgets(
+    'S11: conta só com Google não vê Trocar e-mail nem Trocar senha',
+    (tester) async {
+      h.signedIn(email: 'ana.souza@gmail.com', hasEmailAccess: false);
+
+      await h.pumpApp(tester, location: '/profile');
+
+      expect(find.text(l10nPt.profileEdit), findsOneWidget);
+      expect(find.text(l10nPt.profilePix), findsOneWidget);
+      expect(find.text(l10nPt.profileChangeEmail), findsNothing);
+      expect(find.text(l10nPt.profileChangePassword), findsNothing);
+    },
+  );
+
+  testWidgets('S11: conta com e-mail e senha vê as duas linhas', (
     tester,
   ) async {
-    h.signedIn(email: 'ana.souza@gmail.com', hasEmailAccess: false);
-
-    await h.pumpApp(tester, location: '/profile');
-
-    expect(find.text(l10nPt.profileEdit), findsOneWidget);
-    expect(find.text(l10nPt.profilePix), findsOneWidget);
-    expect(find.text(l10nPt.profileChangeEmail), findsNothing);
-    expect(find.text(l10nPt.profileChangePassword), findsNothing);
-  });
-
-  testWidgets('S11: conta com e-mail e senha vê as duas linhas', (tester) async {
     h.signedIn();
 
     await h.pumpApp(tester, location: '/profile');
@@ -91,9 +94,8 @@ void main() {
     tester,
   ) async {
     h.signedIn();
-    when(
-      () => h.profiles.fetchOwn(),
-    ).thenThrow(const AppException(ErrorCode.noConnection));
+    when(() => h.profiles.fetchOwn())
+        .thenThrow(const AppException(ErrorCode.noConnection));
 
     await h.pumpApp(tester, location: '/profile');
     expect(find.text(l10nPt.errorNoConnection), findsOneWidget);

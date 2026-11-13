@@ -82,34 +82,35 @@ void main() {
     );
   });
 
-  testWidgets('S04: Reenviar código fica desabilitado por 60 s, com a contagem', (
-    tester,
-  ) async {
-    when(() => h.auth.resendSignupCode(any())).thenAnswer((_) async {});
-    await openWithPendingSignup(tester);
+  testWidgets(
+    'S04: Reenviar código fica desabilitado por 60 s, com a contagem',
+    (tester) async {
+      when(() => h.auth.resendSignupCode(any())).thenAnswer((_) async {});
+      await openWithPendingSignup(tester);
 
-    expect(find.text(l10nPt.authResendCodeIn(60)), findsOneWidget);
-    expect(
-      isEnabled<TextButton>(tester, l10nPt.authResendCodeIn(60)),
-      isFalse,
-    );
+      expect(find.text(l10nPt.authResendCodeIn(60)), findsOneWidget);
+      expect(
+        isEnabled<TextButton>(tester, l10nPt.authResendCodeIn(60)),
+        isFalse,
+      );
 
-    await tester.pump(const Duration(seconds: 15));
-    expect(find.text(l10nPt.authResendCodeIn(45)), findsOneWidget);
+      await tester.pump(const Duration(seconds: 15));
+      expect(find.text(l10nPt.authResendCodeIn(45)), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 45));
-    expect(find.text(l10nPt.authResendCode), findsOneWidget);
-    expect(isEnabled<TextButton>(tester, l10nPt.authResendCode), isTrue);
+      await tester.pump(const Duration(seconds: 45));
+      expect(find.text(l10nPt.authResendCode), findsOneWidget);
+      expect(isEnabled<TextButton>(tester, l10nPt.authResendCode), isTrue);
 
-    // Reenviar pede um código novo e recomeça a contagem.
-    await tester.tap(find.text(l10nPt.authResendCode));
-    await tester.pump();
-    await tester.pump();
+      // Reenviar pede um código novo e recomeça a contagem.
+      await tester.tap(find.text(l10nPt.authResendCode));
+      await tester.pump();
+      await tester.pump();
 
-    verify(() => h.auth.resendSignupCode('ana@exemplo.com')).called(1);
-    expect(find.text(l10nPt.authCodeResent), findsOneWidget);
-    expect(find.text(l10nPt.authResendCodeIn(60)), findsOneWidget);
-  });
+      verify(() => h.auth.resendSignupCode('ana@exemplo.com')).called(1);
+      expect(find.text(l10nPt.authCodeResent), findsOneWidget);
+      expect(find.text(l10nPt.authResendCodeIn(60)), findsOneWidget);
+    },
+  );
 
   testWidgets('S05: sem e-mail em memória, a rota volta ao login', (
     tester,

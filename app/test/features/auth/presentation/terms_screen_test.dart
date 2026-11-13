@@ -46,10 +46,7 @@ void main() {
 
       await tester.tap(find.byType(Checkbox));
       await tester.pumpAndSettle();
-      expect(
-        isEnabled<FilledButton>(tester, l10nPt.termsAcceptButton),
-        isTrue,
-      );
+      expect(isEnabled<FilledButton>(tester, l10nPt.termsAcceptButton), isTrue);
 
       await accept(tester);
 
@@ -62,8 +59,10 @@ void main() {
   );
 
   testWidgets('aceita só o documento que falta', (tester) async {
-    when(() => h.terms.ownAcceptances()).thenAnswer((_) async => [termsOfUse10]);
-    when(() => h.terms.accept(any())).thenAnswer((_) async => h.termsAccepted());
+    when(() => h.terms.ownAcceptances())
+        .thenAnswer((_) async => [termsOfUse10]);
+    when(() => h.terms.accept(any()))
+        .thenAnswer((_) async => h.termsAccepted());
     await h.pumpApp(tester);
 
     await tester.tap(find.byType(Checkbox));
@@ -80,9 +79,8 @@ void main() {
     tester,
   ) async {
     h.termsAccepted(accepted: null);
-    when(
-      () => h.terms.accept(any()),
-    ).thenThrow(const AppException(ErrorCode.noConnection));
+    when(() => h.terms.accept(any()))
+        .thenThrow(const AppException(ErrorCode.noConnection));
     await h.pumpApp(tester);
 
     await tester.tap(find.byType(Checkbox));
@@ -118,9 +116,8 @@ void main() {
   testWidgets('falha na conferência mostra o erro com Tentar de novo', (
     tester,
   ) async {
-    when(
-      () => h.terms.currentVersions(),
-    ).thenThrow(const AppException(ErrorCode.noConnection));
+    when(() => h.terms.currentVersions())
+        .thenThrow(const AppException(ErrorCode.noConnection));
     await h.pumpApp(tester);
 
     expect(h.location, '/terms');

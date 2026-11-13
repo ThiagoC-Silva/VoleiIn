@@ -1,37 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:voleiin/app.dart';
-import 'package:voleiin/features/auth/data/auth_repository.dart';
 import 'package:voleiin/shared/widgets/bottom_nav.dart';
 
+import '../../helpers/harness.dart';
 import '../../helpers/test_app.dart';
 
-class MockAuthRepository extends Mock implements AuthRepository {}
-
 /// Cenário L05 de docs/testes-referencia.md, seção 9.4, e a lista de
-/// acessibilidade das abas (L04).
+/// acessibilidade das abas (L04). Desde a fatia 2, quem entra passa pela
+/// conferência dos termos: a pessoa aqui está logada e com os termos aceitos.
 void main() {
-  late MockAuthRepository repository;
+  late TestHarness h;
 
   setUp(() {
-    repository = MockAuthRepository();
-    when(() => repository.hasSession).thenReturn(true);
-    when(() => repository.onAuthStateChange)
-        .thenAnswer((_) => const Stream<AuthState>.empty());
+    h = TestHarness();
+    h.signedIn();
   });
 
-  Future<void> pumpApp(WidgetTester tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [authRepositoryProvider.overrideWithValue(repository)],
-        child: const VoleiInApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-  }
+  Future<void> pumpApp(WidgetTester tester, {double textScale = 1.0}) =>
+      h.pumpApp(tester, textScale: textScale);
 
   Finder navLabel(String text) => find.descendant(
     of: find.byType(VoleiBottomNav),
@@ -95,10 +81,7 @@ void main() {
   testWidgets('L04: as abas com a fonte do sistema em 150% não estouram', (
     tester,
   ) async {
-    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-
-    await pumpApp(tester);
+    await pumpApp(tester, textScale: 1.5);
     expect(tester.takeException(), isNull);
 
     for (final label in [
