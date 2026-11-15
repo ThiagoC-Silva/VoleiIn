@@ -7,6 +7,7 @@ class FormScrollView extends StatelessWidget {
     required this.content,
     this.footer = const [],
     this.padding = const EdgeInsets.fromLTRB(24, 8, 24, 24),
+    this.physics,
     super.key,
   });
 
@@ -14,9 +15,14 @@ class FormScrollView extends StatelessWidget {
   final List<Widget> footer;
   final EdgeInsets padding;
 
+  /// `AlwaysScrollableScrollPhysics` dentro de um `RefreshIndicator`, para
+  /// puxar para baixo mesmo quando o conteúdo cabe na tela.
+  final ScrollPhysics? physics;
+
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
+      physics: physics,
       slivers: [
         SliverPadding(
           padding: padding.copyWith(bottom: 0),

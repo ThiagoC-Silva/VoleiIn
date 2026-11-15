@@ -30,6 +30,30 @@ class Routes {
   static const String groups = 'groups';
   static const String groupsPath = '/groups';
 
+  // Telas de grupo (docs/ui/telas.md, seção 6). Os caminhos abaixo são
+  // relativos a `/groups`; `new` e `join` vêm antes de `:groupId`.
+  static const String groupsNew = 'groupsNew';
+  static const String groupsNewPath = 'new';
+
+  static const String groupsJoin = 'groupsJoin';
+  static const String groupsJoinPath = 'join';
+
+  static const String group = 'group';
+  static const String groupPath = ':groupId';
+
+  static const String groupEdit = 'groupEdit';
+  static const String groupEditPath = 'edit';
+
+  static const String groupMembers = 'groupMembers';
+  static const String groupMembersPath = 'members';
+
+  static const String groupRequests = 'groupRequests';
+  static const String groupRequestsPath = 'requests';
+
+  /// `/people/:userId`: perfil de outra pessoa, na aba de origem (6.9).
+  static const String person = 'person';
+  static const String personPath = '/people/:userId';
+
   static const String charges = 'charges';
   static const String chargesPath = '/charges';
 

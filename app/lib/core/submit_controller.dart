@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/errors/error_code.dart';
-import '../../../core/errors/error_mapper.dart';
+import 'errors/error_code.dart';
+import 'errors/error_mapper.dart';
 
 /// Base dos controllers de formulário (docs/arquitetura-app.md, seção 5): o
 /// estado é o da submissão, e cada ação devolve o erro, ou nulo no sucesso,

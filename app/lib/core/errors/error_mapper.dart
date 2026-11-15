@@ -92,6 +92,17 @@ const Map<String, ErrorCode> _serverCodes = {
   'INTERNAL_ERROR': ErrorCode.internalError,
   // Trigger da RN105 (fatia 2).
   'PIX_KEY_IN_USE': ErrorCode.pixKeyInUse,
+  // Funções de grupo e prévia do convite (fatia 3).
+  'NOT_A_MEMBER': ErrorCode.notAMember,
+  'NOT_GROUP_ADMIN': ErrorCode.notGroupAdmin,
+  'INVITE_INVALID': ErrorCode.inviteInvalid,
+  'ALREADY_MEMBER': ErrorCode.alreadyMember,
+  'JOIN_REQUEST_PENDING': ErrorCode.joinRequestPending,
+  'REQUEST_NOT_PENDING': ErrorCode.requestNotPending,
+  'TARGET_NOT_MEMBER': ErrorCode.targetNotMember,
+  'CANNOT_REMOVE_SELF': ErrorCode.cannotRemoveSelf,
+  'LAST_ADMIN': ErrorCode.lastAdmin,
+  'GROUP_HAS_ACTIVE_GAMES': ErrorCode.groupHasActiveGames,
 };
 
 /// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).

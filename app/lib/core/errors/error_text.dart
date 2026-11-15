@@ -25,6 +25,16 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.pixKeyInUse => l10n.errorPixKeyInUse,
     ErrorCode.photoTooLarge => l10n.errorPhotoTooLarge,
     ErrorCode.photoInvalidType => l10n.errorPhotoInvalidType,
+    ErrorCode.notAMember => l10n.errorNotAMember,
+    ErrorCode.notGroupAdmin => l10n.errorNotGroupAdmin,
+    ErrorCode.inviteInvalid => l10n.errorInviteInvalid,
+    ErrorCode.alreadyMember => l10n.errorAlreadyMember,
+    ErrorCode.joinRequestPending => l10n.errorJoinRequestPending,
+    ErrorCode.requestNotPending => l10n.errorRequestNotPending,
+    ErrorCode.targetNotMember => l10n.errorTargetNotMember,
+    ErrorCode.cannotRemoveSelf => l10n.errorCannotRemoveSelf,
+    ErrorCode.lastAdmin => l10n.errorLastAdmin,
+    ErrorCode.groupHasActiveGames => l10n.errorGroupHasActiveGames,
   };
 }
 

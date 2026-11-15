@@ -8,14 +8,13 @@ import '../../../core/format/phone.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/buttons.dart';
-import '../../../shared/widgets/confirm_sheet.dart';
 import '../../../shared/widgets/form_fields.dart';
 import '../../../shared/widgets/form_scroll_view.dart';
-import '../../../shared/widgets/icon_square.dart';
 import '../../../shared/widgets/inner_app_bar.dart';
+import '../../../shared/widgets/sheet_option.dart';
 import '../../../shared/widgets/snack.dart';
 import '../../../shared/widgets/state_views.dart';
-import '../data/photo_picker.dart';
+import '../../../core/photo_picker.dart';
 import '../domain/own_profile.dart';
 import 'access_validators.dart';
 import 'profile_edit_controller.dart';
@@ -53,8 +52,6 @@ class _EditForm extends ConsumerStatefulWidget {
   @override
   ConsumerState<_EditForm> createState() => _EditFormState();
 }
-
-enum _PhotoAction { gallery, camera, remove }
 
 class _EditFormState extends ConsumerState<_EditForm> {
   final _formKey = GlobalKey<FormState>();
@@ -94,13 +91,9 @@ class _EditFormState extends ConsumerState<_EditForm> {
   };
 
   Future<void> _changePhoto() async {
-    final l10n = AppLocalizations.of(context);
-    final action = await showVoleiSheet<_PhotoAction>(
-      context,
-      (context) => _PhotoSheet(l10n: l10n, canRemove: _hasPhoto),
-    );
+    final action = await showPhotoSheet(context, canRemove: _hasPhoto);
     if (action == null || !mounted) return;
-    if (action == _PhotoAction.remove) {
+    if (action == PhotoAction.remove) {
       setState(() => _photo = const PhotoRemoved());
       return;
     }
@@ -108,7 +101,7 @@ class _EditFormState extends ConsumerState<_EditForm> {
       final picked = await ref
           .read(profileEditControllerProvider.notifier)
           .pickPhoto(
-            action == _PhotoAction.camera
+            action == PhotoAction.camera
                 ? PhotoSource.camera
                 : PhotoSource.gallery,
           );
@@ -261,86 +254,6 @@ class _EditFormState extends ConsumerState<_EditForm> {
             onPressed: _save,
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Sheet da foto, sem título (docs/ui/telas.md, 5.8; decisão de 12/11/2026).
-/// Remover foto fica em tom destrutivo e sem confirmação: só vale no Salvar.
-class _PhotoSheet extends StatelessWidget {
-  const _PhotoSheet({required this.l10n, required this.canRemove});
-
-  final AppLocalizations l10n;
-  final bool canRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final error = Theme.of(context).colorScheme.error;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _SheetOption(
-          icon: Symbols.photo_library,
-          label: l10n.profilePhotoGallery,
-          onTap: () => Navigator.of(context).pop(_PhotoAction.gallery),
-        ),
-        const Divider(height: 1, indent: 56),
-        _SheetOption(
-          icon: Symbols.photo_camera,
-          label: l10n.profilePhotoCamera,
-          onTap: () => Navigator.of(context).pop(_PhotoAction.camera),
-        ),
-        if (canRemove) ...[
-          const Divider(height: 1, indent: 56),
-          _SheetOption(
-            icon: Symbols.delete,
-            label: l10n.profilePhotoRemove,
-            color: error,
-            onTap: () => Navigator.of(context).pop(_PhotoAction.remove),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _SheetOption extends StatelessWidget {
-  const _SheetOption({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 64),
-        child: Row(
-          children: [
-            IconSquare(icon: icon, foreground: color),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: color,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

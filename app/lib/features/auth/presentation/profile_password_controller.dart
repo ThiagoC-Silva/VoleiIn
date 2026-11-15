@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/error_code.dart';
 import '../data/auth_repository.dart';
-import 'submit_controller.dart';
+import '../../../core/submit_controller.dart';
 
 /// Em que campo fica o erro da troca de senha.
 enum PasswordField { current, next }

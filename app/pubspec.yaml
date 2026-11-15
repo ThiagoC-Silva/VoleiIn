@@ -33,6 +33,8 @@ dependencies:
   google_sign_in: ^7.2.0
   # Foto de perfil, redimensionada para até 1024 px (RF09, RN106)
   image_picker: ^1.2.4
+  # Compartilhar o código do grupo (fatia 3), pelo seletor do Android
+  share_plus: ^13.3.1
   # Já vem com supabase_flutter; declarada porque a conversão de erros cita
   # ClientException (docs/arquitetura-app.md, seção 7)
   http: any

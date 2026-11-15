@@ -2,7 +2,7 @@
 ///
 /// São os códigos estáveis de docs/contratos-api.md (seção 2) que o app já usa,
 /// mais os de autenticação e o de falta de conexão. O enum cresce a cada fatia,
-/// junto com os textos de docs/copy.md (seção 5.5).
+/// junto com os textos de docs/copy.md (seções 5.5, 6.8 e 7.7).
 enum ErrorCode {
   // Gerais (contratos-api.md, seção 2)
   notAuthenticated,
@@ -33,6 +33,19 @@ enum ErrorCode {
   pixKeyInUse,
   photoTooLarge,
   photoInvalidType,
+
+  // Grupos e convites (docs/copy.md, 7.7). MEMBER_IS_RECEIVER e
+  // MEMBER_IS_ONLY_GAME_ADMIN entram na fatia 4, com a RN16.
+  notAMember,
+  notGroupAdmin,
+  inviteInvalid,
+  alreadyMember,
+  joinRequestPending,
+  requestNotPending,
+  targetNotMember,
+  cannotRemoveSelf,
+  lastAdmin,
+  groupHasActiveGames,
 }
 
 /// Único tipo de exceção que sai da camada `data`.

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/errors/error_code.dart';
+import 'errors/error_code.dart';
 
 enum PhotoSource { gallery, camera }
 
@@ -17,7 +17,8 @@ class PickedPhoto {
   final String extension;
 }
 
-/// Escolha da foto de perfil, trocável por dublê nos testes.
+/// Escolha da foto de perfil e da foto do grupo, trocável por dublê nos
+/// testes.
 class PhotoPicker {
   PhotoPicker([ImagePicker? picker]) : _picker = picker ?? ImagePicker();
 
@@ -57,3 +58,21 @@ class PhotoPicker {
 }
 
 final photoPickerProvider = Provider<PhotoPicker>((ref) => PhotoPicker());
+
+/// O que a pessoa fez com a foto antes de salvar (perfil e grupo).
+sealed class PhotoChange {
+  const PhotoChange();
+}
+
+class PhotoKept extends PhotoChange {
+  const PhotoKept();
+}
+
+class PhotoReplaced extends PhotoChange {
+  const PhotoReplaced(this.photo);
+  final PickedPhoto photo;
+}
+
+class PhotoRemoved extends PhotoChange {
+  const PhotoRemoved();
+}
