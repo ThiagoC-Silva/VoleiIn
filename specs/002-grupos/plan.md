@@ -79,7 +79,7 @@ supabase/
     ├── preview-invite/index_test.ts     # Q01 a Q07
     └── _tests/
         ├── avatars_test.ts              # + A07 a A13
-        └── concurrency/groups_test.ts   # C13 a C15
+        └── concurrency/groups_test.ts   # C13 e C15
 
 app/lib/features/groups/                 # sessão 3: domain, data, presentation
 app/lib/features/people/ ou groups/      # perfil de outra pessoa (decidido na sessão 3)

@@ -582,8 +582,9 @@ Deno test, em `supabase/functions/_tests/concurrency/groups_test.ts`, com conex�
 | ID | Dado | Quando | Então |
 |----|------|--------|-------|
 | C13 | Diego sem solicitação no Quinta | Duas chamadas simultâneas de `request_group_join('VoleiQuinta1')` pelo Diego | Uma cria a solicitação. A outra recebe `JOIN_REQUEST_PENDING`. Sempre uma só pendente (RN12) |
-| C14 | Ana e Bruno admins do Quinta, sem outros admins | Ao mesmo tempo, Ana rebaixa Bruno e Bruno rebaixa Ana | Uma é aceita e a outra recebe `LAST_ADMIN`. O grupo termina com exatamente um admin (RN13) |
 | C15 | Diego com solicitação pendente; Ana e Bruno admins | Ao mesmo tempo, Ana aprova e Bruno recusa | Uma decisão vale e a outra recebe `REQUEST_NOT_PENDING`. Diego é membro se, e só se, a aprovação venceu |
+
+O C14 (dois admins que rebaixam um ao outro ao mesmo tempo) foi retirado em 15/11/2026, por decisão do responsável: é uma situação pouco provável. As funções de grupo bloqueiam a linha do grupo, então as chamadas simultâneas ficam em fila (research R2 de `specs/002-grupos`).
 
 ### 11.6 App
 
@@ -644,7 +645,7 @@ Deno test, em `supabase/functions/_tests/concurrency/groups_test.ts`, com conex�
 | RN01 | B13, D09 a D15 |
 | RN02 | B14 |
 | RN04 | B11, B12, D01 a D08 |
-| RN13 | B29 a B33, G20, G24, G25, C14, S26, S31 |
+| RN13 | B29 a B33, G20, G24, G25, S26, S31 |
 | RN25 | B34 a B36 |
 | RN02, RN03 | T01 a T10 |
 | RN35 | T16 |

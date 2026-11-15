@@ -77,15 +77,14 @@ Os membros veem quem está no grupo. Os admins promovem, rebaixam e removem; qua
 
 **Why this priority**: é o "administra os membros" do objetivo, e o RN13 é um item do "Pronto quando".
 
-**Independent Test**: G19 a G29, C14, S19, S25, S26, S29 a S31, L14.
+**Independent Test**: G19 a G29, S19, S25, S26, S29 a S31, L14.
 
 **Acceptance Scenarios**:
 
 1. **Given** Ana admin, **When** promove Bruno e Bruno a rebaixa, **Then** Bruno fica como único admin (G19).
 2. **Given** Ana única admin, **When** tenta se rebaixar ou sair, **Then** recebe `LAST_ADMIN`; sendo a única integrante, também (G20, G24, G25).
-3. **Given** dois admins que rebaixam um ao outro ao mesmo tempo, **When** as duas chamadas chegam, **Then** uma vale e a outra recebe `LAST_ADMIN` (C14).
-4. **Given** Ana admin, **When** remove Bruno, **Then** Bruno sai e é avisado; Ana não remove a si mesma (G27, G29).
-5. **Given** Bruno membro, **When** sai do grupo, **Then** deixa de ver o grupo e os integrantes (G23, K03).
+3. **Given** Ana admin, **When** remove Bruno, **Then** Bruno sai e é avisado; Ana não remove a si mesma (G27, G29).
+4. **Given** Bruno membro, **When** sai do grupo, **Then** deixa de ver o grupo e os integrantes (G23, K03).
 
 ---
 
@@ -133,7 +132,7 @@ O admin troca o nome e a foto do grupo e pode excluí-lo quando não houver jogo
 Cada caso está decidido no documento citado:
 
 - Código digitado com espaços ou com caixa diferente: o app tira os espaços e mantém a caixa (U08); o servidor compara exatamente (`contratos-api.md`, `request_group_join`).
-- Pedido simultâneo da mesma pessoa, decisão simultânea de dois admins e rebaixamento cruzado: C13 a C15.
+- Pedido simultâneo da mesma pessoa e decisão simultânea de dois admins: C13 e C15. O rebaixamento cruzado simultâneo (antigo C14) foi retirado em 15/11/2026 por decisão do responsável.
 - Último admin que é o único membro: só exclui o grupo (RN13, G25).
 - Falha no envio da foto depois de criar o grupo: o grupo abre do mesmo jeito (`docs/ui/telas.md`, 6.2; S21).
 - Ex-membro ou não membro que abre a rota de um grupo: estado "não encontrado" (`docs/ui/telas.md`, seção 6; S26, S32, S33).
@@ -159,7 +158,7 @@ Os requisitos são os de `docs/requisitos.md` e as regras, as de `docs/regras-ne
 | FR-007 | RF20, RF104 | 4 | G27 a G29, S31 |
 | FR-008 | RF21 | 4 | G23, G26, K03, S26, L12 |
 | FR-009 | RF23, RN10 | 4 | G19, G21, G22, S29, S31, L14 |
-| FR-010 | RF24, RN13 | 4 | G20, G24, G25, C14, S26, S31 |
+| FR-010 | RF24, RN13 | 4 | G20, G24, G25, S26, S31 |
 | FR-011 | RF25 | 4 | K01, S18, S19 |
 | FR-012 | RF103, RN17, RF104 | 6 | G30 a G33, K04, S33, L13 |
 | FR-013 | RN107 e exceção 2 (`docs/rls-matriz.md`, fatia 3) | 5 | K01 a K15, A09 a A11, S34 |
@@ -183,7 +182,7 @@ Definidas em `docs/modelo-dados.md`, 4.2 e seção 7. Nenhuma tabela nova nesta 
 
 - **SC-001**: Os cinco itens de "Pronto quando" da fatia 3 (`docs/plano-implementacao.md`) são conferidos, cada um com o seu cenário.
 - **SC-002**: Todos os cenários automáticos da seção 11 de `docs/testes-referencia.md` passam, e nenhum resultado esperado foi alterado.
-- **SC-003**: Os cenários de concorrência C13 a C15 dão o resultado esperado em 50 de 50 repetições.
+- **SC-003**: Os cenários de concorrência C13 e C15 dão o resultado esperado em 50 de 50 repetições.
 - **SC-004**: Nenhuma pessoa lê grupo, integrante, solicitação, perfil ou foto sem o papel ou o contexto da `docs/rls-matriz.md` (fatia 3): todos os casos negativos têm teste que passa.
 - **SC-005**: Diego vai do código à entrada aprovada, e o grupo aparece na lista dele, no fluxo L12, sem ajuda.
 - **SC-006**: Todas as telas da seção 6 do `docs/ui/telas.md` funcionam com a fonte do sistema em 150%, sem nada cortado (S35), sem texto fora do catálogo e sem cor fora do tema.

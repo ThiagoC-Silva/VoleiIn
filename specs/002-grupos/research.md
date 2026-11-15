@@ -12,7 +12,8 @@ Decisões técnicas que os documentos deixam para a implementação. Regra de pr
 
 - **Decision:** toda função de grupo que muda integrantes, solicitações ou o convite bloqueia primeiro a linha de `groups` (`for update`): `update_group`, `regenerate_group_invite`, `invalidate_group_invite`, `request_group_join`, `decide_join_request`, `set_group_role`, `leave_group`, `remove_group_member` e `archive_group`. A ordem dos bloqueios é sempre grupo e depois solicitação.
 - **Rationale:**
-  - **C14:** a *trigger* adiável da RN13 confere o grupo no fim de cada transação, mas, sem bloqueio, duas transações que rebaixam pessoas diferentes não esperam uma pela outra. Cada uma confere antes de a outra gravar, e as duas passariam, deixando o grupo sem admin. Com a linha do grupo bloqueada, a segunda espera a primeira terminar e a própria função devolve `LAST_ADMIN`, como o `contratos-api.md` promete. A *trigger* continua como rede de segurança.
+  - **RN13 em chamadas simultâneas:** a *trigger* adiável da RN13 confere o grupo no fim de cada transação, mas, sem bloqueio, duas transações que rebaixam pessoas diferentes não esperam uma pela outra. Cada uma confere antes de a outra gravar, e as duas passariam, deixando o grupo sem admin. Com a linha do grupo bloqueada, a segunda espera a primeira terminar e é validada com o que ela gravou. A *trigger* continua como rede de segurança.
+  - **C14 retirado (15/11/2026):** com o bloqueio, quando dois admins rebaixam um ao outro ao mesmo tempo, a segunda chamada chega depois que quem chama já perdeu o papel e recebe `NOT_GROUP_ADMIN` (a ordem de validação do `contratos-api.md` põe o papel antes do estado), e não o `LAST_ADMIN` que o C14 esperava. O responsável decidiu retirar o cenário, por ser pouco provável, e a frase do contrato de `set_group_role` passou a descrever a fila.
   - **Exclusão simultânea a um pedido:** sem bloqueio, `request_group_join` acharia o grupo pelo código, e a solicitação seria gravada depois do arquivamento. Bloqueando a linha, o Postgres relê o grupo depois que o arquivamento termina e não o encontra mais pelo código (`INVITE_INVALID`).
   - **Sem impasse (*deadlock*):** a chave estrangeira de `group_members` e `group_join_requests` também trava a linha do grupo (`for key share`). Se `decide_join_request` travasse a solicitação antes do grupo, ela poderia esperar o `archive_group`, que espera a mesma solicitação. Por isso a ordem fixa: grupo, depois solicitação.
 - **Alternatives considered:** nível de isolamento `serializable` (o app teria de repetir as chamadas que falham por serialização); bloqueio consultivo (`pg_advisory_xact_lock`), que faz o mesmo sem a garantia de reler a linha.
@@ -25,10 +26,10 @@ Decisões técnicas que os documentos deixam para a implementação. Regra de pr
 
 ## R4. Concorrência pela API, com clientes separados
 
-- **Decision:** C13 a C15 usam o `@supabase/supabase-js`, já no `deno.json`, com um cliente por pessoa logada. As duas chamadas saem juntas (`Promise.all`) e chegam ao PostgREST, que atende cada uma numa conexão própria do *pool*. Cada repetição devolve o seed ao estado inicial pelas próprias funções (recusa do pedido, saída, rebaixamento).
+- **Decision:** C13 e C15 usam o `@supabase/supabase-js`, já no `deno.json`, com um cliente por pessoa logada. As duas chamadas saem juntas (`Promise.all`) e chegam ao PostgREST, que atende cada uma numa conexão própria do *pool*. Cada repetição devolve o seed ao estado inicial pelas próprias funções (recusa do pedido, saída, rebaixamento).
 - **Rationale:** o requisito é ter conexões separadas ao banco local (`arquitetura-app.md`, 14.4). Pela API, cada chamada é uma transação em outra conexão, o mesmo caminho do app, sem pacote novo (`trabalho-com-agente.md`, seção 7).
 - **Efeito colateral:** C13 e C15 deixam solicitações recusadas do Diego no Vôlei de Quinta do banco local (uma por repetição). Elas não mudam nenhum outro cenário: só a pendente conta para a RN12, para a prévia (Q01) e para a RN107. O `supabase db reset` as apaga.
-- **Alternatives considered:** um driver de Postgres no Deno (pacote fora da lista, exigiria pergunta); a chave de serviço para limpar (mais um segredo no job do CI).
+- **Alternatives considered:** um driver de Postgres no Deno (pacote fora da lista, exigiria pergunta); apagar as linhas com a chave secreta (o teste deixaria de usar o mesmo caminho do app para limpar).
 
 ## R5. `preview-invite`: JWT conferido dentro da função
 
@@ -40,4 +41,5 @@ Decisões técnicas que os documentos deixam para a implementação. Regra de pr
 
 - **Decision:** o `index_test.ts` da `preview-invite` fala com a função servida pelo Supabase local, por isso passa a rodar no job `database` do CI, junto da pasta `_tests/`. O job `functions` continua com `deno fmt --check` e `deno lint`, e roda só os testes que não precisam do Supabase (nenhum nesta fatia).
 - **Rationale:** `testes-referencia.md` (11.4) pede o teste contra o Supabase local com o seed. O job `functions` não sobe o Supabase.
+- **Chave secreta local no Q07:** o Q07 confere que a prévia não grava nada em `notifications`, que o app só lê a partir da fatia 7. O teste conta as linhas com a chave secreta do Supabase **local** (`SECRET_KEY` de `supabase status`), passada ao `deno test` como `SUPABASE_SECRET_KEY`. Ela é a chave de demonstração que o CLI gera para todo projeto local, não um segredo da produção (`setup.md`, seção 5).
 - **Alternatives considered:** subir o Supabase também no job `functions` (dois `supabase start` por PR).

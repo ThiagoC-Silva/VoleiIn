@@ -26,7 +26,7 @@
 - [ ] T003 [P] Escrever K01 a K15 em `supabase/tests/database/groups_security.test.sql`
 - [ ] T004 [P] Escrever A07 a A13 em `supabase/functions/_tests/avatars_test.ts`
 - [ ] T005 [P] Escrever Q01 a Q07 em `supabase/functions/preview-invite/index_test.ts`
-- [ ] T006 [P] Escrever C13 a C15 em `supabase/functions/_tests/concurrency/groups_test.ts` (research R4)
+- [ ] T006 [P] Escrever C13 e C15 em `supabase/functions/_tests/concurrency/groups_test.ts` (research R4)
 - [ ] T007 Acrescentar ao `supabase/seed.sql` os grupos da `docs/setup.md`, seção 8 (pré-requisito dos testes Deno, não é código de produção)
 - [ ] T008 Rodar `supabase test db` e `deno test`, guardar a saída da falha e fazer o *commit* só de testes
 

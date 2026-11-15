@@ -161,7 +161,7 @@ A mensagem é a versão inicial. O texto final fica no catálogo de textos (`pla
 ### `set_group_role(p_group_id uuid, p_user_id uuid, p_role group_role)`
 - **Quem:** admin do grupo.
 - **Erros:** `NOT_FOUND`, `NOT_GROUP_ADMIN`, `TARGET_NOT_MEMBER`, `LAST_ADMIN`.
-- **Efeitos:** promove ou rebaixa, inclusive a si mesmo. Gravar o papel que a pessoa já tem é aceito e não muda nada. Dois admins que rebaixam um ao outro ao mesmo tempo: a *trigger* adiável da RN13 recusa a segunda transação com `LAST_ADMIN`.
+- **Efeitos:** promove ou rebaixa, inclusive a si mesmo. Gravar o papel que a pessoa já tem é aceito e não muda nada. Como as outras funções de grupo, bloqueia a linha do grupo (`for update`): chamadas simultâneas no mesmo grupo ficam em fila, e a segunda é validada com o que a primeira gravou.
 - **Retorno:** `{ user_id, role }`.
 - **Origem:** RF23, RF24, RN10, RN13.
 
