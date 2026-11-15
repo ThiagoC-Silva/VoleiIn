@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 import 'package:voleiin/app.dart';
+import 'package:voleiin/core/errors/error_code.dart';
+import 'package:voleiin/core/share.dart';
 import 'package:voleiin/core/router/app_router.dart';
 import 'package:voleiin/features/auth/data/auth_repository.dart';
 import 'package:voleiin/features/auth/data/photo_picker.dart';
@@ -18,6 +20,8 @@ import 'package:voleiin/features/auth/domain/pix_key.dart';
 import 'package:voleiin/features/auth/domain/profile.dart';
 import 'package:voleiin/features/auth/domain/profile_private.dart';
 import 'package:voleiin/features/auth/domain/terms.dart';
+import 'package:voleiin/features/groups/data/groups_repository.dart';
+import 'package:voleiin/features/groups/domain/group_models.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -27,7 +31,15 @@ class MockTermsRepository extends Mock implements TermsRepository {}
 
 class MockPhotoPicker extends Mock implements PhotoPicker {}
 
+class MockGroupsRepository extends Mock implements GroupsRepository {}
+
+class MockSharer extends Mock implements Sharer {}
+
+// IDs do seed (docs/setup.md, seção 8).
 const anaId = '00000000-0000-0000-0000-00000000000a';
+const brunoId = '00000000-0000-0000-0000-00000000000b';
+const carlaId = '00000000-0000-0000-0000-00000000000c';
+const diegoId = '00000000-0000-0000-0000-00000000000d';
 
 const termsOfUse10 = TermsVersion(
   document: LegalDocument.termsOfUse,
@@ -46,6 +58,7 @@ class TestHarness {
     registerFallbackValue(<TermsVersion>[]);
     registerFallbackValue(PixKeyType.cpf);
     registerFallbackValue(Uint8List(0));
+    registerFallbackValue(GroupRole.member);
 
     when(() => auth.onAuthStateChange)
         .thenAnswer((_) => const Stream<AuthState>.empty());
@@ -53,12 +66,19 @@ class TestHarness {
     signedOut();
     termsAccepted();
     ownProfile();
+    myGroups(const []);
+    when(() => groups.avatarUrl(any())).thenAnswer(
+      (_) async => 'http://127.0.0.1:54321/storage/v1/object/sign/avatars/g',
+    );
+    when(() => sharer.shareText(any())).thenAnswer((_) async {});
   }
 
   final auth = MockAuthRepository();
   final profiles = MockProfileRepository();
   final terms = MockTermsRepository();
   final picker = MockPhotoPicker();
+  final groups = MockGroupsRepository();
+  final sharer = MockSharer();
 
   late final ProviderContainer container = ProviderContainer(
     overrides: [
@@ -66,6 +86,8 @@ class TestHarness {
       profileRepositoryProvider.overrideWithValue(profiles),
       termsRepositoryProvider.overrideWithValue(terms),
       photoPickerProvider.overrideWithValue(picker),
+      groupsRepositoryProvider.overrideWithValue(groups),
+      sharerProvider.overrideWithValue(sharer),
     ],
     // Sem repetição automática: quem tenta de novo é a pessoa.
     retry: (_, _) => null,
@@ -85,11 +107,12 @@ class TestHarness {
   }
 
   void signedIn({
+    String userId = anaId,
     String email = 'ana@exemplo.com',
     bool hasEmailAccess = true,
   }) {
     when(() => auth.hasSession).thenReturn(true);
-    when(() => auth.currentUserId).thenReturn(anaId);
+    when(() => auth.currentUserId).thenReturn(userId);
     when(() => auth.currentEmail).thenReturn(email);
     when(() => auth.hasEmailAccess).thenReturn(hasEmailAccess);
   }
@@ -145,6 +168,35 @@ class TestHarness {
     when(() => profiles.avatarUrl(any())).thenAnswer(
       (_) async => 'http://127.0.0.1:54321/storage/v1/object/sign/avatars/x',
     );
+  }
+
+  /// Meus grupos (docs/ui/telas.md, 6.1).
+  void myGroups(List<GroupSummary> list) {
+    when(() => groups.fetchMyGroups()).thenAnswer((_) async => list);
+  }
+
+  /// O grupo como o detalhe o lê. Cada leitura chama [read] de novo, para o
+  /// teste trocar o grupo depois de uma ação (a tela relê do servidor).
+  void group(GroupDetail Function() read) {
+    final id = read().id;
+    when(() => groups.fetchGroup(id)).thenAnswer((_) async => read());
+  }
+
+  /// O RLS não devolve o grupo: quem não é membro, ex-membro, grupo excluído.
+  void groupNotFound(String id) {
+    when(
+      () => groups.fetchGroup(id),
+    ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
+  }
+
+  void members(String groupId, List<GroupMember> Function() read) {
+    when(() => groups.fetchMembers(groupId)).thenAnswer((_) async => read());
+  }
+
+  void requests(String groupId, List<JoinRequest> Function() read) {
+    when(
+      () => groups.fetchPendingRequests(groupId),
+    ).thenAnswer((_) async => read());
   }
 
   /// Abre o app num celular de 360 x 760 dp e, se pedido, vai à rota.
