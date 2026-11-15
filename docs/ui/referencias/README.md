@@ -128,3 +128,104 @@ O login da fatia 1 continua (espaço do logo com `VoleiIn`, subtítulo, campos E
 - Barra superior interna: voltar e o título **Trocar senha**.
 - Campos **Senha atual** e **Nova senha**, ambos com o olho.
 - Botão principal **Salvar**.
+
+## Fatia 3. Grupos
+
+Detalhe de cada tela em `docs/ui/telas.md`, seção 6. Textos em `docs/copy.md`, seção 7. Para desenhar sem consultar os outros documentos, a mesma especificação está em `fatia-3/telas-fatia-3.md`, com os textos finais. Nos exemplos, use os grupos e as pessoas do seed (`setup.md`, seção 8): o **Vôlei de Quinta**, com Ana (admin), Bruno (apelido Brunão) e Carla (apelido Carlinha), e o código `VoleiQuinta1`. Quem pede para entrar é o Diego.
+
+| Arquivo | Tela | Status |
+|---------|------|--------|
+| `groups.png` | Meus grupos, com dois grupos | Obrigatório |
+| `groups-vazio.png` | Meus grupos sem nenhum grupo | Opcional |
+| `groupsNew.png` | Criar grupo | Obrigatório |
+| `groupsJoin-etapa1.png` e `groupsJoin-etapa2.png` | Entrar com código: o campo, e a prévia com Pedir para entrar | Obrigatório |
+| `groupsJoin-pendente.png` | Entrar com código: a prévia com a solicitação pendente | Obrigatório |
+| `groupsJoin-membro.png` | Entrar com código: a prévia de quem já é membro | Opcional |
+| `group.png` e `group-membro.png` | Detalhe do grupo, visto pelo admin e por um membro | Obrigatório |
+| `group-convite.png` e `group-convite-membro.png` | A sheet do convite, vista pelo admin e por um membro | Obrigatório |
+| `group-convite-desativado.png` | A sheet do convite desativado, vista pelo admin | Opcional |
+| `group-sair.png` | A confirmação de saída do grupo | Opcional: segue a confirmação destrutiva (`design-system.md`, 7.15), como `profilePix-remover.png` |
+| `groupMembers.png` e `groupMembers-acoes.png` | Integrantes e a sheet de ações do admin | Obrigatório |
+| `groupRequests.png` | Solicitações | Obrigatório |
+| `groupEdit.png` | Editar grupo | Obrigatório |
+| `person.png` | Perfil de outra pessoa | Obrigatório |
+
+### `groups.png` e `groups-vazio.png`. Meus grupos (`/groups`)
+
+- Barra superior de raiz com o título **Grupos**. A barra inferior aparece, com a aba Grupos ativa.
+- Lista de grupos, em ordem alfabética. Cada linha: **avatar quadrado do grupo** de 44 (foto ou iniciais sobre pastel, cantos arredondados, `design-system.md`, 3.4), o **nome** e o subtítulo. No exemplo:
+  - **Areia do Rio**, sem foto, "5 integrantes", em que a Ana é só membro;
+  - **Vôlei de Quinta**, com foto, "3 integrantes · 2 solicitações", com o selo **Admin** à direita.
+- No pé da tela, fixos: o botão principal **Criar grupo** e o botão de contorno **Entrar com código**.
+- **`groups-vazio.png`:** o estado vazio, com o ícone de grupos, o título "Você ainda não está em nenhum grupo", a frase "Crie um grupo ou peça para entrar com o código de convite." e os mesmos dois botões.
+
+### `groupsNew.png`. Criar grupo (`/groups/new`)
+
+- Barra superior interna: voltar e o título **Criar grupo**.
+- **Avatar quadrado de 96** (iniciais do nome digitado) com o botão de texto **Escolher foto**. A sheet que ele abre é a mesma de `profileEdit-foto.png` e não precisa de desenho novo.
+- Campo **Nome do grupo**.
+- Botão principal **Criar grupo**.
+
+### `groupsJoin-etapa1.png`, `-etapa2.png`, `-pendente.png` e `-membro.png`. Entrar com código (`/groups/join`)
+
+- Barra superior interna: voltar e o título **Entrar com código**.
+- **Etapa 1:** a frase "Digite ou cole o código que você recebeu do grupo.", o campo **Código do convite** (no exemplo, `VoleiQuinta1`) e o botão principal **Continuar**. O código diferencia maiúsculas de minúsculas: mostre-o numa fonte em que dê para ver a diferença.
+- **Etapa 2, a prévia:** o **avatar quadrado de 96** e o nome **Vôlei de Quinta**; a frase "Um admin do grupo precisa aprovar a sua entrada."; o botão principal **Pedir para entrar**; e o botão de texto **Usar outro código**.
+- **`-pendente.png`:** a mesma prévia com um **aviso em linha** no lugar do botão principal (`design-system.md`, 7.14, quadrado de ícone com uma ampulheta em lilás): "Solicitação enviada. Aguardando a aprovação de um admin." Abaixo, a frase "O grupo aparece em Meus grupos quando a solicitação for aprovada.", o botão de contorno **Voltar aos grupos** e o **Usar outro código**.
+- **`-membro.png`:** a prévia com a frase "Você já é membro deste grupo.", o botão principal **Abrir o grupo** e o **Usar outro código**.
+
+### `group.png` e `group-membro.png`. Detalhe do grupo (`/groups/:groupId`)
+
+- Barra superior interna com voltar. A barra inferior aparece, com a aba Grupos ativa.
+- Cabeçalho: **avatar quadrado de 72** e o nome **Vôlei de Quinta**.
+- Lista de linhas com seta:
+  - **Integrantes**, com o subtítulo "3 pessoas";
+  - **Solicitações**, com o subtítulo "2 solicitações pendentes" (só admin);
+  - **Convite**, com o subtítulo "Código ativo";
+  - **Editar grupo**, com o subtítulo "Nome e foto" (só admin).
+- Botão destrutivo de contorno **Sair do grupo**.
+- **`group-membro.png`:** a mesma tela vista pelo Bruno, sem as linhas Solicitações e Editar grupo.
+- Deixe espaço abaixo das linhas: a fatia 4 acrescenta os jogos do grupo e o botão Criar jogo.
+
+### `group-convite.png`, `-convite-membro.png` e `-convite-desativado.png`. Convite do grupo (sheet sobre o detalhe)
+
+- Sheet (`design-system.md`, 7.15) com o título **Convite do grupo** e a frase "Quem tiver o código pode pedir para entrar. Um admin aprova cada solicitação."
+- O código **`VoleiQuinta1`** em destaque. Não use Bebas Neue: ela só tem maiúsculas, e o código diferencia maiúsculas de minúsculas.
+- Botão principal **Compartilhar** e botão de contorno **Copiar código**.
+- Só para admin: os botões de texto **Gerar novo código** e **Desativar convite**, este em tom destrutivo.
+- **`-convite-membro.png`:** a mesma sheet vista pelo Bruno, sem Gerar novo código e Desativar convite.
+- **`-convite-desativado.png`:** a frase "O convite está desativado." e o botão principal **Gerar código**. O membro veria a frase "Peça a um admin para gerar um novo código.", sem botão.
+- As confirmações de Gerar novo código e Desativar convite seguem `profilePix-remover.png` e não precisam de desenho.
+
+### `group-sair.png`. Sair do grupo, opcional
+
+A confirmação destrutiva, com o título **Sair do grupo Vôlei de Quinta?**, a frase "Para voltar, você vai precisar do código e da aprovação de um admin.", o botão destrutivo sólido **Sair do grupo** e o botão de contorno **Voltar**.
+
+### `groupMembers.png` e `groupMembers-acoes.png`. Integrantes (`/groups/:groupId/members`)
+
+- Barra superior interna: voltar e o título **Integrantes**.
+- Lista, com os admins primeiro e depois os membros, em ordem alfabética. Cada linha: **avatar de 44**, o nome e o subtítulo da data de entrada. No exemplo, vista pela Ana:
+  - **Ana (você)**, avatar amarelo "Você", "Entrou em 02/11/2026", selo **Admin**;
+  - **Brunão**, "Entrou em 05/11/2026";
+  - **Carlinha**, "Entrou em 09/11/2026".
+- **`groupMembers-acoes.png`:** a sheet que abre quando a Ana toca no Brunão, com o título **Brunão** e as opções **Ver perfil**, **Tornar admin** e **Remover do grupo**, esta em tom destrutivo. A sheet de quando a Ana toca em si mesma, só com **Deixar de ser admin**, segue o mesmo desenho.
+
+### `groupRequests.png`. Solicitações (`/groups/:groupId/requests`)
+
+- Barra superior interna: voltar e o título **Solicitações**.
+- Lista de solicitações pendentes. Cada linha: **avatar de 44**, o nome e o subtítulo "Pediu em qui, 12/11", e duas ações: **Recusar** (contorno) e **Aprovar** (preenchida). No exemplo, Diego e uma segunda pessoa.
+- O estado vazio ("Nenhuma solicitação pendente") segue o `design-system.md` (7.16) e não precisa de desenho.
+
+### `groupEdit.png`. Editar grupo (`/groups/:groupId/edit`)
+
+- Barra superior interna: voltar e o título **Editar grupo**.
+- **Avatar quadrado de 96** com o botão de texto **Trocar foto** (a sheet é a de `profileEdit-foto.png`).
+- Campo **Nome do grupo**.
+- Botão principal **Salvar**.
+- Botão destrutivo de contorno **Excluir grupo**. A confirmação segue `profilePix-remover.png`, com o título "Excluir o grupo Vôlei de Quinta?" e uma frase mais longa, e não precisa de desenho.
+
+### `person.png`. Perfil de outra pessoa (`/people/:userId`)
+
+- Barra superior interna com voltar. A barra inferior aparece, com a aba de origem ativa.
+- **Avatar de 96**, o nome exibido **Brunão** e, embaixo, em tom secundário, o nome **Bruno** (no seed, o nome do Bruno é só "Bruno").
+- Deixe espaço abaixo: a fatia 4 acrescenta o telefone, quando a pessoa o deixa visível.

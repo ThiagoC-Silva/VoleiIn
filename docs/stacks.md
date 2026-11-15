@@ -35,7 +35,7 @@
 | Navegação e rotas | `go_router` | Todos |
 | Deep links (convites de grupo e jogo) | `app_links` | RF15, RF16, RF43, RF48 |
 | Foto de perfil e do grupo, comprovante | `image_picker`, `file_picker` (fotos redimensionadas para até 1024 px antes do envio, RN106) | RF09, RF14, RF78 |
-| Compartilhar lista em texto | `share_plus` | RF43, RF100 |
+| Compartilhar o código do grupo, o link do jogo e a lista em texto | `share_plus` (entra na fatia 3) | RF15, RF43, RF100 |
 | Copiar chave Pix | `Clipboard` (nativo do Flutter) | RF77 |
 | Push no aparelho | `firebase_core`, `firebase_messaging`, `flutter_local_notifications` | RF88 |
 | Gerenciamento de estado | `flutter_riverpod` | Todos |
@@ -242,7 +242,7 @@ Resumo de quem vê o quê, implementado por RLS no banco, não apenas na interfa
  
 | Dado | Quem vê | Requisitos |
 |------|---------|------------|
-| Nome, apelido e foto | O próprio usuário e quem compartilha contexto com ele. Exceção: quem tem o convite de um jogo e está logado vê o apelido ou nome e a foto dos participantes na prévia (RN107) | RF19, RF46, RF48 |
+| Nome, apelido e foto | O próprio usuário e quem compartilha contexto com ele. Exceções: quem tem o convite de um jogo e está logado vê o apelido ou nome e a foto dos participantes na prévia; o admin de um grupo vê quem tem solicitação pendente nele (RN107) | RF17, RF19, RF46, RF48 |
 | Chave Pix | O próprio usuário. Quando ele é o recebedor de um jogo não cancelado: os participantes da lista, desde a criação do jogo, e quem tem valor Pendente ou Em análise devido a ele (RN102) | RF11, RF45, RF77 |
 | Telefone | O próprio usuário. Se ele marcar como visível, também quem compartilha contexto com ele. O padrão é oculto | RF10, RF101 |
 | Comprovante (arquivo e dados lidos) | O pagador e o recebedor | RF87 |

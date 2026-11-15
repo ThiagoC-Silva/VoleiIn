@@ -37,6 +37,7 @@ Para o app ler ou escrever uma tabela, **duas camadas** precisam permitir:
 | Membro do grupo | `private.is_group_member(group_id, user_id)` | 3 |
 | Admin do grupo | `private.is_group_admin(group_id, user_id)` | 3 |
 | Compartilha contexto (RN107) | `private.shares_context(a, b)` | 3 |
+| Tem solicitação pendente num grupo que o outro administra (RN107, exceção 2) | `private.has_pending_join_request(requester, admin)` | 3 |
 | Admin do jogo | `private.is_game_admin(game_id, user_id)` | 4 |
 | Pode ver o jogo | `private.can_view_game(game_id, user_id)` | 4 |
 | Participante, recebedor, pagador | Leitura das colunas da própria linha | 4 a 6 |
@@ -73,7 +74,7 @@ Resumo do `modelo-dados.md` (seção 8), que define o acesso final. A coluna "Fa
 
 | Tabela ou bucket | Fatia | Leitura (resumo) | Escrita direta (resumo) |
 |------------------|-------|------------------|-------------------------|
-| `profiles` | 2 (própria linha) e 3 (contexto) | O próprio e quem compartilha contexto (RN107) | Própria linha: `name`, `nickname`, `photo_path` |
+| `profiles` | 2 (própria linha) e 3 (contexto) | O próprio, quem compartilha contexto e o admin que decide uma solicitação do dono (RN107) | Própria linha: `name`, `nickname`, `photo_path` |
 | `profile_private` | 2 | Só o dono | Própria linha, com a *trigger* da RN105 |
 | `terms_acceptances` | 2 | Só o dono | Inserção da própria linha |
 | `groups`, `group_members` | 3 | Membros do grupo | Não |
@@ -153,9 +154,120 @@ Decisões de 12/11/2026. A pessoa lê e edita **só a própria linha** de `profi
 
 **Casos negativos**, cada um com teste (`testes-referencia.md`, seção 10.1): outra pessoa não lê nem edita a linha da Ana nas três tabelas; ninguém grava as colunas fora da lista; ninguém insere em `profiles` ou `profile_private`; ninguém aceita uma versão antiga ou em nome de outro; ninguém envia, lê ou apaga arquivo na pasta de outra pessoa nem em `groups/`; `anon` não lê nada.
 
+### Fatia 3
+
+Decisões de 15/11/2026. O membro lê o próprio grupo, os integrantes e, se for admin, as solicitações do grupo; quem pediu lê só a própria solicitação. O perfil de outra pessoa passa a ser lido por contexto (RN107) e pelo admin que decide uma solicitação dela (RN107, exceção 2). Toda escrita em grupo passa pelas funções do `contratos-api.md` (seção 3), que são `security definer` e não dependem destas políticas. Nas condições, `uid` é `(select auth.uid())` (seção 6).
+
+**Funções auxiliares**, no esquema `private`, todas `language sql`, `stable`, `security definer` e `set search_path = ''`. Por rodarem como dono, consultam `group_members`, `group_join_requests`, `game_participants` e `game_waitlist` sem passar pelo RLS dessas tabelas, o que também evita a recursão de uma política de `group_members` que consulta `group_members`.
+
+```sql
+-- Membro do grupo. Grupo arquivado não tem membros (RN17), então nunca dá verdadeiro.
+create function private.is_group_member(p_group_id uuid, p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.group_members m
+    where m.group_id = p_group_id and m.user_id = p_user_id
+  );
+$$;
+
+-- Admin do grupo.
+create function private.is_group_admin(p_group_id uuid, p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.group_members m
+    where m.group_id = p_group_id and m.user_id = p_user_id and m.role = 'admin'
+  );
+$$;
+
+-- Compartilhar contexto (RN107, modelo-dados.md, seção 5): um grupo atual em comum,
+-- ou o mesmo jogo, atual ou passado, na lista ou na espera, em qualquer status.
+create function private.shares_context(p_a uuid, p_b uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+      select 1
+      from public.group_members ma
+      join public.group_members mb on mb.group_id = ma.group_id
+      where ma.user_id = p_a and mb.user_id = p_b
+    )
+    or exists (
+      select 1
+      from (select game_id from public.game_participants where user_id = p_a
+            union
+            select game_id from public.game_waitlist where user_id = p_a) ga
+      join (select game_id from public.game_participants where user_id = p_b
+            union
+            select game_id from public.game_waitlist where user_id = p_b) gb
+        on gb.game_id = ga.game_id
+    );
+$$;
+
+-- RN107, exceção 2: p_requester tem solicitação pendente num grupo em que p_admin é admin.
+create function private.has_pending_join_request(p_requester uuid, p_admin uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1
+    from public.group_join_requests r
+    join public.group_members m
+      on m.group_id = r.group_id and m.user_id = p_admin and m.role = 'admin'
+    where r.user_id = p_requester and r.status = 'pending'
+  );
+$$;
+```
+
+- **Índices de apoio**, já criados na fatia 1 (`modelo-dados.md`, seção 4): `group_members` pela PK `(group_id, user_id)` e por `(user_id)`; `group_join_requests` pelo único `(group_id, user_id) where status = 'pending'`; `game_participants` por `(user_id, game_id)`; `game_waitlist` por `(user_id)`.
+- **Permissões:** as quatro levam `revoke execute ... from public, anon` e `grant execute ... to authenticated`. Como nos validadores da fatia 2, a política roda com os privilégios de quem consulta e guarda a função pelo OID: o `authenticated` precisa de `execute`, mas continua **sem `usage`** no esquema `private` (B07), e a API não alcança as funções.
+- `shares_context(a, a)` não é usado: a própria linha já é lida pelas políticas da fatia 2.
+
+**Privilégios de `authenticated`** acrescentados à lista da fatia 2 (lista esperada do B04). `anon` continua sem nenhum.
+
+| Tabela | Privilégio | Colunas |
+|--------|------------|---------|
+| `groups` | `select` | Todas |
+| `group_members` | `select` | Todas |
+| `group_join_requests` | `select` | Todas |
+
+- Sem `insert`, `update` e `delete` nas três: as escritas são das funções. O membro lê `invite_code`, porque todo membro vê e compartilha o código (`docs/ui/telas.md`, 6.5).
+- `profiles` não ganha privilégio novo: o `select` da fatia 2 já cobre todas as colunas, e as políticas abaixo decidem as linhas.
+
+**Políticas** acrescentadas à lista da fatia 2 (lista esperada do B03)
+
+| Tabela | Política | Operação | `using` |
+|--------|----------|----------|---------|
+| `groups` | `groups_select_member` | `select` | `private.is_group_member(id, uid)` |
+| `group_members` | `group_members_select_member` | `select` | `private.is_group_member(group_id, uid)` |
+| `group_join_requests` | `group_join_requests_select_own` | `select` | `user_id = uid` |
+| `group_join_requests` | `group_join_requests_select_admin` | `select` | `private.is_group_admin(group_id, uid)` |
+| `profiles` | `profiles_select_context` | `select` | `private.shares_context(uid, id)` |
+| `profiles` | `profiles_select_join_requester` | `select` | `private.has_pending_join_request(id, uid)` |
+
+- O ex-membro deixa de ler o grupo, os integrantes e as solicitações assim que sai: a linha dele em `group_members` é apagada. O grupo arquivado não é lido por ninguém pelo app.
+- O membro que não é admin não lê as solicitações do grupo. Cada pessoa lê as próprias solicitações, em qualquer status, mas não o grupo delas antes de entrar: o nome vem da prévia do convite.
+- O perfil lido por contexto inclui o perfil anonimizado (RN104, fatia 6): o histórico continua mostrando a pessoa, sem os dados pessoais.
+- A exceção 2 vale só enquanto a solicitação está `pending`. Depois da recusa, o admin deixa de ver a pessoa; depois da aprovação, vale o contexto do grupo.
+- `profile_private` continua só do dono, com ou sem contexto. O telefone visível chega a terceiros pela função `get_profile_contact`, na fatia 4.
+
+**Funções do app** acrescentadas à lista do B06, todas com `execute` só para `authenticated`: `create_group(text)`, `update_group(uuid, text, text)`, `regenerate_group_invite(uuid)`, `invalidate_group_invite(uuid)`, `request_group_join(text)`, `decide_join_request(uuid, boolean)`, `set_group_role(uuid, uuid, group_role)`, `leave_group(uuid)`, `remove_group_member(uuid, uuid)` e `archive_group(uuid)`.
+
+**Storage, bucket `avatars`.** Políticas acrescentadas às três da fatia 2, em `storage.objects`, todas com `bucket_id = 'avatars'`. `folder[n]` é `(storage.foldername(name))[n]`. A pasta só é convertida para `uuid` quando tem o formato de um UUID; qualquer outro nome nega a operação, sem erro de conversão.
+
+| Política | Operação | Condição além do bucket | Para quê |
+|----------|----------|-------------------------|----------|
+| `avatars_profile_select_context` | `select` | `folder[1] = 'profiles' and (private.shares_context(uid, folder[2]::uuid) or private.has_pending_join_request(folder[2]::uuid, uid))` | URL assinada da foto de quem compartilha contexto ou tem solicitação pendente num grupo que quem chama administra |
+| `avatars_group_select_member` | `select` | `folder[1] = 'groups' and private.is_group_member(folder[2]::uuid, uid)` | URL assinada da foto do grupo |
+| `avatars_group_insert_admin` | `insert` | `folder[1] = 'groups' and private.is_group_admin(folder[2]::uuid, uid)` | Enviar a foto do grupo, sempre com nome novo (`groups/{group_id}/{uuid}.{ext}`) |
+| `avatars_group_delete_admin` | `delete` | `folder[1] = 'groups' and private.is_group_admin(folder[2]::uuid, uid)` | Apagar a foto substituída ou removida |
+
+- Sem `update`, como na fatia 2. A prévia do convite (`preview-invite`) gera a URL da foto com a chave de serviço, para quem ainda não é membro (`contratos-api.md`, seção 8).
+- `update_group` recusa um `photo_path` fora de `groups/{group_id}/` (`INVALID_INPUT`), como a política de `profiles` faz com a foto de perfil.
+
+**Realtime:** nenhuma tabela de grupo entra na publicação `supabase_realtime` (`stacks.md`, seção 4.1). As telas releem ao abrir e ao puxar para baixo (`docs/ui/telas.md`, seção 6).
+
+**Casos negativos**, cada um com teste (`testes-referencia.md`, seção 11.2): quem não é membro, inclusive o ex-membro, não lê o grupo, os integrantes nem as solicitações; o membro que não é admin não lê as solicitações; ninguém lê o grupo arquivado; ninguém escreve direto nas três tabelas; sem contexto, ninguém lê o perfil nem a foto de outro (RN107); o membro que não é admin não lê o perfil de quem pediu para entrar; depois da recusa, nem o admin; o contexto do grupo acaba quando a pessoa sai ou o grupo é arquivado; o membro não envia nem apaga a foto do grupo; quem não é membro não lê a foto do grupo; `anon` não lê nada.
+
 ## 6. Cuidados nas próximas fatias
 
 - **Desempenho:** nas políticas, use `(select auth.uid())` em vez de `auth.uid()`, para o Postgres calcular uma vez por consulta e não uma vez por linha. As funções auxiliares são `stable` e consultam por colunas indexadas (`modelo-dados.md`, seção 4).
 - **Caso negativo sempre:** toda política nova tem ao menos um teste de quem **não** pode (sem contexto, ex-membro, outro pagador), além do teste de quem pode.
 - **Simulação do usuário nos testes:** `set local role authenticated` e `set local request.jwt.claims` com o `sub` do usuário (`arquitetura-app.md`, 14.4).
+- **Nome do grupo nos jogos (fatia 4):** o card de um jogo de grupo mostra o nome do grupo, e quem vê o jogo sem ser membro do grupo (o ex-membro com jogo no histórico, quem entrou pelo link na fatia 8) não lê `groups` pela política da fatia 3. A forma de ler esse nome é decidida na fatia 4.
 - **Advisors:** ao fim de cada fatia, `get_advisors` do MCP (só leitura) não aponta tabela sem RLS nem política com problema de desempenho.
