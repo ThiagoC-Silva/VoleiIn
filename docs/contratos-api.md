@@ -118,15 +118,15 @@ A mensagem é a versão inicial. O texto final fica no catálogo de textos (`pla
 
 ### `create_group(p_name text)`
 - **Quem:** usuário autenticado.
-- **Erros:** `INVALID_INPUT` (nome fora de 1 a 60 caracteres).
-- **Efeitos:** cria o grupo com o código de convite e torna o criador admin. A foto é enviada depois, com `update_group`, porque o caminho usa o `group_id`.
+- **Erros:** `INVALID_INPUT` (nome fora de 1 a 60 caracteres, contados sem os espaços das pontas).
+- **Efeitos:** cria o grupo com o nome sem os espaços das pontas e o código de convite, e torna o criador admin. A foto é enviada depois, com `update_group`, porque o caminho usa o `group_id`.
 - **Retorno:** `{ group_id, invite_code }`.
 - **Origem:** RF14, RN10, RN11.
 
 ### `update_group(p_group_id uuid, p_name text, p_photo_path text)`
 - **Quem:** admin do grupo.
-- **Erros:** `NOT_FOUND`, `NOT_GROUP_ADMIN`, `INVALID_INPUT`.
-- **Efeitos:** grava nome e foto. Passar `p_photo_path` nulo retira a foto.
+- **Erros:** `NOT_FOUND`, `NOT_GROUP_ADMIN`, `INVALID_INPUT` (nome como em `create_group`, ou `p_photo_path` fora da pasta `groups/{p_group_id}/`).
+- **Efeitos:** grava nome e foto. Passar `p_photo_path` nulo retira a foto. O arquivo antigo é apagado pelo app (`docs/ui/telas.md`, 6.8).
 - **Retorno:** `{ group_id }`.
 - **Origem:** RF18, RN106.
 
@@ -146,38 +146,48 @@ A mensagem é a versão inicial. O texto final fica no catálogo de textos (`pla
 
 ### `request_group_join(p_invite_code text)`
 - **Quem:** usuário autenticado.
-- **Erros:** `INVITE_INVALID`, `ALREADY_MEMBER`, `JOIN_REQUEST_PENDING`.
-- **Efeitos:** cria a solicitação pendente. Notifica os admins (`group_join_requested`).
+- **Erros:** `INVITE_INVALID` (código que não existe, desativado ou de grupo arquivado), `ALREADY_MEMBER`, `JOIN_REQUEST_PENDING`.
+- **Efeitos:** cria a solicitação pendente. Notifica cada admin do grupo (`group_join_requested`). O código é comparado exatamente, com maiúsculas e minúsculas; quem tira os espaços é o app. Dois pedidos simultâneos da mesma pessoa: o índice único fica com um, e o outro recebe `JOIN_REQUEST_PENDING`.
 - **Retorno:** `{ request_id, group_id }`.
 - **Origem:** RF16, RN12, RF89.
 
 ### `decide_join_request(p_request_id uuid, p_approve boolean)`
 - **Quem:** admin do grupo.
-- **Erros:** `NOT_FOUND`, `NOT_GROUP_ADMIN`, `REQUEST_NOT_PENDING`.
-- **Efeitos:** grava a decisão e, se aprovada, cria o membro. Notifica o solicitante (`group_join_decided`).
+- **Erros:** `NOT_FOUND`, `NOT_GROUP_ADMIN`, `REQUEST_NOT_PENDING`. Quem pode ver a solicitação é o solicitante e os admins do grupo (`rls-matriz.md`, fatia 3): um membro que não é admin recebe `NOT_FOUND`, e o próprio solicitante, `NOT_GROUP_ADMIN`.
+- **Efeitos:** bloqueia a linha da solicitação (`for update`), grava a decisão com `decided_at` e `decided_by` e, se aprovada, cria o membro com o papel `member`. Notifica o solicitante (`group_join_decided`).
 - **Retorno:** `{ request_id, status }`.
 - **Origem:** RF17, RF89.
 
 ### `set_group_role(p_group_id uuid, p_user_id uuid, p_role group_role)`
 - **Quem:** admin do grupo.
 - **Erros:** `NOT_FOUND`, `NOT_GROUP_ADMIN`, `TARGET_NOT_MEMBER`, `LAST_ADMIN`.
-- **Efeitos:** promove ou rebaixa.
+- **Efeitos:** promove ou rebaixa, inclusive a si mesmo. Gravar o papel que a pessoa já tem é aceito e não muda nada. Dois admins que rebaixam um ao outro ao mesmo tempo: a *trigger* adiável da RN13 recusa a segunda transação com `LAST_ADMIN`.
 - **Retorno:** `{ user_id, role }`.
 - **Origem:** RF23, RF24, RN10, RN13.
 
 ### `leave_group(p_group_id uuid)` e `remove_group_member(p_group_id uuid, p_user_id uuid)`
 - **Quem:** o próprio membro; admin do grupo para remover outra pessoa.
 - **Erros:** `NOT_FOUND`, `NOT_A_MEMBER`, `NOT_GROUP_ADMIN`, `TARGET_NOT_MEMBER`, `CANNOT_REMOVE_SELF` (na remoção), `LAST_ADMIN` (na saída), `MEMBER_IS_RECEIVER`, `MEMBER_IS_ONLY_GAME_ADMIN`. Nestes dois últimos, `detail` traz `game_ids`.
-- **Efeitos:** retira do grupo. A partir da fatia 4, também retira das listas de presença e de espera dos jogos do grupo não iniciados, sem multa e com motivo `left_group`, remove o papel de admin dos jogos `open`/`confirmed`, recalcula o status dos jogos e avisa a espera. Na remoção, notifica o removido (`removed_from_group`).
+- **Efeitos:** retira do grupo, apagando a linha de `group_members`. O último admin recebe `LAST_ADMIN` também quando é o único membro: nesse caso, ele exclui o grupo (RN13). Na fatia 3, a RN16 ainda não é conferida, e `games_left` volta vazio. A partir da fatia 4, também retira das listas de presença e de espera dos jogos do grupo não iniciados, sem multa e com motivo `left_group`, remove o papel de admin dos jogos `open`/`confirmed`, recalcula o status dos jogos e avisa a espera. Na remoção, notifica o removido (`removed_from_group`).
 - **Retorno:** `{ games_left: uuid[] }`.
 - **Origem:** RF20 a RF22, RF102, RN14, RN16, RF104.
 
 ### `archive_group(p_group_id uuid)`
 - **Quem:** admin do grupo.
 - **Erros:** `NOT_FOUND`, `NOT_GROUP_ADMIN`, `GROUP_HAS_ACTIVE_GAMES`.
-- **Efeitos:** remove os membros, cancela as solicitações pendentes, invalida o convite e grava `archived_at`. Notifica os membros (`removed_from_group`). Auditoria: `group_archived`.
+- **Efeitos:** remove os membros, cancela as solicitações pendentes (`cancelled`, com `decided_at` e `decided_by` nulo, como cancelamento automático), invalida o convite e grava `archived_at` e `archived_by`. Notifica os membros, exceto quem excluiu (`removed_from_group`). Auditoria: `group_archived`. A foto continua em `photo_path` e é apagada pelo `storage-cleanup` (fatia 6).
 - **Retorno:** `{ group_id }`.
 - **Origem:** RF103, RN17.
+
+### Dados das notificações de grupo
+
+O `p_data` de `emit_notification` em cada evento da fatia 3. O nome do grupo vai junto porque quem foi removido ou recusado deixa de ler o grupo, e a fatia 7 monta o texto a partir destes dados.
+
+| Tipo | Para quem | `p_data` |
+|------|-----------|----------|
+| `group_join_requested` | Cada admin do grupo | `{ "group_id", "group_name", "request_id" }` |
+| `group_join_decided` | O solicitante | `{ "group_id", "group_name", "request_id", "approved": true \| false }` |
+| `removed_from_group` | O removido; na exclusão, cada membro exceto quem excluiu | `{ "group_id", "group_name", "reason": "removed" \| "archived" }` |
 
 ## 4. Jogo e lista (fatia 4)
 
@@ -356,12 +366,12 @@ Sem permissão de execução para o app.
 
 - **Autenticação:** JWT do usuário. Sem login, o app guarda o convite e chama a função depois do login.
 - **Corpo:** `{ "code": "<codigo>", "kind": "group" | "game" }`.
-- **Erros:** `NOT_AUTHENTICATED`, `INVALID_INPUT`, `INVITE_INVALID`.
+- **Erros:** `NOT_AUTHENTICATED`, `INVALID_INPUT`, `INVITE_INVALID` (HTTP 404). Até a fatia 8, `kind: game` responde `INVALID_INPUT`.
 - **Efeitos:** nenhum. Roda como Edge Function porque precisa gerar URLs assinadas das fotos.
-- **Retorno para grupo:** `{ "kind": "group", "group_id", "name", "photo_url", "is_member" }`.
+- **Retorno para grupo:** `{ "kind": "group", "group_id", "name", "photo_url", "is_member", "has_pending_request" }`. `has_pending_request` diz se quem chama já tem solicitação pendente no grupo (decisão de 15/11/2026), para a tela mostrar o pedido no lugar do botão (`docs/ui/telas.md`, 6.3). `photo_url` é nulo quando o grupo não tem foto.
 - **Retorno para jogo:** `{ "kind": "game", "game_id", "group_name", "location_name", "maps_url", "cancellation_deadline", "starts_at", "ends_at", "total_cents", "slot_limit", "occupied_slots", "status", "is_participant", "on_waitlist", "participants": [{ "display_name", "photo_url" }] }`.
 - **Regras:** a lista traz apelido ou nome e foto dos participantes `active`, por ordem de entrada. Não traz telefone, chave Pix, e-mail nem a lista de espera. As URLs são de curta duração. Um jogo cancelado ou concluído devolve o status, sem a lista.
-- **Origem:** RF16, RF48, RN107 (exceção da prévia).
+- **Origem:** RF16, RF48, RN12, RN107 (exceção da prévia).
 
 ### `process-receipt` (fatia 6)
 
@@ -412,7 +422,7 @@ Sem permissão de execução para o app.
 | `device_tokens` | Registra e apaga os próprios tokens | Constraints | RF07, RF88 |
 | `notification_preferences` | Liga e desliga tipos | Constraints | RF98 |
 | `notifications` | Grava só `read_at` | — | RF99 |
-| Storage | Envia fotos e comprovantes, conforme as políticas e limites da seção 7 do `modelo-dados.md` | Erros do Storage | RF09, RF14, RF78 |
+| Storage | Envia fotos e comprovantes, conforme as políticas e limites da seção 7 do `modelo-dados.md`. A foto do grupo é enviada pelo admin antes de `update_group` (fatia 3) | Erros do Storage | RF09, RF14, RF18, RF78 |
 | Supabase Auth | Cadastro, login (e-mail e Google), confirmação, recuperação e troca de e-mail por código de 6 dígitos (`verifyOTP`, ADR 0017), troca de senha e logout | Erros do Auth (`docs/copy.md`) | RF01 a RF07, RF106 a RF108 |
 
 **Leitura:** o app lê as tabelas por `select`, limitado pelo RLS, e assina o Realtime nas tabelas do `stacks.md` (seção 4.1). Consultas de leitura não têm contrato próprio, salvo os totais de RF75 e RF76, que somam `charges` por `status`, o rateio de RF73 e RF74 e a função abaixo.
@@ -436,3 +446,7 @@ Sem permissão de execução para o app.
 | A conclusão e o rateio são função SQL, testada em pgTAP | `stacks.md` (seções 4.1 e 11) |
 | A chave Pix do recebedor é visível aos participantes desde a criação do jogo | RN102, RF45, `stacks.md` (seção 12) |
 | Uma falha da Claude API manda o comprovante para Em análise e não conta como leitura | RN86, `stacks.md` (seção 6.1) |
+| O admin do grupo vê nome e foto de quem tem solicitação pendente no grupo | RN107, `rls-matriz.md` (fatia 3) |
+| A prévia do convite de grupo diz se quem chama já tem solicitação pendente | `preview-invite`, `docs/ui/telas.md` (6.3) |
+| Todo membro vê e compartilha o código do grupo; só os admins o regeneram e desativam | RN11, `docs/ui/telas.md` (6.5) |
+| O código de convite continua com 12 caracteres base62, com diferença entre maiúsculas e minúsculas | `modelo-dados.md` (seção 9), `docs/ui/telas.md` (6.3) |

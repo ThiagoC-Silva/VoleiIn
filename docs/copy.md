@@ -268,3 +268,148 @@ Saem pelo Resend, com o remetente `nao-responda@mail.voleiin.com.br` (`setup.md`
 | Troca de e-mail | `email_change.html` | Confirme o seu novo e-mail: {{ .Token }} | Use o código **{{ .Token }}** no app para confirmar este endereço como o novo e-mail da sua conta no VoleiIn. Ele vale por 1 hora. Se você não pediu, ignore este e-mail. |
 
 O código vai também no assunto para aparecer na notificação do celular, e a pessoa não precisar abrir o e-mail.
+
+## 7. Fatia 3
+
+Decisões de 15/11/2026. Telas em `docs/ui/telas.md`, seção 6. A palavra do domínio é **solicitação** (`join_request_status`, `modelo-dados.md`, seção 3); o verbo dos botões é **pedir** ("Pedir para entrar").
+
+**Plurais** usam a sintaxe ICU do ARB: `{count, plural, =1{1 integrante} other{{count} integrantes}}`. Nas tabelas abaixo, a forma do singular vem antes da barra e a do plural depois.
+
+Os textos provisórios da seção 5.2 continuam no ARB: as abas Jogos e Cobranças ainda os usam.
+
+### 7.1 Meus grupos
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `groupsCreate` | Criar grupo | Botão de Meus grupos, título e botão principal da criação |
+| `groupsJoin` | Entrar com código | Botão de Meus grupos e título da entrada por código |
+| `groupsEmptyTitle` | Você ainda não está em nenhum grupo | Título do estado vazio |
+| `groupsEmptyBody` | Crie um grupo ou peça para entrar com o código de convite. | Frase do estado vazio |
+| `groupsMemberCount` | 1 integrante / {count} integrantes | Subtítulo da linha do grupo (plural) |
+| `groupsPendingCount` | 1 solicitação / {count} solicitações | Acrescentado ao subtítulo, só para admins (plural) |
+| `groupsRowSubtitle` | {members} · {pending} | Subtítulo com as duas partes, já formatadas |
+| `groupRoleAdmin` | Admin | Selo do papel. Rótulo de `group_role.admin` |
+| `groupPhotoLabel` | Foto do grupo {name} | Rótulo do avatar do grupo, para o TalkBack |
+
+### 7.2 Criar e editar grupo
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `groupNameLabel` | Nome do grupo | Rótulo do campo |
+| `groupNameRequired` | Informe o nome do grupo. | Erro do campo vazio |
+| `groupNameTooLong` | O nome pode ter até 60 caracteres. | Erro do campo |
+| `groupChoosePhoto` | Escolher foto | Botão de texto da criação |
+| `groupCreated` | Grupo criado. | `SnackBar` |
+| `groupCreatedPhotoFailed` | Grupo criado, mas a foto não foi salva. Tente de novo em Editar grupo. | `SnackBar` |
+| `groupEdit` | Editar grupo | Linha do detalhe e título da edição |
+| `groupEditSubtitle` | Nome e foto | Subtítulo da linha |
+| `groupSaved` | Grupo salvo. | `SnackBar` |
+| `groupDelete` | Excluir grupo | Botão destrutivo de contorno e botão da confirmação |
+| `groupDeleteTitle` | Excluir o grupo {name}? | Título da confirmação |
+| `groupDeleteBody` | Todos os integrantes saem do grupo, as solicitações pendentes são canceladas e o convite deixa de valer. Os jogos concluídos e cancelados continuam no histórico de quem participou. | Frase da confirmação |
+| `groupDeleted` | Grupo excluído. | `SnackBar` |
+
+- A troca de foto usa as chaves da fatia 2: `profileChangePhoto` (Trocar foto), `profilePhotoGallery`, `profilePhotoCamera` e `profilePhotoRemove`. O botão Salvar usa `commonSave`, e o voltar das confirmações, `commonBack`.
+
+### 7.3 Entrar com código
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `groupJoinIntro` | Digite ou cole o código que você recebeu do grupo. | Frase da etapa 1 |
+| `groupJoinCodeLabel` | Código do convite | Rótulo do campo |
+| `groupJoinCodeRequired` | Informe o código. | Erro do campo vazio |
+| `groupJoinCodeInvalid` | O código tem 12 letras e números. Confira e tente de novo. | Erro do campo, sem chamar o servidor |
+| `groupJoinContinue` | Continuar | Botão principal da etapa 1 |
+| `groupJoinApprovalNeeded` | Um admin do grupo precisa aprovar a sua entrada. | Frase do estado "Pode pedir" |
+| `groupJoinRequest` | Pedir para entrar | Botão principal |
+| `groupJoinPending` | Solicitação enviada. Aguardando a aprovação de um admin. | Aviso em linha |
+| `groupJoinPendingHint` | O grupo aparece em Meus grupos quando a solicitação for aprovada. | Frase abaixo do aviso |
+| `groupJoinBackToGroups` | Voltar aos grupos | Botão de contorno |
+| `groupJoinAlreadyMember` | Você já é membro deste grupo. | Frase do estado "Já é membro" |
+| `groupJoinOpen` | Abrir o grupo | Botão principal |
+| `groupJoinOtherCode` | Usar outro código | Botão de texto da etapa 2 |
+
+### 7.4 Detalhe do grupo e convite
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `groupMembers` | Integrantes | Linha do detalhe e título da tela |
+| `groupMembersSubtitle` | 1 pessoa / {count} pessoas | Subtítulo da linha (plural) |
+| `groupRequests` | Solicitações | Linha do detalhe e título da tela |
+| `groupRequestsSubtitle` | Nenhuma solicitação pendente / 1 solicitação pendente / {count} solicitações pendentes | Subtítulo da linha (plural, com `=0`) |
+| `groupInvite` | Convite | Linha do detalhe |
+| `groupInviteActive` | Código ativo | Subtítulo da linha |
+| `groupInviteInactive` | Convite desativado | Subtítulo da linha |
+| `groupLeave` | Sair do grupo | Botão destrutivo de contorno e botão da confirmação |
+| `groupLeaveTitle` | Sair do grupo {name}? | Título da confirmação |
+| `groupLeaveBody` | Para voltar, você vai precisar do código e da aprovação de um admin. | Frase da confirmação |
+| `groupLeft` | Você saiu do grupo. | `SnackBar` |
+| `groupInviteTitle` | Convite do grupo | Título da sheet |
+| `groupInviteIntro` | Quem tiver o código pode pedir para entrar. Um admin aprova cada solicitação. | Frase da sheet |
+| `groupInviteShare` | Compartilhar | Botão principal |
+| `groupInviteShareText` | Entre no grupo {name} no VoleiIn. No app, toque em Grupos, depois em Entrar com código, e use o código: {code} | Texto enviado pelo compartilhamento do Android. O código fica no fim, sozinho, para ser fácil de copiar |
+| `groupInviteCopy` | Copiar código | Botão de contorno |
+| `groupInviteCopied` | Código copiado. | `SnackBar` |
+| `groupInviteRegenerate` | Gerar novo código | Botão de texto (admin) e botão da confirmação |
+| `groupInviteRegenerateTitle` | Gerar um novo código? | Título da confirmação |
+| `groupInviteRegenerateBody` | O código atual deixa de funcionar. As solicitações já feitas continuam valendo. | Frase da confirmação |
+| `groupInviteRegenerated` | Novo código gerado. | `SnackBar` |
+| `groupInviteDisable` | Desativar convite | Botão de texto destrutivo (admin) |
+| `groupInviteDisableTitle` | Desativar o convite? | Título da confirmação |
+| `groupInviteDisableBody` | Ninguém consegue pedir para entrar até um admin gerar um novo código. As solicitações já feitas continuam valendo. | Frase da confirmação |
+| `groupInviteDisableConfirm` | Desativar | Botão destrutivo sólido da confirmação |
+| `groupInviteDisabled` | Convite desativado. | `SnackBar` |
+| `groupInviteOff` | O convite está desativado. | Frase da sheet sem código |
+| `groupInviteGenerate` | Gerar código | Botão principal da sheet sem código (admin) |
+| `groupInviteAskAdmin` | Peça a um admin para gerar um novo código. | Frase da sheet sem código (membro) |
+
+### 7.5 Integrantes e solicitações
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `groupMemberYou` | {name} (você) | Nome da própria pessoa nas listas |
+| `groupMemberJoinedAt` | Entrou em {date} | Subtítulo da linha (`formatDate`) |
+| `groupMemberViewProfile` | Ver perfil | Opção da sheet do admin |
+| `groupMemberMakeAdmin` | Tornar admin | Opção da sheet do admin |
+| `groupMemberMakeMember` | Deixar como membro | Opção da sheet do admin |
+| `groupMemberRemove` | Remover do grupo | Opção destrutiva da sheet do admin |
+| `groupMemberRemoveTitle` | Remover {name} do grupo? | Título da confirmação |
+| `groupMemberRemoveBody` | {name} deixa de ver o grupo. Para voltar, vai precisar do código e da aprovação de um admin. | Frase da confirmação |
+| `groupMemberRemoveConfirm` | Remover | Botão destrutivo sólido da confirmação |
+| `groupMemberRemoved` | Removemos {name} do grupo. | `SnackBar` |
+| `groupMemberNowAdmin` | {name} agora é admin. | `SnackBar` |
+| `groupMemberNowMember` | {name} agora é membro. | `SnackBar` |
+| `groupStepDown` | Deixar de ser admin | Opção da sheet e botão da confirmação |
+| `groupStepDownTitle` | Deixar de ser admin? | Título da confirmação |
+| `groupStepDownBody` | Só outro admin poderá devolver esse papel a você. | Frase da confirmação |
+| `groupSteppedDown` | Você agora é membro. | `SnackBar` |
+| `groupRequestAsked` | Pediu em {date} | Subtítulo da solicitação (`formatShortDate`) |
+| `groupRequestApprove` | Aprovar | Ação da linha |
+| `groupRequestReject` | Recusar | Ação da linha |
+| `groupRequestApproved` | {name} entrou no grupo. | `SnackBar` |
+| `groupRequestRejected` | Solicitação recusada. | `SnackBar` |
+| `groupRequestsEmptyTitle` | Nenhuma solicitação pendente | Título do estado vazio |
+| `groupRequestsEmptyBody` | Quando alguém pedir para entrar com o código, a solicitação aparece aqui. | Frase do estado vazio |
+
+### 7.6 Perfil de outra pessoa
+
+Sem texto novo. O título é o `display_name`, e o estado "não encontrado" usa `errorNotFound` (seção 5.5).
+
+### 7.7 Erros
+
+Códigos das funções de grupo e da prévia do convite (`contratos-api.md`, seção 2). O texto final é este, e não a mensagem inicial do contrato. `MEMBER_IS_RECEIVER` e `MEMBER_IS_ONLY_GAME_ADMIN` entram na fatia 4, com a RN16.
+
+| Código | `ErrorCode` | Chave | Texto |
+|--------|-------------|-------|-------|
+| `NOT_A_MEMBER` | `notAMember` | `errorNotAMember` | Você não é membro deste grupo. |
+| `NOT_GROUP_ADMIN` | `notGroupAdmin` | `errorNotGroupAdmin` | Só um admin do grupo pode fazer isso. |
+| `INVITE_INVALID` | `inviteInvalid` | `errorInviteInvalid` | Este código não vale. Confira ou peça um novo ao grupo. |
+| `ALREADY_MEMBER` | `alreadyMember` | `errorAlreadyMember` | Você já é membro deste grupo. |
+| `JOIN_REQUEST_PENDING` | `joinRequestPending` | `errorJoinRequestPending` | Você já pediu para entrar neste grupo. Aguarde a aprovação de um admin. |
+| `REQUEST_NOT_PENDING` | `requestNotPending` | `errorRequestNotPending` | Esta solicitação já foi decidida. |
+| `TARGET_NOT_MEMBER` | `targetNotMember` | `errorTargetNotMember` | Esta pessoa não é mais membro do grupo. |
+| `CANNOT_REMOVE_SELF` | `cannotRemoveSelf` | `errorCannotRemoveSelf` | Para sair, use a opção Sair do grupo. |
+| `LAST_ADMIN` | `lastAdmin` | `errorLastAdmin` | Promova outro admin antes. O grupo precisa de ao menos um. |
+| `GROUP_HAS_ACTIVE_GAMES` | `groupHasActiveGames` | `errorGroupHasActiveGames` | O grupo ainda tem jogos Abertos ou Confirmados. |
+
+- A prévia do convite é uma Edge Function: o erro chega como `FunctionException`, com o código em `error.code` (`contratos-api.md`, seção 1), e passa pela mesma tabela.

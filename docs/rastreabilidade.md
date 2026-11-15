@@ -29,7 +29,7 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF14 | 3 | RN10, RN106 | — | — | — | Pendente |
 | RF15 | 3 | RN11 | — | — | — | Pendente |
 | RF16 | 3 | RN12 | — | — | — | Pendente |
-| RF17 | 3 | RN12 | — | — | — | Pendente |
+| RF17 | 3 | RN12, RN107 | — | — | — | Pendente |
 | RF18 | 3 | RN106 | — | — | — | Pendente |
 | RF19 | 3 | RN107 | — | — | — | Pendente |
 | RF20 | 3 | RN14 | — | — | — | Pendente |

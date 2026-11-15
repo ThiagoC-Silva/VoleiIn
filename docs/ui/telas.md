@@ -53,10 +53,10 @@ Depois do login, o app abre na aba Jogos.
 | Meus grupos | `/groups` | Aba Grupos | 1 e 3 | RF25 |
 | Criar grupo | `/groups/new` | Fora das abas | 3 | RF14 |
 | Entrar por código (com a prévia do grupo) | `/groups/join` | Fora das abas | 3 | RF16 |
-| Detalhe do grupo, com os jogos do grupo | `/groups/:groupId` | Aba Grupos | 3 e 4 | RF44, RF103 |
-| Editar grupo | `/groups/:groupId/edit` | Fora das abas | 3 | RF18 |
+| Detalhe do grupo, com os jogos do grupo | `/groups/:groupId` | Aba Grupos | 3 e 4 | RF21, RF44 |
+| Editar grupo, com a exclusão | `/groups/:groupId/edit` | Fora das abas | 3 | RF18, RF103 |
 | Convite do grupo (código) | — | Sheet sobre o detalhe | 3 | RF15 |
-| Integrantes | `/groups/:groupId/members` | Aba Grupos | 3 | RF19 a RF21, RF23, RF24, RF102 |
+| Integrantes | `/groups/:groupId/members` | Aba Grupos | 3 e 4 | RF19, RF20, RF23, RF24, RF102 |
 | Solicitações pendentes | `/groups/:groupId/requests` | Aba Grupos | 3 | RF17 |
 | Perfil de outra pessoa | `/people/:userId` | Na aba de origem | 3 e 4 | RF19, RF101 |
 | **Cobranças** | | | | |
@@ -348,3 +348,207 @@ Barra superior interna com voltar e o rótulo do documento como título. O corpo
 ### 5.12 Testes da fatia 2
 
 Os cenários estão em `testes-referencia.md`, seção 10.
+
+## 6. Fatia 3
+
+Decisões de 15/11/2026. A fatia 3 troca a aba Grupos vazia pela tela real e entrega a criação do grupo, a entrada por código, o convite, os integrantes, as solicitações e o perfil de outra pessoa. As abas Jogos e Cobranças continuam com o estado provisório da seção 4.2. Os textos estão no `docs/copy.md`, seção 7, e as regras de quem lê e grava o quê, na `rls-matriz.md` (fatia 3).
+
+**Nomes das rotas** (seção 1, como `/games/:gameId/edit` → `gameEdit`): `groups`, `groupsNew`, `groupsJoin`, `group`, `groupEdit`, `groupMembers`, `groupRequests` e `person` (`/people/:userId`). São também os nomes dos PNGs de referência.
+
+**Regras comuns às telas de grupo:**
+
+- **Toda escrita passa pelas funções do servidor** (`contratos-api.md`, seção 3). O app lê `groups`, `group_members`, `group_join_requests` e `profiles` direto, limitado pelo RLS. A exceção é a foto do grupo, enviada direto ao Storage antes de `update_group` (`contratos-api.md`, seção 9).
+- **Sem Realtime.** As tabelas de grupo não entram na publicação (`stacks.md`, seção 4.1). Cada tela relê os dados ao abrir e ao voltar de outra tela, e as listas (Meus grupos, Integrantes, Solicitações) e o detalhe atualizam ao puxar para baixo.
+- **Não encontrado:** quem não é membro do grupo, inclusive o ex-membro e quem abre um grupo excluído, recebe o estado "não encontrado" (`design-system.md`, 7.16). O mesmo vale para quem não é admin e abre uma tela só de admin (Editar grupo, Solicitações): a tela confere o papel em `group_members` antes de mostrar o conteúdo.
+- **Erros das funções** viram `SnackBar` com o texto do código (`docs/copy.md`, 7.7), salvo onde a tabela da tela diz outra coisa. Depois de um erro que indica que os dados mudaram (`NOT_GROUP_ADMIN`, `TARGET_NOT_MEMBER`, `REQUEST_NOT_PENDING`), a tela relê os dados.
+- **Foto do grupo:** as mesmas regras da foto de perfil (seção 5.8 e RN106): `image_picker` com no máximo 1024 px no maior lado, JPEG, PNG ou WebP, até 2 MB, recusa do Storage em `SnackBar`. O caminho é `groups/{group_id}/{uuid}.{ext}`, e só um admin do grupo envia e apaga (`rls-matriz.md`, fatia 3). O avatar do grupo é o quadrado de cantos arredondados do `design-system.md` (3.4), com as iniciais do nome sobre o pastel escolhido pelo `id` do grupo.
+- **Nomes de pessoas** aparecem pelo `display_name` (RN100), com o avatar redondo de 44 (3.4). A própria pessoa usa o avatar "Você" (`#FFE14F`) e o texto `groupMemberYou`.
+
+### 6.1 Meus grupos (`/groups`)
+
+**Objetivo:** ver os grupos de que a pessoa é membro e chegar à criação e à entrada por código (RF25). Substitui a aba Grupos vazia da seção 4.2. Barra superior de raiz com o título da aba.
+
+**Conteúdo:**
+
+1. A lista dos grupos ativos de que a pessoa é membro, em ordem alfabética do nome. Cada linha (`design-system.md`, 7.13) tem o avatar quadrado do grupo de 44, o nome e o subtítulo com o número de integrantes. Para quem é admin do grupo, a linha leva o selo `neutral` **Admin** (`design-system.md`, seção 4, papéis) e, se houver solicitações pendentes, o subtítulo acrescenta o número delas ("3 integrantes · 2 solicitações"). Toca para abrir o detalhe.
+2. No pé da tela, fixos, o botão principal **Criar grupo** e o botão de contorno **Entrar com código**.
+
+| Situação | O que acontece |
+|----------|----------------|
+| Nenhum grupo | Estado vazio (`design-system.md`, 7.16) com o ícone `groups`, título e frase. Os dois botões do pé continuam |
+| Grupo excluído ou pessoa removida desde a última leitura | Some da lista na próxima leitura |
+| Erro ou sem conexão | Estados de erro e de sem conexão, com "Tentar de novo" |
+
+- Uma solicitação que a pessoa enviou e ainda está pendente **não aparece** aqui (decisão de 15/11/2026): quem pediu não lê o grupo antes de entrar. O grupo aparece quando um admin aprova. Para conferir o pedido, a pessoa digita o código de novo, e a prévia avisa que ele está pendente (6.3).
+
+### 6.2 Criar grupo (`/groups/new`)
+
+**Objetivo:** criar um grupo com nome e, se quiser, foto (RF14). Quem cria vira admin (RN10). Barra superior interna com voltar.
+
+**Conteúdo:**
+
+1. **Foto:** avatar quadrado de 96, com as iniciais do nome digitado (ou o ícone `groups`, com o nome vazio), e o botão de texto **Escolher foto**, que abre a mesma sheet sem título da seção 5.8: **Escolher da galeria**, **Tirar foto** e, se houver foto escolhida, **Remover foto**.
+2. **Nome do grupo**, obrigatório, até 60 caracteres, contados sem os espaços das pontas.
+3. Botão principal **Criar grupo**.
+
+| Situação | O que acontece |
+|----------|----------------|
+| Nome vazio ou acima de 60 caracteres | Erro no campo. O app não chama o servidor |
+| Criar sem foto | `create_group`. Em seguida, troca esta tela pelo detalhe do grupo, que não volta para a criação, e mostra o `SnackBar` "Grupo criado" |
+| Criar com foto | Nesta ordem: `create_group`; envio da foto para `groups/{group_id}/{uuid}.{ext}`; `update_group` com o nome e o caminho. Depois, igual ao caso sem foto. A foto vem depois porque o caminho usa o `group_id` (`contratos-api.md`, `create_group`) |
+| O grupo foi criado, mas o envio da foto ou o `update_group` falhou | O grupo já existe. O app abre o detalhe do mesmo jeito, com o `SnackBar` `groupCreatedPhotoFailed`, que manda tentar de novo em Editar grupo. Uma foto enviada sem uso fica no bucket até a limpeza da fatia 6 |
+| Erro no `create_group` | `SnackBar`. A tela mantém o nome e a foto |
+
+- Voltar descarta o que foi digitado, sem confirmação.
+
+### 6.3 Entrar com código (`/groups/join`)
+
+**Objetivo:** pedir para entrar num grupo com o código de convite (RF16, RN12). Barra superior interna com voltar. Duas etapas, sem trocar de rota. Na fatia 8, o link `/g/:code` abre direto a etapa 2.
+
+**Etapa 1:** a frase de apoio, o campo **Código do convite** e o botão principal **Continuar**. O campo é de texto, sem correção automática e sem maiúscula automática, porque o código diferencia maiúsculas de minúsculas (12 caracteres base62, `modelo-dados.md`, 4.2; formato mantido em 15/11/2026). Ao continuar, o app tira todos os espaços, inclusive os do meio, e confere se sobram 12 letras ou números. Quem recebe a frase de convite (6.5) copia só o código: o app não procura o código dentro de uma frase. Depois chama a Edge Function `preview-invite` com `kind: group`.
+
+**Etapa 2, a prévia:** o avatar quadrado de 96 e o nome do grupo, e embaixo um destes três estados, conforme a resposta da prévia:
+
+| Estado | Quando | Conteúdo |
+|--------|--------|----------|
+| Pode pedir | `is_member` e `has_pending_request` falsos | A frase "Um admin do grupo precisa aprovar a sua entrada" e o botão principal **Pedir para entrar** |
+| Solicitação pendente | `has_pending_request` verdadeiro | Um aviso em linha (`design-system.md`, 7.14), com o ícone `hourglass_top` em `wait`: "Solicitação enviada. Aguardando a aprovação de um admin." e a frase de que o grupo aparece em Meus grupos quando o pedido for aprovado. Botão de contorno **Voltar aos grupos** |
+| Já é membro | `is_member` verdadeiro | A frase "Você já é membro deste grupo" e o botão principal **Abrir o grupo**, que troca esta tela pelo detalhe |
+
+Em todos os estados, o botão de texto **Usar outro código** volta à etapa 1 com o campo limpo.
+
+| Situação | O que acontece |
+|----------|----------------|
+| Campo vazio, ou sem 12 letras ou números depois de tirar os espaços | Erro no campo. O app não chama o servidor |
+| Prévia responde `INVITE_INVALID` | Erro no campo, na etapa 1 |
+| Pedir para entrar | `request_group_join` com o código. Sucesso: a tela passa ao estado "Solicitação pendente" |
+| Pedir responde `JOIN_REQUEST_PENDING` | Estado "Solicitação pendente", sem `SnackBar` (outro aparelho da pessoa já pediu) |
+| Pedir responde `ALREADY_MEMBER` | Estado "Já é membro", sem `SnackBar` |
+| Pedir responde `INVITE_INVALID` (o código foi regenerado ou desativado entre a prévia e o pedido) | Volta à etapa 1 com o erro no campo |
+| Voltar na etapa 2 | Volta à etapa 1 |
+| Voltar aos grupos | Fecha a tela e volta a Meus grupos |
+
+- O código digitado fica só na tela, em memória (`arquitetura-app.md`, seção 9).
+
+### 6.4 Detalhe do grupo (`/groups/:groupId`)
+
+**Objetivo:** ver o grupo e chegar a integrantes, solicitações, convite e edição; sair do grupo (RF21). Barra superior interna com voltar.
+
+**Conteúdo, de cima para baixo:**
+
+1. Cabeçalho: avatar quadrado de 72 e o nome do grupo em `title.lg`.
+2. Lista de linhas com seta (`design-system.md`, 7.13):
+   - **Integrantes**, com o subtítulo do número de pessoas;
+   - **Solicitações**, só para admins, com o subtítulo do número de pendentes ou "Nenhuma solicitação pendente";
+   - **Convite**, com o subtítulo "Código ativo" ou "Convite desativado". Abre a sheet do convite (6.5);
+   - **Editar grupo**, só para admins, com o subtítulo "Nome e foto".
+3. Botão destrutivo de contorno **Sair do grupo**. Fica oculto quando a pessoa é o único membro: nesse caso ela exclui o grupo em Editar grupo (RN13).
+
+- **A fatia 4 acrescenta** os jogos do grupo e o botão **Criar jogo** (RF26, RF44).
+
+| Situação | O que acontece |
+|----------|----------------|
+| Sair do grupo | Confirmação destrutiva (`design-system.md`, 7.15), com o nome do grupo no título e a frase de que, para voltar, é preciso o código e a aprovação de um admin. Ao confirmar, `leave_group` |
+| Saída aceita | Volta a Meus grupos com o `SnackBar` "Você saiu do grupo" |
+| Saída recusada com `LAST_ADMIN` (último admin, com outros membros) | `SnackBar` com o texto do código, que manda promover outro admin antes (RN13) |
+| Grupo que a pessoa não pode ver | Estado "não encontrado" |
+
+### 6.5 Convite do grupo (sheet sobre o detalhe)
+
+**Objetivo:** ver, copiar e compartilhar o código; o admin gera um novo ou desativa o convite (RF15, RN11). **Todo membro vê e compartilha o código** (decisão de 15/11/2026): quem entra pelo código ainda depende da aprovação de um admin (RN12). Só os admins geram um código novo e desativam o convite.
+
+**Com código ativo:**
+
+1. Título **Convite do grupo** e a frase de apoio.
+2. O código em destaque, em Roboto 700 22 com espaçamento entre letras de +2, selecionável. Nunca em Bebas Neue, que só tem maiúsculas e apagaria a diferença entre elas (`design-system.md`, seção 5).
+3. Botão principal **Compartilhar**: abre o compartilhamento do Android (`share_plus`) com o texto `groupInviteShareText`, que traz o nome do grupo e o código.
+4. Botão de contorno **Copiar código**: copia só o código (`Clipboard`) e mostra o `SnackBar` "Código copiado".
+5. Só para admins, os botões de texto **Gerar novo código** e **Desativar convite**, este em tom destrutivo.
+
+**Com o convite desativado** (`invite_code` nulo): a frase "O convite está desativado". O admin vê o botão principal **Gerar código**, sem confirmação, porque não há código a invalidar. O membro vê a frase que pede a um admin para gerar um novo código, sem botão.
+
+| Situação | O que acontece |
+|----------|----------------|
+| Gerar novo código | Confirmação destrutiva, com a frase de que o código atual deixa de funcionar e os pedidos já feitos continuam. Ao confirmar, `regenerate_group_invite`. A sheet mostra o código novo, com o `SnackBar` "Novo código gerado" |
+| Desativar convite | Confirmação destrutiva, com a frase de que ninguém consegue pedir para entrar até um admin gerar um novo código. Ao confirmar, `invalidate_group_invite`. A sheet passa ao estado desativado, com o `SnackBar` "Convite desativado" |
+| Gerar código (convite desativado) | `regenerate_group_invite`. A sheet mostra o código |
+| `NOT_GROUP_ADMIN` (a pessoa foi rebaixada nesse meio tempo) | `SnackBar`. O detalhe relê o grupo, e a sheet passa a mostrar a versão de membro |
+
+- A sheet usa o código já lido pelo detalhe e o relê depois de cada ação. Fechar a sheet volta ao detalhe.
+
+### 6.6 Integrantes (`/groups/:groupId/members`)
+
+**Objetivo:** ver quem está no grupo (RF19). O admin promove, rebaixa e remove (RF20, RF23, RF24). Barra superior interna com voltar.
+
+**Conteúdo:** a lista dos membros, primeiro os admins e depois os demais, cada bloco em ordem alfabética do `display_name`. Cada linha (`design-system.md`, 7.13) tem o avatar de 44, o nome (a própria pessoa com `groupMemberYou`), o subtítulo com a data de entrada ("Entrou em 12/11/2026", de `joined_at`) e, à direita, o selo `neutral` **Admin** para os admins.
+
+**Toque numa linha:**
+
+| Quem toca | Em quem | O que abre |
+|-----------|---------|------------|
+| Membro que não é admin | Outra pessoa | O perfil dela (6.9) |
+| Membro que não é admin | Si mesmo | Nada: a linha não é tocável |
+| Admin | Outra pessoa | Sheet com o nome da pessoa como título e as opções **Ver perfil**; **Tornar admin** (se ela é membro) ou **Deixar como membro** (se é admin); e **Remover do grupo**, em tom destrutivo |
+| Admin | Si mesmo | Sheet com a opção **Deixar de ser admin** |
+
+| Situação | O que acontece |
+|----------|----------------|
+| Tornar admin, ou Deixar como membro | Sem confirmação. `set_group_role`, `SnackBar` "{nome} agora é admin" ou "{nome} agora é membro", e a lista relê |
+| Deixar de ser admin | Confirmação, com a frase de que só outro admin pode devolver o papel. Ao confirmar, `set_group_role` com `member` para si. `SnackBar` "Você agora é membro", e a tela passa à versão de membro |
+| `LAST_ADMIN` ao rebaixar | `SnackBar` com o texto do código (RN13) |
+| Remover do grupo | Confirmação destrutiva, com o nome no título e a frase de que a pessoa deixa de ver o grupo e precisa do código e da aprovação para voltar. Ao confirmar, `remove_group_member`. `SnackBar` "Removemos {nome} do grupo", e a lista relê |
+| `TARGET_NOT_MEMBER` (a pessoa saiu nesse meio tempo) | `SnackBar`, e a lista relê |
+
+- Admin remove outro admin sem rebaixar antes: o grupo continua com quem removeu como admin (RN10, RN13).
+- **A fatia 4 acrescenta** os bloqueios da RN16 (`MEMBER_IS_RECEIVER`, `MEMBER_IS_ONLY_GAME_ADMIN`) na remoção e na saída, com o aviso dos jogos que impedem (RF102).
+
+### 6.7 Solicitações (`/groups/:groupId/requests`)
+
+**Objetivo:** aprovar ou recusar quem pediu para entrar (RF17). Só para admins. Barra superior interna com voltar.
+
+**Conteúdo:** as solicitações pendentes do grupo, das mais antigas para as mais novas (`created_at`). Cada linha tem o avatar de 44, o nome de quem pediu, o subtítulo "Pediu em qui, 12/11" (`formatShortDate`, `docs/copy.md`, seção 3) e duas ações: **Recusar**, de contorno, e **Aprovar**, preenchida. Tocar no avatar ou no nome abre o perfil da pessoa (6.9): o admin vê nome e foto de quem tem solicitação pendente no grupo (RN107, exceção de 15/11/2026).
+
+| Situação | O que acontece |
+|----------|----------------|
+| Aprovar | `decide_join_request` com `true`. A linha sai, com o `SnackBar` "{nome} entrou no grupo" |
+| Recusar | Sem confirmação: a pessoa pode pedir de novo (RN12). `decide_join_request` com `false`. A linha sai, com o `SnackBar` "Solicitação recusada" |
+| `REQUEST_NOT_PENDING` (outro admin decidiu antes) | `SnackBar`, e a lista relê |
+| Enviando | Os dois botões da linha ficam bloqueados, e o tocado entra no estado carregando. As outras linhas continuam livres |
+| Nenhuma solicitação | Estado vazio com o ícone `person_add`, título e frase |
+
+### 6.8 Editar grupo (`/groups/:groupId/edit`)
+
+**Objetivo:** editar nome e foto (RF18) e excluir o grupo (RF103, RN17). Só para admins. Barra superior interna com voltar. Nome e foto são gravados juntos, no botão **Salvar**.
+
+**Conteúdo:**
+
+1. **Foto:** avatar quadrado de 96 com o botão de texto **Trocar foto**, que abre a sheet sem título da seção 5.8 (galeria, câmera e, se houver foto, **Remover foto**, que só vale ao salvar).
+2. **Nome do grupo**, com as mesmas regras da criação (6.2).
+3. Botão principal **Salvar**.
+4. Botão destrutivo de contorno **Excluir grupo**.
+
+| Situação | O que acontece |
+|----------|----------------|
+| Salvar | Nesta ordem: envia a foto nova para `groups/{group_id}/{uuid}.{ext}`, se houver; `update_group` com o nome e o caminho da foto (o novo, o atual ou nulo); apaga do bucket a foto antiga, se foi trocada ou removida. Depois, `SnackBar` "Grupo salvo" e volta ao detalhe |
+| Erro depois de enviar a foto, ou falha ao apagar a antiga | Como na seção 5.8 |
+| Excluir grupo | Confirmação destrutiva, com o nome do grupo no título e a frase de que todos os integrantes saem, as solicitações pendentes são canceladas, o convite deixa de valer e os jogos concluídos e cancelados continuam no histórico de quem participou. Ao confirmar, `archive_group` |
+| Exclusão aceita | Volta a Meus grupos, sem o grupo, com o `SnackBar` "Grupo excluído". A foto fica no bucket até a limpeza da fatia 6 (`contratos-api.md`, `storage-cleanup`) |
+| `GROUP_HAS_ACTIVE_GAMES` | `SnackBar` com o texto do código (RN17). Na fatia 3 só acontece com jogos inseridos direto no banco |
+
+- Voltar com alterações não salvas descarta as alterações, sem confirmação.
+
+### 6.9 Perfil de outra pessoa (`/people/:userId`)
+
+**Objetivo:** ver o apelido, o nome e a foto de outra pessoa (RF19, RN107). Abre na aba de origem, com a barra inferior. Barra superior interna com voltar.
+
+**Conteúdo:** avatar de 96 (`design-system.md`, 3.4), o `display_name` em `title.md` (RN100) e, embaixo, o nome em `body.md` `onSurfaceVariant`, só quando há apelido. **A fatia 4 acrescenta** o telefone visível (RF101).
+
+| Situação | O que acontece |
+|----------|----------------|
+| A pessoa compartilha contexto com quem abre, ou tem solicitação pendente num grupo que quem abre administra | Mostra o perfil. A leitura de `profiles` é decidida pelo RLS (`rls-matriz.md`, fatia 3) |
+| Sem contexto, ou ID que não existe | Estado "não encontrado", sem dizer qual dos dois (`contratos-api.md`, seção 1) |
+| O próprio ID | Mostra a mesma tela, com os próprios dados |
+
+### 6.10 Testes da fatia 3
+
+Os cenários estão em `testes-referencia.md`, seção 11.

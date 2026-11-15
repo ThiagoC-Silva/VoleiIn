@@ -222,6 +222,15 @@ Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfir
 
 **Perfis da fatia 2:** Ana com telefone visível e chave CPF; Bruno com o apelido `Brunão`, telefone oculto e chave e-mail; Carla com o apelido `Carlinha`, sem telefone e com chave aleatória; Diego só com o nome. Os fluxos L09 a L11 devolvem esses valores no fim (`testes-referencia.md`, 10.4).
 
+**Grupos da fatia 3**, com IDs e códigos fixos para os testes de Deno e os fluxos L12 a L14 (`testes-referencia.md`, seção 11):
+
+| Grupo | ID | Código | Membros | Solicitação pendente |
+|-------|----|--------|---------|----------------------|
+| Vôlei de Quinta | `00000000-0000-0000-0000-000000000101` | `VoleiQuinta1` | Ana (admin), Bruno e Carla | — |
+| Vôlei de Domingo | `00000000-0000-0000-0000-000000000102` | `VoleiDomingo` | Bruno (admin) | Diego |
+
+Diego continua sem grupo: a solicitação pendente não é contexto (RN107), e ele serve aos testes de "sem contexto" com a Ana e a Carla. Só o Bruno, admin do Domingo, vê o perfil do Diego (RN107, exceção 2). Os grupos não têm foto no seed.
+
 - Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente, que vem de `current_terms_versions()` (`contratos-api.md`, seção 9). O seed grava a mesma versão (`1.0`); quando uma migração trocar a versão, o seed muda junto.
 - IDs fixos (UUIDs legíveis, como `00000000-0000-0000-0000-00000000000a` para a Ana), para que testes e anotações possam citá-los.
 - O domínio `.test` é reservado e nunca entrega e-mail.
@@ -232,7 +241,7 @@ Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfir
 |-------|------------|
 | 1 | As quatro contas, para o login técnico |
 | 2 | Perfis completos: apelido, telefone visível e oculto, chave Pix. O aceite dos termos na versão `1.0`, a mesma de `current_terms_versions()` |
-| 3 | Um grupo com admin e membros, uma solicitação pendente |
+| 3 | Dois grupos com admin e membros e uma solicitação pendente (tabela acima) |
 | 4 | Jogos Aberto, Confirmado (com espera), em andamento e Cancelado; passagens canceladas no prazo e fora dele |
 | 5 | Jogo Concluído com rateio, multas mantidas e isentadas, troca de recebedor |
 | 6 | Valores Pendentes, Em análise, Pagos e Isentos; comprovantes nos três status |

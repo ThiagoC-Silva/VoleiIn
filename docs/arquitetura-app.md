@@ -62,7 +62,8 @@ app/integration_test/       # fluxos de ponta a ponta no emulador
 | `material_symbols_icons` | Ícones (`design-system.md`, seção 6) |
 | `google_sign_in` | Login com Google |
 | `image_picker` | Foto do perfil, da galeria ou da câmera, já reduzida a 1024 px no maior lado (fatia 2) |
-| `file_picker`, `share_plus`, `app_links`, `firebase_core`, `firebase_messaging`, `flutter_local_notifications` | Entram nas fatias que os usam (`stacks.md`, 3.1) |
+| `share_plus` | Compartilhar o código do grupo (fatia 3), o link do jogo (fatia 8) e a lista em texto (fatia 7) |
+| `file_picker`, `app_links`, `firebase_core`, `firebase_messaging`, `flutter_local_notifications` | Entram nas fatias que os usam (`stacks.md`, 3.1) |
 | `http` | Já vem com `supabase_flutter`; declarada porque a conversão de erros cita `ClientException` (seção 7) |
 | `mocktail` (dev) | Dublês nos testes |
 | `flutter_lints` (dev) | Regras do `dart analyze` |

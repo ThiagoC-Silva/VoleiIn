@@ -18,6 +18,7 @@ Esta é a versão da Fase 0, com os cenários de maior risco. Antes de cada fati
 | 8 | Concorrência | 4, 5 e 6 | Deno test com conexões separadas |
 | 9 | Fundação: segurança da base, estrutura, *triggers*, formatação, erros e login | 1 | pgTAP, `flutter_test` e `integration_test` |
 | 10 | Conta e perfil: RLS da conta, chave Pix e RN105, fotos (RN106), validações, telas e fluxos | 2 | pgTAP, Deno test, `flutter_test` e `integration_test` |
+| 11 | Grupos: funções, RLS e contexto (RN107), fotos do grupo, prévia do convite, concorrência, telas e fluxos | 3 | pgTAP, Deno test, `flutter_test` e `integration_test` |
 
 **Ficam para o ciclo de cada fatia:** a máquina de estados do jogo (RN40 a RN45) e do valor a pagar (RN80 a RN94), a exclusão de conta (RN103), o RLS de cada tabela e os comprovantes.
 
@@ -201,7 +202,7 @@ pgTAP, em `supabase/tests/database/base_security.test.sql`. B03, B04 e B06 compa
 | B05 | Como `postgres`, o teste cria uma tabela e uma função novas em `public` | Consulta os privilégios delas | A **tabela** nasce sem privilégio algum para `anon`, `authenticated` e `public`. A **função** nasce com o `execute` que o Postgres dá a `public`, que nenhuma configuração remove (`rls-matriz.md`, seção 1): o teste registra esse comportamento e falha se ele mudar. Quem cobra o fechamento de cada função é o B06 |
 | B06 | Banco após reset | Lista as funções de `public`, fora as de extensões, que `anon` ou `authenticated` podem executar | Igual à lista esperada. Na fatia 1, vazia. É o teste que cobra o `revoke execute ... from public, anon` de toda função nova (B05) |
 | B07 | Idem | Consulta `usage` de `anon` e `authenticated` no esquema `private` e `execute` em `private.emit_notification` | Falso em todos |
-| B08 | Usuário autenticado (`role authenticated` com o `sub` de um usuário de teste) | `select` em `groups` e `insert` em `notifications` | Erro `42501` nos dois. Até a fatia 1, o `select` era em `profiles`, que a fatia 2 libera para a própria linha (seção 10.1) |
+| B08 | Usuário autenticado (`role authenticated` com o `sub` de um usuário de teste) | `insert` em `groups` e em `notifications` | Erro `42501` nos dois. Até a fatia 1, o primeiro era um `select` em `profiles`, que a fatia 2 libera para a própria linha (seção 10.1); até a fatia 2, um `select` em `groups`, que a fatia 3 libera aos membros (seção 11) |
 | B09 | Banco após reset | Lê `storage.buckets` | `avatars` e `receipts` existem, com `public = false` e os tamanhos e tipos da `rls-matriz.md` (seção 3) |
 | B10 | Usuário autenticado | `insert` em `storage.objects`, bucket `receipts`, caminho `<uuid>/x.png` | Recusado pelo RLS. As políticas de `storage.objects` são exatamente as da lista esperada: nenhuma na fatia 1; as três de `avatars` da fatia 2 (`rls-matriz.md`). Até a fatia 1, o caminho testado era `avatars/profiles/<uid>/x.png`, que a fatia 2 libera ao próprio usuário |
 
@@ -454,14 +455,196 @@ Deno test, em `supabase/functions/_tests/avatars_test.ts`, contra a API do Stora
 | M03 | Na produção, os três e-mails chegam pelo Resend com o remetente `nao-responda@mail.voleiin.com.br` e o código no assunto |
 | M04 | Na produção, o cadastro por e-mail, o Google e a vinculação funcionam, ainda sem usuários reais |
 
-## 11. Rastreabilidade
+## 11. Grupos (fatia 3)
+
+Decisões de 15/11/2026. Base: `contratos-api.md` (seção 3 e `preview-invite`), `rls-matriz.md` (fatia 3), `docs/ui/telas.md` (seção 6) e `docs/copy.md` (seção 7). "Ana logada" é `role authenticated` com o `sub` da Ana.
+
+**Base dos cenários pgTAP**, inserida como `postgres` no começo de cada teste, sem depender do seed (`arquitetura-app.md`, 14.4): o grupo **Quinta**, com o código `VoleiQuinta1`, Ana como admin e Bruno como membro. Carla e Diego não estão em nenhum grupo, salvo quando o cenário diz. Os resultados de B03, B04, B06 e B10 passam a ser as listas da fatia 3 da `rls-matriz.md`. O B08 troca o `select` em `groups`, que agora devolve zero linhas a quem não é membro em vez de `42501`, por um `insert` em `groups`, que continua sem privilégio (seção 9.1).
+
+"Notifica" é conferido em `notifications`: o tipo, o `user_id` e o `data` da tabela "Dados das notificações de grupo" do `contratos-api.md` (seção 3).
+
+### 11.1 Funções de grupo
+
+pgTAP, em `supabase/tests/database/groups_functions.test.sql`.
+
+**Criar e editar (RF14, RF18, RN10, RN11)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| G01 | Ana logada | `create_group('  Vôlei de Sábado  ')` | Retorna `group_id` e um `invite_code` de 12 caracteres base62. O grupo tem o nome `Vôlei de Sábado`, `created_by` = Ana, e Ana é a única linha em `group_members`, com o papel `admin` |
+| G02 | Ana logada | `create_group` com `''`, com `'   '` e com 61 caracteres; depois com 60 | `INVALID_INPUT` nos três primeiros. O de 60 é aceito |
+| G03 | `role authenticated` sem `sub` | `create_group('Teste')` | `NOT_AUTHENTICATED` |
+| G04 | Ana logada | `update_group(quinta, 'Quinta à noite', 'groups/<quinta>/<uuid>.png')`; depois com a foto nula | Nome e foto gravados; depois `photo_path` nulo |
+| G05 | Ana logada | `update_group` com a foto em `groups/<outro grupo>/x.png`, em `profiles/<ana>/x.png` e com o nome vazio | `INVALID_INPUT` nos três. Nada muda |
+| G06 | Bruno logado; Diego logado | `update_group(quinta, ...)` | Bruno: `NOT_GROUP_ADMIN`. Diego: `NOT_FOUND` |
+
+**Convite (RF15, RN11)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| G07 | Ana logada; Diego tem solicitação pendente no Quinta | `regenerate_group_invite(quinta)` | Retorna um código novo, diferente de `VoleiQuinta1`, e grava `invite_code_updated_at = now()`. A solicitação do Diego continua `pending` |
+| G08 | Depois do G07 | Carla logada chama `request_group_join('VoleiQuinta1')`; depois com o código novo | `INVITE_INVALID`; depois aceito |
+| G09 | Ana logada | `invalidate_group_invite(quinta)`; Carla pede com `VoleiQuinta1`; Ana chama `regenerate_group_invite` | `invite_code` nulo; `INVITE_INVALID`; um código novo |
+| G10 | Bruno logado; Diego logado | `regenerate_group_invite(quinta)` e `invalidate_group_invite(quinta)` | Bruno: `NOT_GROUP_ADMIN` nos dois. Diego: `NOT_FOUND` nos dois |
+
+**Solicitações (RF16, RF17, RN12)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| G11 | Diego logado | `request_group_join('VoleiQuinta1')` | Retorna `request_id` e o `group_id` do Quinta. A solicitação fica `pending`. Notifica Ana (`group_join_requested`), e só ela: Bruno não é admin |
+| G12 | Depois do G11 | Diego pede de novo | `JOIN_REQUEST_PENDING` |
+| G13 | Bruno logado | `request_group_join('VoleiQuinta1')` | `ALREADY_MEMBER` |
+| G14 | Diego logado | Pede com `voleiquinta1` (outra caixa), com `VoleiQuinta2` (não existe) e com o código que o grupo **Antigo** tinha antes de ser arquivado | `INVITE_INVALID` nos três. O código diferencia maiúsculas de minúsculas |
+| G15 | Diego com solicitação pendente; Ana logada | `decide_join_request(<req>, true)` | `status = approved`, `decided_by` = Ana, `decided_at = now()`. Diego entra em `group_members` como `member`. Notifica Diego (`group_join_decided`, `approved: true`) |
+| G16 | Idem | `decide_join_request(<req>, false)`; depois Diego pede de novo | `status = rejected`, e Diego não vira membro. Notifica Diego (`approved: false`). O novo pedido é aceito (RN12) |
+| G17 | Solicitação já aprovada | Ana decide de novo | `REQUEST_NOT_PENDING` |
+| G18 | Diego com solicitação pendente | Bruno logado decide; Diego decide a própria; Carla decide | Bruno: `NOT_FOUND` (não vê a solicitação). Diego: `NOT_GROUP_ADMIN`. Carla: `NOT_FOUND` |
+
+**Papéis (RF23, RF24, RN10, RN13)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| G19 | Ana logada | `set_group_role(quinta, bruno, 'admin')`; depois Bruno logado chama `set_group_role(quinta, ana, 'member')` | Os dois aceitos. No fim, Bruno é o único admin |
+| G20 | Ana é a única admin | Ana chama `set_group_role(quinta, ana, 'member')` | `LAST_ADMIN`. Ana continua admin |
+| G21 | Ana logada | `set_group_role(quinta, ana, 'admin')` (o papel que ela já tem) | Aceito, sem mudança |
+| G22 | — | Ana: `set_group_role(quinta, diego, 'admin')`. Bruno: `set_group_role(quinta, ana, 'member')`. Diego: `set_group_role(quinta, bruno, 'admin')` | Ana: `TARGET_NOT_MEMBER`. Bruno: `NOT_GROUP_ADMIN`. Diego: `NOT_FOUND` |
+
+**Saída, remoção e exclusão (RF20, RF21, RF103, RN13, RN17)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| G23 | Bruno logado | `leave_group(quinta)` | Retorna `games_left` vazio. Bruno sai de `group_members`. Nenhuma notificação |
+| G24 | Ana é a única admin, com Bruno no grupo | Ana chama `leave_group(quinta)` | `LAST_ADMIN` |
+| G25 | Grupo **Solo**, só com a Ana | Ana chama `leave_group(solo)` | `LAST_ADMIN`: o único membro exclui o grupo (RN13) |
+| G26 | Diego logado | `leave_group(quinta)` | `NOT_FOUND` |
+| G27 | Ana logada | `remove_group_member(quinta, bruno)` | Bruno sai de `group_members`. Notifica Bruno (`removed_from_group`, `reason: removed`) |
+| G28 | Bruno promovido a admin | Ana remove Bruno | Aceito: Ana continua admin, e o grupo não fica sem admin |
+| G29 | — | Ana remove a si mesma; Ana remove Diego; Bruno remove Ana; Diego remove Bruno | `CANNOT_REMOVE_SELF`; `TARGET_NOT_MEMBER`; `NOT_GROUP_ADMIN`; `NOT_FOUND` |
+| G30 | Quinta com Bruno membro e Diego com solicitação pendente | Ana chama `archive_group(quinta)` | `archived_at = now()`, `archived_by` = Ana, `invite_code` nulo, `group_members` vazio. A solicitação do Diego fica `cancelled`, com `decided_at = now()` e `decided_by` nulo. Notifica Bruno (`reason: archived`) e não Ana. Uma linha `group_archived` em `audit_log`, com `actor_id` = Ana |
+| G31 | Jogo do Quinta `open`, inserido direto; depois só `confirmed`; depois só `cancelled` e `completed` | Ana chama `archive_group(quinta)` | `GROUP_HAS_ACTIVE_GAMES` nos dois primeiros. Aceito no terceiro (RN17) |
+| G32 | — | Bruno chama `archive_group(quinta)`; Diego chama | `NOT_GROUP_ADMIN`; `NOT_FOUND` |
+| G33 | Depois do G30 | Ana chama `update_group(quinta, ...)` e `regenerate_group_invite(quinta)` | `NOT_FOUND` nos dois: o grupo arquivado não tem mais membros |
+
+### 11.2 RLS e contexto (RN107)
+
+pgTAP, em `supabase/tests/database/groups_security.test.sql`. Os jogos usados para contexto são inseridos direto, como `postgres`, com o admin na mesma transação (`modelo-dados.md`, 4.3).
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| K01 | Base | Bruno lê `groups`; Diego lê `groups` | Bruno vê o Quinta, com o `invite_code`. Diego não vê nenhuma linha |
+| K02 | Base | Bruno lê `group_members`; Diego lê | Bruno vê Ana e Bruno. Diego, nenhuma linha |
+| K03 | Bruno saiu do Quinta (`leave_group`) | Bruno lê `groups` e `group_members` | Nenhuma linha |
+| K04 | Quinta arquivado | Ana lê `groups` | Nenhuma linha |
+| K05 | Diego com solicitação pendente e uma recusada no Quinta | Diego, Ana, Bruno e Carla leem `group_join_requests` | Diego vê as duas dele. Ana vê as duas. Bruno e Carla, nenhuma |
+| K06 | Ana logada | `insert`, `update` e `delete` em `groups`, `group_members` e `group_join_requests` | `42501` em todos |
+| K07 | Base | Bruno lê `profiles`; Diego lê `profiles` | Bruno vê a própria linha e a da Ana. Diego vê só a própria (RN107, negativo) |
+| K08 | Carla e Diego com linhas no mesmo jogo avulso: Carla `cancelled` na lista e Diego com `left_at` preenchido na espera | Diego lê `profiles` | Vê a Carla: jogo passado e espera contam como contexto |
+| K09 | Diego com solicitação pendente no Quinta | Ana lê o perfil do Diego; Bruno lê | Ana vê (RN107, exceção 2). Bruno não vê |
+| K10 | Depois do K09, Ana recusa a solicitação | Ana lê o perfil do Diego | Não vê |
+| K11 | Depois do K09, Ana aprova a solicitação | Bruno lê o perfil do Diego | Vê, pelo contexto do grupo |
+| K12 | Bruno sai do Quinta, sem jogo em comum com a Ana | Ana lê o perfil do Bruno | Não vê: o contexto acaba com a saída |
+| K13 | Quinta arquivado | Ana lê o perfil do Bruno | Não vê |
+| K14 | Base | Bruno lê `profile_private` | Só a própria linha. A da Ana não aparece, mesmo com contexto |
+| K15 | `role anon` | `select` em `groups`, `group_members` e `group_join_requests` | `42501` nas três |
+
+### 11.3 Fotos do grupo e de outras pessoas
+
+Deno test, em `supabase/functions/_tests/avatars_test.ts`, junto da seção 10.3, com as contas e os grupos do seed (`setup.md`, seção 8): o Quinta, com Ana admin e Bruno e Carla membros, e o Domingo, só com o Bruno admin e a solicitação pendente do Diego.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| A07 | Ana logada | Envia um PNG para `groups/<quinta>/<uuid>.png` | Aceito |
+| A08 | Bruno logado; Diego logado | Enviam um PNG para `groups/<quinta>/<uuid>.png` | Recusado pelo RLS nos dois |
+| A09 | Foto do A07 | Bruno pede a URL assinada; Diego pede | Bruno recebe. Diego é recusado |
+| A10 | Ana com foto de perfil | Bruno pede a URL assinada da foto da Ana; Diego pede | Bruno recebe (contexto). Diego é recusado (RN107) |
+| A11 | Diego envia a própria foto de perfil | Bruno pede a URL assinada dela; Ana pede | Bruno recebe: Diego tem solicitação pendente no Domingo, que Bruno administra. Ana é recusada |
+| A12 | Foto do A07 | Bruno apaga; Ana apaga | O de Bruno não remove o arquivo. O da Ana remove |
+| A13 | Ana logada | Envia um PNG para `groups/nao-e-uuid/x.png` | Recusado, sem erro de conversão no banco |
+
+### 11.4 Prévia do convite
+
+Deno test, em `supabase/functions/preview-invite/index_test.ts`, contra o Supabase local com o seed. "Chama" é `functions.invoke('preview-invite', { code, kind: 'group' })`.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| Q01 | Diego logado | Chama com `VoleiQuinta1` | HTTP 200: `kind = group`, o `group_id` e o nome do Quinta, `photo_url` nulo, `is_member` e `has_pending_request` falsos |
+| Q02 | Bruno logado | Chama com `VoleiQuinta1` | `is_member` verdadeiro |
+| Q03 | Diego logado | Chama com `VoleiDomingo` | `has_pending_request` verdadeiro, `is_member` falso |
+| Q04 | Diego logado | Chama com `voleiquinta1` e com `VoleiQuinta2` | HTTP 404, `INVITE_INVALID`, nos dois |
+| Q05 | Sem login; Diego logado sem `code`; Diego logado com `kind: game` | Chama | HTTP 401 `NOT_AUTHENTICATED`; HTTP 422 `INVALID_INPUT`; HTTP 422 `INVALID_INPUT` (jogos só na fatia 8) |
+| Q06 | Ana põe uma foto no Quinta | Diego chama com `VoleiQuinta1` | `photo_url` é uma URL assinada que baixa a foto, mesmo com o Diego sem acesso ao bucket |
+| Q07 | Diego logado | Chama com `VoleiQuinta1` | Nenhuma linha nova em `group_join_requests` nem em `notifications`: a prévia não grava nada |
+
+### 11.5 Concorrência
+
+Deno test, em `supabase/functions/_tests/concurrency/groups_test.ts`, com conexões separadas e cada cenário repetido 50 vezes, como na seção 8.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| C13 | Diego sem solicitação no Quinta | Duas chamadas simultâneas de `request_group_join('VoleiQuinta1')` pelo Diego | Uma cria a solicitação. A outra recebe `JOIN_REQUEST_PENDING`. Sempre uma só pendente (RN12) |
+| C14 | Ana e Bruno admins do Quinta, sem outros admins | Ao mesmo tempo, Ana rebaixa Bruno e Bruno rebaixa Ana | Uma é aceita e a outra recebe `LAST_ADMIN`. O grupo termina com exatamente um admin (RN13) |
+| C15 | Diego com solicitação pendente; Ana e Bruno admins | Ao mesmo tempo, Ana aprova e Bruno recusa | Uma decisão vale e a outra recebe `REQUEST_NOT_PENDING`. Diego é membro se, e só se, a aprovação venceu |
+
+### 11.6 App
+
+**Validação**, teste unitário em `app/test/`:
+
+| ID | Entrada | Função | Resultado |
+|----|---------|--------|-----------|
+| U08 | ` VoleiQuinta1 `, `Volei Quinta1`, `VoleiQuinta`, `VoleiQuinta1!`, `voleiquinta1` | Código de convite digitado | `VoleiQuinta1`, `VoleiQuinta1`, inválido (11 caracteres), inválido, `voleiquinta1` (a caixa é mantida) |
+
+**Conversão de erros**, em `app/test/core/errors/`:
+
+| ID | Exceção recebida | `ErrorCode` |
+|----|------------------|-------------|
+| E13 | `PostgrestException` `P0001` com cada código da seção 7.7 do `docs/copy.md` | O `ErrorCode` da mesma linha |
+| E14 | `FunctionException` da `preview-invite` com HTTP 404 e `{ "error": { "code": "INVITE_INVALID" } }` | `inviteInvalid` |
+
+**Telas**, testes de widget com os repositórios trocados por dublês (`docs/ui/telas.md`, seção 6):
+
+| ID | Tela | Quando | Então |
+|----|------|--------|-------|
+| S18 | Meus grupos | Nenhum grupo | Estado vazio com `groupsEmptyTitle` e os botões **Criar grupo** e **Entrar com código** |
+| S19 | Meus grupos | Grupos `Vôlei de Quinta` (Ana admin, 3 integrantes, 2 solicitações) e `Areia` (Ana membro, 1 integrante) | Ordem: `Areia`, `Vôlei de Quinta`. O Quinta tem o selo **Admin** e o subtítulo "3 integrantes · 2 solicitações". O Areia, "1 integrante", sem selo |
+| S20 | Criar grupo | Nome vazio; nome com 61 caracteres; criar sem foto | Erro `groupNameRequired`; erro `groupNameTooLong`, sem chamar o servidor; `create_group` chamado e `update_group` não, abre o detalhe, e o voltar não retorna à criação |
+| S21 | Criar grupo | Criar com foto; depois, outro caso em que o envio da foto falha | Chamadas nesta ordem: `create_group`, envio para `groups/<id>/...`, `update_group`. Na falha, abre o detalhe do mesmo jeito, com o `SnackBar` `groupCreatedPhotoFailed` |
+| S22 | Entrar com código | Campo vazio; `VoleiQuinta` (11); prévia responde `INVITE_INVALID` | `groupJoinCodeRequired`; `groupJoinCodeInvalid`, sem chamar a prévia; `errorInviteInvalid` no campo |
+| S23 | Entrar com código | Prévia com `is_member`; com `has_pending_request`; nos dois falsos | **Abrir o grupo**; o aviso `groupJoinPending`, sem **Pedir para entrar**; **Pedir para entrar** |
+| S24 | Entrar com código | Pedir é aceito; pedir responde `JOIN_REQUEST_PENDING`; responde `ALREADY_MEMBER`; responde `INVITE_INVALID` | Estado pendente; estado pendente, sem `SnackBar`; estado "Já é membro"; volta à etapa 1 com o erro no campo |
+| S25 | Detalhe do grupo | Membro comum; admin com 2 pendentes; único membro | Sem **Solicitações** e **Editar grupo**, com **Sair do grupo**; com as duas linhas e "2 solicitações pendentes"; sem **Sair do grupo** |
+| S26 | Detalhe do grupo | Sair, confirmar, aceito; depois `leave_group` responde `LAST_ADMIN`; o repositório não acha o grupo | Volta a Meus grupos com `groupLeft`; `SnackBar` `errorLastAdmin`; estado "não encontrado" |
+| S27 | Convite | Membro com código; admin com código; Gerar novo código e confirmar; membro com convite desativado; admin com convite desativado | Código, **Compartilhar** e **Copiar código**, sem as ações de admin; com **Gerar novo código** e **Desativar convite**; `regenerate_group_invite` e o código novo na sheet; `groupInviteAskAdmin`, sem botão; **Gerar código**, que chama `regenerate_group_invite` sem confirmação |
+| S28 | Convite | Copiar código; Compartilhar | O `Clipboard` recebe só o código, com `groupInviteCopied`; o compartilhamento recebe `groupInviteShareText` com o nome e o código |
+| S29 | Integrantes | Ana (admin) e Bruno e Carla (membros), com Ana logada | Ordem: Ana (você), com o selo; depois Bruno e Carla. Tocar em Bruno abre a sheet com **Ver perfil**, **Tornar admin** e **Remover do grupo**. Tocar em si abre **Deixar de ser admin** |
+| S30 | Integrantes | Bruno logado (membro) toca em Ana; toca em si | Abre `/people/<ana>`; nada acontece |
+| S31 | Integrantes | Tornar Bruno admin; remover Carla e confirmar; Ana, única admin, deixa de ser admin e o repositório responde `LAST_ADMIN` | `set_group_role` e `groupMemberNowAdmin`; `remove_group_member` e `groupMemberRemoved`; `SnackBar` `errorLastAdmin` |
+| S32 | Solicitações | Duas pendentes; aprovar a primeira; recusar a segunda; uma terceira responde `REQUEST_NOT_PENDING`; Bruno (membro) abre a rota | Ordem por `created_at`; `decide_join_request(true)`, a linha sai, `groupRequestApproved`; `decide_join_request(false)`, `groupRequestRejected`; `SnackBar` e a lista relê; estado "não encontrado" |
+| S33 | Editar grupo | Salvar com foto nova no lugar da antiga; Excluir, confirmar, aceito; Excluir com `GROUP_HAS_ACTIVE_GAMES`; Bruno (membro) abre a rota | Chamadas nesta ordem: envio da foto, `update_group`, remoção da antiga; volta a Meus grupos com `groupDeleted`; `SnackBar` `errorGroupHasActiveGames`; estado "não encontrado" |
+| S34 | Perfil de outra pessoa | Bruno com `name = 'Bruno Lima'` e `nickname = 'Brunão'`; Diego sem apelido; o repositório não acha o perfil | `Brunão` no título e `Bruno Lima` embaixo; só o nome; estado "não encontrado" |
+| S35 | Todas as telas da seção 6 do `telas.md` e a sheet do convite | Fonte do sistema em 150% | Nenhum *overflow* |
+
+**Fluxos**, testes de integração no emulador (API 29 e 36) contra o Supabase local com o seed, pelos `scripts/` (`setup.md`, 3.1). Cada fluxo deixa o seed como encontrou:
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| L12 | Diego logado | Entra com o código `VoleiQuinta1` e pede para entrar; sai e entra como Ana, aprova em Solicitações do Quinta; sai e entra como Diego; no fim, Diego sai do grupo | Diego vê o Vôlei de Quinta em Meus grupos e Ana, Bruno e Carla em Integrantes. Depois de sair, o grupo some da lista |
+| L13 | Ana logada | Cria o grupo `L13 <data e hora>`, abre o convite, gera um código novo e exclui o grupo em Editar grupo | O código muda na sheet. Depois da exclusão, o grupo não aparece em Meus grupos |
+| L14 | Ana logada | No Quinta, torna a Carla admin e depois a deixa como membro | O selo **Admin** aparece e some na linha da Carla |
+
+**Conferência manual**, no emulador:
+
+| ID | O que conferir |
+|----|----------------|
+| M05 | **Compartilhar** abre o seletor do Android, e o texto chega ao WhatsApp com o nome do grupo e o código no fim, que dá para copiar sozinho e colar em **Entrar com código** |
+
+## 12. Rastreabilidade
 
 | Regra | Cenários |
 |-------|----------|
 | RN01 | B13, D09 a D15 |
 | RN02 | B14 |
 | RN04 | B11, B12, D01 a D08 |
-| RN13 | B29 a B33 |
+| RN13 | B29 a B33, G20, G24, G25, C14, S26, S31 |
 | RN25 | B34 a B36 |
 | RN02, RN03 | T01 a T10 |
 | RN35 | T16 |
@@ -478,5 +661,10 @@ Deno test, em `supabase/functions/_tests/avatars_test.ts`, contra a API do Stora
 | RN100 | P02, S17 |
 | RN101 | S12 |
 | RN105 | N01 a N09, S13 |
-| RN106 | A01 a A06, S12 |
+| RN106 | A01 a A06, S12, G04, G05, A07, A08, A12, A13, S21, S33 |
 | RF105 | P10 a P13, S09, S10, L08 |
+| RN10 | G01, G19, G28, S31, L14 |
+| RN11 | G01, G07 a G10, S27 |
+| RN12 | G11 a G18, C13, C15, Q03, S23, S24, S32, L12 |
+| RN17 | G30 a G33, S33, L13 |
+| RN107 | K07 a K14, A09 a A11, Q01, Q06, S34 |

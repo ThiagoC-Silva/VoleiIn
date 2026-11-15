@@ -554,7 +554,7 @@ Toda escrita com regra passa por uma função do servidor (SQL `security definer
  
 | Bucket | Caminho | Limites | Acesso |
 |--------|---------|---------|--------|
-| `avatars` (privado) | `profiles/{user_id}/{uuid}.{ext}`, `groups/{group_id}/{uuid}.{ext}` | JPEG, PNG ou WebP; até 2 MB (RN106) | Escrita pelo dono do perfil ou admin do grupo; leitura por URL assinada para quem pode ver o perfil (RN107) ou é membro do grupo |
+| `avatars` (privado) | `profiles/{user_id}/{uuid}.{ext}`, `groups/{group_id}/{uuid}.{ext}` | JPEG, PNG ou WebP; até 2 MB (RN106) | Escrita pelo dono do perfil ou admin do grupo; leitura por URL assinada para quem pode ver o perfil (RN107, inclusive o admin que decide uma solicitação) ou é membro do grupo |
 | `receipts` (privado) | `{charge_id}/{uuid}.{ext}` | Imagem ou PDF; até 10 MB (RN87) | Escrita pelo pagador, apenas para valor `pending`; leitura pelo pagador e pelo `receiver_id` do comprovante, por URL assinada de curta duração |
  
 Arquivos de foto substituídos, de grupos arquivados e de contas anonimizadas são apagados do bucket. Arquivos enviados ao bucket `receipts` sem linha correspondente em `receipts` após 24 horas são apagados pelo *job* diário de retenção.
@@ -563,7 +563,7 @@ Arquivos de foto substituídos, de grupos arquivados e de contas anonimizadas s�
  
 | Tabela | Leitura | Escrita direta pelo app |
 |--------|---------|-------------------------|
-| `profiles` | O próprio e quem compartilha contexto com o dono (RN107) | Própria linha (`name`, `nickname`, `photo_path`) |
+| `profiles` | O próprio, quem compartilha contexto com o dono e o admin de um grupo em que o dono tem solicitação pendente (RN107) | Própria linha (`name`, `nickname`, `photo_path`) |
 | `profile_private` | Apenas o dono (outros via `get_profile_contact`) | Própria linha, com a *trigger* da RN105 |
 | `terms_acceptances` | Apenas o dono | Inserção da própria linha |
 | `groups`, `group_members` | Membros do grupo | Não (funções) |
@@ -584,6 +584,6 @@ Não alteram regra de negócio; podem ser revistas na implementação.
  
 1. **Telefone e chave Pix em `profile_private`**, expostos a terceiros só pela função `get_profile_contact`, porque o RLS não esconde colunas.
 2. **`auth.users` não é apagado** na exclusão de conta: é anonimizado e bloqueado, para preservar a chave estrangeira de `profiles`.
-3. **Código de convite com 12 caracteres base62**, cerca de 71 bits de aleatoriedade.
+3. **Código de convite com 12 caracteres base62**, cerca de 71 bits de aleatoriedade. Mantido em 15/11/2026, com a diferença entre maiúsculas e minúsculas: quem recebe o código costuma colá-lo, e o app não troca a caixa das letras ao digitar.
 4. **Lista de espera com `left_at`** em vez de exclusão da linha, para que a passagem pela espera conte como contexto compartilhado (RN107).
 5. **Proteção contra envios simultâneos de comprovante no servidor** por bloqueio da linha do valor a pagar, sem criar um status de comprovante a mais (a regra de negócio só bloqueia no app, RN86).
