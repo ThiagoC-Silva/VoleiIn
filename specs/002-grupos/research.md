@@ -23,6 +23,8 @@ Decisões técnicas que os documentos deixam para a implementação. Regra de pr
 - **Decision:** cada teste pgTAP da fatia 3 começa, como `postgres` e dentro da própria transação, apagando as linhas de `group_join_requests` e `group_members` e deixando nulos todos os códigos de convite. Depois insere a base dos cenários (Quinta com `VoleiQuinta1`, Ana admin, Bruno membro). O `rollback` do fim devolve tudo.
 - **Rationale:** o seed da fatia 3 (`setup.md`, seção 8) já tem o Vôlei de Quinta com a Carla e o Domingo com o pedido do Diego, e a base dos cenários (`testes-referencia.md`, seção 11) diz que Carla e Diego não estão em nenhum grupo. Sem a limpeza, K05 e K07 veriam as linhas do seed, e o código `VoleiQuinta1` colidiria. A *trigger* adiável da RN13 só dispararia no `commit`, que nunca acontece. O teste roda igual com o seed, sem ele e na cópia da produção do ensaio (`arquitetura-app.md`, 14.4).
 - **Alternatives considered:** usar os grupos do seed como base (o teste dependeria do seed, contra a seção 14.4).
+- **Mesmo preparo no teste da fatia 2:** o `account_security.test.sql` supõe Ana e Bruno sem contexto (P01, P16), e o seed da fatia 3 pôs os dois no Vôlei de Quinta. O preparo dele passou a apagar as linhas de grupo na transação. Os resultados esperados não mudaram.
+- **Sem `finish()` nos testes com *savepoint*:** o `rollback to savepoint` apaga a tabela em que o pgTAP guarda os resultados, e o `finish()` acusaria "No tests run". A numeração continua certa, porque vem de uma sequência, e o `pg_prove` confere o plano pelas linhas `ok` e `not ok`.
 
 ## R4. Concorrência pela API, com clientes separados
 

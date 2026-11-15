@@ -902,5 +902,7 @@ select throws_ok(
 reset role;
 rollback to savepoint g32;
 
-select * from finish();
+-- Sem finish(): o rollback para cada savepoint apaga a tabela de resultados do
+-- pgTAP (a numeração segue certa, porque vem de uma sequência). O pg_prove
+-- confere o plano pelas linhas ok e not ok.
 rollback;
