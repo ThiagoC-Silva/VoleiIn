@@ -16,7 +16,7 @@ No app, a feature `groups` ganha as camadas `domain`, `data` e `presentation`, c
 
 **Language/Version**: SQL (Postgres 17 do Supabase local); TypeScript no Deno 2.x (Edge Function e testes); Dart 3 e Flutter estável (sessão 3).
 
-**Primary Dependencies**: as de `docs/arquitetura-app.md`, seção 3, e o `@supabase/supabase-js` 2 do `supabase/functions/deno.json`. Nenhum pacote novo no servidor. No app, o compartilhamento do convite usa o pacote previsto em `docs/arquitetura-app.md` (conferido na sessão 3).
+**Primary Dependencies**: as de `docs/arquitetura-app.md`, seção 3, e o `@supabase/supabase-js` 2 do `supabase/functions/deno.json`. Nenhum pacote novo no servidor. No app, o compartilhamento do convite usa o `share_plus` 13, previsto em `docs/arquitetura-app.md`, seção 3 (sessão 3).
 
 **Storage**: Postgres do Supabase (tabelas da seção 4.2 do `docs/modelo-dados.md`) e a pasta `groups/` do bucket privado `avatars`.
 
@@ -82,7 +82,7 @@ supabase/
         └── concurrency/groups_test.ts   # C13 e C15
 
 app/lib/features/groups/                 # sessão 3: domain, data, presentation
-app/lib/features/people/ ou groups/      # perfil de outra pessoa (decidido na sessão 3)
+app/lib/features/auth/presentation/person_screen.dart  # perfil de outra pessoa (sessão 3: a feature auth já tem o RF101)
 app/test/, app/integration_test/         # U08, E13, E14, S18 a S35, L12 a L14
 .github/workflows/ci.yml                 # testes da preview-invite no job database (research R6)
 ```

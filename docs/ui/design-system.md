@@ -282,7 +282,7 @@ Ainda não existe. Até a fatia 8, usa-se um espaço reservado com o texto `Vole
 
 ### 7.19 Onde ficam no código
 
-Componentes comuns em `app/lib/shared/widgets/`, criados na fatia 2:
+Componentes comuns em `app/lib/shared/widgets/`, criados nas fatias 2 e 3:
 
 | Componente | Arquivo |
 |------------|---------|
@@ -290,7 +290,7 @@ Componentes comuns em `app/lib/shared/widgets/`, criados na fatia 2:
 | Campo com rótulo acima e campo de senha com o olho (7.2) | `form_fields.dart` |
 | Corpo de formulário que rola, com o pé da tela embaixo | `form_scroll_view.dart` |
 | Barra superior interna com voltar (7.7) | `inner_app_bar.dart` |
-| Avatar com foto ou iniciais (3.4) | `avatar.dart` |
+| Avatar com foto ou iniciais (3.4), redondo (`VoleiAvatar`) e quadrado do grupo (`GroupAvatar`, fatia 3) | `avatar.dart` |
 | Lista de linhas com seta | `arrow_rows.dart` |
 | Quadrado de ícone (7.14) | `icon_square.dart` |
 | Sheet de confirmação destrutiva (7.15) | `confirm_sheet.dart` |
@@ -298,6 +298,10 @@ Componentes comuns em `app/lib/shared/widgets/`, criados na fatia 2:
 | Frase com um valor em negrito ("Enviamos um código para **ana@...**") | `bold_value_text.dart` |
 | `SnackBar` de sucesso e de erro (7.16) | `snack.dart` |
 | Estados de tela (7.16) | `state_views.dart` |
+| Selo em pílula (3.3), como o `neutral` do papel Admin (fatia 3) | `badge.dart` |
+| Aviso em linha (7.14, fatia 3) | `inline_notice.dart` |
+| Card de linhas de pessoa ou de grupo, com o selo ao lado do nome (7.13, fatia 3) | `list_card.dart` |
+| Opção de sheet e a sheet da foto, a mesma do perfil e do grupo (fatia 3) | `sheet_option.dart` |
 
 ## 8. Acessibilidade (RNF05)
 

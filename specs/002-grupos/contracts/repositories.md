@@ -7,7 +7,9 @@ A fronteira com o servidor está em `docs/contratos-api.md`, seções 3, 8 e 9, 
 - **Feature `groups`** (`app/lib/features/groups/`): os grupos, o convite, as solicitações e os integrantes (RF14 a RF25, RF102, RF103), como manda a seção 2 do `arquitetura-app.md`.
 - **Perfil de outra pessoa** (`/people/:userId`): fica na feature `auth`, que já tem o RF101 (telefone de outra pessoa, fatia 4) e o modelo `Profile`. O `ProfileRepository` ganha `fetchProfile`, e a tela usa o `avatarUrlProvider` que já existe. A rota fica no ramo da aba Grupos, a única origem na fatia 3 (`docs/ui/telas.md`, 6.9). A fatia 4 decide como abrir a mesma tela pela aba Jogos.
 - **Compartilhar** (`app/lib/core/share.dart`): o `Sharer`, que embrulha o `share_plus`, para o teste conferir o texto (S28) sem abrir o seletor do Android.
-- **Ordem das listas:** a ordem alfabética de Meus grupos e de Integrantes é de exibição e fica na `presentation`, sem diferenciar maiúsculas e acentos. O repositório devolve as linhas sem ordem garantida, salvo as solicitações, que vêm por `created_at`.
+- **Ordem das listas:** a ordem é de exibição e fica na `presentation`: alfabética em Meus grupos e em Integrantes (admins primeiro), sem diferenciar maiúsculas e acentos, e por `created_at` em Solicitações. O repositório não garante ordem (as solicitações já vêm por `created_at`, mas a tela ordena de novo, para o S32 conferir com um dublê).
+- **Partes comuns movidas para `core/`** (`arquitetura-app.md`, seção 2: uma feature não lê o `data` nem o `presentation` de outra): o `PhotoPicker` e o `PhotoChange`, que estavam em `features/auth/`, foram para `core/photo_picker.dart`; o `SubmitController`, para `core/submit_controller.dart`; a sheet da foto, para `shared/widgets/sheet_option.dart`.
+- **Sessão:** as telas de grupo leem o usuário logado pelo `sessionUserIdProvider` da feature `auth`, a exceção registrada no `arquitetura-app.md`, seção 2.
 
 ## Modelos (`features/groups/domain/`)
 
@@ -45,7 +47,7 @@ A fronteira com o servidor está em `docs/contratos-api.md`, seções 3, 8 e 9, 
 | `removeMember({groupId, userId})` | `rpc('remove_group_member')` | `notFound`, `notGroupAdmin`, `targetNotMember`, `cannotRemoveSelf` |
 | `archiveGroup(groupId)` | `rpc('archive_group')` | `notFound`, `notGroupAdmin`, `groupHasActiveGames` |
 
-A ordem das chamadas na criação com foto (`telas.md`, 6.2; S21) e no Salvar da edição (6.8; S33) é dos controllers: `createGroup`, `uploadGroupPhoto`, `updateGroup`; e `uploadGroupPhoto`, `updateGroup`, `deleteGroupPhoto`. A foto é escolhida pelo `PhotoPicker` da fatia 2.
+A ordem das chamadas na criação com foto (`telas.md`, 6.2; S21) e no Salvar da edição (6.8; S33) é dos controllers: `createGroup`, `uploadGroupPhoto`, `updateGroup`; e `uploadGroupPhoto`, `updateGroup`, `deleteGroupPhoto`. A foto é escolhida pelo `PhotoPicker` (`core/photo_picker.dart`).
 
 ## `ProfileRepository` (`features/auth/data/profile_repository.dart`), acréscimo
 
