@@ -390,7 +390,7 @@ Deno test, em `supabase/functions/_tests/avatars_test.ts`, contra a API do Stora
 | A03 | Ana logada | Envia um JPEG de exatamente 2.097.152 bytes | Aceito |
 | A04 | Ana logada | Envia um GIF (`image/gif`) | Recusado pelo tipo |
 | A05 | Ana logada | Envia um PNG para `profiles/<bruno>/<uuid>.png` | Recusado pelo RLS |
-| A06 | Um arquivo da Ana e um do Bruno | Ana pede a URL assinada de cada um | Recebe a do próprio arquivo. A do Bruno é recusada |
+| A06 | Um arquivo da Ana e um do Diego | Ana pede a URL assinada de cada um | Recebe a do próprio arquivo. A do Diego é recusada. Até a fatia 2, o outro arquivo era do Bruno; desde o seed da fatia 3, Bruno e Ana estão no mesmo grupo e compartilham contexto (RN107). Troca decidida pelo responsável em 15/11/2026: o Diego é a pessoa sem contexto do seed (`setup.md`, seção 8) |
 
 ### 10.4 App
 

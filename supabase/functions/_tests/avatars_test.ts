@@ -63,9 +63,12 @@ const options = { sanitizeOps: false, sanitizeResources: false };
 
 Deno.test('fotos de perfil no bucket avatars (RN106)', options, async (t) => {
   const ana = await signIn('ana@voleiin.test');
-  const bruno = await signIn('bruno@voleiin.test');
+  // O Diego não compartilha contexto com a Ana (RN107). Até a fatia 2, o A06
+  // usava o Bruno, que o seed da fatia 3 pôs no grupo da Ana (decisão de
+  // 15/11/2026, docs/testes-referencia.md, 10.3).
+  const diego = await signIn('diego@voleiin.test');
   const uploadedByAna: string[] = [];
-  const uploadedByBruno: string[] = [];
+  const uploadedByDiego: string[] = [];
 
   try {
     await t.step('A01: PNG de 100 KB na própria pasta é aceito', async () => {
@@ -107,25 +110,25 @@ Deno.test('fotos de perfil no bucket avatars (RN106)', options, async (t) => {
     });
 
     await t.step('A06: Ana recebe a URL assinada só do próprio arquivo', async () => {
-      const brunoFile = path(BRUNO, 'png');
-      const { error: brunoUploadError } = await upload(bruno, brunoFile, 1024, 'image/png');
-      assertEquals(brunoUploadError, null);
-      uploadedByBruno.push(brunoFile);
+      const diegoFile = path(DIEGO, 'png');
+      const { error: diegoUploadError } = await upload(diego, diegoFile, 1024, 'image/png');
+      assertEquals(diegoUploadError, null);
+      uploadedByDiego.push(diegoFile);
 
       const own = await ana.storage.from(BUCKET).createSignedUrl(uploadedByAna[0], 60);
       assertEquals(own.error, null);
       assert(own.data?.signedUrl, 'Ana should get the signed URL of her own file');
 
-      const other = await ana.storage.from(BUCKET).createSignedUrl(brunoFile, 60);
-      assert(other.error, 'the signed URL of the file of Bruno should be refused');
+      const other = await ana.storage.from(BUCKET).createSignedUrl(diegoFile, 60);
+      assert(other.error, 'the signed URL of the file of Diego should be refused');
       assertEquals(other.data, null);
     });
   } finally {
     // Deixa o bucket como encontrou.
     if (uploadedByAna.length > 0) await ana.storage.from(BUCKET).remove(uploadedByAna);
-    if (uploadedByBruno.length > 0) await bruno.storage.from(BUCKET).remove(uploadedByBruno);
+    if (uploadedByDiego.length > 0) await diego.storage.from(BUCKET).remove(uploadedByDiego);
     await ana.auth.signOut();
-    await bruno.auth.signOut();
+    await diego.auth.signOut();
   }
 });
 
