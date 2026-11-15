@@ -38,10 +38,7 @@ void main() {
     final name = find.text('Bruno Lima');
     expect(title, findsOneWidget);
     expect(name, findsOneWidget);
-    expect(
-      tester.getTopLeft(title).dy,
-      lessThan(tester.getTopLeft(name).dy),
-    );
+    expect(tester.getTopLeft(title).dy, lessThan(tester.getTopLeft(name).dy));
   });
 
   testWidgets('S34: sem apelido, só o nome', (tester) async {
@@ -55,9 +52,8 @@ void main() {
   });
 
   testWidgets('S34: perfil que o repositório não acha', (tester) async {
-    when(
-      () => h.profiles.fetchProfile(diegoId),
-    ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
+    when(() => h.profiles.fetchProfile(diegoId))
+        .thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
     await open(tester, diegoId);
 
     expect(find.text(l10nPt.errorNotFound), findsOneWidget);
@@ -65,7 +61,8 @@ void main() {
 
   testWidgets('a barra inferior continua, com a aba Grupos', (tester) async {
     when(() => h.profiles.fetchProfile(brunoId)).thenAnswer(
-      (_) async => const Profile(id: brunoId, name: 'Bruno', displayName: 'Bruno'),
+      (_) async =>
+          const Profile(id: brunoId, name: 'Bruno', displayName: 'Bruno'),
     );
     await open(tester, brunoId);
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:voleiin/core/errors/error_code.dart';
-import 'package:voleiin/features/auth/data/photo_picker.dart';
+import 'package:voleiin/core/photo_picker.dart';
 
 import '../../../helpers/groups_fixtures.dart';
 import '../../../helpers/harness.dart';
@@ -33,9 +33,8 @@ void main() {
         photoPath: any(named: 'photoPath'),
       ),
     ).thenAnswer((_) async {});
-    when(
-      () => h.picker.pick(PhotoSource.gallery),
-    ).thenAnswer((_) async => pickedPhoto);
+    when(() => h.picker.pick(PhotoSource.gallery))
+        .thenAnswer((_) async => pickedPhoto);
   });
 
   Future<void> open(WidgetTester tester) async {
@@ -133,7 +132,9 @@ void main() {
         bytes: any(named: 'bytes'),
         extension: any(named: 'extension'),
       ),
-    ).thenAnswer((_) async => throw const AppException(ErrorCode.photoTooLarge));
+    ).thenAnswer(
+      (_) async => throw const AppException(ErrorCode.photoTooLarge),
+    );
     await open(tester);
     await choosePhoto(tester);
     await tester.enterText(find.byType(TextFormField), quintaName);

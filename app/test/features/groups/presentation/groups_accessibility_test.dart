@@ -32,11 +32,12 @@ void main() {
     h.members(quintaId, quintaMembers);
     h.requests(
       quintaId,
-      () => [joinRequest('r1', diegoId, 'Diego', DateTime.utc(2026, 11, 12, 15))],
+      () => [
+        joinRequest('r1', diegoId, 'Diego', DateTime.utc(2026, 11, 12, 15)),
+      ],
     );
-    when(
-      () => h.groups.previewInvite(any()),
-    ).thenAnswer((_) async => preview());
+    when(() => h.groups.previewInvite(any()))
+        .thenAnswer((_) async => preview());
     when(() => h.profiles.fetchProfile(any())).thenAnswer(
       (_) async => const Profile(
         id: brunoId,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:voleiin/core/errors/error_code.dart';
-import 'package:voleiin/features/auth/data/photo_picker.dart';
+import 'package:voleiin/core/photo_picker.dart';
 import 'package:voleiin/features/groups/domain/group_models.dart';
 
 import '../../../helpers/groups_fixtures.dart';
@@ -36,9 +36,8 @@ void main() {
     ).thenAnswer((_) async {});
     when(() => h.groups.deleteGroupPhoto(any())).thenAnswer((_) async {});
     when(() => h.groups.archiveGroup(any())).thenAnswer((_) async {});
-    when(
-      () => h.picker.pick(PhotoSource.gallery),
-    ).thenAnswer((_) async => pickedPhoto);
+    when(() => h.picker.pick(PhotoSource.gallery))
+        .thenAnswer((_) async => pickedPhoto);
   });
 
   Future<void> open(WidgetTester tester) async {
@@ -136,9 +135,7 @@ void main() {
     );
   });
 
-  testWidgets('S33: excluir, confirmar e voltar a Meus grupos', (
-    tester,
-  ) async {
+  testWidgets('S33: excluir, confirmar e voltar a Meus grupos', (tester) async {
     await open(tester);
     await deleteAndConfirm(tester);
 

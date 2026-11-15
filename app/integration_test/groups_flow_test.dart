@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voleiin/app.dart';
 import 'package:voleiin/core/env.dart';
 import 'package:voleiin/core/format/date_time.dart';
+import 'package:voleiin/shared/widgets/list_card.dart';
 
 import '../test/helpers/test_app.dart';
 
@@ -113,16 +114,14 @@ void main() {
     await pumpUntil(tester, find.text(l10nPt.groupMembers));
   }
 
-  /// A linha da lista com o nome, para conferir o selo ao lado dele.
-  bool hasAdminBadge(WidgetTester tester, String name) {
-    final rowY = tester.getCenter(find.text(name)).dy;
-    final badges = find.text(l10nPt.groupRoleAdmin);
-    final count = badges.evaluate().length;
-    for (var i = 0; i < count; i++) {
-      if ((tester.getCenter(badges.at(i)).dy - rowY).abs() < 24) return true;
-    }
-    return false;
-  }
+  /// Se a linha da lista com o nome tem o selo Admin.
+  bool hasAdminBadge(String name) => find
+      .descendant(
+        of: find.ancestor(of: find.text(name), matching: find.byType(ListRow)),
+        matching: find.text(l10nPt.groupRoleAdmin),
+      )
+      .evaluate()
+      .isNotEmpty;
 
   testWidgets('L12: Diego pede, Ana aprova, Diego entra e depois sai', (
     tester,
@@ -215,18 +214,18 @@ void main() {
     await openGroup(tester, quinta);
     await tapReady(tester, find.text(l10nPt.groupMembers));
     await pumpUntil(tester, find.text('Carlinha'));
-    expect(hasAdminBadge(tester, 'Carlinha'), isFalse);
+    expect(hasAdminBadge('Carlinha'), isFalse);
 
     await tapReady(tester, find.text('Carlinha'));
     await tapReady(tester, find.text(l10nPt.groupMemberMakeAdmin));
     await pumpUntil(tester, find.text(l10nPt.groupMemberNowAdmin('Carlinha')));
     await tester.pumpAndSettle();
-    expect(hasAdminBadge(tester, 'Carlinha'), isTrue);
+    expect(hasAdminBadge('Carlinha'), isTrue);
 
     await tapReady(tester, find.text('Carlinha'));
     await tapReady(tester, find.text(l10nPt.groupMemberMakeMember));
     await pumpUntil(tester, find.text(l10nPt.groupMemberNowMember('Carlinha')));
     await tester.pumpAndSettle();
-    expect(hasAdminBadge(tester, 'Carlinha'), isFalse);
+    expect(hasAdminBadge('Carlinha'), isFalse);
   });
 }

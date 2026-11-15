@@ -15,7 +15,12 @@ void main() {
   late List<JoinRequest> pending;
 
   // Diego pediu antes (qui, 12/11), Elisa depois (sex, 13/11).
-  final diego = joinRequest('r1', diegoId, 'Diego', DateTime.utc(2026, 11, 12, 15));
+  final diego = joinRequest(
+    'r1',
+    diegoId,
+    'Diego',
+    DateTime.utc(2026, 11, 12, 15),
+  );
   final elisa = joinRequest(
     'r2',
     '00000000-0000-0000-0000-00000000000e',
@@ -55,10 +60,7 @@ void main() {
         (w) => w is Card || (w is Material && w.type == MaterialType.card),
       ),
     );
-    return find.descendant(
-      of: card.first,
-      matching: buttonWithText<T>(label),
-    );
+    return find.descendant(of: card.first, matching: buttonWithText<T>(label));
   }
 
   testWidgets('S32: ordem por created_at, com a data curta', (tester) async {
@@ -79,9 +81,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    verify(
-      () => h.groups.decideRequest(requestId: 'r1', approve: true),
-    ).called(1);
+    verify(() => h.groups.decideRequest(requestId: 'r1', approve: true))
+        .called(1);
     expect(find.text('Diego'), findsNothing);
     expect(find.text(l10nPt.groupRequestApproved('Diego')), findsOneWidget);
   });
@@ -93,9 +94,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    verify(
-      () => h.groups.decideRequest(requestId: 'r2', approve: false),
-    ).called(1);
+    verify(() => h.groups.decideRequest(requestId: 'r2', approve: false))
+        .called(1);
     expect(find.text('Elisa'), findsNothing);
     expect(find.text(l10nPt.groupRequestRejected), findsOneWidget);
   });
@@ -103,12 +103,11 @@ void main() {
   testWidgets('S32: REQUEST_NOT_PENDING mostra o SnackBar e relê a lista', (
     tester,
   ) async {
-    when(
-      () => h.groups.decideRequest(requestId: 'r1', approve: true),
-    ).thenAnswer((_) async {
-      pending = [elisa];
-      throw const AppException(ErrorCode.requestNotPending);
-    });
+    when(() => h.groups.decideRequest(requestId: 'r1', approve: true))
+        .thenAnswer((_) async {
+          pending = [elisa];
+          throw const AppException(ErrorCode.requestNotPending);
+        });
     await open(tester);
     await tester.tap(
       rowButton<FilledButton>('Diego', l10nPt.groupRequestApprove),
@@ -121,9 +120,8 @@ void main() {
   });
 
   testWidgets('S32: enviando bloqueia só a linha tocada', (tester) async {
-    when(
-      () => h.groups.decideRequest(requestId: 'r1', approve: true),
-    ).thenAnswer((_) => Future.delayed(const Duration(seconds: 1)));
+    when(() => h.groups.decideRequest(requestId: 'r1', approve: true))
+        .thenAnswer((_) => Future.delayed(const Duration(seconds: 1)));
     await open(tester);
     await tester.tap(
       rowButton<FilledButton>('Diego', l10nPt.groupRequestApprove),
@@ -150,9 +148,8 @@ void main() {
   });
 
   testWidgets('tocar no nome abre o perfil de quem pediu', (tester) async {
-    when(() => h.profiles.fetchProfile(any())).thenAnswer(
-      (_) async => throw const AppException(ErrorCode.notFound),
-    );
+    when(() => h.profiles.fetchProfile(any()))
+        .thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
     await open(tester);
     await tester.tap(find.text('Diego'));
     await tester.pumpAndSettle();

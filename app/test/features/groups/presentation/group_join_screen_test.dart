@@ -17,7 +17,8 @@ void main() {
     h = TestHarness();
     h.signedIn(userId: diegoId);
     h.group(() => quinta(myRole: GroupRole.member));
-    when(() => h.groups.previewInvite(any())).thenAnswer((_) async => preview());
+    when(() => h.groups.previewInvite(any()))
+        .thenAnswer((_) async => preview());
     when(() => h.groups.requestJoin(any())).thenAnswer((_) async {});
   });
 
@@ -38,9 +39,8 @@ void main() {
   }
 
   void requestAnswers(ErrorCode code) {
-    when(
-      () => h.groups.requestJoin(any()),
-    ).thenAnswer((_) async => throw AppException(code));
+    when(() => h.groups.requestJoin(any()))
+        .thenAnswer((_) async => throw AppException(code));
   }
 
   group('S22: etapa 1', () {
@@ -87,14 +87,16 @@ void main() {
 
   group('S23: etapa 2', () {
     testWidgets('já é membro', (tester) async {
-      when(
-        () => h.groups.previewInvite(any()),
-      ).thenAnswer((_) async => preview(isMember: true));
+      when(() => h.groups.previewInvite(any()))
+          .thenAnswer((_) async => preview(isMember: true));
       await open(tester);
       await continueWith(tester, quintaCode);
 
       expect(find.text(l10nPt.groupJoinAlreadyMember), findsOneWidget);
-      expect(buttonWithText<FilledButton>(l10nPt.groupJoinOpen), findsOneWidget);
+      expect(
+        buttonWithText<FilledButton>(l10nPt.groupJoinOpen),
+        findsOneWidget,
+      );
 
       await tester.tap(buttonWithText<FilledButton>(l10nPt.groupJoinOpen));
       await tester.pumpAndSettle();
@@ -102,9 +104,8 @@ void main() {
     });
 
     testWidgets('solicitação pendente', (tester) async {
-      when(
-        () => h.groups.previewInvite(any()),
-      ).thenAnswer((_) async => preview(hasPendingRequest: true));
+      when(() => h.groups.previewInvite(any()))
+          .thenAnswer((_) async => preview(hasPendingRequest: true));
       await open(tester);
       await continueWith(tester, quintaCode);
 

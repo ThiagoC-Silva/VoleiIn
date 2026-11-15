@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voleiin/features/groups/domain/group_models.dart';
+import 'package:voleiin/shared/widgets/list_card.dart';
 
 import '../../../helpers/groups_fixtures.dart';
 import '../../../helpers/harness.dart';
@@ -10,6 +11,9 @@ import '../../../helpers/test_app.dart';
 /// (docs/ui/telas.md, 6.1).
 void main() {
   late TestHarness h;
+
+  Finder rowOf(String title) =>
+      find.ancestor(of: find.text(title), matching: find.byType(ListRow));
 
   setUp(() {
     h = TestHarness();
@@ -58,12 +62,13 @@ void main() {
     expect(find.text('3 integrantes · 2 solicitações'), findsOneWidget);
     expect(find.text('1 integrante'), findsOneWidget);
 
-    // Um selo só, na linha do Quinta.
+    // Um selo só, na linha do Quinta. Ele pode quebrar para baixo do nome
+    // quando falta espaço, mas continua na mesma linha da lista.
     final badge = find.text(l10nPt.groupRoleAdmin);
     expect(badge, findsOneWidget);
     expect(
-      (tester.getCenter(badge).dy - tester.getCenter(quintaRow).dy).abs(),
-      lessThan(24),
+      find.descendant(of: rowOf(quintaName), matching: badge),
+      findsOneWidget,
     );
 
     // As listas tocam para abrir o detalhe.

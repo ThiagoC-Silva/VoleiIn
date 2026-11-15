@@ -53,26 +53,33 @@ void main() {
       'Use uma foto JPEG, PNG ou WebP.',
     );
   });
-  test('os textos dos erros de grupo são os do catálogo (docs/copy.md, 7.7)', () {
-    const texts = {
-      ErrorCode.notAMember: 'Você não é membro deste grupo.',
-      ErrorCode.notGroupAdmin: 'Só um admin do grupo pode fazer isso.',
-      ErrorCode.inviteInvalid:
-          'Este código não vale. Confira ou peça um novo ao grupo.',
-      ErrorCode.alreadyMember: 'Você já é membro deste grupo.',
-      ErrorCode.joinRequestPending:
-          'Você já pediu para entrar neste grupo. Aguarde a aprovação de um '
-          'admin.',
-      ErrorCode.requestNotPending: 'Esta solicitação já foi decidida.',
-      ErrorCode.targetNotMember: 'Esta pessoa não é mais membro do grupo.',
-      ErrorCode.cannotRemoveSelf: 'Para sair, use a opção Sair do grupo.',
-      ErrorCode.lastAdmin:
-          'Promova outro admin antes. O grupo precisa de ao menos um.',
-      ErrorCode.groupHasActiveGames:
-          'O grupo ainda tem jogos Abertos ou Confirmados.',
-    };
-    for (final entry in texts.entries) {
-      expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
-    }
-  });
+  test(
+    'os textos dos erros de grupo são os do catálogo (docs/copy.md, 7.7)',
+    () {
+      const texts = {
+        ErrorCode.notAMember: 'Você não é membro deste grupo.',
+        ErrorCode.notGroupAdmin: 'Só um admin do grupo pode fazer isso.',
+        ErrorCode.inviteInvalid:
+            'Este código não vale. Confira ou peça um novo ao grupo.',
+        ErrorCode.alreadyMember: 'Você já é membro deste grupo.',
+        ErrorCode.joinRequestPending:
+            'Você já pediu para entrar neste grupo. Aguarde a aprovação de um '
+            'admin.',
+        ErrorCode.requestNotPending: 'Esta solicitação já foi decidida.',
+        ErrorCode.targetNotMember: 'Esta pessoa não é mais membro do grupo.',
+        ErrorCode.cannotRemoveSelf: 'Para sair, use a opção Sair do grupo.',
+        ErrorCode.lastAdmin:
+            'Promova outro admin antes. O grupo precisa de ao menos um.',
+        ErrorCode.groupHasActiveGames:
+            'O grupo ainda tem jogos Abertos ou Confirmados.',
+      };
+      for (final entry in texts.entries) {
+        expect(
+          errorText(l10nPt, entry.key),
+          entry.value,
+          reason: entry.key.name,
+        );
+      }
+    },
+  );
 }

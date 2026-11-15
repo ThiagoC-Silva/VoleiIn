@@ -11,7 +11,7 @@ import 'package:voleiin/core/errors/error_code.dart';
 import 'package:voleiin/core/share.dart';
 import 'package:voleiin/core/router/app_router.dart';
 import 'package:voleiin/features/auth/data/auth_repository.dart';
-import 'package:voleiin/features/auth/data/photo_picker.dart';
+import 'package:voleiin/core/photo_picker.dart';
 import 'package:voleiin/features/auth/data/profile_repository.dart';
 import 'package:voleiin/features/auth/data/terms_repository.dart';
 import 'package:voleiin/features/auth/domain/legal_document.dart';
@@ -184,9 +184,8 @@ class TestHarness {
 
   /// O RLS não devolve o grupo: quem não é membro, ex-membro, grupo excluído.
   void groupNotFound(String id) {
-    when(
-      () => groups.fetchGroup(id),
-    ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
+    when(() => groups.fetchGroup(id))
+        .thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
   }
 
   void members(String groupId, List<GroupMember> Function() read) {
@@ -194,9 +193,8 @@ class TestHarness {
   }
 
   void requests(String groupId, List<JoinRequest> Function() read) {
-    when(
-      () => groups.fetchPendingRequests(groupId),
-    ).thenAnswer((_) async => read());
+    when(() => groups.fetchPendingRequests(groupId))
+        .thenAnswer((_) async => read());
   }
 
   /// Abre o app num celular de 360 x 760 dp e, se pedido, vai à rota.

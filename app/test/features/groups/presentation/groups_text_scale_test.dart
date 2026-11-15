@@ -48,7 +48,11 @@ void main() {
     h.members(
       quintaId,
       () => [
-        member(anaId, 'Ana Souza de Oliveira Albuquerque', role: GroupRole.admin),
+        member(
+          anaId,
+          'Ana Souza de Oliveira Albuquerque',
+          role: GroupRole.admin,
+        ),
         member(brunoId, 'Brunão do vôlei de praia', day: 5),
       ],
     );
@@ -123,6 +127,9 @@ void main() {
 
   testWidgets('S35: sheet do convite', (tester) async {
     await open(tester, ['/groups', '/groups/$quintaId']);
+    // Com a fonte em 150%, a linha fica abaixo da dobra.
+    await tester.ensureVisible(find.text(l10nPt.groupInvite));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(l10nPt.groupInvite));
     await tester.pumpAndSettle();
     expect(find.text(quintaCode), findsOneWidget);

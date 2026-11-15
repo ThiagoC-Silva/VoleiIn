@@ -72,7 +72,9 @@ void main() {
       });
       await openSheet(tester);
 
-      await tester.tap(buttonWithText<TextButton>(l10nPt.groupInviteRegenerate));
+      await tester.tap(
+        buttonWithText<TextButton>(l10nPt.groupInviteRegenerate),
+      );
       await tester.pumpAndSettle();
       expect(find.text(l10nPt.groupInviteRegenerateTitle), findsOneWidget);
       await tester.tap(
@@ -130,7 +132,9 @@ void main() {
       });
       await openSheet(tester);
 
-      await tester.tap(buttonWithText<FilledButton>(l10nPt.groupInviteGenerate));
+      await tester.tap(
+        buttonWithText<FilledButton>(l10nPt.groupInviteGenerate),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text(l10nPt.groupInviteRegenerateTitle), findsNothing);

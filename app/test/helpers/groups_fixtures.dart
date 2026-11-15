@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:voleiin/features/auth/data/photo_picker.dart';
+import 'package:voleiin/core/photo_picker.dart';
 import 'package:voleiin/features/groups/domain/group_models.dart';
 
 import 'harness.dart';

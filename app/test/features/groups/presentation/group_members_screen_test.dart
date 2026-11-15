@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:voleiin/core/errors/error_code.dart';
 import 'package:voleiin/features/auth/domain/profile.dart';
 import 'package:voleiin/features/groups/domain/group_models.dart';
+import 'package:voleiin/shared/widgets/list_card.dart';
 
 import '../../../helpers/groups_fixtures.dart';
 import '../../../helpers/harness.dart';
@@ -70,8 +71,11 @@ void main() {
     final badge = find.text(l10nPt.groupRoleAdmin);
     expect(badge, findsOneWidget);
     expect(
-      (tester.getCenter(badge).dy - tester.getCenter(find.text(you)).dy).abs(),
-      lessThan(24),
+      find.descendant(
+        of: find.ancestor(of: find.text(you), matching: find.byType(ListRow)),
+        matching: badge,
+      ),
+      findsOneWidget,
     );
     expect(find.text(l10nPt.groupMemberJoinedAt('05/11/2026')), findsOneWidget);
   });
@@ -157,11 +161,10 @@ void main() {
     testWidgets('remover Carla, depois de confirmar', (tester) async {
       var list = quintaMembers();
       h.members(quintaId, () => list);
-      when(
-        () => h.groups.removeMember(groupId: quintaId, userId: carlaId),
-      ).thenAnswer((_) async {
-        list = list.where((m) => m.userId != carlaId).toList();
-      });
+      when(() => h.groups.removeMember(groupId: quintaId, userId: carlaId))
+          .thenAnswer((_) async {
+            list = list.where((m) => m.userId != carlaId).toList();
+          });
       await open(tester);
       await tapRow(tester, 'Carla');
       await tapOption(tester, l10nPt.groupMemberRemove);
@@ -171,9 +174,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      verify(
-        () => h.groups.removeMember(groupId: quintaId, userId: carlaId),
-      ).called(1);
+      verify(() => h.groups.removeMember(groupId: quintaId, userId: carlaId))
+          .called(1);
       expect(find.text(l10nPt.groupMemberRemoved('Carla')), findsOneWidget);
       expect(find.text('Carla'), findsNothing);
     });
@@ -206,12 +208,9 @@ void main() {
     });
   });
 
-  testWidgets('quem não é membro vê o estado "não encontrado"', (
-    tester,
-  ) async {
-    when(
-      () => h.groups.fetchMembers(quintaId),
-    ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
+  testWidgets('quem não é membro vê o estado "não encontrado"', (tester) async {
+    when(() => h.groups.fetchMembers(quintaId))
+        .thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
     await h.pumpApp(tester, location: '/groups');
     await h.push(tester, '/groups/$quintaId/members');
 
