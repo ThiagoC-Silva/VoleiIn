@@ -2,8 +2,9 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide ErrorCode;
 
+import '../../../core/errors/error_code.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/supabase.dart';
 import '../domain/own_profile.dart';
@@ -50,6 +51,23 @@ class ProfileRepository {
       profile: Profile.fromJson(results[0]),
       private: ProfilePrivate.fromJson(results[1]),
     );
+  });
+
+  /// Perfil de outra pessoa (RF19, RN107; docs/ui/telas.md, 6.9). Quem o vê
+  /// é decidido pelo RLS: contexto ou solicitação pendente num grupo que quem
+  /// chama administra. Sem linha, ou com um ID que não é UUID, "não
+  /// encontrado", sem dizer qual dos dois (contratos-api.md, seção 1).
+  Future<Profile> fetchProfile(String userId) => guard(() async {
+    if (!_uuidPattern.hasMatch(userId)) {
+      throw const AppException(ErrorCode.notFound);
+    }
+    final row = await _db
+        .from('profiles')
+        .select('id, name, nickname, display_name, photo_path')
+        .eq('id', userId)
+        .maybeSingle();
+    if (row == null) throw const AppException(ErrorCode.notFound);
+    return Profile.fromJson(row);
   });
 
   Future<String> avatarUrl(String photoPath) => guard(
@@ -114,6 +132,11 @@ class ProfileRepository {
         .eq('user_id', _uid);
   });
 }
+
+final _uuidPattern = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-'
+  r'[0-9a-fA-F]{12}$',
+);
 
 /// UUID v4 com `Random.secure`, sem pacote só para isso (research R7).
 String _uuidV4() {

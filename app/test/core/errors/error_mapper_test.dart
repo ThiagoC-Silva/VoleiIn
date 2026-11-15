@@ -7,8 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide ErrorCode;
 import 'package:voleiin/core/errors/error_code.dart';
 import 'package:voleiin/core/errors/error_mapper.dart';
 
-/// Cenários E01 a E07 de docs/testes-referencia.md, seção 9.4, e E09 a E11 da
-/// seção 10.4.
+/// Cenários E01 a E07 de docs/testes-referencia.md, seção 9.4, E09 a E11 da
+/// seção 10.4 e E13 e E14 da seção 11.6.
 void main() {
   test('E01: P0001 com NOT_FOUND vira notFound', () {
     final exception = PostgrestException(message: 'NOT_FOUND', code: 'P0001');
@@ -147,6 +147,37 @@ void main() {
       statusCode: '500',
     );
     expect(toAppException(exception).code, ErrorCode.internalError);
+  });
+
+  // Códigos das funções de grupo e da prévia (docs/copy.md, 7.7).
+  const groupCodes = {
+    'NOT_A_MEMBER': ErrorCode.notAMember,
+    'NOT_GROUP_ADMIN': ErrorCode.notGroupAdmin,
+    'INVITE_INVALID': ErrorCode.inviteInvalid,
+    'ALREADY_MEMBER': ErrorCode.alreadyMember,
+    'JOIN_REQUEST_PENDING': ErrorCode.joinRequestPending,
+    'REQUEST_NOT_PENDING': ErrorCode.requestNotPending,
+    'TARGET_NOT_MEMBER': ErrorCode.targetNotMember,
+    'CANNOT_REMOVE_SELF': ErrorCode.cannotRemoveSelf,
+    'LAST_ADMIN': ErrorCode.lastAdmin,
+    'GROUP_HAS_ACTIVE_GAMES': ErrorCode.groupHasActiveGames,
+  };
+
+  for (final entry in groupCodes.entries) {
+    test('E13: P0001 com ${entry.key} vira ${entry.value.name}', () {
+      final exception = PostgrestException(message: entry.key, code: 'P0001');
+      expect(toAppException(exception).code, entry.value);
+    });
+  }
+
+  test('E14: preview-invite 404 com INVITE_INVALID vira inviteInvalid', () {
+    final exception = FunctionException(
+      status: 404,
+      details: {
+        'error': {'code': 'INVITE_INVALID'},
+      },
+    );
+    expect(toAppException(exception).code, ErrorCode.inviteInvalid);
   });
 
   test('qualquer outra coisa vira internalError', () {

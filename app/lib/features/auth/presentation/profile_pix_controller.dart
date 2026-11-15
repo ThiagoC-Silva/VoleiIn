@@ -4,7 +4,7 @@ import '../../../core/errors/error_code.dart';
 import '../data/profile_repository.dart';
 import '../domain/pix_key.dart';
 import 'profile_providers.dart';
-import 'submit_controller.dart';
+import '../../../core/submit_controller.dart';
 
 /// Chave Pix (RF11, RF12, RN105; docs/ui/telas.md, 5.9).
 class ProfilePixController extends SubmitController {

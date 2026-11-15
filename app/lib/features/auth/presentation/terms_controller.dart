@@ -6,7 +6,7 @@ import '../data/auth_repository.dart';
 import '../data/terms_repository.dart';
 import '../domain/terms.dart';
 import 'auth_providers.dart';
-import 'submit_controller.dart';
+import '../../../core/submit_controller.dart';
 
 /// Resultado do Aceitar e continuar.
 enum TermsAcceptResult {

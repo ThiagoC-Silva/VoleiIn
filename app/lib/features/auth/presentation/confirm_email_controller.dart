@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/error_code.dart';
 import '../data/auth_repository.dart';
 import 'auth_providers.dart';
-import 'submit_controller.dart';
+import '../../../core/submit_controller.dart';
 
 /// Confirmação do cadastro por código (RF02, ADR 0017; docs/ui/telas.md, 5.3).
 class ConfirmEmailController extends SubmitController {

@@ -9,6 +9,7 @@ import '../../features/auth/presentation/auth_providers.dart';
 import '../../features/auth/presentation/confirm_email_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/person_screen.dart';
 import '../../features/auth/presentation/profile_edit_screen.dart';
 import '../../features/auth/presentation/profile_email_screen.dart';
 import '../../features/auth/presentation/profile_password_screen.dart';
@@ -18,6 +19,12 @@ import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/terms_document_screen.dart';
 import '../../features/auth/presentation/terms_screen.dart';
 import '../../features/games/presentation/games_screen.dart';
+import '../../features/groups/presentation/group_edit_screen.dart';
+import '../../features/groups/presentation/group_join_screen.dart';
+import '../../features/groups/presentation/group_members_screen.dart';
+import '../../features/groups/presentation/group_new_screen.dart';
+import '../../features/groups/presentation/group_requests_screen.dart';
+import '../../features/groups/presentation/group_screen.dart';
 import '../../features/groups/presentation/groups_screen.dart';
 import '../../features/splits/presentation/charges_screen.dart';
 import '../../shared/widgets/app_shell.dart';
@@ -133,6 +140,57 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: Routes.groupsPath,
                 name: Routes.groups,
                 builder: (context, state) => const GroupsScreen(),
+                routes: [
+                  // Criação e entrada por código cobrem a barra (telas.md,
+                  // 2.2). Vêm antes de `:groupId`, que aceitaria o caminho.
+                  GoRoute(
+                    path: Routes.groupsNewPath,
+                    name: Routes.groupsNew,
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const GroupNewScreen(),
+                  ),
+                  GoRoute(
+                    path: Routes.groupsJoinPath,
+                    name: Routes.groupsJoin,
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const GroupJoinScreen(),
+                  ),
+                  GoRoute(
+                    path: Routes.groupPath,
+                    name: Routes.group,
+                    builder: (context, state) =>
+                        GroupScreen(groupId: _groupId(state)),
+                    routes: [
+                      GoRoute(
+                        path: Routes.groupEditPath,
+                        name: Routes.groupEdit,
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) =>
+                            GroupEditScreen(groupId: _groupId(state)),
+                      ),
+                      GoRoute(
+                        path: Routes.groupMembersPath,
+                        name: Routes.groupMembers,
+                        builder: (context, state) =>
+                            GroupMembersScreen(groupId: _groupId(state)),
+                      ),
+                      GoRoute(
+                        path: Routes.groupRequestsPath,
+                        name: Routes.groupRequests,
+                        builder: (context, state) =>
+                            GroupRequestsScreen(groupId: _groupId(state)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // Na fatia 3, o perfil de outra pessoa só abre pela aba Grupos
+              // (telas.md, 6.9).
+              GoRoute(
+                path: Routes.personPath,
+                name: Routes.person,
+                builder: (context, state) =>
+                    PersonScreen(userId: state.pathParameters['userId']!),
               ),
             ],
           ),
@@ -186,6 +244,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+String _groupId(GoRouterState state) => state.pathParameters['groupId']!;
 
 /// Pede ao `go_router` uma nova conferência a cada mudança de sessão,
 /// inclusive a invalidação do token, e a cada estado que entra nos

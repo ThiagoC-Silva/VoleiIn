@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:voleiin/core/errors/error_code.dart';
-import 'package:voleiin/features/auth/data/photo_picker.dart';
+import 'package:voleiin/core/photo_picker.dart';
 
 import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';

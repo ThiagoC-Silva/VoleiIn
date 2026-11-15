@@ -1,28 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/error_code.dart';
-import '../data/photo_picker.dart';
+import '../../../core/photo_picker.dart';
 import '../data/profile_repository.dart';
 import 'profile_providers.dart';
-import 'submit_controller.dart';
-
-/// O que a pessoa fez com a foto antes de salvar.
-sealed class PhotoChange {
-  const PhotoChange();
-}
-
-class PhotoKept extends PhotoChange {
-  const PhotoKept();
-}
-
-class PhotoReplaced extends PhotoChange {
-  const PhotoReplaced(this.photo);
-  final PickedPhoto photo;
-}
-
-class PhotoRemoved extends PhotoChange {
-  const PhotoRemoved();
-}
+import '../../../core/submit_controller.dart';
 
 /// Editar perfil (RF08 a RF10, RF12; docs/ui/telas.md, 5.8).
 class ProfileEditController extends SubmitController {

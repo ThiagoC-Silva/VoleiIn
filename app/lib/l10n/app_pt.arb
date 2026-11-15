@@ -173,5 +173,234 @@
   "errorAuthGoogleFailed": "Não foi possível entrar com o Google. Tente de novo.",
   "errorPixKeyInUse": "Você pode trocar a chave, mas não removê-la enquanto tiver jogos em aberto ou valores a receber.",
   "errorPhotoTooLarge": "A foto passa de 2 MB. Escolha outra.",
-  "errorPhotoInvalidType": "Use uma foto JPEG, PNG ou WebP."
+  "errorPhotoInvalidType": "Use uma foto JPEG, PNG ou WebP.",
+  "groupsCreate": "Criar grupo",
+  "groupsJoin": "Entrar com código",
+  "groupsEmptyTitle": "Você ainda não está em nenhum grupo",
+  "groupsEmptyBody": "Crie um grupo ou peça para entrar com o código de convite.",
+  "groupsMemberCount": "{count, plural, =1{1 integrante} other{{count} integrantes}}",
+  "@groupsMemberCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupsPendingCount": "{count, plural, =1{1 solicitação} other{{count} solicitações}}",
+  "@groupsPendingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupsRowSubtitle": "{members} · {pending}",
+  "@groupsRowSubtitle": {
+    "placeholders": {
+      "members": {
+        "type": "String"
+      },
+      "pending": {
+        "type": "String"
+      }
+    }
+  },
+  "groupRoleAdmin": "Admin",
+  "groupPhotoLabel": "Foto do grupo {name}",
+  "@groupPhotoLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupNameLabel": "Nome do grupo",
+  "groupNameRequired": "Informe o nome do grupo.",
+  "groupNameTooLong": "O nome pode ter até 60 caracteres.",
+  "groupChoosePhoto": "Escolher foto",
+  "groupCreated": "Grupo criado.",
+  "groupCreatedPhotoFailed": "Grupo criado, mas a foto não foi salva. Tente de novo em Editar grupo.",
+  "groupEdit": "Editar grupo",
+  "groupEditSubtitle": "Nome e foto",
+  "groupSaved": "Grupo salvo.",
+  "groupDelete": "Excluir grupo",
+  "groupDeleteTitle": "Excluir o grupo {name}?",
+  "@groupDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupDeleteBody": "Todos os integrantes saem do grupo, as solicitações pendentes são canceladas e o convite deixa de valer. Os jogos concluídos e cancelados continuam no histórico de quem participou.",
+  "groupDeleted": "Grupo excluído.",
+  "groupJoinIntro": "Digite ou cole o código que você recebeu do grupo.",
+  "groupJoinCodeLabel": "Código do convite",
+  "groupJoinCodeRequired": "Informe o código.",
+  "groupJoinCodeInvalid": "O código tem 12 letras e números. Confira e tente de novo.",
+  "groupJoinContinue": "Continuar",
+  "groupJoinApprovalNeeded": "Um admin do grupo precisa aprovar a sua entrada.",
+  "groupJoinRequest": "Pedir para entrar",
+  "groupJoinPending": "Solicitação enviada. Aguardando a aprovação de um admin.",
+  "groupJoinPendingHint": "O grupo aparece em Meus grupos quando a solicitação for aprovada.",
+  "groupJoinBackToGroups": "Voltar aos grupos",
+  "groupJoinAlreadyMember": "Você já é membro deste grupo.",
+  "groupJoinOpen": "Abrir o grupo",
+  "groupJoinOtherCode": "Usar outro código",
+  "groupMembers": "Integrantes",
+  "groupMembersSubtitle": "{count, plural, =1{1 pessoa} other{{count} pessoas}}",
+  "@groupMembersSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupRequests": "Solicitações",
+  "groupRequestsSubtitle": "{count, plural, =0{Nenhuma solicitação pendente} =1{1 solicitação pendente} other{{count} solicitações pendentes}}",
+  "@groupRequestsSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupInvite": "Convite",
+  "groupInviteActive": "Código ativo",
+  "groupInviteInactive": "Convite desativado",
+  "groupLeave": "Sair do grupo",
+  "groupLeaveTitle": "Sair do grupo {name}?",
+  "@groupLeaveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupLeaveBody": "Para voltar, você vai precisar do código e da aprovação de um admin.",
+  "groupLeft": "Você saiu do grupo.",
+  "groupInviteTitle": "Convite do grupo",
+  "groupInviteIntro": "Quem tiver o código pode pedir para entrar. Um admin aprova cada solicitação.",
+  "groupInviteShare": "Compartilhar",
+  "groupInviteShareText": "Entre no grupo {name} no VoleiIn. No app, toque em Grupos, depois em Entrar com código, e use o código: {code}",
+  "@groupInviteShareText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "groupInviteCopy": "Copiar código",
+  "groupInviteCopied": "Código copiado.",
+  "groupInviteRegenerate": "Gerar novo código",
+  "groupInviteRegenerateTitle": "Gerar um novo código?",
+  "groupInviteRegenerateBody": "O código atual deixa de funcionar. As solicitações já feitas continuam valendo.",
+  "groupInviteRegenerated": "Novo código gerado.",
+  "groupInviteDisable": "Desativar convite",
+  "groupInviteDisableTitle": "Desativar o convite?",
+  "groupInviteDisableBody": "Ninguém consegue pedir para entrar até um admin gerar um novo código. As solicitações já feitas continuam valendo.",
+  "groupInviteDisableConfirm": "Desativar",
+  "groupInviteDisabled": "Convite desativado.",
+  "groupInviteOff": "O convite está desativado.",
+  "groupInviteGenerate": "Gerar código",
+  "groupInviteAskAdmin": "Peça a um admin para gerar um novo código.",
+  "groupMemberYou": "{name} (você)",
+  "@groupMemberYou": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupMemberJoinedAt": "Entrou em {date}",
+  "@groupMemberJoinedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "groupMemberViewProfile": "Ver perfil",
+  "groupMemberMakeAdmin": "Tornar admin",
+  "groupMemberMakeMember": "Deixar como membro",
+  "groupMemberRemove": "Remover do grupo",
+  "groupMemberRemoveTitle": "Remover {name} do grupo?",
+  "@groupMemberRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupMemberRemoveBody": "{name} deixa de ver o grupo. Para voltar, vai precisar do código e da aprovação de um admin.",
+  "@groupMemberRemoveBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupMemberRemoveConfirm": "Remover",
+  "groupMemberRemoved": "Removemos {name} do grupo.",
+  "@groupMemberRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupMemberNowAdmin": "{name} agora é admin.",
+  "@groupMemberNowAdmin": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupMemberNowMember": "{name} agora é membro.",
+  "@groupMemberNowMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupStepDown": "Deixar de ser admin",
+  "groupStepDownTitle": "Deixar de ser admin?",
+  "groupStepDownBody": "Só outro admin poderá devolver esse papel a você.",
+  "groupSteppedDown": "Você agora é membro.",
+  "groupRequestAsked": "Pediu em {date}",
+  "@groupRequestAsked": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "groupRequestApprove": "Aprovar",
+  "groupRequestReject": "Recusar",
+  "groupRequestApproved": "{name} entrou no grupo.",
+  "@groupRequestApproved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupRequestRejected": "Solicitação recusada.",
+  "groupRequestsEmptyTitle": "Nenhuma solicitação pendente",
+  "groupRequestsEmptyBody": "Quando alguém pedir para entrar com o código, a solicitação aparece aqui.",
+  "errorNotAMember": "Você não é membro deste grupo.",
+  "errorNotGroupAdmin": "Só um admin do grupo pode fazer isso.",
+  "errorInviteInvalid": "Este código não vale. Confira ou peça um novo ao grupo.",
+  "errorAlreadyMember": "Você já é membro deste grupo.",
+  "errorJoinRequestPending": "Você já pediu para entrar neste grupo. Aguarde a aprovação de um admin.",
+  "errorRequestNotPending": "Esta solicitação já foi decidida.",
+  "errorTargetNotMember": "Esta pessoa não é mais membro do grupo.",
+  "errorCannotRemoveSelf": "Para sair, use a opção Sair do grupo.",
+  "errorLastAdmin": "Promova outro admin antes. O grupo precisa de ao menos um.",
+  "errorGroupHasActiveGames": "O grupo ainda tem jogos Abertos ou Confirmados."
 }

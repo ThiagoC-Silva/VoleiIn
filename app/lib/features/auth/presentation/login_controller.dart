@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/error_code.dart';
 import '../data/auth_repository.dart';
 import 'auth_providers.dart';
-import 'submit_controller.dart';
+import '../../../core/submit_controller.dart';
 
 /// Ações do login (docs/ui/telas.md, 4.1 e 5.1). O redirecionamento depois de
 /// entrar é do roteador.

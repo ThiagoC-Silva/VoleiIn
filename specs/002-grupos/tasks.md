@@ -58,26 +58,28 @@ Começa numa conversa nova, depois do *merge* da sessão 2, com os PNGs de `docs
 
 ### Phase 4: Contratos e testes do app primeiro
 
-- [ ] T019 Escrever `specs/002-grupos/contracts/repositories.md` (repositórios da feature `groups` e do perfil de outra pessoa)
-- [ ] T020 [P] U08 (código digitado) e E13, E14 (conversão de erros) em `app/test/`
-- [ ] T021 [P] S18 a S35 (telas, `docs/ui/telas.md`, 6.10)
-- [ ] T022 [P] L12 a L14 em `app/integration_test/`
-- [ ] T023 Rodar `flutter test`, guardar a saída da falha e fazer o *commit* só de testes
+- [x] T019 Escrever `specs/002-grupos/contracts/repositories.md` (repositórios da feature `groups` e do perfil de outra pessoa)
+- [x] T020 [P] U08 (código digitado) e E13, E14 (conversão de erros) em `app/test/`
+- [x] T021 [P] S18 a S35 (telas, `docs/ui/telas.md`, 6.10)
+- [x] T022 [P] L12 a L14 em `app/integration_test/`
+- [x] T023 Rodar `flutter test`, guardar a saída da falha e fazer o *commit* só de testes
 
 ### Phase 5: Implementação do app
 
-- [ ] T024 Textos da seção 7 do `docs/copy.md` no `app_pt.arb` e os códigos de erro novos
-- [ ] T025 [US1] [US4] Domain e data da feature `groups` (leituras por `select` e chamadas às funções)
-- [ ] T026 Rotas da seção 6 do `docs/ui/telas.md` no roteador
-- [ ] T027 [US4] Meus grupos e Detalhe do grupo (6.1, 6.4)
-- [ ] T028 [US1] [US6] Criar e Editar grupo (6.2, 6.8)
-- [ ] T029 [US2] Entrar com código e Solicitações (6.3, 6.7)
-- [ ] T030 [US3] Sheet do convite (6.5)
-- [ ] T031 [US4] [US5] Integrantes e Perfil de outra pessoa (6.6, 6.9)
+- [x] T024 Textos da seção 7 do `docs/copy.md` no `app_pt.arb` e os códigos de erro novos
+- [x] T025 [US1] [US4] Domain e data da feature `groups` (leituras por `select` e chamadas às funções)
+- [x] T026 Rotas da seção 6 do `docs/ui/telas.md` no roteador
+- [x] T027 [US4] Meus grupos e Detalhe do grupo (6.1, 6.4)
+- [x] T028 [US1] [US6] Criar e Editar grupo (6.2, 6.8)
+- [x] T029 [US2] Entrar com código e Solicitações (6.3, 6.7)
+- [x] T030 [US3] Sheet do convite (6.5)
+- [x] T031 [US4] [US5] Integrantes e Perfil de outra pessoa (6.6, 6.9)
 
 ### Phase 6: Convergência do app
 
-- [ ] T032 `dart format`, `dart analyze` e `flutter test` verdes; lista de acessibilidade (`docs/ui/design-system.md`, seção 8)
+- [x] T032 `dart format`, `dart analyze` e `flutter test` verdes; lista de acessibilidade (`docs/ui/design-system.md`, seção 8)
+
+**Sessão 3 concluída em 15/11/2026** no *branch* `fatia-3/app`: testes escritos antes (*commit* `3cfa415`, com a saída da falha na mensagem), depois `dart format`, `dart analyze` (só os avisos `deprecated_member_use` do Flutter 3.50, já conhecidos) e `flutter test` verdes, com 306 testes, inclusive S35 e a lista de acessibilidade das telas da seção 6 (`groups_accessibility_test.dart`). Os 18 PNGs foram conferidos contra o `telas.md`, seção 6, sem divergência de conteúdo. Decisões da sessão, registradas no `contracts/repositories.md`: o perfil de outra pessoa fica na feature `auth`; `PhotoPicker`, `PhotoChange` e `SubmitController` foram para `core/`, e a sheet da foto, para `shared/widgets/`; as telas de grupo leem a sessão pelo `sessionUserIdProvider` (exceção registrada no `arquitetura-app.md`, seção 2). O código do convite usa Roboto 700 22, como manda o 6.5, e não a fonte monoespaçada dos PNGs. L12 a L14 estão escritos e rodam na sessão 4.
 
 ---
 

@@ -34,7 +34,10 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Sempre rolável: dentro de um RefreshIndicator, puxar para baixo também
+    // atualiza o estado vazio (docs/ui/telas.md, seção 6).
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,

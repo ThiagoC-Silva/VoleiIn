@@ -27,6 +27,9 @@ app/lib/
     errors/                 # AppException, ErrorCode, conversão e texto
     format/                 # dinheiro, data e hora (seção 8)
     realtime.dart           # ajudante de assinatura (seção 6)
+    submit_controller.dart  # base dos controllers de formulário (seção 5)
+    photo_picker.dart       # foto da galeria ou da câmera (perfil e grupo)
+    share.dart              # compartilhamento do Android (share_plus)
   l10n/app_pt.arb           # todos os textos da interface
   shared/widgets/           # componentes do design system
   features/
@@ -45,7 +48,7 @@ app/test/                   # espelha lib/
 app/integration_test/       # fluxos de ponta a ponta no emulador
 ```
 
-**Fluxo de dependência:** `presentation` → `data` → `domain`. `domain` não importa nada de Flutter nem do Supabase. Uma feature pode ler o `domain` de outra, mas não o `data` nem o `presentation`. O que é comum sobe para `core/` ou `shared/`.
+**Fluxo de dependência:** `presentation` → `data` → `domain`. `domain` não importa nada de Flutter nem do Supabase. Uma feature pode ler o `domain` de outra, mas não o `data` nem o `presentation`. O que é comum sobe para `core/` ou `shared/`. A exceção é a sessão: qualquer feature lê o usuário logado pelo `sessionUserIdProvider` de `features/auth/presentation/auth_providers.dart` (fatia 3, para marcar "você" nas listas).
 
 **Sem camada de casos de uso.** A regra está no servidor, então o repositório chama a função e o provider expõe o resultado. Uma camada a mais só repassaria chamadas.
 
@@ -105,7 +108,7 @@ Regras:
 - Widgets leem com `ref.watch` e chamam ações com `ref.read(...notifier)`. Nunca `ref.read` no `build`.
 - Nos testes, repositórios são trocados com `ProviderScope(overrides: [...])`.
 - **Sem repetição automática:** o Riverpod 3 repete sozinho uma leitura que falhou. O `ProviderScope` do `main` e o dos testes desligam isso (`retry: (_, _) => null`): quem tenta de novo é a pessoa, pelo botão "Tentar de novo" (research R4 de `specs/001-conta-e-perfil`).
-- **Formulários:** o controller estende `SubmitController` (`features/auth/presentation/submit_controller.dart`). O estado é o da submissão, e cada ação devolve `AppException?`, nulo no sucesso, para a tela decidir se o erro vai para o campo ou para o `SnackBar`. O `build` dele é síncrono, para o controller nascer em `AsyncData`: com um `build` assíncrono, a tela começa "ocupada", desabilita os campos no primeiro quadro e perde o `autofocus`.
+- **Formulários:** o controller estende `SubmitController` (`core/submit_controller.dart`; até a fatia 2, em `features/auth/presentation/`). O estado é o da submissão, e cada ação devolve `AppException?`, nulo no sucesso, para a tela decidir se o erro vai para o campo ou para o `SnackBar`. O `build` dele é síncrono, para o controller nascer em `AsyncData`: com um `build` assíncrono, a tela começa "ocupada", desabilita os campos no primeiro quadro e perde o `autofocus`.
 
 ## 6. Realtime
 
