@@ -131,7 +131,7 @@ O login da fatia 1 continua (espaço do logo com `VoleiIn`, subtítulo, campos E
 
 ## Fatia 3. Grupos
 
-Detalhe de cada tela em `docs/ui/telas.md`, seção 6. Textos em `docs/copy.md`, seção 7. Nos exemplos, use os grupos e as pessoas do seed (`setup.md`, seção 8): o **Vôlei de Quinta**, com Ana (admin), Bruno (apelido Brunão) e Carla (apelido Carlinha), e o código `VoleiQuinta1`. Quem pede para entrar é o Diego.
+Detalhe de cada tela em `docs/ui/telas.md`, seção 6. Textos em `docs/copy.md`, seção 7. Para desenhar sem consultar os outros documentos, a mesma especificação está em `fatia-3/telas-fatia-3.md`, com os textos finais. Nos exemplos, use os grupos e as pessoas do seed (`setup.md`, seção 8): o **Vôlei de Quinta**, com Ana (admin), Bruno (apelido Brunão) e Carla (apelido Carlinha), e o código `VoleiQuinta1`. Quem pede para entrar é o Diego.
 
 | Arquivo | Tela | Status |
 |---------|------|--------|
