@@ -4,7 +4,7 @@
 --
 -- B03, B04, B06 e B10 comparam o banco com uma LISTA ESPERADA. Cada fatia
 -- acrescenta aqui, no mesmo PR, as políticas, os privilégios e as funções que
--- concede (docs/rls-matriz.md, 5). Listas atuais: as da fatia 2.
+-- concede (docs/rls-matriz.md, 5). Listas atuais: as da fatia 3.
 
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -43,8 +43,8 @@ select set_eq(
   'B02: public tem exatamente as 20 tabelas do modelo de dados'
 );
 
--- B03. Políticas de public. Lista esperada: as seis da fatia 2
--- (docs/rls-matriz.md, fatia 2).
+-- B03. Políticas de public. Lista esperada: as seis da fatia 2 e as seis da
+-- fatia 3 (docs/rls-matriz.md).
 select set_eq(
   $$ select tablename || '.' || policyname from pg_policies where schemaname = 'public' $$,
   array[
@@ -53,13 +53,19 @@ select set_eq(
     'profile_private.profile_private_select_own',
     'profile_private.profile_private_update_own',
     'terms_acceptances.terms_acceptances_select_own',
-    'terms_acceptances.terms_acceptances_insert_own'
+    'terms_acceptances.terms_acceptances_insert_own',
+    'groups.groups_select_member',
+    'group_members.group_members_select_member',
+    'group_join_requests.group_join_requests_select_own',
+    'group_join_requests.group_join_requests_select_admin',
+    'profiles.profiles_select_context',
+    'profiles.profiles_select_join_requester'
   ],
-  'B03: as políticas de public são exatamente as da lista esperada (fatia 2)'
+  'B03: as políticas de public são exatamente as da lista esperada (fatia 3)'
 );
 
 -- B04. Privilégios de tabela e de coluna de anon e authenticated em public.
--- Lista esperada: a da fatia 2. anon continua sem nenhum.
+-- Lista esperada: a da fatia 2 e a da fatia 3. anon continua sem nenhum.
 select set_eq(
   $$ select a.grantee::regrole::text || ' ' || c.relname || ' ' || a.privilege_type
      from pg_class c
@@ -70,9 +76,12 @@ select set_eq(
   array[
     'authenticated profiles SELECT',
     'authenticated profile_private SELECT',
-    'authenticated terms_acceptances SELECT'
+    'authenticated terms_acceptances SELECT',
+    'authenticated groups SELECT',
+    'authenticated group_members SELECT',
+    'authenticated group_join_requests SELECT'
   ],
-  'B04a: privilégios de tabela iguais à lista esperada (fatia 2)'
+  'B04a: privilégios de tabela iguais à lista esperada (fatia 3)'
 );
 
 select set_eq(
@@ -95,12 +104,12 @@ select set_eq(
     'authenticated terms_acceptances.document INSERT',
     'authenticated terms_acceptances.version INSERT'
   ],
-  'B04b: privilégios de coluna iguais à lista esperada (fatia 2)'
+  'B04b: privilégios de coluna iguais à lista esperada (fatia 3, sem coluna nova)'
 );
 
 -- B06. Funções de public que anon ou authenticated podem executar, fora as de
--- extensões. Lista esperada da fatia 2: current_terms_versions(), só para
--- authenticated. Este é o teste que cobra o `revoke execute ... from public, anon`
+-- extensões. Lista esperada: current_terms_versions() (fatia 2) e as dez
+-- funções de grupo (fatia 3), só para authenticated. Este é o teste que cobra o `revoke execute ... from public, anon`
 -- de toda função nova (docs/arquitetura-app.md, 14.3).
 select set_eq(
   $$ select p.oid::regprocedure::text
@@ -109,8 +118,20 @@ select set_eq(
      where n.nspname = 'public'
        and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
        and has_function_privilege('authenticated', p.oid, 'execute') $$,
-  array['current_terms_versions()'],
-  'B06a: authenticated executa só as funções da lista esperada (fatia 2)'
+  array[
+    'current_terms_versions()',
+    'create_group(text)',
+    'update_group(uuid,text,text)',
+    'regenerate_group_invite(uuid)',
+    'invalidate_group_invite(uuid)',
+    'request_group_join(text)',
+    'decide_join_request(uuid,boolean)',
+    'set_group_role(uuid,uuid,group_role)',
+    'leave_group(uuid)',
+    'remove_group_member(uuid,uuid)',
+    'archive_group(uuid)'
+  ],
+  'B06a: authenticated executa só as funções da lista esperada (fatia 3)'
 );
 
 select is_empty(
@@ -173,7 +194,8 @@ select ok(
 
 -- B08. Usuário autenticado não lê nem escreve o que nenhuma fatia liberou.
 -- Até a fatia 1, o select era em profiles, que a fatia 2 libera para a própria
--- linha (cenários P01 a P16). Simulação do usuário como a API faz
+-- linha (cenários P01 a P16); até a fatia 2, um select em groups, que a fatia 3
+-- libera aos membros (K01) e agora devolve zero linhas a quem não é membro. Simulação do usuário como a API faz
 -- (docs/arquitetura-app.md, 14.4).
 select set_config(
   'request.jwt.claims',
@@ -183,10 +205,11 @@ select set_config(
 set local role authenticated;
 
 select throws_ok(
-  $$ select id from public.groups $$,
+  $$ insert into public.groups (name, created_by)
+     values ('Intruso', '00000000-0000-0000-0000-00000000000a') $$,
   '42501',
   null,
-  'B08a: select em groups como authenticated devolve 42501'
+  'B08a: insert em groups como authenticated devolve 42501'
 );
 
 select throws_ok(
@@ -255,9 +278,13 @@ select set_eq(
   array[
     'avatars_profile_select_own',
     'avatars_profile_insert_own',
-    'avatars_profile_delete_own'
+    'avatars_profile_delete_own',
+    'avatars_profile_select_context',
+    'avatars_group_select_member',
+    'avatars_group_insert_admin',
+    'avatars_group_delete_admin'
   ],
-  'B10b: as políticas de storage.objects são exatamente as três de avatars (fatia 2)'
+  'B10b: as políticas de storage.objects são exatamente as sete de avatars (fatias 2 e 3)'
 );
 
 select is_empty(
@@ -265,7 +292,11 @@ select is_empty(
      from pg_policies
      where schemaname = 'storage'
        and tablename = 'objects'
-       and policyname not like 'avatars_profile_%' $$,
+       and policyname not in (
+         'avatars_profile_select_own', 'avatars_profile_insert_own', 'avatars_profile_delete_own',
+         'avatars_profile_select_context', 'avatars_group_select_member',
+         'avatars_group_insert_admin', 'avatars_group_delete_admin'
+       ) $$,
   'B10c: não há outra política em storage.objects'
 );
 

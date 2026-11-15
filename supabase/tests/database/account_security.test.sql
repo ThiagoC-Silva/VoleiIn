@@ -51,6 +51,12 @@ where user_id in (
   '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b'
 );
 
+-- Os cenários da conta supõem Ana e Bruno sem contexto (RN107). Desde a fatia 3,
+-- o seed põe os dois no mesmo grupo: as linhas de grupo saem nesta transação,
+-- e o rollback do fim as devolve (research R3 de specs/002-grupos).
+delete from public.group_join_requests;
+delete from public.group_members;
+
 -- Entra como a pessoa, do jeito que a API faz.
 create function pg_temp.login_as(p_user uuid)
 returns void

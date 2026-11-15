@@ -2,8 +2,8 @@
 -- Documento: docs/setup.md, seção 8. Nunca roda na produção.
 --
 -- Fatia 1: as quatro contas do login técnico. Fatia 2: perfis completos e o
--- aceite dos termos. Cada fatia acrescenta os seus cenários (grupos, jogos,
--- valores, comprovantes...).
+-- aceite dos termos. Fatia 3: os grupos Vôlei de Quinta e Vôlei de Domingo.
+-- Cada fatia acrescenta os seus cenários (jogos, valores, comprovantes...).
 --
 -- IDs fixos e legíveis, para testes e anotações poderem citá-los:
 --   Ana   00000000-0000-0000-0000-00000000000a  recebedora, admin do grupo
@@ -97,3 +97,24 @@ insert into public.terms_acceptances (user_id, document, version)
 select p.id, v.document, v.version
 from public.profiles p
 cross join public.current_terms_versions() as v;
+
+-- Grupos (fatia 3, docs/setup.md, seção 8). IDs e códigos fixos para os testes
+-- de Deno e os fluxos L12 a L14. Sem foto. Diego continua sem grupo: a
+-- solicitação pendente no Domingo não é contexto (RN107), e só o Bruno, admin do
+-- Domingo, vê o perfil dele (RN107, exceção 2).
+insert into public.groups (id, name, invite_code, invite_code_updated_at, created_by)
+values
+  ('00000000-0000-0000-0000-000000000101', 'Vôlei de Quinta', 'VoleiQuinta1', now(),
+   '00000000-0000-0000-0000-00000000000a'),
+  ('00000000-0000-0000-0000-000000000102', 'Vôlei de Domingo', 'VoleiDomingo', now(),
+   '00000000-0000-0000-0000-00000000000b');
+
+insert into public.group_members (group_id, user_id, role)
+values
+  ('00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-00000000000a', 'admin'),
+  ('00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-00000000000b', 'member'),
+  ('00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-00000000000c', 'member'),
+  ('00000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-00000000000b', 'admin');
+
+insert into public.group_join_requests (group_id, user_id)
+values ('00000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-00000000000d');

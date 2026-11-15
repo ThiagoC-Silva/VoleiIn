@@ -80,15 +80,17 @@ jobs:
       - name: Testes pgTAP
         run: supabase test db
 
-      # Testes que falam com o Supabase de pé: Storage (A01 a A06) e, da fatia 4
-      # em diante, concorrência (docs/arquitetura-app.md, 14.4). A chave
-      # pública vem do próprio start.
+      # Todos os testes Deno falam com o Supabase de pé: Storage (A01 a A13),
+      # preview-invite servida pelo start (Q01 a Q07) e concorrência (C13 e C15)
+      # (docs/arquitetura-app.md, 14.4; research R6 de specs/002-grupos). As
+      # chaves são as do projeto local, geradas pelo próprio start; a secreta
+      # só conta linhas no Q07.
       - name: Testes contra o Supabase local (Deno)
         working-directory: supabase/functions
         run: |
-          eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY)=')"
+          eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|SECRET_KEY)=')"
           SUPABASE_URL="$API_URL" SUPABASE_PUBLISHABLE_KEY="$PUBLISHABLE_KEY" \
-            deno test --allow-net --allow-env _tests/
+            SUPABASE_SECRET_KEY="$SECRET_KEY" deno test --allow-net --allow-env
 
   functions:
     name: Edge Functions (Deno)
@@ -106,18 +108,10 @@ jobs:
       - name: Formatação
         run: deno fmt --check
 
-      # --permit-no-files: até a fatia 3 não há nenhum .ts, e sem a opção o
-      # deno lint sai com erro ("No target files found").
       - name: Lint
-        run: deno lint --permit-no-files
+        run: deno lint
 
-      # A primeira Edge Function chega na fatia 3; sem arquivo de teste,
-      # `deno test` falharia por não achar nenhum. A pasta _tests/ precisa do
-      # Supabase de pé e roda no job database.
-      - name: Testes
-        run: |
-          if find . -path ./_tests -prune -o -name '*_test.ts' -print | grep -q .; then
-            deno test --allow-net --allow-env --ignore=_tests/
-          else
-            echo 'Nenhum teste de Edge Function nesta fatia.'
-          fi
+      # Os testes das Edge Functions precisam do Supabase de pé e rodam no job
+      # database (research R6 de specs/002-grupos). Aqui, só a checagem de tipos.
+      - name: Tipos
+        run: deno check preview-invite/index.ts
