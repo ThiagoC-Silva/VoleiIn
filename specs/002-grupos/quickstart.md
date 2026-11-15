@@ -11,11 +11,13 @@ supabase db lint
 
 # em supabase/functions/ (Edge Function servida pelo próprio supabase start)
 export PATH="$HOME/.deno/bin:$PATH"
-eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY)=')"
+eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|SECRET_KEY)=')"
 SUPABASE_URL="$API_URL" SUPABASE_PUBLISHABLE_KEY="$PUBLISHABLE_KEY" \
-  deno test --allow-net --allow-env   # A, Q e C
+  SUPABASE_SECRET_KEY="$SECRET_KEY" deno test --allow-net --allow-env   # A, Q e C
 deno fmt --check && deno lint
 ```
+
+O Edge Runtime do `supabase start` não recarrega a função ao salvar. Depois de mudar `preview-invite/index.ts`, rode `docker restart supabase_edge_runtime_VoleiIn` (ou use `supabase functions serve`, que recarrega).
 
 ## Conferência rápida pela API
 
