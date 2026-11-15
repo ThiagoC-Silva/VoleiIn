@@ -21,32 +21,34 @@
 
 **Purpose**: todos os cenários automáticos de servidor da seção 11, escritos e **falhando pelo motivo certo** (a função ou a política ainda não existe). Um *commit* só de testes.
 
-- [ ] T001 [P] Atualizar as listas esperadas de B03, B04, B06, B08 e B10 em `supabase/tests/database/base_security.test.sql` (`docs/rls-matriz.md`, fatia 3; `docs/testes-referencia.md`, 9.1 e 11)
-- [ ] T002 [P] Escrever G01 a G33 em `supabase/tests/database/groups_functions.test.sql`, com a base da seção 11 e a limpeza do research R3
-- [ ] T003 [P] Escrever K01 a K15 em `supabase/tests/database/groups_security.test.sql`
-- [ ] T004 [P] Escrever A07 a A13 em `supabase/functions/_tests/avatars_test.ts`
-- [ ] T005 [P] Escrever Q01 a Q07 em `supabase/functions/preview-invite/index_test.ts`
-- [ ] T006 [P] Escrever C13 e C15 em `supabase/functions/_tests/concurrency/groups_test.ts` (research R4)
-- [ ] T007 Acrescentar ao `supabase/seed.sql` os grupos da `docs/setup.md`, seção 8 (pré-requisito dos testes Deno, não é código de produção)
-- [ ] T008 Rodar `supabase test db` e `deno test`, guardar a saída da falha e fazer o *commit* só de testes
+- [x] T001 [P] Atualizar as listas esperadas de B03, B04, B06, B08 e B10 em `supabase/tests/database/base_security.test.sql` (`docs/rls-matriz.md`, fatia 3; `docs/testes-referencia.md`, 9.1 e 11)
+- [x] T002 [P] Escrever G01 a G33 em `supabase/tests/database/groups_functions.test.sql`, com a base da seção 11 e a limpeza do research R3
+- [x] T003 [P] Escrever K01 a K15 em `supabase/tests/database/groups_security.test.sql`
+- [x] T004 [P] Escrever A07 a A13 em `supabase/functions/_tests/avatars_test.ts`
+- [x] T005 [P] Escrever Q01 a Q07 em `supabase/functions/preview-invite/index_test.ts`
+- [x] T006 [P] Escrever C13 e C15 em `supabase/functions/_tests/concurrency/groups_test.ts` (research R4)
+- [x] T007 Acrescentar ao `supabase/seed.sql` os grupos da `docs/setup.md`, seção 8 (pré-requisito dos testes Deno, não é código de produção)
+- [x] T008 Rodar `supabase test db` e `deno test`, guardar a saída da falha e fazer o *commit* só de testes
 
-**Checkpoint**: testes vermelhos pelo motivo certo.
+**Checkpoint**: testes vermelhos pelo motivo certo (*commit* `99aedd5`, com a saída da falha na mensagem).
 
 ### Phase 2: Implementação do servidor
 
-- [ ] T009 Migração `create_group_access_helpers`: as quatro funções auxiliares e `private.generate_invite_code()` (`docs/rls-matriz.md`, fatia 3; research R1)
-- [ ] T010 Migração `groups_rls`: privilégios e as seis políticas (US4, US5)
-- [ ] T011 [US1] [US6] Migração `create_group_functions`, parte 1: `create_group`, `update_group`, `regenerate_group_invite`, `invalidate_group_invite` (`docs/contratos-api.md`, seção 3)
-- [ ] T012 [US2] Mesma migração, parte 2: `request_group_join` e `decide_join_request`, com as notificações e o bloqueio do research R2
-- [ ] T013 [US4] [US6] Mesma migração, parte 3: `set_group_role`, `leave_group`, `remove_group_member`, `archive_group` (RN13, RN17; `games_left` vazio até a fatia 4)
-- [ ] T014 Migração `avatars_group_policies`: as quatro políticas de Storage, com a conversão segura da pasta para `uuid` (A13)
-- [ ] T015 [US2] Edge Function `preview-invite` em `supabase/functions/preview-invite/index.ts`, com `_shared/http.ts` e `verify_jwt = false` no `supabase/config.toml` (research R5)
-- [ ] T016 CI: testes da `preview-invite` no job `database` (research R6)
+- [x] T009 Migração `create_group_access_helpers`: as quatro funções auxiliares e `private.generate_invite_code()` (`docs/rls-matriz.md`, fatia 3; research R1)
+- [x] T010 Migração `groups_rls`: privilégios e as seis políticas (US4, US5)
+- [x] T011 [US1] [US6] Migração `create_group_functions`, parte 1: `create_group`, `update_group`, `regenerate_group_invite`, `invalidate_group_invite` (`docs/contratos-api.md`, seção 3)
+- [x] T012 [US2] Mesma migração, parte 2: `request_group_join` e `decide_join_request`, com as notificações e o bloqueio do research R2
+- [x] T013 [US4] [US6] Mesma migração, parte 3: `set_group_role`, `leave_group`, `remove_group_member`, `archive_group` (RN13, RN17; `games_left` vazio até a fatia 4)
+- [x] T014 Migração `avatars_group_policies`: as quatro políticas de Storage, com a conversão segura da pasta para `uuid` (A13)
+- [x] T015 [US2] Edge Function `preview-invite` em `supabase/functions/preview-invite/index.ts`, com `_shared/http.ts` e `verify_jwt = false` no `supabase/config.toml` (research R5)
+- [x] T016 CI: testes da `preview-invite` no job `database` (research R6)
 
 ### Phase 3: Convergência do servidor
 
-- [ ] T017 `supabase db reset`, `supabase test db`, `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes
-- [ ] T018 Atualizar os documentos afetados (`docs/rastreabilidade.md` com o estado do servidor, `README` de `_shared/` e `_tests/`) e a linha "Estado atual" do `CLAUDE.md`; enviar o *branch* e abrir o PR
+- [x] T017 `supabase db reset`, `supabase test db`, `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes
+- [x] T018 Atualizar os documentos afetados (`docs/rastreabilidade.md` com o estado do servidor, `README` de `_shared/` e `_tests/`) e a linha "Estado atual" do `CLAUDE.md`; enviar o *branch* e abrir o PR
+
+**Sessão 2 concluída em 15/11/2026** no *branch* `fatia-3/servidor`: `supabase test db`, `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes. Decisões do responsável na sessão: o C14 foi retirado (rebaixamento cruzado simultâneo, pouco provável) e o A06 passou a usar o Diego no lugar do Bruno (`docs/testes-referencia.md`, 10.3 e 11.5). As migrações vão à produção só na sessão 4, depois do ensaio.
 
 ---
 
