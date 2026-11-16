@@ -16,8 +16,8 @@ Os testes da tarefa são escritos primeiro, falham pelo motivo certo e só entã
 ### IV. O servidor decide
 Rateio, multa, status e prazos são calculados no servidor, com o relógio do servidor. O app exibe. Dinheiro é `integer` em centavos. Toda tabela tem RLS, e toda política tem teste (`CLAUDE.md`, "Nunca faça").
 
-### V. Produção é do responsável
-O agente não aplica migração, não roda SQL, não publica função nem mexe em segredos na produção, e não faz *merge*. Ele entrega o comando pronto (`docs/trabalho-com-agente.md`, seções 7 e 8).
+### V. Produção com ensaio
+O agente pode fazer *merge* (com o CI verde), aplicar migrações, publicar funções e mexer em configuração e segredos na produção (decisão de 13/11/2026). Antes de cada `supabase db push`, roda o ensaio de `docs/setup.md`, seção 9.2, e depois confere com `get_advisors`. O schema da produção muda só por migração versionada no repositório, e o que pede senha ou login interativo fica com o responsável (`docs/trabalho-com-agente.md`, seções 7 e 8).
 
 ## Convenções
 
@@ -31,4 +31,4 @@ Ciclo da fatia, template de tarefa, definição de pronto, Git, PR e pipeline: `
 
 Esta constituição muda só quando `CLAUDE.md` ou `docs/trabalho-com-agente.md` mudam, e nunca cria regra que eles não tenham. Decisões de arquitetura ficam em `docs/adr/` e não são reabertas.
 
-**Versão**: 1.0.0 | **Ratificada**: 2026-11-12 | **Última alteração**: 2026-11-12
+**Versão**: 1.1.0 | **Ratificada**: 2026-11-12 | **Última alteração**: 2026-11-16
