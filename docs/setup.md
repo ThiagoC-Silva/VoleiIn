@@ -46,7 +46,7 @@ scripts/              # emulador e testes de integração com limite de memória
 | Flutter (com Dart) | Estável, 3.47 ou superior (Dart 3.13) | App | `snap install flutter --classic` |
 | Android Studio | Atual | SDK do Android, emuladores e `keytool` | Site oficial |
 | Docker | Atual | Supabase local | Gerenciador de pacotes; o usuário precisa estar no grupo `docker` |
-| Supabase CLI | Estável mais recente (não usar versões `-next`) | Banco local, migrações, testes pgTAP, Edge Functions | Pacote `.deb` das *releases* do GitHub |
+| Supabase CLI | 2.122.1, a mesma fixada no CI (`supabase/setup-cli`, decisão de 16/11/2026). Para atualizar, troque as duas juntas, num PR próprio, com o CI verde | Banco local, migrações, testes pgTAP, Edge Functions | Pacote `.deb` das *releases* do GitHub |
 | Deno | 2.x | Testes das Edge Functions e de concorrência | `curl -fsSL https://deno.land/install.sh \| sh` |
 | `uv` e Spec Kit | `uv` atual; `specify-cli` 1.4 ou superior | Especificação de cada fatia | `curl -LsSf https://astral.sh/uv/install.sh \| sh`; `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git` |
 | Firebase CLI e FlutterFire CLI | Atual | Configurar o FCM (fatia 7) | Binário oficial do Firebase; `dart pub global activate flutterfire_cli` |
