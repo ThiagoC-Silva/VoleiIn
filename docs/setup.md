@@ -313,6 +313,19 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 - **Auth da produção (13/11/2026):** a produção ainda tinha os modelos de e-mail do v0, sem o código no assunto, e `otp_expiry = 300`. O `supabase config push` levou os três modelos de `supabase/templates/` e `otp_expiry = 3600` (seção 6.1). Ficaram como estavam na produção, de propósito: `max_frequency = 1m` (o `1s` do `config.toml` é para os testes locais) e `secure_password_change = true` (os fluxos do app entram de novo antes de trocar a senha). Para levar só isso, o push rodou de uma cópia temporária do `config.toml` com esses dois valores iguais aos da produção. O SMTP do Resend e o Google, mantidos do v0, continuaram.
 - **M03 e M04** conferidos com o responsável, no celular, com o build da produção: os três e-mails chegaram pelo Resend, de `nao-responda@mail.voleiin.com.br`, com o código no assunto; cadastro por e-mail, Google e vinculação funcionaram. Ficou na produção uma conta de teste do responsável, com as identidades `email` e `google`.
 
+### 9.5 Migrações e Edge Function da fatia 3 (16/11/2026)
+
+**Feita em 16/11/2026**, pelo agente. A produção tinha as 19 migrações das fatias 1 e 2 e uma conta (a de teste do responsável).
+
+- Ensaio da seção 9.2: cópia em `~/voleiin-dumps`, banco local montado na versão `20261113162203` sem seed, as 4 migrações novas aplicadas sem erro e os 273 testes pgTAP verdes. Contagens iguais antes e depois (1 conta, 1 perfil, 2 aceites), grupos vazios e nenhuma tabela sem RLS.
+- `supabase db push --dry-run` listou as mesmas 4, sem seed nem roles, e o `supabase db push` as aplicou: `20261115120000` a `20261115120300`.
+- `supabase functions deploy preview-invite`, com `verify_jwt = false` vindo do `config.toml`. Ela só lê `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`, que o runtime fornece: nenhum segredo novo. Sem token, responde `401 NOT_AUTHENTICATED`.
+- Conferência: `list_migrations` com as 23 migrações e `list_edge_functions` com a `preview-invite` ativa. Advisors:
+  - INFO de RLS sem política em 14 tabelas das fatias seguintes (eram 17; `groups`, `group_members` e `group_join_requests` ganharam política).
+  - WARN `authenticated_security_definer_function_executable` nas 10 funções de grupo: é o desenho, porque toda escrita com regra passa por função `security definer` que confere o papel (ADR 0004, `contratos-api.md`, seção 1). O aviso volta a cada fatia com funções novas e não pede ação.
+  - WARN de Auth: proteção contra senha vazada desligada e poucas opções de MFA. Nenhum dos dois faz parte das fatias até aqui, e ficam como estão.
+  - Desempenho: WARN `multiple_permissive_policies` em `profiles` e `group_join_requests` (as políticas separadas por caso da `rls-matriz.md`), INFO de chaves estrangeiras sem índice e índices sem uso, num banco quase vazio.
+
 ## 10. Domínio, e-mail e convites
 
 | Item | Valor | Observação |
@@ -337,3 +350,7 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 | `adb: more than one device/emulator` | Celular ligado por USB ou Wi-Fi além do emulador | Desligue o celular do `adb`; os scripts escolhem o primeiro emulador. Fora deles, passe `-d emulator-5554` ao `flutter test` e `-s emulator-5554` ao `adb` |
 | `permission denied` no Docker | Usuário fora do grupo `docker`, ou sessão não reaberta | `sudo usermod -aG docker $USER` e reabrir a sessão |
 | Erro de geração (`*.freezed.dart` ou `*.g.dart` não encontrado) | `build_runner` não rodou | `dart run build_runner build --delete-conflicting-outputs` |
+| `dart analyze` acusa getters do `AppLocalizations` que não existem (ex.: `groupsCreate`), depois de um `git pull` | Os arquivos gerados do l10n e do `build_runner` ficam fora do Git e estão velhos nesta máquina | `flutter pub get` e `dart run build_runner build --delete-conflicting-outputs`, em `app/` |
+| Uma Edge Function local responde `Function not found`, e `supabase status` lista `supabase_edge_runtime_VoleiIn` entre os parados | O container do Edge Runtime foi criado antes da função existir (visto ao trocar de máquina) e o `supabase start` não o recriou | `supabase stop` e `supabase start` |
+| `deno test` falha com `Missing SUPABASE_PUBLISHABLE_KEY or SUPABASE_SECRET_KEY` | Falta uma das variáveis que o CI passa | Exporte `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` a partir de `supabase status -o env` (`API_URL`, `PUBLISHABLE_KEY`, `SECRET_KEY`) |
+| `scripts/integration-test.sh` recusa por memória logo depois de outra rodada | O daemon do Gradle da rodada anterior continua com uns 3 GB | `./gradlew --stop` em `app/android` e rode de novo |
