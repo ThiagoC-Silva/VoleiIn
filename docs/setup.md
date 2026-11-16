@@ -231,6 +231,21 @@ Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfir
 
 Diego continua sem grupo: a solicitação pendente não é contexto (RN107), e ele serve aos testes de "sem contexto" com a Ana e a Carla. Só o Bruno, admin do Domingo, vê o perfil do Diego (RN107, exceção 2). Os grupos não têm foto no seed.
 
+**Jogos da fatia 4**, todos do Vôlei de Quinta, salvo o avulso, com IDs e códigos fixos para os fluxos L15 a L19 (`testes-referencia.md`, seção 12). "Dia +2" é o dia de hoje mais dois em `America/Fortaleza`, e as horas são desse fuso. Diego fica fora de todos, para os testes de "sem contexto".
+
+| Jogo | ID | Código | Quando | Local, total e limite | Lista | Outros |
+|------|----|--------|--------|-----------------------|-------|--------|
+| Quinta Aberto | `00000000-0000-0000-0000-000000000201` | `JogoAberto01` | Dia +2, 20h às 22h, prazo às 18h | Quadra do Sesc, com link do Maps; R$ 120,00; 12 | Ana | Carla cancelou no prazo. Status Aberto |
+| Quinta Confirmado | `00000000-0000-0000-0000-000000000202` | `JogoCheio001` | Dia +3, 20h às 22h, prazo às 18h | Ginásio Verdão; R$ 60,00; 2 | Ana e Carla | Bruno na espera. Status Confirmado |
+| Quinta em andamento | `00000000-0000-0000-0000-000000000203` | `JogoAndamen1` | Começou 30 min antes do `db reset` e termina 90 min depois; prazo 3 h antes do início | Quadra do Sesc; R$ 120,00; 12 | Ana, Bruno e Carla | Status Aberto, em andamento |
+| Quinta cancelado | `00000000-0000-0000-0000-000000000204` | `JogoCancel01` | Dia +4, 20h às 22h, prazo às 18h | Quadra do Sesc; R$ 120,00; 12 | Ana e Bruno | Cancelado pela Ana |
+| Quinta prazo vencido | `00000000-0000-0000-0000-000000000205` | `JogoPrazo001` | Começa 1 h depois do `db reset`; prazo 1 h antes dele | Ginásio Verdão; R$ 60,00; 6 | Ana | Bruno cancelou fora do prazo, 30 min antes do `db reset` |
+| Jogo da Carla | `00000000-0000-0000-0000-000000000206` | `JogoCarla001` | Dia +5, 19h às 21h, prazo às 17h | Arena Delta; R$ 80,00; 8 | Carla e Ana | Carla é a recebedora e a única admin (L19) |
+| Avulso da Ana | `00000000-0000-0000-0000-000000000207` | `JogoAvulso01` | Dia +6, 18h às 20h, prazo às 16h | Praia do Coqueiro; R$ 40,00; 4 | Ana | Sem grupo |
+
+- Em todos, quem está primeiro na lista é o admin e o recebedor, e o `game_limit_history` tem a linha do limite inicial.
+- O jogo em andamento e o de prazo vencido dependem da hora do `supabase db reset`: depois de umas horas, eles passam a "aguardando conclusão". Para voltar ao cenário, rode o `db reset` de novo.
+
 - Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente, que vem de `current_terms_versions()` (`contratos-api.md`, seção 9). O seed grava a mesma versão (`1.0`); quando uma migração trocar a versão, o seed muda junto.
 - IDs fixos (UUIDs legíveis, como `00000000-0000-0000-0000-00000000000a` para a Ana), para que testes e anotações possam citá-los.
 - O domínio `.test` é reservado e nunca entrega e-mail.
@@ -242,7 +257,7 @@ Diego continua sem grupo: a solicitação pendente não é contexto (RN107), e e
 | 1 | As quatro contas, para o login técnico |
 | 2 | Perfis completos: apelido, telefone visível e oculto, chave Pix. O aceite dos termos na versão `1.0`, a mesma de `current_terms_versions()` |
 | 3 | Dois grupos com admin e membros e uma solicitação pendente (tabela acima) |
-| 4 | Jogos Aberto, Confirmado (com espera), em andamento e Cancelado; passagens canceladas no prazo e fora dele |
+| 4 | Sete jogos: Aberto, Confirmado (com espera), em andamento, Cancelado, com o prazo vencido, um com a Carla como recebedora e um avulso; passagens canceladas no prazo e fora dele (tabela acima) |
 | 5 | Jogo Concluído com rateio, multas mantidas e isentadas, troca de recebedor |
 | 6 | Valores Pendentes, Em análise, Pagos e Isentos; comprovantes nos três status |
 | 7 | Notificações lidas e não lidas, preferências desligadas |

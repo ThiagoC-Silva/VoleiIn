@@ -244,7 +244,7 @@ $$;
 - O membro que não é admin não lê as solicitações do grupo. Cada pessoa lê as próprias solicitações, em qualquer status, mas não o grupo delas antes de entrar: o nome vem da prévia do convite.
 - O perfil lido por contexto inclui o perfil anonimizado (RN104, fatia 6): o histórico continua mostrando a pessoa, sem os dados pessoais.
 - A exceção 2 vale só enquanto a solicitação está `pending`. Depois da recusa, o admin deixa de ver a pessoa; depois da aprovação, vale o contexto do grupo.
-- `profile_private` continua só do dono, com ou sem contexto. O telefone visível chega a terceiros pela função `get_profile_contact`, na fatia 4.
+- `profile_private` continua só do dono, com ou sem contexto. O telefone visível chega a terceiros pela função `get_profile_contact`, na fatia 4 (abaixo).
 
 **Funções do app** acrescentadas à lista do B06, todas com `execute` só para `authenticated`: `create_group(text)`, `update_group(uuid, text, text)`, `regenerate_group_invite(uuid)`, `invalidate_group_invite(uuid)`, `request_group_join(text)`, `decide_join_request(uuid, boolean)`, `set_group_role(uuid, uuid, group_role)`, `leave_group(uuid)`, `remove_group_member(uuid, uuid)` e `archive_group(uuid)`.
 
@@ -264,10 +264,87 @@ $$;
 
 **Casos negativos**, cada um com teste (`testes-referencia.md`, seção 11.2): quem não é membro, inclusive o ex-membro, não lê o grupo, os integrantes nem as solicitações; o membro que não é admin não lê as solicitações; ninguém lê o grupo arquivado; ninguém escreve direto nas três tabelas; sem contexto, ninguém lê o perfil nem a foto de outro (RN107); o membro que não é admin não lê o perfil de quem pediu para entrar; depois da recusa, nem o admin; o contexto do grupo acaba quando a pessoa sai ou o grupo é arquivado; o membro não envia nem apaga a foto do grupo; quem não é membro não lê a foto do grupo; `anon` não lê nada.
 
+### Fatia 4
+
+Decisões de 16/11/2026. Quem pode ver o jogo lê o jogo, os admins, a lista de presença e a de espera. O histórico de limite fica só com os admins do jogo. O nome do grupo chega a quem vê o jogo sem ser membro pela função `get_game_groups`, e a chave Pix e o telefone de terceiros, por `get_profile_contact`. Toda escrita em jogo passa pelas funções do `contratos-api.md` (seção 4). Nas condições, `uid` é `(select auth.uid())` (seção 6).
+
+**Funções auxiliares**, no esquema `private`, com as mesmas propriedades das da fatia 3 (`language sql`, `stable`, `security definer`, `set search_path = ''`, `revoke` de `public` e `anon`, `execute` para `authenticated`):
+
+```sql
+-- Admin do jogo (RN25).
+create function private.is_game_admin(p_game_id uuid, p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.game_admins a
+    where a.game_id = p_game_id and a.user_id = p_user_id
+  );
+$$;
+
+-- Pode ver o jogo (modelo-dados.md, seção 8): membro do grupo do jogo, quem tem ou
+-- teve passagem na lista ou na espera, em qualquer status, e admin do jogo.
+-- Jogo avulso: só os três últimos. Grupo arquivado não tem membros (RN17).
+create function private.can_view_game(p_game_id uuid, p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+      select 1 from public.games g
+      join public.group_members m on m.group_id = g.group_id and m.user_id = p_user_id
+      where g.id = p_game_id
+    )
+    or exists (
+      select 1 from public.game_participants p
+      where p.game_id = p_game_id and p.user_id = p_user_id
+    )
+    or exists (
+      select 1 from public.game_waitlist w
+      where w.game_id = p_game_id and w.user_id = p_user_id
+    )
+    or private.is_game_admin(p_game_id, p_user_id);
+$$;
+```
+
+- **Índices de apoio**, já criados na fatia 1: `games` pela PK; `group_members` pela PK `(group_id, user_id)`; `game_participants` por `(user_id, game_id)`; `game_waitlist` pela PK `(game_id, user_id)`; `game_admins` pela PK `(game_id, user_id)`.
+- O ex-membro continua vendo os jogos em que teve passagem, inclusive o jogo futuro de que saiu pela saída do grupo (RN14), porque a passagem `removed` fica. Assim ele vê o histórico e, na fatia 8, pode voltar pelo convite (RN14, item 1). Os outros jogos do grupo deixam de aparecer.
+
+**Privilégios de `authenticated`** acrescentados às listas das fatias 2 e 3 (lista esperada do B04). `anon` continua sem nenhum.
+
+| Tabela | Privilégio | Colunas |
+|--------|------------|---------|
+| `games` | `select` | Todas |
+| `game_admins` | `select` | Todas |
+| `game_participants` | `select` | Todas |
+| `game_waitlist` | `select` | Todas |
+| `game_limit_history` | `select` | Todas |
+
+- Sem `insert`, `update` e `delete` nas cinco: as escritas são das funções. Quem vê o jogo lê `invite_code`, como o membro do grupo lê o código do grupo. O código só passa a servir para entrar na fatia 8 (seção 6).
+- `receiver_changes` continua fechada: abre na fatia 5, com a troca de recebedor.
+
+**Políticas** acrescentadas (lista esperada do B03)
+
+| Tabela | Política | Operação | `using` |
+|--------|----------|----------|---------|
+| `games` | `games_select_viewer` | `select` | `private.can_view_game(id, uid)` |
+| `game_admins` | `game_admins_select_viewer` | `select` | `private.can_view_game(game_id, uid)` |
+| `game_participants` | `game_participants_select_viewer` | `select` | `private.can_view_game(game_id, uid)` |
+| `game_waitlist` | `game_waitlist_select_viewer` | `select` | `private.can_view_game(game_id, uid)` |
+| `game_limit_history` | `game_limit_history_select_admin` | `select` | `private.is_game_admin(game_id, uid)` |
+
+- Quem vê o jogo vê todas as passagens dele, inclusive os cancelamentos e remoções, e todas as linhas da espera. A tela mostra só as passagens que ocupam vaga e a espera atual (`docs/ui/telas.md`, 7.3).
+- O perfil dos participantes já é lido pela política `profiles_select_context` da fatia 3: estar no mesmo jogo, na lista ou na espera, é contexto (RN107). Nenhuma política de `profiles` muda.
+- As fotos dos participantes seguem a política `avatars_profile_select_context` da fatia 3, pelo mesmo motivo.
+
+**Funções do app** acrescentadas à lista do B06, todas com `execute` só para `authenticated`: `create_game(uuid, text, text, timestamptz, timestamptz, timestamptz, integer, integer)`, `update_game(uuid, text, text, timestamptz, timestamptz, timestamptz, integer)`, `join_game(uuid, text)`, `leave_game(uuid)`, `remove_participant(uuid, uuid)`, `set_slot_limit(uuid, integer)`, `join_waitlist(uuid, text)`, `leave_waitlist(uuid)`, `cancel_game(uuid)`, `add_game_admin(uuid, uuid)`, `remove_game_admin(uuid, uuid)`, `get_profile_contact(uuid)` e `get_game_groups(uuid[])`. `leave_group` e `remove_group_member` mudam de corpo, com a mesma assinatura.
+
+- `get_profile_contact` e `get_game_groups` são `security definer` porque leem `profile_private` e `groups`, que o RLS fecha para terceiros. Cada uma confere a permissão no próprio corpo (`contratos-api.md`, seção 4) e devolve só as colunas que o contrato lista.
+
+**Realtime:** `games`, `game_participants` e `game_waitlist` entram na publicação `supabase_realtime`, por migração (`stacks.md`, 4.1). O Realtime respeita estas políticas: só recebe o evento quem pode ver o jogo (seção 1). `game_admins` e `game_limit_history` ficam fora: as telas que as usam releem ao abrir.
+
+**Casos negativos**, cada um com teste (`testes-referencia.md`, seção 12.4): quem não pode ver o jogo (sem grupo e sem passagem, ou fora do jogo avulso) não lê nenhuma das quatro tabelas; o ex-membro não lê os jogos do grupo em que não teve passagem; quem não é admin do jogo não lê `game_limit_history`, mesmo estando na lista; ninguém escreve direto nas cinco tabelas; quem está só na espera, quem cancelou e quem não está no jogo não recebem a chave Pix do recebedor, nem em jogo cancelado (RN102); o telefone oculto, ou de quem não compartilha contexto, volta nulo (RN101); `get_game_groups` não devolve o grupo de um jogo que quem chama não vê; `anon` não lê nada.
+
 ## 6. Cuidados nas próximas fatias
 
 - **Desempenho:** nas políticas, use `(select auth.uid())` em vez de `auth.uid()`, para o Postgres calcular uma vez por consulta e não uma vez por linha. As funções auxiliares são `stable` e consultam por colunas indexadas (`modelo-dados.md`, seção 4).
 - **Caso negativo sempre:** toda política nova tem ao menos um teste de quem **não** pode (sem contexto, ex-membro, outro pagador), além do teste de quem pode.
 - **Simulação do usuário nos testes:** `set local role authenticated` e `set local request.jwt.claims` com o `sub` do usuário (`arquitetura-app.md`, 14.4).
-- **Nome do grupo nos jogos (fatia 4):** o card de um jogo de grupo mostra o nome do grupo, e quem vê o jogo sem ser membro do grupo (o ex-membro com jogo no histórico, quem entrou pelo link na fatia 8) não lê `groups` pela política da fatia 3. A forma de ler esse nome é decidida na fatia 4.
+- **Nome do grupo nos jogos:** resolvido na fatia 4 com a função `get_game_groups` (decisão de 16/11/2026). Liberar `groups` a quem vê o jogo entregaria o `invite_code` do grupo a ex-membros.
+- **Código do jogo (fatia 8):** desde a fatia 4, quem pode ver o jogo lê `games.invite_code`, inclusive o membro do grupo que não está na lista e o ex-membro com passagem. Na fatia 8, quando o código passar a servir para entrar, confira se essa leitura continua certa para a RN55 ("qualquer participante pode compartilhar") ou se o código deve sair da tabela lida pelo app.
 - **Advisors:** ao fim de cada fatia, `get_advisors` do MCP (só leitura) não aponta tabela sem RLS nem política com problema de desempenho.

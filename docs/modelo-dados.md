@@ -330,7 +330,7 @@ Constraints:
 | `left_at` | timestamptz | null; saída da espera ou entrada na lista |
  
 PK `(game_id, user_id)`. Índice `(user_id)`.
-A linha é mantida com `left_at` preenchido (em vez de apagada) porque passar pela lista de espera também conta como "compartilhar contexto" (RN107). Voltar à espera limpa `left_at`. O encerramento no início é derivado (`now() >= starts_at`): ninguém entra e ninguém é notificado.
+A linha é mantida com `left_at` preenchido (em vez de apagada) porque passar pela lista de espera também conta como "compartilhar contexto" (RN107). Voltar à espera limpa `left_at` e grava `joined_at = now()`, para quem volta ficar no fim da ordem (decisão de 16/11/2026). O encerramento no início é derivado (`now() >= starts_at`): ninguém entra e ninguém é notificado.
  
 #### `receiver_changes`
 Histórico das trocas de recebedor (RN30, RN31, RN115).
@@ -540,6 +540,7 @@ Toda escrita com regra passa por uma função do servidor (SQL `security definer
 | `archive_group` | Valida que não há jogo `open`/`confirmed`, remove membros, cancela solicitações pendentes, invalida o convite, grava `archived_at` e notifica os membros | RN17, RF103 |
 | `delete_account` | Valida bloqueios, sai das listas futuras, cancela solicitações e anonimiza | RN103, RN104 |
 | `get_profile_contact(user_id)` | Devolve telefone e chave Pix só quando a RN101, a RN102 e a RN107 permitem | RN101, RN102, RN107 |
+| `get_game_groups(game_ids)` | Devolve o nome do grupo dos jogos que quem chama pode ver, sem abrir `groups` a quem não é membro (decisão de 16/11/2026) | RF44, RF45 |
 | `current_terms_versions()` | Devolve a versão vigente dos Termos de Uso e da Política de Privacidade | RF105 |
  
 **`complete_game(game_id, total_cents?, absent_user_ids?)`**

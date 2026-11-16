@@ -60,7 +60,7 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF43 | 8 | RN55 | — | — | — | Pendente |
 | RF44 | 4 | — | — | — | — | Pendente |
 | RF45 | 4 | RN102 | — | — | — | Pendente |
-| RF46 | 4 | RN107 | — | — | — | Pendente |
+| RF46 | 4 | RN52, RN107 | — | — | — | Pendente |
 | RF47 | 4 | RN50 | — | — | — | Pendente |
 | RF48 | 8 | RN50, RN107 | — | — | — | Pendente |
 | RF49 | 4 | RN51, RN54 | — | — | — | Pendente |
@@ -116,7 +116,7 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF99 | 7 | RN110 | — | — | — | Pendente |
 | RF100 | 7 | RN52 | — | — | — | Pendente |
 | RF101 | 4 | RN101, RN107 | — | — | — | Pendente |
-| RF102 | 4 | — | — | — | — | Pendente |
+| RF102 | 4 | RN16 | — | — | — | Pendente |
 | RF103 | 3 | RN13, RN17 | `archive_group` | `/groups/:groupId/edit` | G30 a G33, K04, S33, L13 | Concluído |
 | RF104 | 7 | RN17, RN58, RN66, RN80 | — | — | — | Pendente |
 | RF105 | 2 | — | `terms_acceptances`; `current_terms_versions()` | `/terms`, `/terms/:document` | P10 a P14, S09, S10, L08 | Concluído |

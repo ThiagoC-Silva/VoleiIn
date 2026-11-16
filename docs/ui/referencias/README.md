@@ -229,3 +229,112 @@ A confirmação destrutiva, com o título **Sair do grupo Vôlei de Quinta?**, a
 - Barra superior interna com voltar. A barra inferior aparece, com a aba de origem ativa.
 - **Avatar de 96**, o nome exibido **Brunão** e, embaixo, em tom secundário, o nome **Bruno** (no seed, o nome do Bruno é só "Bruno").
 - Deixe espaço abaixo: a fatia 4 acrescenta o telefone, quando a pessoa o deixa visível.
+
+## Fatia 4. Jogo e lista de presença
+
+Detalhe de cada tela em `docs/ui/telas.md`, seção 7. Textos em `docs/copy.md`, seção 8. Para desenhar sem consultar os outros documentos, a mesma especificação está em `fatia-4/telas-fatia-4.md`, com os textos finais. Nos exemplos, use o **Vôlei de Quinta** e as pessoas do seed (`setup.md`, seção 8): Ana (admin do grupo, admin do jogo e recebedora), Bruno (apelido Brunão) e Carla (apelido Carlinha). O jogo de exemplo é na **Quadra do Sesc**, no **sáb, 21/11**, das **20:00 às 22:00**, com prazo de cancelamento na **sex, 20/11, às 18:00**, valor total de **R$ 120,00** e **12 vagas** (estimativa de R$ 10,00 por pessoa).
+
+| Arquivo | Tela | Status |
+|---------|------|--------|
+| `games.png` | Meus jogos, chip Próximos, com três jogos | Obrigatório |
+| `games-anteriores.png` | Meus jogos, chip Anteriores, com um jogo cancelado | Opcional: mesmo card de `games.png` |
+| `games-vazio.png` | Meus jogos sem nenhum jogo | Opcional: segue o estado vazio do `design-system.md` (7.16), como `groups-vazio.png` |
+| `gamesNew.png` | Criar jogo, preenchido | Obrigatório |
+| `gamesNew-semPix.png` | Criar jogo sem chave Pix | Opcional: aviso em linha (`design-system.md`, 7.14) |
+| `game.png` | Detalhe do jogo Aberto, visto pelo Bruno, que está na lista | Obrigatório |
+| `game-admin.png` | Detalhe do mesmo jogo, visto pela Ana, com o menu do admin aberto | Obrigatório |
+| `game-confirmado.png` | Detalhe de um jogo Confirmado com lista de espera, visto por quem está fora | Obrigatório |
+| `game-espera.png` | Detalhe do jogo Confirmado, visto por quem está na espera | Opcional: aviso em linha no pé |
+| `game-andamento.png` | Detalhe de um jogo em andamento | Opcional: o selo "Em andamento" no topo |
+| `game-cancelado.png` | Detalhe de um jogo cancelado | Opcional: topo em `surfaceHigh` (`design-system.md`, 7.8) |
+| `game-sair.png` | Confirmação de saída depois do prazo | Opcional: segue a confirmação destrutiva, como `group-sair.png` |
+| `game-participante.png` | Sheet do admin ao tocar num participante | Opcional: segue `groupMembers-acoes.png` |
+| `gameEdit.png` | Editar jogo | Opcional: os campos de `gamesNew.png`, com o grupo só como texto e a dica no contador |
+| `gameAdmins.png` | Admins do jogo | Obrigatório |
+| `gameAdmins-adicionar.png` | Sheet de adicionar admin | Opcional: lista de pessoas numa sheet |
+| `group-jogos.png` | Detalhe do grupo com os próximos jogos e o botão Criar jogo | Obrigatório |
+| `group-sairBloqueado.png` | Sheet de bloqueio da saída do grupo | Obrigatório |
+| `person-telefone.png` | Perfil de outra pessoa com o telefone visível | Obrigatório |
+
+### `games.png`, `-anteriores.png` e `-vazio.png`. Meus jogos (`/games`)
+
+- Barra superior de raiz com o título **Jogos**. A barra inferior aparece, com a aba Jogos ativa.
+- Dois chips de filtro: **Próximos** (ativo) e **Anteriores**.
+- Cards de jogo (`design-system.md`, 7.12): à esquerda, o bloco da data (dia da semana, dia e hora); ao lado, o nome do grupo ou "Avulso", o local, as vagas ("3/12"), a pílula do status e, quando houver, o selo da situação da pessoa; embaixo, a barra de ocupação. No exemplo, vistos pelo Brunão:
+  - **Vôlei de Quinta**, Quadra do Sesc, sáb 21/11 às 20:00, "3/12", pílula **Aberto**, selo **Na lista**;
+  - **Vôlei de Quinta**, Ginásio Verdão, dom 22/11 às 20:00, "2/2", pílula **Confirmado**, selo **1º na espera**;
+  - **Vôlei de Quinta**, Arena Delta, ter 24/11 às 19:00, "2/8", pílula **Aberto**, sem selo (o jogo da Carla, de que ele não participa).
+- No pé da tela, fixo, o botão principal **Criar jogo**.
+- **`-anteriores.png`:** o chip Anteriores ativo e um card de jogo cancelado, com o selo vermelho **Cancelado**.
+- **`-vazio.png`:** o estado vazio com o ícone de vôlei, o título "Nenhum jogo marcado", a frase "Crie um jogo ou espere alguém dos seus grupos marcar um." e o botão **Criar jogo**.
+
+### `gamesNew.png` e `-semPix.png`. Criar jogo (`/games/new`)
+
+- Barra superior interna: voltar e o título **Criar jogo**. Cobre a barra inferior. A tela rola.
+- Campos, de cima para baixo: **Grupo** (campo de seleção, com "Vôlei de Quinta"); **Nome do local** ("Quadra do Sesc"); **Link do Google Maps (opcional)**; **Data do jogo** ("21/11/2026"); **Início** e **Fim** lado a lado ("20:00" e "22:00"); **Prazo de cancelamento**, com data e hora lado a lado ("20/11/2026" e "18:00") e a dica "Até esse horário, quem sair da lista não paga multa."; **Valor total do espaço** (prefixo `R$`, "120,00" em Bebas Neue); **Limite de vagas** (contador com − e +, "12" no centro).
+- Aviso em linha azul (`split`) com uma calculadora: "Cerca de R$ 10,00 por pessoa" e a frase "É só uma estimativa. A divisão final é feita na conclusão do jogo."
+- Aviso em linha verde-água (`receive`) com o ícone do Pix: "Você vai ser o recebedor deste jogo. Quem entrar na lista vê a sua chave Pix."
+- Botão principal **Criar jogo**, no fim.
+- **`-semPix.png`:** no topo, aviso em linha coral (`owe`) com o ícone do Pix: "Quem cria o jogo é o recebedor: quem entrar na lista paga a você. Cadastre uma chave Pix para continuar." e o botão de contorno **Cadastrar chave Pix**. O botão **Criar jogo** aparece desabilitado.
+- A sheet do campo Grupo (os grupos e **Avulso**) segue a sheet de opções de `groupMembers-acoes.png` e não precisa de desenho. Com Avulso, o campo mostra a dica "Num jogo avulso, só entra quem receber o convite do jogo."
+
+### `game.png`. Detalhe do jogo, visto pelo Bruno (`/games/:gameId`)
+
+- Barra superior interna com voltar. A barra inferior aparece, com a aba Jogos ativa.
+- **Topo colorido amarelo** (`game`, `design-system.md`, 7.8): pílula "Vôlei de Quinta", "sáb, 21/11", "20:00 – 22:00" grande, "Quadra do Sesc", pílula **Aberto**, botão circular do mapa e o anel de vagas com 12 gomos, 3 cheios.
+- **Trio de números:** Vagas "3/12"; Por pessoa "R$ 10,00" (azul, `split`); Prazo "sex, 20/11, 18:00".
+- **Recebedor:** linha com o avatar da Ana, "Ana" e o selo **Recebedor**; embaixo, a chave "CPF · 123.456.789-09" e o botão de texto **Copiar chave**.
+- **Lista · 3 de 12:** 1 Ana (selos **Recebedor** e **Admin**), 2 Brunão (você, avatar amarelo), 3 Carlinha.
+- No pé, fixo, o botão destrutivo de contorno **Sair da lista**.
+
+### `game-admin.png`. Detalhe do jogo, visto pela Ana
+
+- O mesmo jogo, com o botão de menu (três pontos) na barra superior, **aberto**: **Editar jogo**, **Admins do jogo** e **Cancelar jogo** (em tom destrutivo).
+- No pé, no lugar do botão de sair, o aviso em linha com um cadeado: "Você é o recebedor deste jogo e não pode sair da lista. Se não puder jogar, o jogo precisa ser cancelado por um admin."
+- A sheet que abre quando a Ana toca no Brunão (`game-participante.png`, opcional) tem o título **Brunão** e as opções **Ver perfil** e **Remover da lista**, esta em tom destrutivo.
+
+### `game-confirmado.png` e `-espera.png`. Jogo Confirmado com espera
+
+- **Topo colorido lilás** (`wait`): pílula "Vôlei de Quinta", "dom, 22/11", "20:00 – 22:00", "Ginásio Verdão", pílula **Confirmado**, anel com 2 gomos cheios.
+- Trio: Vagas "2/2"; Por pessoa "R$ 30,00"; Prazo "dom, 22/11, 18:00".
+- Recebedor: a Ana, **sem a chave**, com a frase "A chave Pix do recebedor aparece para quem está na lista."
+- **Lista · 2 de 2:** 1 Ana, 2 Carlinha.
+- **Lista de espera · 1:** Brunão, com o selo lilás **1º na espera**.
+- Visto por quem está fora (no exemplo, um terceiro membro do grupo): no pé, a frase "A lista está cheia. Na espera, você é avisado quando abrir uma vaga." e o botão principal **Entrar na lista de espera**.
+- **`-espera.png`:** visto pelo Brunão. No pé, o aviso em linha lilás com uma ampulheta: "Você é o 1º na espera. Quando abrir uma vaga, ela fica com quem entrar primeiro." e o botão de contorno **Sair da lista de espera**.
+
+### `game-andamento.png`, `-cancelado.png` e `-sair.png`, opcionais
+
+- **`-andamento.png`:** o topo ganha o selo **Em andamento** ao lado da pílula do status. Não há lista de espera. Depois do fim, o selo vira **Aguardando conclusão**, e o pé mostra o aviso "A lista está travada até a conclusão do jogo."
+- **`-cancelado.png`:** o topo em azul-acinzentado (`surfaceHigh`), com o selo vermelho **Cancelado**, sem botões no pé.
+- **`-sair.png`:** a confirmação destrutiva com o título **Sair da lista?**, a frase "O prazo de cancelamento já passou. A saída pode gerar uma multa igual à parte por vaga, decidida na conclusão do jogo.", o botão destrutivo sólido **Sair da lista** e o botão de contorno **Voltar**.
+
+### `gameEdit.png`. Editar jogo, opcional
+
+Os campos de `gamesNew.png` sem o campo Grupo: no lugar dele, o nome "Vôlei de Quinta" só como texto. No contador, a dica "3 pessoas na lista", com o − desabilitado no 3. O aviso da estimativa continua, e o do recebedor sai. Botão principal **Salvar**.
+
+### `gameAdmins.png` e `-adicionar.png`. Admins do jogo (`/games/:gameId/admins`)
+
+- Barra superior interna: voltar e o título **Admins do jogo**.
+- Lista dos admins, em ordem alfabética, com avatar, nome e subtítulo. No exemplo: **Ana (você)**, "Na lista"; **Brunão**, "Fora da lista".
+- No pé, o botão principal **Adicionar admin**.
+- **`-adicionar.png`:** sheet com o título **Quem vai ser admin?** e a lista de quem está na lista e ainda não é admin (no exemplo, a Carlinha), cada uma com avatar e nome.
+
+### `group-jogos.png`. Detalhe do grupo com os jogos
+
+- O detalhe do grupo de `group.png`, visto pela Ana, com uma seção nova entre as linhas e o **Sair do grupo**: o título **Próximos jogos** e dois cards de jogo (os dois primeiros de `games.png`).
+- O botão principal **Criar jogo**, abaixo dos cards.
+- Sem jogos, a seção mostra a frase "Nenhum jogo marcado neste grupo." (não precisa de desenho).
+
+### `group-sairBloqueado.png`. Sheet de bloqueio da saída do grupo
+
+- Sheet com o título **Você ainda não pode sair do grupo**.
+- A frase "Você é o recebedor destes jogos, que ainda não foram concluídos. Para sair do grupo, os jogos precisam ser cancelados ou concluídos."
+- Um card de jogo (no exemplo, o jogo da Carla: **Vôlei de Quinta**, Arena Delta, ter 24/11 às 19:00, vista pela Carla).
+- Botão de contorno **Voltar**.
+- A variação de quem é o único admin troca só a frase: "Você é o único admin destes jogos. Indique outro admin em Admins do jogo antes de sair."
+
+### `person-telefone.png`. Perfil de outra pessoa com telefone (`/people/:userId`)
+
+- O perfil de `person.png`, com a Ana: avatar de 96, "Ana".
+- Abaixo do nome, a linha **Telefone** com "(86) 99999-8888" e dois botões de contorno lado a lado: **Ligar** e **WhatsApp**.

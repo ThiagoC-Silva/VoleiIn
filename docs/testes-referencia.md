@@ -19,8 +19,9 @@ Esta é a versão da Fase 0, com os cenários de maior risco. Antes de cada fati
 | 9 | Fundação: segurança da base, estrutura, *triggers*, formatação, erros e login | 1 | pgTAP, `flutter_test` e `integration_test` |
 | 10 | Conta e perfil: RLS da conta, chave Pix e RN105, fotos (RN106), validações, telas e fluxos | 2 | pgTAP, Deno test, `flutter_test` e `integration_test` |
 | 11 | Grupos: funções, RLS e contexto (RN107), fotos do grupo, prévia do convite, concorrência, telas e fluxos | 3 | pgTAP, Deno test, `flutter_test` e `integration_test` |
+| 12 | Jogo e lista: criar, editar, cancelar, admins, lista, espera e status, saída do grupo com jogos, RLS e visibilidade (RN102), concorrência, telas e fluxos | 4 | pgTAP, Deno test, `flutter_test` e `integration_test` |
 
-**Ficam para o ciclo de cada fatia:** a máquina de estados do jogo (RN40 a RN45) e do valor a pagar (RN80 a RN94), a exclusão de conta (RN103), o RLS de cada tabela e os comprovantes.
+**Ficam para o ciclo de cada fatia:** a máquina de estados do jogo (RN40 a RN43 na seção 12; RN44 e RN45 na fatia 5) e do valor a pagar (RN80 a RN94), a exclusão de conta (RN103), o RLS de cada tabela e os comprovantes.
 
 **Como controlar o tempo nos testes:** dentro de uma transação, `now()` não muda. Para testar um instante exato, o teste insere o jogo direto na tabela, com `starts_at = now()`, por exemplo, e chama a função na mesma transação. Para simular uma ordem de cancelamentos ou uma mudança de limite, grava `left_at` e `effective_from` direto.
 
@@ -638,7 +639,236 @@ O C14 (dois admins que rebaixam um ao outro ao mesmo tempo) foi retirado em 15/1
 |----|----------------|
 | M05 | **Compartilhar** abre o seletor do Android, e o texto chega ao WhatsApp com o nome do grupo e o código no fim, que dá para copiar sozinho e colar em **Entrar com código** |
 
-## 12. Rastreabilidade
+## 12. Jogo e lista de presença (fatia 4)
+
+Decisões de 16/11/2026. Base: `contratos-api.md` (seção 4 e a extensão de `leave_group`), `rls-matriz.md` (fatia 4), `docs/ui/telas.md` (seção 7) e `docs/copy.md` (seção 8). Os cenários T01 a T10 (seção 3) e C01 a C07 (seção 8) também são da fatia 4 e rodam junto destes.
+
+**Base dos cenários pgTAP**, inserida como `postgres` no começo de cada teste, sem depender do seed: a base da seção 11 (o grupo **Quinta**, com Ana admin e Bruno membro), mais **Carla** e **Edu** como membros do Quinta. Diego continua sem grupo. Ana e Bruno têm chave Pix; Carla e Edu, não, salvo quando o cenário diz. Ana tem telefone visível; Bruno, telefone oculto.
+
+**Jogo base**, inserido direto, como `postgres`: do Quinta, com prazo em `now() + 1 dia`, início 2 h depois do prazo e fim 2 h depois do início; total 9.000 e limite 3 (estimativa de 3.000); Ana como admin, recebedora e primeira da lista. "Jogo iniciado" é o mesmo jogo com o início em `now()` ou antes, e "jogo depois do fim", com o fim em `now()` ou antes, sempre respeitando prazo ≤ início < fim. "Prazo vencido" é o prazo 1 h antes de `now()` e o início 1 h depois.
+
+"Notifica" é conferido em `notifications`: o tipo, o `user_id` e o `data` da tabela "Dados das notificações de jogo" do `contratos-api.md` (seção 4). Os resultados de B03, B04 e B06 passam a ser as listas da fatia 4 da `rls-matriz.md`.
+
+**Cenários por etapa.** A fatia 4 roda em três etapas, cada uma com a sua especificação e as suas sessões 2 a 4 (`plano-implementacao.md`, fatia 4; `trabalho-com-agente.md`, 3.1). A divisão segue as etapas sugeridas pelo plano, com o limite de vagas junto da edição, na etapa A, para a tela de edição nascer inteira. Um cenário que precisa de dado de uma etapa seguinte o insere direto, como `postgres` (por exemplo, a linha da espera no O20). As listas do B03, B04 e B06 crescem a cada etapa, só com o que ela cria:
+
+| Etapa | Escopo | Cenários |
+|-------|--------|----------|
+| **A** | Criar, ver e editar o jogo, inclusive o limite de vagas, com entrada na lista; Meus jogos, detalhe e chave Pix do recebedor | J01 a J13, O01 a O07, O20 a O23, T03 a T05, C01, C02, C04, C05, W01 a W11, W13 a W15, U09 a U11, S36 a S42, S50 a S53, L15 (sem o cancelamento), M06 |
+| **B** | Saídas, remoção e lista de espera, com a concorrência | O08 a O19, T01, T02, T06 a T10, C03, C06, S43 a S47, L16, L17 |
+| **C** | Admins do jogo, cancelamento, saída do grupo com jogos e telefone visível | J14 a J21, H01 a H10, C07, C16, W12, U12, S48, S49, S54 a S58, L15 (o cancelamento), L18, L19, M07 |
+
+S59 e S60 crescem a cada etapa, com as telas dela. E15 também: cada etapa acrescenta os códigos das funções que cria. E16 entra na etapa C.
+
+### 12.1 Criar, editar, cancelar e admins
+
+pgTAP, em `supabase/tests/database/games_functions.test.sql`.
+
+**Criar (RF26 a RF32, RN05, RN06, RN20 a RN23, RN40)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| J01 | Ana logada | `create_game(quinta, '  Quadra do Sesc  ', null, prazo, início, fim, 9000, 3)` | Retorna `game_id`, `status = open` e um `invite_code` de 12 caracteres base62. O jogo tem o local `Quadra do Sesc` e `created_by` e `receiver_id` = Ana. `game_admins` tem só a Ana, com `added_by` nulo. `game_participants` tem uma passagem `active` da Ana, com `joined_at = now()`. `game_limit_history` tem uma linha com 3. Nenhuma notificação |
+| J02 | Bruno logado | `create_game(null, ...)` (avulso) | Aceito, com `group_id` nulo e Bruno admin, recebedor e primeiro da lista (RN20) |
+| J03 | Ana logada | `create_game` com limite 1 | `status = confirmed` (RN40) |
+| J04 | Carla logada, sem chave Pix | `create_game(quinta, ...)` | `RECEIVER_NEEDS_PIX_KEY`. Nenhuma linha em `games` (RN22) |
+| J05 | Diego logado; Ana com um `uuid` que não é grupo; Ana com o grupo **Antigo**, arquivado | `create_game` | `NOT_FOUND` nos três |
+| J06 | Ana logada | Prazo 1 µs depois do início; início igual ao fim; início em `now()`; início 1 h antes de `now()` (prazo antes dele); prazo igual ao início | `INVALID_GAME_DATES`; `INVALID_GAME_DATES`; `START_IN_PAST`; `START_IN_PAST`; aceito (RN23: prazo ≤ início) |
+| J07 | Ana logada | Local `''`, `'   '` e com 121 caracteres; link `http://maps.app.goo.gl/x`; total 0; limite 0 | `INVALID_INPUT` em todos. Com local de 120 caracteres, link `https://maps.app.goo.gl/x`, total 1 e limite 1, aceito |
+| J08 | `role authenticated` sem `sub` | `create_game` | `NOT_AUTHENTICATED` |
+
+**Editar (RF36, RN23, RN33 a RN35)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| J09 | Jogo base com Bruno na lista e Edu na espera | Ana chama `update_game` com outro local e o início 1 h mais tarde | Dados gravados. Notifica Bruno (`game_updated`), e não Ana nem Edu |
+| J10 | Jogo base com Bruno na lista | Bruno chama `update_game`; Diego chama | `NOT_GAME_ADMIN`; `NOT_FOUND` |
+| J11 | Jogo iniciado; jogo cancelado | Ana chama `update_game` | `GAME_STARTED`; `GAME_NOT_OPEN` |
+| J12 | Jogo base | Ana chama `update_game` com o início no passado; com o prazo depois do início | `START_IN_PAST`; `INVALID_GAME_DATES`. Nada muda |
+| J13 | Prazo vencido; Bruno cancelou fora do prazo (`late_cancellation = true`) | Ana chama `update_game` com o prazo igual ao início, depois do cancelamento do Bruno | A passagem do Bruno continua com `late_cancellation = true` (RN35) |
+
+**Cancelar (RF39, RN43, RN67, RN114)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| J14 | Jogo base com Bruno e Carla na lista (cheio) e Edu na espera | Ana chama `cancel_game`; depois chama de novo; depois Edu chama `join_waitlist` | `status = cancelled`, `cancelled_at = now()`, `cancelled_by` = Ana. Notifica Bruno, Carla e Edu (`game_cancelled`), e não Ana. Depois, `GAME_NOT_OPEN` nas duas chamadas |
+| J15 | Jogo iniciado; jogo depois do fim | Ana chama `cancel_game` | Aceito nos dois (RN43: até a conclusão) |
+| J16 | Jogo base | Bruno chama `cancel_game`; Diego chama | `NOT_GAME_ADMIN`; `NOT_FOUND` |
+
+**Admins do jogo (RF34, RF35, RN25 a RN27)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| J17 | Jogo base com Bruno na lista e Edu na espera | Ana chama `add_game_admin` com Bruno; de novo com Bruno; com Edu; com Diego | Bruno vira admin, com `added_by` = Ana; `ALREADY_GAME_ADMIN`; `ADMIN_MUST_BE_PARTICIPANT` (RN27); `ADMIN_MUST_BE_PARTICIPANT`. Nenhuma notificação |
+| J18 | Ana é a única admin | Ana chama `remove_game_admin` com ela mesma; com Carla, que não é admin | `LAST_GAME_ADMIN`; `NOT_GAME_ADMIN_TARGET` |
+| J19 | Depois do J17 | Ana chama `remove_game_admin` com ela mesma | Aceito. Ana continua na lista e recebedora. Bruno fica como único admin |
+| J20 | Bruno admin (J17) | Bruno sai da lista antes do prazo; depois chama `update_game` | Bruno continua em `game_admins` (RN26), e o `update_game` é aceito |
+| J21 | Jogo base | Bruno, membro e não admin, chama `add_game_admin`; Diego chama | `NOT_GAME_ADMIN`; `NOT_FOUND` |
+
+### 12.2 Lista, espera e status
+
+pgTAP, em `supabase/tests/database/games_list.test.sql`, junto dos cenários T01 a T10.
+
+**Entrar e encher (RF47, RF51, RF55, RN03, RN41, RN50 a RN52)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| O01 | Jogo base, só com a Ana | Bruno chama `join_game` | Retorna `participant_id` e `status = open`. Passagem `active` com `joined_at = now()`. 2 vagas ocupadas. Nenhuma notificação |
+| O02 | Ana e Bruno na lista | Carla chama `join_game` | `status = confirmed` (RN41). Notifica Ana e Bruno (`game_confirmed`), e não Carla |
+| O03 | Lista cheia (Ana, Bruno e Carla) | Edu chama `join_game`; `join_waitlist`; `join_waitlist` de novo; Bruno chama `join_waitlist` | `GAME_FULL`; linha na espera com `joined_at = now()` e `left_at` nulo; `ALREADY_ON_WAITLIST`; `ALREADY_PARTICIPANT` |
+| O04 | Jogo base, Aberto | Edu chama `join_waitlist` | `GAME_NOT_FULL` (RN51) |
+| O05 | Bruno na lista | Bruno chama `join_game` | `ALREADY_PARTICIPANT` |
+| O06 | Jogo base; jogo avulso do Bruno | Diego chama `join_game` e `join_waitlist` no jogo base; Carla chama `join_game` no avulso | `NOT_FOUND` nos três: nenhum deles vê o jogo |
+| O07 | Jogo iniciado, com vaga; jogo cheio iniciado; jogo cancelado | Edu chama `join_game`; `join_waitlist`; `join_game` | `GAME_STARTED` (T04); `GAME_STARTED` (T05); `GAME_NOT_OPEN` |
+
+**Sair (RF50, RN29, RN57, RN60, RN61)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| O08 | Lista cheia, Edu na espera | Bruno chama `leave_game` antes do prazo | `outcome = cancelled_on_time`. Passagem `cancelled`, com `left_at = now()` e `late_cancellation = false`. 2 ocupadas e `status = open` (RN42). Notifica Edu (`waitlist_slot_opened`, `reason: slot_freed`). Edu continua na espera (RN51) |
+| O09 | Prazo vencido, Bruno na lista | Bruno chama `leave_game` | `outcome = cancelled_late`, `late_cancellation = true` |
+| O10 | Jogo iniciado e ainda não terminado, lista cheia, Edu com linha na espera | Bruno chama `leave_game` | `outcome = left_after_start`. Passagem `left_after_start`, `absent = true`, `absence_source = left_after_start`. 3 ocupadas, `status = confirmed`. Nenhuma notificação |
+| O11 | Jogo base; jogo iniciado | Ana, a recebedora, chama `leave_game` | `RECEIVER_LOCKED` nos dois (RN29, F07) |
+| O12 | Jogo depois do fim; jogo cancelado | Bruno chama `leave_game` | `LIST_LOCKED` (T10); `GAME_NOT_OPEN` |
+| O13 | Carla fora da lista | Carla chama `leave_game`; Diego chama | `NOT_PARTICIPANT`; `NOT_FOUND` |
+| O14 | Prazo vencido; Bruno cancelou fora do prazo | Bruno chama `join_game`; depois `leave_game` | A passagem antiga ganha `cancellation_voided_at = now()`, e a nova é `active`, no fim da ordem (RN56). A nova saída é `cancelled_late`, e a passagem antiga continua anulada |
+
+**Espera (RF49, RN51, RN53, RN54)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| O15 | Edu na espera, e o jogo voltou a Aberto (O08) | Edu chama `join_game` | Entra na lista. A linha da espera fica com `left_at = now()` (RN54) |
+| O16 | Edu na espera, lista cheia | Edu chama `leave_waitlist`; de novo; depois `join_waitlist` | `left_at = now()`; `NOT_ON_WAITLIST`; `left_at` nulo e `joined_at = now()`, no fim da ordem |
+
+**Remover (RF54, RF59, RN58)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| O17 | Lista cheia, Edu na espera | Ana chama `remove_participant` com Bruno | Retorna `status = open`. Passagem `removed`, com `removal_reason = by_admin` e `late_cancellation` nulo. Notifica Bruno (`removed_from_game`) e Edu (`waitlist_slot_opened`) |
+| O18 | Jogo base com Bruno na lista | Ana remove a si mesma; Ana remove a Carla, fora da lista; Bruno remove a Ana; Ana remove o Bruno com o jogo iniciado | `CANNOT_REMOVE_SELF` (F12); `NOT_PARTICIPANT`; `NOT_GAME_ADMIN`; `GAME_STARTED` |
+| O19 | Bruno admin e na lista | Bruno remove a Ana, a recebedora | `RECEIVER_LOCKED` (RN29) |
+
+**Limite de vagas (RF52, RF53, RN41, RN42, RN59)**
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| O20 | Lista cheia (3), Edu na espera | Ana chama `set_slot_limit(4)` | Retorna `slot_limit = 4` e `status = open`. Linha nova em `game_limit_history`, com `effective_from = now()`. Notifica Edu (`waitlist_slot_opened`, `reason: limit_increased`) e Bruno e Carla (`game_updated`), e não Ana |
+| O21 | 3 na lista, limite 4 | Ana chama `set_slot_limit(3)`; depois `(2)`; depois `(0)` | `status = confirmed`, notifica Bruno e Carla (`game_updated` e `game_confirmed`); `SLOT_LIMIT_BELOW_PARTICIPANTS`; `INVALID_INPUT` |
+| O22 | Limite 3 | Ana chama `set_slot_limit(3)` | Aceito, sem linha nova no histórico e sem notificação |
+| O23 | Jogo iniciado; jogo cancelado; jogo base | Ana chama `set_slot_limit(5)` nos dois primeiros; Bruno chama no terceiro | `GAME_STARTED` (RN34); `GAME_NOT_OPEN`; `NOT_GAME_ADMIN` |
+
+### 12.3 Saída do grupo com jogos (RF22, RF102, RN14, RN16)
+
+pgTAP, em `supabase/tests/database/groups_games.test.sql`. Estende a seção 11.1, em que `games_left` voltava vazio.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| H01 | Prazo vencido, com Bruno na lista; um segundo jogo do Quinta, cheio e não iniciado, com Bruno na espera e Edu na espera | Bruno chama `leave_group(quinta)` | A passagem do Bruno fica `removed`, com `removal_reason = left_group` e `late_cancellation` nulo: sem multa candidata, mesmo depois do prazo (RN14). A linha dele na espera fica com `left_at = now()`. `games_left` traz os dois jogos. O status de cada jogo é recalculado |
+| H02 | Bruno com passagem `active` num jogo do Quinta iniciado e com passagem num jogo concluído, inseridos direto | Bruno chama `leave_group(quinta)` | As duas passagens não mudam, e `games_left` não traz esses jogos (RN14, item 3) |
+| H03 | Bruno admin, junto da Ana, de um jogo do Quinta Aberto, de um iniciado e de um cancelado | Bruno chama `leave_group(quinta)` | Bruno sai de `game_admins` nos dois primeiros e continua no cancelado (RN14, item 2) |
+| H04 | Bruno único admin de um jogo Aberto do Quinta, com a Ana como recebedora | Bruno chama `leave_group(quinta)` | `MEMBER_IS_ONLY_GAME_ADMIN`, com `detail.game_ids` = esse jogo. Nada muda |
+| H05 | Bruno criou um jogo Aberto do Quinta: é recebedor e único admin | Bruno chama `leave_group(quinta)` | `MEMBER_IS_RECEIVER`, com `detail.game_ids` = esse jogo: ser recebedor vem antes. Nada muda |
+| H06 | Bruno recebedor de um jogo do Quinta iniciado | Bruno chama `leave_group(quinta)` | `MEMBER_IS_RECEIVER` (RN16 vale para `open` e `confirmed`, iniciados ou não) |
+| H07 | Os dados do H01; depois os do H05 | Ana chama `remove_group_member(quinta, bruno)` | Os mesmos efeitos do H01, mais a notificação `removed_from_group` ao Bruno; depois, `MEMBER_IS_RECEIVER` |
+| H08 | Bruno recebedor de um jogo avulso Aberto e na lista de outro avulso | Bruno chama `leave_group(quinta)` | Aceito. Os jogos avulsos não mudam |
+| H09 | Bruno único admin de um jogo do Quinta cancelado | Bruno chama `leave_group(quinta)` | Aceito: só os jogos `open` e `confirmed` bloqueiam |
+| H10 | Depois do H01 | Bruno lê `games`; chama `join_game` e `join_waitlist` no primeiro jogo | Vê os dois jogos em que teve passagem e nenhum outro do Quinta; `NO_GAME_ACCESS` nas duas chamadas |
+
+### 12.4 RLS e visibilidade (RN101, RN102, RN107)
+
+pgTAP, em `supabase/tests/database/games_security.test.sql`.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| W01 | Jogo base com Ana e Bruno na lista; Carla membro, fora da lista | Ana, Bruno, Carla e Diego leem `games` | Os três primeiros veem o jogo, com o `invite_code`. Diego, nenhuma linha |
+| W02 | Jogo base com Bruno na lista e Edu na espera | Os mesmos leem `game_admins`, `game_participants` e `game_waitlist` | Ana, Bruno e Carla veem todas as linhas. Diego, nenhuma |
+| W03 | Jogo avulso do Bruno, com uma linha do Diego na espera, com `left_at` preenchido | Ana lê `games`; Diego lê | Ana não vê o avulso. Diego vê: passar pela espera conta (`can_view_game`) |
+| W04 | Edu saiu do Quinta com uma passagem `removed` no jogo base; outro jogo do Quinta sem passagem dele | Edu lê `games` | Vê só o jogo base |
+| W05 | Jogo base com Bruno na lista | Ana lê `game_limit_history`; Bruno lê | Ana vê a linha. Bruno, nenhuma |
+| W06 | Ana logada | `insert`, `update` e `delete` em `games`, `game_admins`, `game_participants`, `game_waitlist` e `game_limit_history` | `42501` em todos |
+| W07 | `role anon` | `select` nas cinco tabelas | `42501` em todas |
+| W08 | Jogo base: Ana recebedora, com chave CPF e telefone visível; Bruno na lista, Carla na espera, Edu com passagem `cancelled` | Bruno, Carla, Edu e Diego chamam `get_profile_contact(ana)` | Bruno: telefone e chave. Carla e Edu: telefone (contexto) e chave nula (RN102). Diego: tudo nulo |
+| W09 | Jogo iniciado, com Bruno `left_after_start` | Bruno chama `get_profile_contact(ana)` | Recebe a chave |
+| W10 | Jogo base cancelado, com Bruno ainda `active` | Bruno chama `get_profile_contact(ana)` | Chave nula: o jogo foi cancelado (RN102) |
+| W11 | Jogo concluído, inserido direto, com Edu `cancelled` e um valor `pending` dele devido à Ana; depois o valor passa a `paid` | Edu chama `get_profile_contact(ana)` | Recebe a chave; depois, chave nula |
+| W12 | Bruno com telefone oculto | Ana chama `get_profile_contact(bruno)`; Ana chama `get_profile_contact(ana)` | Telefone nulo (RN101); o próprio telefone e a própria chave |
+| W13 | Os dados do W04, mais o avulso do Bruno | Edu chama `get_game_groups` com o jogo base, o outro jogo do Quinta, o avulso e um `uuid` qualquer | Uma linha só: o jogo base, com o `group_id` e o nome do Quinta |
+| W14 | Depois do W13, o jogo base cancelado e o Quinta arquivado | Edu chama `get_game_groups` com o jogo base | Continua recebendo o nome do Quinta (RN17) |
+| W15 | — | Catálogo `pg_publication_tables` da publicação `supabase_realtime` | Exatamente `games`, `game_participants` e `game_waitlist` |
+
+### 12.5 Concorrência
+
+Deno test, em `supabase/functions/_tests/concurrency/games_test.ts`, com conexões separadas e cada cenário repetido 50 vezes, como na seção 8. Roda os cenários C01 a C07 e mais:
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| C16 | Jogo Aberto do Quinta, sem o Bruno | Ao mesmo tempo, Bruno chama `join_game` e `leave_group(quinta)` | Bruno nunca fica com passagem `active` sem ser membro: ou a entrada vence e a saída o retira (o jogo vem em `games_left`), ou a saída vence e a entrada recebe `NO_GAME_ACCESS` |
+
+### 12.6 App
+
+**Formatação e entrada**, testes unitários em `app/test/`:
+
+| ID | Entrada | Função | Resultado |
+|----|---------|--------|-----------|
+| U09 | Digitar `1`; `1`, `2`, `0`, `0`, `0`; `0`; apagar tudo; digitar além de `2147483647` | Campo de dinheiro (`docs/ui/telas.md`, 7.2) | `R$ 0,01` e 1; `R$ 120,00` e 12000; `R$ 0,00` e 0 (erro `gameTotalRequired` ao criar); vazio; o dígito a mais é ignorado (R09) |
+| U10 | 28/11/2026 (sáb), início 20:00, fim 22:00; início 23:00, fim 01:00; início 20:00, fim 20:00; prazo 28/11 18:00 | Instantes do formulário, de `America/Fortaleza` para UTC | `2026-11-28T23:00:00Z` e `2026-11-29T01:00:00Z`; fim `2026-11-29T04:00:00Z`, com a dica "Termina dom, 29/11."; erro `gameEndSameAsStart`; `2026-11-28T21:00:00Z` |
+| U11 | (9000, 3), (10000, 3), (1, 10), (2147483647, 12) | Estimativa por pessoa | 3000, 3334, 1, 178956971, só com inteiros |
+| U12 | `+5586999998888`; `+558633224455` | `formatPhone` e os links | `(86) 99999-8888`, `tel:+5586999998888` e `https://wa.me/5586999998888`; `(86) 3322-4455` |
+
+**Conversão de erros**, em `app/test/core/errors/`:
+
+| ID | Exceção recebida | `ErrorCode` |
+|----|------------------|-------------|
+| E15 | `PostgrestException` `P0001` com cada código da seção 8.8 do `docs/copy.md` | O `ErrorCode` da mesma linha |
+| E16 | `PostgrestException` `P0001` `MEMBER_IS_RECEIVER`, com `details` `{"game_ids":["<id1>","<id2>"]}` | `memberIsReceiver`, com os dois IDs |
+
+**Telas**, testes de widget com os repositórios e o relógio trocados por dublês (`docs/ui/telas.md`, seção 7):
+
+| ID | Tela | Quando | Então |
+|----|------|--------|-------|
+| S36 | Meus jogos | Próximos com um jogo Aberto do Quinta com a Ana na lista, um Confirmado com a Ana em 2º na espera e um avulso; um cancelado | Ordem pelo início. Cards com "Vôlei de Quinta" ou "Avulso", vagas "2/12" e os selos "Na lista" e "2º na espera". O cancelado só aparece no chip **Anteriores** |
+| S37 | Meus jogos | Nenhum jogo | Estado vazio com `gamesEmptyUpcomingTitle` e o botão **Criar jogo** |
+| S38 | Criar jogo | Sem chave Pix; tocar em **Cadastrar chave Pix** | Aviso `gamePixNeededBody` e **Criar jogo** desabilitado; abre `/profile/pix` |
+| S39 | Criar jogo | Aberta pelo Quinta; por Meus jogos com um grupo só; com dois grupos, e criar sem escolher | Grupo Quinta escolhido; o grupo escolhido; erro `gameGroupRequired`, sem chamar o servidor |
+| S40 | Criar jogo | Campos vazios; prazo depois do início; link `http://`; fim igual ao início; início 23:00 e fim 01:00 | Erros nos campos (`gameLocationRequired` etc.); `gameDeadlineAfterStart`; `gameMapsInvalid`; `gameEndSameAsStart`; a dica `gameEndsNextDay`. O servidor não é chamado nos quatro primeiros |
+| S41 | Criar jogo | Tudo válido, com **Avulso** | A dica `gameGroupStandaloneHint`. `create_game` com `p_group_id` nulo e os instantes do U10. Abre o detalhe, o voltar não retorna à criação, e aparece `gameCreated` |
+| S42 | Detalhe | Bruno, membro fora da lista, num jogo Aberto; num Confirmado; num avulso de outra pessoa em que ele tem passagem cancelada | **Entrar na lista**; **Entrar na lista de espera** com `gameFullHint`; `gameNeedsInvite`, sem botão. Nos três, `gamePixOnlyParticipants` no lugar da chave |
+| S43 | Detalhe | Bruno na lista, antes do prazo pelo relógio; Sair e confirmar, com o servidor devolvendo `cancelled_on_time`; outro caso com `cancelled_late` | Confirmação com `gameLeaveOnTimeBody`; `leave_game` e `gameLeftOnTime`; `gameLeftLate`, porque o resultado vem do servidor |
+| S44 | Detalhe | Ana, recebedora, na lista; tocar em **Copiar chave** | Aviso `gameReceiverCannotLeave`, sem **Sair da lista**. A chave aparece formatada; o `Clipboard` recebe a chave sem formatação, com `gamePixCopied` |
+| S45 | Detalhe | Bruno em 2º na espera, jogo Confirmado; o mesmo com o jogo Aberto | `gameWaitlistNotice` com "2º" e **Sair da lista de espera**; **Entrar na lista** e **Sair da lista de espera** |
+| S46 | Detalhe | `join_game` responde `GAME_FULL` | `SnackBar` `errorGameFull`, a tela relê, e o pé passa a **Entrar na lista de espera** |
+| S47 | Detalhe | Relógio entre o início e o fim, Bruno na lista, Sair; relógio depois do fim | Selo `gameInProgress` e confirmação com `gameLeaveAfterStartBody`; selo `gameAwaitingCompletion` e aviso `gameListLocked`, sem botão |
+| S48 | Detalhe | Ana admin antes do início; depois do início; antes do início, tocar no Bruno, Remover e confirmar; tocar na própria linha | Menu com **Editar jogo**, **Admins do jogo** e **Cancelar jogo**; sem **Editar jogo**; `remove_participant` e `gameParticipantRemoved`; nada acontece |
+| S49 | Detalhe | **Cancelar jogo** e confirmar | `cancel_game`, `gameCancelled`, a tela relê, o topo diz "Cancelado" e o pé fica vazio |
+| S50 | Detalhe | Lista com Ana (recebedora e admin), Bruno (saiu após o início) e Carla; espera com Edu e Diego | Numeração 1 a 3 pela entrada; selos **Recebedor** e **Admin** na Ana e "Saiu após o início" no Bruno; "Lista · 3 de 3"; espera com "1º na espera" e "2º na espera" |
+| S51 | Detalhe | O dublê do Realtime emite um evento | O repositório é lido de novo, sem `SnackBar` |
+| S52 | Detalhe | O repositório não acha o jogo | Estado "não encontrado" |
+| S53 | Editar jogo | 3 ocupadas e limite 4; mudar o limite e o local e salvar; mudar só o local; `set_slot_limit` aceito e `update_game` com erro; Bruno, não admin, abre a rota | − desabilitado no 3, com `gameSlotsOccupiedHint`; `set_slot_limit` antes de `update_game`, e `gameSaved`; só `update_game`; `SnackBar` com a tela aberta; estado "não encontrado" |
+| S54 | Admins do jogo | Ana e Bruno admins, Bruno fora da lista; **Adicionar admin**; adicionar a Carla; remover o Bruno; Ana deixa de ser admin e confirma | Subtítulos "Na lista" e "Fora da lista"; a sheet lista a Carla (na lista) e não o Edu (na espera); `add_game_admin` e `gameAdminAdded`; `remove_game_admin` e `gameAdminRemoved`; volta ao detalhe com `gameAdminSteppedDown` |
+| S55 | Detalhe do grupo | Dois jogos Abertos e um cancelado do grupo; tocar em **Criar jogo**; grupo sem jogos | **Próximos jogos** com os dois cards; abre `/games/new` com o grupo; `groupGamesEmpty` |
+| S56 | Detalhe do grupo | Sair e confirmar, com `games_left` de dois jogos; outro caso com `MEMBER_IS_RECEIVER` e dois `game_ids`; tocar num card da sheet | A confirmação tem `groupLeaveGamesBody`, e o `SnackBar` é `groupLeftWithGames` com "2 jogos"; sheet com `groupLeaveBlockedTitle`, `groupBlockedReceiverBody` e os dois cards; abre o detalhe do jogo |
+| S57 | Integrantes | Remover o Bruno, com `MEMBER_IS_ONLY_GAME_ADMIN` | Sheet com `groupRemoveBlockedTitle` e `groupRemoveBlockedOnlyAdminBody`, com "Brunão" |
+| S58 | Perfil de outra pessoa | `get_profile_contact` devolve `+5586999998888`; tocar em **Ligar** e em **WhatsApp**; devolve nulo | Linha **Telefone** com `(86) 99999-8888`; o dublê do `url_launcher` recebe `tel:+5586999998888` e `https://wa.me/5586999998888`; sem a linha |
+| S59 | Todas as telas da seção 7 do `telas.md` e as sheets | Fonte do sistema em 150% | Nenhum *overflow* |
+| S60 | Meus jogos, detalhe, criação e Admins do jogo | Leitura pelo TalkBack (`Semantics`) | Card com `gameCardLabel`; botões `gameMenuLabel`, `gameOpenMaps`, `gameSlotLimitDecrease` e `gameSlotLimitIncrease` com rótulo e área de 48 × 48 |
+
+**Fluxos**, testes de integração no emulador (API 29 e 36) contra o Supabase local com o seed, pelos `scripts/` (`setup.md`, 3.1). Cada fluxo deixa o que se vê no seed como encontrou:
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| L15 | Ana logada | No Vôlei de Quinta, toca em **Criar jogo**, cria o jogo `L15 <data e hora>` para depois de amanhã, com limite 2; abre o detalhe; cancela o jogo | O jogo aparece em **Próximos jogos** do grupo e em Meus jogos. O detalhe mostra a Ana na lista, com os selos **Recebedor** e **Admin**, e a chave Pix dela. Depois de cancelado, o jogo sai de Próximos e aparece em **Anteriores** |
+| L16 | Bruno logado | No Quinta Aberto do seed, entra na lista e sai antes do prazo; no Quinta Confirmado, em que ele está na espera, sai da espera e entra de novo | O Brunão aparece e some da lista, com `gameJoined` e `gameLeftOnTime`; a lista de espera some e volta como "Lista de espera · 1" |
+| L17 | Ana logada, no detalhe do Quinta Aberto do seed | O teste, com um cliente Supabase separado logado como Carla, chama `join_game` e depois `leave_game` | A Carlinha aparece na lista em até 5 s sem puxar a tela, e some depois (Realtime) |
+| L18 | Ana logada | Edita o local e o limite do Quinta Confirmado do seed (de 2 para 3) e depois devolve os valores; em **Admins do jogo**, torna a Carla admin e depois a remove | O detalhe mostra o local novo e "Lista · 2 de 3", com o status Aberto; depois, os valores do seed e o status Confirmado. A Carlinha aparece e some na lista de admins |
+| L19 | Carla logada | Tenta sair do Vôlei de Quinta; toca no card da sheet | Sheet de bloqueio com `groupBlockedReceiverBody` e o jogo da Carla; abre o detalhe dele. Carla continua no grupo |
+
+**Conferência manual**, no celular, com o build da produção:
+
+| ID | O que conferir |
+|----|----------------|
+| M06 | RNF04: do toque no card de um jogo até a lista visível, em até 2 s em ao menos 9 de 10 medições, com a internet 4G do celular |
+| M07 | **Abrir no Maps** abre o Google Maps no local do link; **Ligar** abre o discador com o número; **WhatsApp** abre a conversa com o número |
+
+## 13. Rastreabilidade
 
 | Regra | Cenários |
 |-------|----------|
@@ -668,4 +898,13 @@ O C14 (dois admins que rebaixam um ao outro ao mesmo tempo) foi retirado em 15/1
 | RN11 | G01, G07 a G10, S27 |
 | RN12 | G11 a G18, C13, C15, Q03, S23, S24, S32, L12 |
 | RN17 | G30 a G33, S33, L13 |
-| RN107 | K07 a K14, A09 a A11, Q01, Q06, S34 |
+| RN107 | K07 a K14, A09 a A11, Q01, Q06, S34, W01 a W08, W12 |
+| RN14, RN16 | H01 a H10, C16, S56, S57, L19 |
+| RN20 a RN23 | J01 a J08, J12, S38 a S41, L15 |
+| RN25 a RN27 | J17 a J21, S54, L18 |
+| RN29 | O11, O19, S44, L19 |
+| RN33, RN34 | J09 a J12, O23, S53, L18 |
+| RN40 a RN43 | J03, J14, J15, O02, O08, O20, O21, S49, L15 |
+| RN50 a RN54 | O01 a O07, O15, O16, C01 a C07, S42, S45, S46, L16, L17 |
+| RN57 a RN59 | O08 a O13, O17 a O23, S43, S47, S48 |
+| RN101, RN102 | W08 a W12, S44, S58, M07 |
