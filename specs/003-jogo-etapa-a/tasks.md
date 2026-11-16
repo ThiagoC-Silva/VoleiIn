@@ -29,7 +29,7 @@
 - [x] T006 Acrescentar ao `supabase/seed.sql` os sete jogos da `docs/setup.md`, seção 8, e a limpeza dos jogos do seed no preparo de `account_security`, `groups_functions` e `groups_security` (research R6)
 - [x] T007 Rodar `supabase test db` e `deno test`, guardar a saída da falha e fazer o *commit* só de testes
 
-**Checkpoint**: testes vermelhos pelo motivo certo.
+**Checkpoint**: testes vermelhos pelo motivo certo (*commit* `71ce7c1`, com a saída da falha na mensagem).
 
 ### Phase 2: Implementação do servidor
 
@@ -41,7 +41,9 @@
 ### Phase 3: Convergência do servidor
 
 - [x] T012 `supabase db reset`, `supabase test db`, `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes
-- [ ] T013 Atualizar os documentos afetados (`docs/rastreabilidade.md` com o estado do servidor, `README` de `_tests/`) e a linha "Estado atual" do `CLAUDE.md`; enviar o *branch* e abrir o PR
+- [x] T013 Atualizar os documentos afetados (`README` de `_tests/`, CI, `docs/setup.md`, seção 8) e a linha "Estado atual" do `CLAUDE.md`; enviar o *branch* e abrir o PR. A `docs/rastreabilidade.md` é preenchida no fechamento da fatia, como na fatia 3
+
+**Sessão 2 concluída em 16/11/2026** no *branch* `fatia-4/servidor-a`: `supabase test db` (398 testes), `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes, com C01, C02, C04 e C05 em 50 de 50 repetições. Decisões técnicas no `research.md`: `join_waitlist` entrou nesta etapa (a linha A lista O03, O04, O06, O07 e T05); o código de convite é aceito e ignorado até a fatia 8 (R3); a concorrência usa 27 contas só de teste com tokens assinados pelo `JWT_SECRET` local, por causa do limite de 30 logins a cada 5 minutos do Auth (R7), e o CI passou a entregar o `JWT_SECRET` ao `deno test`. Os testes das fatias 2 e 3 apagam os jogos do seed no preparo (R6), sem mudar nenhum resultado esperado. As migrações vão à produção só na sessão 4, depois do ensaio.
 
 ---
 
