@@ -249,6 +249,7 @@ Diego continua sem grupo: a solicitação pendente não é contexto (RN107), e e
 - Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente, que vem de `current_terms_versions()` (`contratos-api.md`, seção 9). O seed grava a mesma versão (`1.0`); quando uma migração trocar a versão, o seed muda junto.
 - IDs fixos (UUIDs legíveis, como `00000000-0000-0000-0000-00000000000a` para a Ana), para que testes e anotações possam citá-los.
 - O domínio `.test` é reservado e nunca entrega e-mail.
+- **Contas de teste da concorrência:** o `deno test` cria, se faltarem, as contas `conc-00@voleiin.test` a `conc-26@voleiin.test` e o grupo "Concorrência", com os jogos de cada repetição (research R7 de `specs/003-jogo-etapa-a`). Elas não fazem parte do seed, não têm contexto com os personagens acima e somem no próximo `supabase db reset`.
 
 **Cenários:** o seed cresce a cada fatia, só com o que ela usa:
 

@@ -4,7 +4,8 @@
 --
 -- B03, B04, B06 e B10 comparam o banco com uma LISTA ESPERADA. Cada fatia
 -- acrescenta aqui, no mesmo PR, as políticas, os privilégios e as funções que
--- concede (docs/rls-matriz.md, 5). Listas atuais: as da fatia 3.
+-- concede (docs/rls-matriz.md, 5). Listas atuais: as da fatia 3 e as da etapa A
+-- da fatia 4 (specs/003-jogo-etapa-a).
 
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -43,8 +44,8 @@ select set_eq(
   'B02: public tem exatamente as 20 tabelas do modelo de dados'
 );
 
--- B03. Políticas de public. Lista esperada: as seis da fatia 2 e as seis da
--- fatia 3 (docs/rls-matriz.md).
+-- B03. Políticas de public. Lista esperada: as seis da fatia 2, as seis da
+-- fatia 3 e as cinco da fatia 4 (docs/rls-matriz.md).
 select set_eq(
   $$ select tablename || '.' || policyname from pg_policies where schemaname = 'public' $$,
   array[
@@ -59,13 +60,18 @@ select set_eq(
     'group_join_requests.group_join_requests_select_own',
     'group_join_requests.group_join_requests_select_admin',
     'profiles.profiles_select_context',
-    'profiles.profiles_select_join_requester'
+    'profiles.profiles_select_join_requester',
+    'games.games_select_viewer',
+    'game_admins.game_admins_select_viewer',
+    'game_participants.game_participants_select_viewer',
+    'game_waitlist.game_waitlist_select_viewer',
+    'game_limit_history.game_limit_history_select_admin'
   ],
-  'B03: as políticas de public são exatamente as da lista esperada (fatia 3)'
+  'B03: as políticas de public são exatamente as da lista esperada (fatia 4, etapa A)'
 );
 
 -- B04. Privilégios de tabela e de coluna de anon e authenticated em public.
--- Lista esperada: a da fatia 2 e a da fatia 3. anon continua sem nenhum.
+-- Lista esperada: a da fatia 2, a da fatia 3 e a da fatia 4. anon continua sem nenhum.
 select set_eq(
   $$ select a.grantee::regrole::text || ' ' || c.relname || ' ' || a.privilege_type
      from pg_class c
@@ -79,9 +85,14 @@ select set_eq(
     'authenticated terms_acceptances SELECT',
     'authenticated groups SELECT',
     'authenticated group_members SELECT',
-    'authenticated group_join_requests SELECT'
+    'authenticated group_join_requests SELECT',
+    'authenticated games SELECT',
+    'authenticated game_admins SELECT',
+    'authenticated game_participants SELECT',
+    'authenticated game_waitlist SELECT',
+    'authenticated game_limit_history SELECT'
   ],
-  'B04a: privilégios de tabela iguais à lista esperada (fatia 3)'
+  'B04a: privilégios de tabela iguais à lista esperada (fatia 4, etapa A)'
 );
 
 select set_eq(
@@ -104,12 +115,13 @@ select set_eq(
     'authenticated terms_acceptances.document INSERT',
     'authenticated terms_acceptances.version INSERT'
   ],
-  'B04b: privilégios de coluna iguais à lista esperada (fatia 3, sem coluna nova)'
+  'B04b: privilégios de coluna iguais à lista esperada (fatia 4, sem coluna nova)'
 );
 
 -- B06. Funções de public que anon ou authenticated podem executar, fora as de
--- extensões. Lista esperada: current_terms_versions() (fatia 2) e as dez
--- funções de grupo (fatia 3), só para authenticated. Este é o teste que cobra o `revoke execute ... from public, anon`
+-- extensões. Lista esperada: current_terms_versions() (fatia 2), as dez
+-- funções de grupo (fatia 3) e as sete funções da etapa A da fatia 4, só para
+-- authenticated. Este é o teste que cobra o `revoke execute ... from public, anon`
 -- de toda função nova (docs/arquitetura-app.md, 14.3).
 select set_eq(
   $$ select p.oid::regprocedure::text
@@ -129,9 +141,16 @@ select set_eq(
     'set_group_role(uuid,uuid,group_role)',
     'leave_group(uuid)',
     'remove_group_member(uuid,uuid)',
-    'archive_group(uuid)'
+    'archive_group(uuid)',
+    'create_game(uuid,text,text,timestamp with time zone,timestamp with time zone,timestamp with time zone,integer,integer)',
+    'update_game(uuid,text,text,timestamp with time zone,timestamp with time zone,timestamp with time zone,integer)',
+    'join_game(uuid,text)',
+    'join_waitlist(uuid,text)',
+    'set_slot_limit(uuid,integer)',
+    'get_profile_contact(uuid)',
+    'get_game_groups(uuid[])'
   ],
-  'B06a: authenticated executa só as funções da lista esperada (fatia 3)'
+  'B06a: authenticated executa só as funções da lista esperada (fatia 4, etapa A)'
 );
 
 select is_empty(

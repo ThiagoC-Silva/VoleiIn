@@ -84,13 +84,16 @@ jobs:
       # preview-invite servida pelo start (Q01 a Q07) e concorrência (C13 e C15)
       # (docs/arquitetura-app.md, 14.4; research R6 de specs/002-grupos). As
       # chaves são as do projeto local, geradas pelo próprio start; a secreta
-      # só conta linhas no Q07.
+      # conta linhas no Q07 e cria as contas da concorrência dos jogos, e o
+      # JWT_SECRET assina os tokens dessas contas (research R7 de
+      # specs/003-jogo-etapa-a).
       - name: Testes contra o Supabase local (Deno)
         working-directory: supabase/functions
         run: |
-          eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|SECRET_KEY)=')"
+          eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|SECRET_KEY|JWT_SECRET)=')"
           SUPABASE_URL="$API_URL" SUPABASE_PUBLISHABLE_KEY="$PUBLISHABLE_KEY" \
-            SUPABASE_SECRET_KEY="$SECRET_KEY" deno test --allow-net --allow-env
+            SUPABASE_SECRET_KEY="$SECRET_KEY" SUPABASE_JWT_SECRET="$JWT_SECRET" \
+            deno test --allow-net --allow-env
 
   functions:
     name: Edge Functions (Deno)

@@ -3,6 +3,8 @@
 --
 -- Fatia 1: as quatro contas do login técnico. Fatia 2: perfis completos e o
 -- aceite dos termos. Fatia 3: os grupos Vôlei de Quinta e Vôlei de Domingo.
+-- Fatia 4: os sete jogos (Aberto, Confirmado, em andamento, Cancelado, prazo
+-- vencido, o da Carla e o avulso).
 -- Cada fatia acrescenta os seus cenários (jogos, valores, comprovantes...).
 --
 -- IDs fixos e legíveis, para testes e anotações poderem citá-los:
@@ -118,3 +120,111 @@ values
 
 insert into public.group_join_requests (group_id, user_id)
 values ('00000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-00000000000d');
+
+-- Jogos (fatia 4, docs/setup.md, seção 8). IDs e códigos fixos para os fluxos
+-- L15 a L19. "Dia +n" é hoje mais n dias em America/Fortaleza, nas horas desse
+-- fuso. Quem está primeiro na lista é o admin e o recebedor; a trigger grava o
+-- limite inicial em game_limit_history. Diego fica fora de todos.
+-- Um bloco só: a invariante de admin do jogo (RN25) é conferida no fim da
+-- transação, e o jogo e o admin precisam entrar juntos.
+do $seed$
+declare
+  v_today date := (now() at time zone 'America/Fortaleza')::date;
+  v_ana constant uuid := '00000000-0000-0000-0000-00000000000a';
+  v_bruno constant uuid := '00000000-0000-0000-0000-00000000000b';
+  v_carla constant uuid := '00000000-0000-0000-0000-00000000000c';
+  v_quinta constant uuid := '00000000-0000-0000-0000-000000000101';
+begin
+  insert into public.games (
+    id, group_id, created_by, receiver_id, invite_code, location_name, maps_url,
+    cancellation_deadline, starts_at, ends_at, total_cents, slot_limit, status,
+    cancelled_at, cancelled_by
+  )
+  values
+    -- Quinta Aberto: Ana na lista; Carla cancelou no prazo.
+    ('00000000-0000-0000-0000-000000000201', v_quinta, v_ana, v_ana, 'JogoAberto01',
+     'Quadra do Sesc', 'https://www.google.com/maps/search/?api=1&query=Sesc+Parna%C3%ADba',
+     (v_today + 2 + time '18:00') at time zone 'America/Fortaleza',
+     (v_today + 2 + time '20:00') at time zone 'America/Fortaleza',
+     (v_today + 2 + time '22:00') at time zone 'America/Fortaleza',
+     12000, 12, 'open', null, null),
+    -- Quinta Confirmado: Ana e Carla; Bruno na espera.
+    ('00000000-0000-0000-0000-000000000202', v_quinta, v_ana, v_ana, 'JogoCheio001',
+     'Ginásio Verdão', null,
+     (v_today + 3 + time '18:00') at time zone 'America/Fortaleza',
+     (v_today + 3 + time '20:00') at time zone 'America/Fortaleza',
+     (v_today + 3 + time '22:00') at time zone 'America/Fortaleza',
+     6000, 2, 'confirmed', null, null),
+    -- Quinta em andamento: começou 30 min antes do reset e termina 90 min depois.
+    ('00000000-0000-0000-0000-000000000203', v_quinta, v_ana, v_ana, 'JogoAndamen1',
+     'Quadra do Sesc', null,
+     now() - interval '210 minutes', now() - interval '30 minutes', now() + interval '90 minutes',
+     12000, 12, 'open', null, null),
+    -- Quinta cancelado pela Ana.
+    ('00000000-0000-0000-0000-000000000204', v_quinta, v_ana, v_ana, 'JogoCancel01',
+     'Quadra do Sesc', null,
+     (v_today + 4 + time '18:00') at time zone 'America/Fortaleza',
+     (v_today + 4 + time '20:00') at time zone 'America/Fortaleza',
+     (v_today + 4 + time '22:00') at time zone 'America/Fortaleza',
+     12000, 12, 'cancelled', now(), v_ana),
+    -- Quinta prazo vencido: começa 1 h depois do reset, prazo 1 h antes dele.
+    ('00000000-0000-0000-0000-000000000205', v_quinta, v_ana, v_ana, 'JogoPrazo001',
+     'Ginásio Verdão', null,
+     now() - interval '1 hour', now() + interval '1 hour', now() + interval '3 hours',
+     6000, 6, 'open', null, null),
+    -- Jogo da Carla: ela é a recebedora e a única admin (L19).
+    ('00000000-0000-0000-0000-000000000206', v_quinta, v_carla, v_carla, 'JogoCarla001',
+     'Arena Delta', null,
+     (v_today + 5 + time '17:00') at time zone 'America/Fortaleza',
+     (v_today + 5 + time '19:00') at time zone 'America/Fortaleza',
+     (v_today + 5 + time '21:00') at time zone 'America/Fortaleza',
+     8000, 8, 'open', null, null),
+    -- Avulso da Ana, sem grupo.
+    ('00000000-0000-0000-0000-000000000207', null, v_ana, v_ana, 'JogoAvulso01',
+     'Praia do Coqueiro', null,
+     (v_today + 6 + time '16:00') at time zone 'America/Fortaleza',
+     (v_today + 6 + time '18:00') at time zone 'America/Fortaleza',
+     (v_today + 6 + time '20:00') at time zone 'America/Fortaleza',
+     4000, 4, 'open', null, null);
+
+  insert into public.game_admins (game_id, user_id)
+  values
+    ('00000000-0000-0000-0000-000000000201', v_ana),
+    ('00000000-0000-0000-0000-000000000202', v_ana),
+    ('00000000-0000-0000-0000-000000000203', v_ana),
+    ('00000000-0000-0000-0000-000000000204', v_ana),
+    ('00000000-0000-0000-0000-000000000205', v_ana),
+    ('00000000-0000-0000-0000-000000000206', v_carla),
+    ('00000000-0000-0000-0000-000000000207', v_ana);
+
+  -- Passagens: o primeiro entrou 2 dias antes; os outros, depois, na ordem da lista.
+  insert into public.game_participants (game_id, user_id, joined_at)
+  values
+    ('00000000-0000-0000-0000-000000000201', v_ana, now() - interval '2 days'),
+    ('00000000-0000-0000-0000-000000000202', v_ana, now() - interval '2 days'),
+    ('00000000-0000-0000-0000-000000000202', v_carla, now() - interval '1 day'),
+    ('00000000-0000-0000-0000-000000000203', v_ana, now() - interval '2 days'),
+    ('00000000-0000-0000-0000-000000000203', v_bruno, now() - interval '1 day'),
+    ('00000000-0000-0000-0000-000000000203', v_carla, now() - interval '20 hours'),
+    ('00000000-0000-0000-0000-000000000204', v_ana, now() - interval '2 days'),
+    ('00000000-0000-0000-0000-000000000204', v_bruno, now() - interval '1 day'),
+    ('00000000-0000-0000-0000-000000000205', v_ana, now() - interval '2 days'),
+    ('00000000-0000-0000-0000-000000000206', v_carla, now() - interval '2 days'),
+    ('00000000-0000-0000-0000-000000000206', v_ana, now() - interval '1 day'),
+    ('00000000-0000-0000-0000-000000000207', v_ana, now() - interval '2 days');
+
+  -- Cancelamentos: Carla no prazo, no Quinta Aberto; Bruno fora do prazo, 30 min
+  -- antes do reset, no Quinta prazo vencido.
+  insert into public.game_participants (
+    game_id, user_id, joined_at, status, left_at, late_cancellation
+  )
+  values
+    ('00000000-0000-0000-0000-000000000201', v_carla, now() - interval '1 day', 'cancelled',
+     now() - interval '1 hour', false),
+    ('00000000-0000-0000-0000-000000000205', v_bruno, now() - interval '1 day', 'cancelled',
+     now() - interval '30 minutes', true);
+
+  insert into public.game_waitlist (game_id, user_id, joined_at)
+  values ('00000000-0000-0000-0000-000000000202', v_bruno, now() - interval '12 hours');
+end;
+$seed$;

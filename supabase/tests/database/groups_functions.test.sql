@@ -40,6 +40,13 @@ from (
 on conflict do nothing;
 
 -- Limpeza das linhas de grupo do seed (research R3).
+-- Desde a fatia 4, o seed também põe Ana, Bruno e Carla nos mesmos jogos, que
+-- também são contexto: os jogos saem antes (research R6 de specs/003-jogo-etapa-a).
+delete from public.game_waitlist;
+delete from public.game_participants;
+delete from public.game_admins;
+delete from public.game_limit_history;
+delete from public.games;
 delete from public.group_join_requests;
 delete from public.group_members;
 update public.groups set invite_code = null where invite_code is not null;

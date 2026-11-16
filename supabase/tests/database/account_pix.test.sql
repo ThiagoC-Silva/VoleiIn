@@ -148,6 +148,10 @@ end;
 $fn$;
 
 -- Formato da chave (X01 a X10) ------------------------------------------------
+
+-- Desde a fatia 4, o seed tem jogos abertos da Ana, que prenderiam a chave dela
+-- (RN105) antes da constraint que o X10 confere.
+select pg_temp.clean_receiver_state();
 -- "Recusado" é a violação de constraint (23514).
 
 select lives_ok(
