@@ -35,6 +35,9 @@ dependencies:
   image_picker: ^1.2.4
   # Compartilhar o código do grupo (fatia 3), pelo seletor do Android
   share_plus: ^13.3.1
+  # Abrir o link do Google Maps do jogo (fatia 4), o discador e o WhatsApp
+  # (arquitetura-app.md, seção 3)
+  url_launcher: ^6.3.2
   # Já vem com supabase_flutter; declarada porque a conversão de erros cita
   # ClientException (docs/arquitetura-app.md, seção 7)
   http: any

@@ -20,11 +20,15 @@ import 'groups_providers.dart';
 
 /// Detalhe do grupo (RF21; docs/ui/telas.md, 6.4; group.png e
 /// group-membro.png). Na aba Grupos, com a barra inferior. A fatia 4
-/// acrescenta os jogos do grupo e o botão Criar jogo.
+/// acrescenta os jogos do grupo e o botão Criar jogo (7.6), entregues pelo
+/// roteador em [games].
 class GroupScreen extends ConsumerWidget {
-  const GroupScreen({required this.groupId, super.key});
+  const GroupScreen({required this.groupId, this.games, super.key});
 
   final String groupId;
+
+  /// A seção "Próximos jogos", da feature de jogos.
+  final GroupGamesSlot? games;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +36,7 @@ class GroupScreen extends ConsumerWidget {
     return Scaffold(
       appBar: const InnerAppBar(title: ''),
       body: switch (detail) {
-        AsyncValue(:final value?) => _GroupBody(group: value),
+        AsyncValue(:final value?) => _GroupBody(group: value, games: games),
         AsyncError(:final error) => ErrorStateView(
           error: error,
           onRetry: () => ref.invalidate(groupDetailProvider(groupId)),
@@ -43,10 +47,24 @@ class GroupScreen extends ConsumerWidget {
   }
 }
 
+/// Trecho de outra feature dentro do detalhe do grupo, montado pelo roteador
+/// (docs/arquitetura-app.md, seção 2): a feature de grupos não importa a de
+/// jogos.
+class GroupGamesSlot {
+  const GroupGamesSlot({required this.build, required this.refresh});
+
+  /// A seção dos jogos do grupo.
+  final Widget Function(String groupId) build;
+
+  /// Relê os jogos ao puxar para baixo.
+  final Future<void> Function(WidgetRef ref, String groupId) refresh;
+}
+
 class _GroupBody extends ConsumerWidget {
-  const _GroupBody({required this.group});
+  const _GroupBody({required this.group, this.games});
 
   final GroupDetail group;
+  final GroupGamesSlot? games;
 
   /// Abre uma tela do grupo e relê o grupo ao voltar (telas.md, seção 6).
   Future<void> _open(BuildContext context, WidgetRef ref, String route) async {
@@ -82,7 +100,10 @@ class _GroupBody extends ConsumerWidget {
     final busy = ref.watch(groupActionsControllerProvider).isLoading;
 
     return RefreshIndicator(
-      onRefresh: () => ref.refresh(groupDetailProvider(group.id).future),
+      onRefresh: () => Future.wait([
+        ref.refresh(groupDetailProvider(group.id).future),
+        ?games?.refresh(ref, group.id),
+      ]),
       child: FormScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         content: [
@@ -133,6 +154,10 @@ class _GroupBody extends ConsumerWidget {
                 ),
             ],
           ),
+          if (games case final games?) ...[
+            const SizedBox(height: 24),
+            games.build(group.id),
+          ],
         ],
         // O único membro não sai: ele exclui o grupo em Editar grupo (RN13).
         footer: [

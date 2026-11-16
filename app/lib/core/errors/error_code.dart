@@ -2,7 +2,7 @@
 ///
 /// São os códigos estáveis de docs/contratos-api.md (seção 2) que o app já usa,
 /// mais os de autenticação e o de falta de conexão. O enum cresce a cada fatia,
-/// junto com os textos de docs/copy.md (seções 5.5, 6.8 e 7.7).
+/// junto com os textos de docs/copy.md (seções 5.5, 6.8, 7.7 e 8.8).
 enum ErrorCode {
   // Gerais (contratos-api.md, seção 2)
   notAuthenticated,
@@ -46,6 +46,22 @@ enum ErrorCode {
   cannotRemoveSelf,
   lastAdmin,
   groupHasActiveGames,
+
+  // Jogo e lista, etapa A da fatia 4 (docs/copy.md, 8.8): os códigos de
+  // create_game, update_game, join_game, join_waitlist e set_slot_limit. As
+  // etapas B e C acrescentam os seus.
+  notGameAdmin,
+  invalidGameDates,
+  startInPast,
+  receiverNeedsPixKey,
+  noGameAccess,
+  gameNotOpen,
+  gameFull,
+  gameNotFull,
+  gameStarted,
+  alreadyParticipant,
+  alreadyOnWaitlist,
+  slotLimitBelowParticipants,
 }
 
 /// Único tipo de exceção que sai da camada `data`.

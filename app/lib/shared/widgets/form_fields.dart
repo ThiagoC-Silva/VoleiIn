@@ -49,6 +49,7 @@ class LabeledField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.focusNode,
+    this.style,
     super.key,
   });
 
@@ -56,6 +57,10 @@ class LabeledField extends StatelessWidget {
   final TextEditingController controller;
   final bool enabled;
   final FormFieldValidator<String>? validator;
+
+  /// Estilo do texto digitado (o valor em Bebas Neue do campo de dinheiro,
+  /// design-system.md, 7.2).
+  final TextStyle? style;
 
   /// Erro vindo do servidor, mostrado como o erro de campo.
   final String? forceErrorText;
@@ -96,6 +101,7 @@ class LabeledField extends StatelessWidget {
           onChanged: onChanged,
           onFieldSubmitted: onFieldSubmitted,
           obscureText: obscureText,
+          style: style,
           // Erro com ícone, e não só com a cor (design-system.md, 7.2).
           errorBuilder: (context, errorText) => _AtFieldEdge(
             child: FieldErrorText(errorText, padding: EdgeInsets.zero),

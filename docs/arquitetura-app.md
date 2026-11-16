@@ -30,6 +30,9 @@ app/lib/
     submit_controller.dart  # base dos controllers de formulário (seção 5)
     photo_picker.dart       # foto da galeria ou da câmera (perfil e grupo)
     share.dart              # compartilhamento do Android (share_plus)
+    link_opener.dart        # abrir link fora do app (url_launcher, fatia 4)
+    clock.dart              # relógio do aparelho, só para mostrar (seção 8)
+    date_time_picker.dart   # seletores nativos de data e hora
   l10n/app_pt.arb           # todos os textos da interface
   shared/widgets/           # componentes do design system
   features/
