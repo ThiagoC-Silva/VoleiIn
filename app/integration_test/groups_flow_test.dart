@@ -94,6 +94,11 @@ void main() {
 
   /// Toca quando o alvo já recebe o toque (account_flow_test.dart).
   Future<void> tapReady(WidgetTester tester, Finder finder) async {
+    // Fecha o teclado antes. Enquanto ele abre, a área visível encolhe depois
+    // da rolagem, e o rodapé do formulário sai da tela e da árvore (L10, na
+    // API 36, com o teclado real deixado aberto pelo L09). Fechado, a área só
+    // cresce, e o alvo continua ao alcance.
+    FocusManager.instance.primaryFocus?.unfocus();
     await pumpUntil(tester, finder);
     await tester.ensureVisible(finder);
     await pumpUntil(tester, finder.hitTestable());
