@@ -33,14 +33,14 @@
 
 ### Phase 2: Implementação do servidor
 
-- [ ] T008 Migração `create_game_access_helpers`: `private.is_game_admin` e `private.can_view_game` (`docs/rls-matriz.md`, fatia 4)
-- [ ] T009 [US2] Migração `games_rls`: privilégios, as cinco políticas e a publicação do Realtime (research R8)
-- [ ] T010 [US1] [US3] [US4] Migração `create_game_functions`: auxiliares (research R2 e R5), `create_game`, `update_game`, `join_game`, `join_waitlist`, `set_slot_limit` (`docs/contratos-api.md`, seção 4; ordem do research R4)
-- [ ] T011 [US2] Migração `create_game_read_functions`: `get_profile_contact` e `get_game_groups`
+- [x] T008 Migração `create_game_access_helpers`: `private.is_game_admin` e `private.can_view_game` (`docs/rls-matriz.md`, fatia 4)
+- [x] T009 [US2] Migração `games_rls`: privilégios, as cinco políticas e a publicação do Realtime (research R8)
+- [x] T010 [US1] [US3] [US4] Migração `create_game_functions`: auxiliares (research R2 e R5), `create_game`, `update_game`, `join_game`, `join_waitlist`, `set_slot_limit` (`docs/contratos-api.md`, seção 4; ordem do research R4)
+- [x] T011 [US2] Migração `create_game_read_functions`: `get_profile_contact` e `get_game_groups`
 
 ### Phase 3: Convergência do servidor
 
-- [ ] T012 `supabase db reset`, `supabase test db`, `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes
+- [x] T012 `supabase db reset`, `supabase test db`, `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes
 - [ ] T013 Atualizar os documentos afetados (`docs/rastreabilidade.md` com o estado do servidor, `README` de `_tests/`) e a linha "Estado atual" do `CLAUDE.md`; enviar o *branch* e abrir o PR
 
 ---
