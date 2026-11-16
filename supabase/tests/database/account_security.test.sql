@@ -40,6 +40,15 @@ from (
 ) as v (id, name)
 where profiles.id = v.id;
 
+-- Desde a fatia 4, o seed também põe Ana, Bruno e Carla nos mesmos jogos, que
+-- também são contexto, e a Ana como recebedora, que prende a chave Pix dela
+-- (RN105): os jogos saem antes de tudo (research R6 de specs/003-jogo-etapa-a).
+delete from public.game_waitlist;
+delete from public.game_participants;
+delete from public.game_admins;
+delete from public.game_limit_history;
+delete from public.games;
+
 update public.profile_private
 set phone = null, phone_visible = false, pix_key_type = null, pix_key = null
 where user_id in (
