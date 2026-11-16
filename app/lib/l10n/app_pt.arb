@@ -402,5 +402,212 @@
   "errorTargetNotMember": "Esta pessoa não é mais membro do grupo.",
   "errorCannotRemoveSelf": "Para sair, use a opção Sair do grupo.",
   "errorLastAdmin": "Promova outro admin antes. O grupo precisa de ao menos um.",
-  "errorGroupHasActiveGames": "O grupo ainda tem jogos Abertos ou Confirmados."
+  "errorGroupHasActiveGames": "O grupo ainda tem jogos Abertos ou Confirmados.",
+  "gamesFilterUpcoming": "Próximos",
+  "gamesFilterPast": "Anteriores",
+  "gamesCreate": "Criar jogo",
+  "gamesEmptyUpcomingTitle": "Nenhum jogo marcado",
+  "gamesEmptyUpcomingBody": "Crie um jogo ou espere alguém dos seus grupos marcar um.",
+  "gamesEmptyPastTitle": "Nenhum jogo anterior",
+  "gamesEmptyPastBody": "Os jogos concluídos e cancelados aparecem aqui.",
+  "gameStandalone": "Avulso",
+  "gameSlotsCount": "{occupied}/{limit}",
+  "@gameSlotsCount": {
+    "placeholders": {
+      "occupied": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "gameSlotsUnit": "vagas",
+  "gameStatusOpen": "Aberto",
+  "gameStatusConfirmed": "Confirmado",
+  "gameStatusCancelled": "Cancelado",
+  "gameStatusCompleted": "Concluído",
+  "gameInProgress": "Em andamento",
+  "gameAwaitingCompletion": "Aguardando conclusão",
+  "gameOnList": "Na lista",
+  "gameLeftAfterStartBadge": "Saiu após o início",
+  "gameWaitlistPosition": "{position}º na espera",
+  "@gameWaitlistPosition": {
+    "placeholders": {
+      "position": {
+        "type": "String"
+      }
+    }
+  },
+  "gameCardLabel": "Jogo {group}, {date} às {time}, {location}, {status}",
+  "@gameCardLabel": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "location": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "gamePixNeededBody": "Quem cria o jogo é o recebedor: quem entrar na lista paga a você. Cadastre uma chave Pix para continuar.",
+  "gamePixNeededAction": "Cadastrar chave Pix",
+  "gameGroupLabel": "Grupo",
+  "gameGroupPlaceholder": "Escolha o grupo",
+  "gameGroupRequired": "Escolha o grupo do jogo.",
+  "gameGroupSheetTitle": "Onde é o jogo?",
+  "gameGroupStandaloneHint": "Num jogo avulso, só entra quem receber o convite do jogo.",
+  "gameLocationLabel": "Nome do local",
+  "gameLocationRequired": "Informe o local.",
+  "gameLocationTooLong": "O local pode ter até 120 caracteres.",
+  "gameMapsLabel": "Link do Google Maps (opcional)",
+  "gameMapsHint": "Cole o link do local no Google Maps.",
+  "gameMapsInvalid": "O link precisa começar com https://.",
+  "gameDateLabel": "Data do jogo",
+  "gameStartLabel": "Início",
+  "gameEndLabel": "Fim",
+  "gameDateRequired": "Escolha a data.",
+  "gameTimeRequired": "Escolha o horário.",
+  "gameEndsNextDay": "Termina {date}.",
+  "@gameEndsNextDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "gameEndSameAsStart": "O fim precisa ser depois do início.",
+  "gameStartInPast": "O início precisa estar no futuro.",
+  "gameDeadlineLabel": "Prazo de cancelamento",
+  "gameDeadlineHint": "Até esse horário, quem sair da lista não paga multa.",
+  "gameDeadlineAfterStart": "O prazo não pode passar do início do jogo.",
+  "gameTotalLabel": "Valor total do espaço",
+  "gameTotalRequired": "Informe o valor total.",
+  "gameSlotLimitLabel": "Limite de vagas",
+  "gameSlotLimitRequired": "Informe o limite de vagas.",
+  "gameSlotLimitDecrease": "Diminuir vagas",
+  "gameSlotLimitIncrease": "Aumentar vagas",
+  "gameEstimate": "Cerca de {amount} por pessoa",
+  "@gameEstimate": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "gameEstimateHint": "É só uma estimativa. A divisão final é feita na conclusão do jogo.",
+  "gameReceiverNotice": "Você vai ser o recebedor deste jogo. Quem entrar na lista vê a sua chave Pix.",
+  "gameCreated": "Jogo criado.",
+  "gameEdit": "Editar jogo",
+  "gameSlotsOccupiedHint": "{count, plural, =1{1 pessoa na lista} other{{count} pessoas na lista}}",
+  "@gameSlotsOccupiedHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gameSaved": "Jogo salvo.",
+  "gameEditStarted": "O jogo já começou. Depois do início, os dados não mudam.",
+  "gameMenuLabel": "Opções do jogo",
+  "gameOpenMaps": "Abrir no Maps",
+  "gameTimeRange": "{start} – {end}",
+  "@gameTimeRange": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "gameTrioSlots": "Vagas",
+  "gameTrioPerPerson": "Por pessoa",
+  "gameTrioDeadline": "Prazo",
+  "gameTrioFreeSlots": "{count, plural, =1{1 livre} other{{count} livres}}",
+  "@gameTrioFreeSlots": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gameTrioFull": "lista cheia",
+  "gameTrioEstimate": "estimativa",
+  "gameDateTime": "{date}, {time}",
+  "@gameDateTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "gameReceiver": "Recebedor",
+  "gameAdmin": "Admin",
+  "gamePixCopy": "Copiar chave",
+  "gamePixCopied": "Chave Pix copiada.",
+  "gamePixOnlyParticipants": "A chave Pix do recebedor aparece para quem está na lista.",
+  "gameListTitle": "Lista · {occupied} de {limit}",
+  "@gameListTitle": {
+    "placeholders": {
+      "occupied": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "gameWaitlistTitle": "Lista de espera · {count}",
+  "@gameWaitlistTitle": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "gameJoin": "Entrar na lista",
+  "gameJoinWaitlist": "Entrar na lista de espera",
+  "gameFullHint": "A lista está cheia. Na espera, você é avisado quando abrir uma vaga.",
+  "gameNeedsInvite": "Para entrar neste jogo, você precisa do convite dele.",
+  "gameWaitlistNotice": "Você é o {position}º na espera. Quando abrir uma vaga, ela fica com quem entrar primeiro.",
+  "@gameWaitlistNotice": {
+    "placeholders": {
+      "position": {
+        "type": "String"
+      }
+    }
+  },
+  "gameReceiverCannotLeave": "Você é o recebedor deste jogo e não pode sair da lista. Se não puder jogar, o jogo precisa ser cancelado por um admin.",
+  "gameListLocked": "A lista está travada até a conclusão do jogo.",
+  "gameJoined": "Você entrou na lista.",
+  "gameJoinedWaitlist": "Você entrou na lista de espera.",
+  "groupGamesTitle": "Próximos jogos",
+  "groupGamesEmpty": "Nenhum jogo marcado neste grupo.",
+  "commonCannotOpenLink": "Não foi possível abrir neste aparelho.",
+  "errorNotGameAdmin": "Só um admin do jogo pode fazer isso.",
+  "errorInvalidGameDates": "O prazo não pode passar do início, e o início precisa ser antes do fim.",
+  "errorStartInPast": "O início precisa estar no futuro.",
+  "errorReceiverNeedsPixKey": "O recebedor precisa ter uma chave Pix.",
+  "errorNoGameAccess": "Para entrar neste jogo, você precisa ser membro do grupo ou ter o convite.",
+  "errorGameNotOpen": "Este jogo já foi cancelado ou concluído.",
+  "errorGameFull": "A lista encheu. Você pode entrar na lista de espera.",
+  "errorGameNotFull": "Abriu uma vaga. Você pode entrar direto na lista.",
+  "errorGameStarted": "O jogo já começou.",
+  "errorAlreadyParticipant": "Você já está na lista.",
+  "errorAlreadyOnWaitlist": "Você já está na lista de espera.",
+  "errorSlotLimitBelowParticipants": "O limite não pode ficar abaixo do número de pessoas na lista."
 }

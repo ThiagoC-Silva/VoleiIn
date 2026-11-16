@@ -15,8 +15,13 @@ void main() {
     expect(toAppException(exception).code, ErrorCode.notFound);
   });
 
+  // Um código que o app não conhece. Até a fatia 3 era GAME_FULL, que a
+  // fatia 4 passou a conhecer.
   test('E02: P0001 com código desconhecido vira internalError', () {
-    final exception = PostgrestException(message: 'GAME_FULL', code: 'P0001');
+    final exception = PostgrestException(
+      message: 'CODE_THE_APP_DOES_NOT_KNOW',
+      code: 'P0001',
+    );
     expect(toAppException(exception).code, ErrorCode.internalError);
   });
 
@@ -165,6 +170,31 @@ void main() {
 
   for (final entry in groupCodes.entries) {
     test('E13: P0001 com ${entry.key} vira ${entry.value.name}', () {
+      final exception = PostgrestException(message: entry.key, code: 'P0001');
+      expect(toAppException(exception).code, entry.value);
+    });
+  }
+
+  // Códigos das funções de jogo da etapa A da fatia 4 (docs/copy.md, 8.8;
+  // contratos-api.md, seção 4: create_game, update_game, join_game,
+  // join_waitlist e set_slot_limit). As etapas B e C acrescentam os seus.
+  const gameCodes = {
+    'NOT_GAME_ADMIN': ErrorCode.notGameAdmin,
+    'INVALID_GAME_DATES': ErrorCode.invalidGameDates,
+    'START_IN_PAST': ErrorCode.startInPast,
+    'RECEIVER_NEEDS_PIX_KEY': ErrorCode.receiverNeedsPixKey,
+    'NO_GAME_ACCESS': ErrorCode.noGameAccess,
+    'GAME_NOT_OPEN': ErrorCode.gameNotOpen,
+    'GAME_FULL': ErrorCode.gameFull,
+    'GAME_NOT_FULL': ErrorCode.gameNotFull,
+    'GAME_STARTED': ErrorCode.gameStarted,
+    'ALREADY_PARTICIPANT': ErrorCode.alreadyParticipant,
+    'ALREADY_ON_WAITLIST': ErrorCode.alreadyOnWaitlist,
+    'SLOT_LIMIT_BELOW_PARTICIPANTS': ErrorCode.slotLimitBelowParticipants,
+  };
+
+  for (final entry in gameCodes.entries) {
+    test('E15: P0001 com ${entry.key} vira ${entry.value.name}', () {
       final exception = PostgrestException(message: entry.key, code: 'P0001');
       expect(toAppException(exception).code, entry.value);
     });

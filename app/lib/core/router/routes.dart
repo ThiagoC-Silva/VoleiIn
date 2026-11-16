@@ -27,6 +27,24 @@ class Routes {
   static const String games = 'games';
   static const String gamesPath = '/games';
 
+  // Telas de jogo (docs/ui/telas.md, seção 7). A criação abre de duas abas
+  // (Meus jogos e o detalhe do grupo) e cobre a barra: fica fora do
+  // StatefulShellRoute, com o caminho inteiro, antes de `/games/:gameId`.
+  static const String gamesNew = 'gamesNew';
+  static const String gamesNewPath = '/games/new';
+
+  // Relativos a `/games`.
+  static const String game = 'game';
+  static const String gamePath = ':gameId';
+
+  static const String gameEdit = 'gameEdit';
+  static const String gameEditPath = 'edit';
+
+  /// `/games/:gameId/people/:userId`: o perfil de outra pessoa na aba Jogos
+  /// (telas.md, 7.3; research R10 de specs/003-jogo-etapa-a).
+  static const String gamePerson = 'gamePerson';
+  static const String gamePersonPath = 'people/:userId';
+
   static const String groups = 'groups';
   static const String groupsPath = '/groups';
 

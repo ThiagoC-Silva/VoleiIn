@@ -18,7 +18,11 @@ import '../../features/auth/presentation/profile_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/terms_document_screen.dart';
 import '../../features/auth/presentation/terms_screen.dart';
+import '../../features/games/presentation/game_edit_screen.dart';
+import '../../features/games/presentation/game_new_screen.dart';
+import '../../features/games/presentation/game_screen.dart';
 import '../../features/games/presentation/games_screen.dart';
+import '../../features/games/presentation/group_games_section.dart';
 import '../../features/groups/presentation/group_edit_screen.dart';
 import '../../features/groups/presentation/group_join_screen.dart';
 import '../../features/groups/presentation/group_members_screen.dart';
@@ -121,6 +125,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      // Criar jogo cobre a barra e abre de duas abas (telas.md, 7.2).
+      GoRoute(
+        path: Routes.gamesNewPath,
+        name: Routes.gamesNew,
+        builder: (context, state) =>
+            GameNewScreen(groupId: state.uri.queryParameters['groupId']),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             AppShell(navigationShell: navigationShell),
@@ -131,6 +142,32 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: Routes.gamesPath,
                 name: Routes.games,
                 builder: (context, state) => const GamesScreen(),
+                routes: [
+                  GoRoute(
+                    path: Routes.gamePath,
+                    name: Routes.game,
+                    builder: (context, state) =>
+                        GameScreen(gameId: _gameId(state)),
+                    routes: [
+                      GoRoute(
+                        path: Routes.gameEditPath,
+                        name: Routes.gameEdit,
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) =>
+                            GameEditScreen(gameId: _gameId(state)),
+                      ),
+                      // O perfil de outra pessoa (feature auth) também abre
+                      // na aba Jogos (arquitetura-app.md, seção 2).
+                      GoRoute(
+                        path: Routes.gamePersonPath,
+                        name: Routes.gamePerson,
+                        builder: (context, state) => PersonScreen(
+                          userId: state.pathParameters['userId']!,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -158,8 +195,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: Routes.groupPath,
                     name: Routes.group,
-                    builder: (context, state) =>
-                        GroupScreen(groupId: _groupId(state)),
+                    // Os jogos do grupo vêm da feature games, montados aqui
+                    // (arquitetura-app.md, seção 2; telas.md, 7.6).
+                    builder: (context, state) => GroupScreen(
+                      groupId: _groupId(state),
+                      games: const GroupGamesSlot(
+                        build: _groupGames,
+                        refresh: GroupGamesSection.refresh,
+                      ),
+                    ),
                     routes: [
                       GoRoute(
                         path: Routes.groupEditPath,
@@ -184,8 +228,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                   ),
                 ],
               ),
-              // Na fatia 3, o perfil de outra pessoa só abre pela aba Grupos
-              // (telas.md, 6.9).
+              // O perfil de outra pessoa pela aba Grupos (telas.md, 6.9). Na
+              // aba Jogos, a rota é gamePerson.
               GoRoute(
                 path: Routes.personPath,
                 name: Routes.person,
@@ -246,6 +290,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 });
 
 String _groupId(GoRouterState state) => state.pathParameters['groupId']!;
+
+String _gameId(GoRouterState state) => state.pathParameters['gameId']!;
+
+Widget _groupGames(String groupId) => GroupGamesSection(groupId: groupId);
 
 /// Pede ao `go_router` uma nova conferência a cada mudança de sessão,
 /// inclusive a invalidação do token, e a cada estado que entra nos

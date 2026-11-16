@@ -5,7 +5,12 @@ import '../../core/theme/app_theme.dart';
 /// Selo em pílula (design-system.md, 3.3), sempre com texto: o status nunca é
 /// só a cor (seção 8). O selo `neutral` é o dos papéis, como "Admin".
 class VoleiBadge extends StatelessWidget {
-  const VoleiBadge({required this.label, required this.tone, super.key});
+  const VoleiBadge({
+    required this.label,
+    required this.tone,
+    this.dot = false,
+    super.key,
+  });
 
   /// O selo neutro dos papéis (design-system.md, seção 4).
   factory VoleiBadge.neutral(BuildContext context, String label) =>
@@ -13,6 +18,10 @@ class VoleiBadge extends StatelessWidget {
 
   final String label;
   final BadgeTone tone;
+
+  /// O ponto antes do texto, dos selos de status (design-system.md, 3.3). Os
+  /// de papel (`neutral`) ficam sem ponto, como nos PNGs.
+  final bool dot;
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +32,30 @@ class VoleiBadge extends StatelessWidget {
         color: tone.background,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        label,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: tone.text,
-          fontWeight: FontWeight.w500,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (dot) ...[
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: tone.dot,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: tone.text,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

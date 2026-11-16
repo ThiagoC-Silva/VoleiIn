@@ -26,8 +26,10 @@ void main() {
   }
 
   Future<void> leaveAndConfirm(WidgetTester tester) async {
+    // A fatia 4 pôs os jogos do grupo acima do botão: rola até ele.
     final leave = buttonWithText<OutlinedButton>(l10nPt.groupLeave);
     await tester.ensureVisible(leave);
+    await tester.pumpAndSettle();
     await tester.tap(leave);
     await tester.pumpAndSettle();
     expect(find.text(l10nPt.groupLeaveTitle(quintaName)), findsOneWidget);
@@ -98,7 +100,10 @@ void main() {
 
     testWidgets('Voltar na confirmação não sai', (tester) async {
       await open(tester);
-      await tester.tap(buttonWithText<OutlinedButton>(l10nPt.groupLeave));
+      final leave = buttonWithText<OutlinedButton>(l10nPt.groupLeave);
+      await tester.ensureVisible(leave);
+      await tester.pumpAndSettle();
+      await tester.tap(leave);
       await tester.pumpAndSettle();
       await tester.tap(buttonWithText<OutlinedButton>(l10nPt.commonBack));
       await tester.pumpAndSettle();

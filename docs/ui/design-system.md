@@ -282,7 +282,7 @@ Ainda não existe. Até a fatia 8, usa-se um espaço reservado com o texto `Vole
 
 ### 7.19 Onde ficam no código
 
-Componentes comuns em `app/lib/shared/widgets/`, criados nas fatias 2 e 3:
+Componentes comuns em `app/lib/shared/widgets/`, criados nas fatias 2 a 4. Os do jogo (card, topo, trio e anel, 7.8 a 7.12) ficam na feature `games`, que é a única que os usa:
 
 | Componente | Arquivo |
 |------------|---------|
@@ -302,6 +302,9 @@ Componentes comuns em `app/lib/shared/widgets/`, criados nas fatias 2 e 3:
 | Aviso em linha (7.14, fatia 3) | `inline_notice.dart` |
 | Card de linhas de pessoa ou de grupo, com o selo ao lado do nome (7.13, fatia 3) | `list_card.dart` |
 | Opção de sheet e a sheet da foto, a mesma do perfil e do grupo (fatia 3) | `sheet_option.dart` |
+| Chips de filtro (7.5, fatia 4) | `filter_chips.dart` |
+| Contador de vagas (7.3, fatia 4) | `slot_counter.dart` |
+| Campo de data, de hora ou de escolha, que abre o seletor no toque (7.2, fatia 4) | `picker_field.dart` |
 
 ## 8. Acessibilidade (RNF05)
 

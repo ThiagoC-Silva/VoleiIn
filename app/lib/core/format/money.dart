@@ -6,6 +6,9 @@ library;
 /// o símbolo fique numa linha e o valor em outra.
 const String nbsp = '\u00A0';
 
+/// O símbolo do real, prefixo do campo de dinheiro (design-system.md, 7.2).
+const String currencySymbol = 'R\$';
+
 /// `2084` vira `R$ 20,84`; `123456` vira `R$ 1.234,56`.
 ///
 /// O formato de valor negativo é decidido na fatia 5 (cenário R04 de
@@ -19,7 +22,15 @@ String formatCents(int cents) {
   final centavos = absolute % 100;
   final decimals = centavos.toString().padLeft(2, '0');
 
-  return '${sign}R\$$nbsp${_groupThousands(reais)},$decimals';
+  return '$sign$currencySymbol$nbsp${_groupThousands(reais)},$decimals';
+}
+
+/// Estimativa por pessoa do jogo, `ceil(total / limite)`, só com inteiros
+/// (RN24; docs/modelo-dados.md, seção 5; U11). É só exibição: a divisão final
+/// é do servidor, na conclusão.
+int estimatedShareCents(int totalCents, int slotLimit) {
+  assert(slotLimit >= 1, 'limite de vagas mínimo 1 (RN06)');
+  return (totalCents + slotLimit - 1) ~/ slotLimit;
 }
 
 /// `1234567` vira `1.234.567`.

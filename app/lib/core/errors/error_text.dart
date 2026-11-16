@@ -35,6 +35,19 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.cannotRemoveSelf => l10n.errorCannotRemoveSelf,
     ErrorCode.lastAdmin => l10n.errorLastAdmin,
     ErrorCode.groupHasActiveGames => l10n.errorGroupHasActiveGames,
+    ErrorCode.notGameAdmin => l10n.errorNotGameAdmin,
+    ErrorCode.invalidGameDates => l10n.errorInvalidGameDates,
+    ErrorCode.startInPast => l10n.errorStartInPast,
+    ErrorCode.receiverNeedsPixKey => l10n.errorReceiverNeedsPixKey,
+    ErrorCode.noGameAccess => l10n.errorNoGameAccess,
+    ErrorCode.gameNotOpen => l10n.errorGameNotOpen,
+    ErrorCode.gameFull => l10n.errorGameFull,
+    ErrorCode.gameNotFull => l10n.errorGameNotFull,
+    ErrorCode.gameStarted => l10n.errorGameStarted,
+    ErrorCode.alreadyParticipant => l10n.errorAlreadyParticipant,
+    ErrorCode.alreadyOnWaitlist => l10n.errorAlreadyOnWaitlist,
+    ErrorCode.slotLimitBelowParticipants =>
+      l10n.errorSlotLimitBelowParticipants,
   };
 }
 

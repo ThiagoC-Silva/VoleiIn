@@ -103,6 +103,19 @@ const Map<String, ErrorCode> _serverCodes = {
   'CANNOT_REMOVE_SELF': ErrorCode.cannotRemoveSelf,
   'LAST_ADMIN': ErrorCode.lastAdmin,
   'GROUP_HAS_ACTIVE_GAMES': ErrorCode.groupHasActiveGames,
+  // Funções de jogo da etapa A da fatia 4.
+  'NOT_GAME_ADMIN': ErrorCode.notGameAdmin,
+  'INVALID_GAME_DATES': ErrorCode.invalidGameDates,
+  'START_IN_PAST': ErrorCode.startInPast,
+  'RECEIVER_NEEDS_PIX_KEY': ErrorCode.receiverNeedsPixKey,
+  'NO_GAME_ACCESS': ErrorCode.noGameAccess,
+  'GAME_NOT_OPEN': ErrorCode.gameNotOpen,
+  'GAME_FULL': ErrorCode.gameFull,
+  'GAME_NOT_FULL': ErrorCode.gameNotFull,
+  'GAME_STARTED': ErrorCode.gameStarted,
+  'ALREADY_PARTICIPANT': ErrorCode.alreadyParticipant,
+  'ALREADY_ON_WAITLIST': ErrorCode.alreadyOnWaitlist,
+  'SLOT_LIMIT_BELOW_PARTICIPANTS': ErrorCode.slotLimitBelowParticipants,
 };
 
 /// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).
