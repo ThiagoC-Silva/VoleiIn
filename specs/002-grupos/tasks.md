@@ -87,7 +87,12 @@ Começa numa conversa nova, depois do *merge* da sessão 2, com os PNGs de `docs
 
 ### Phase 7
 
-- [ ] T033 L12 a L14 no emulador, APIs 29 e 36, pelos `scripts/`; M05 com o responsável
-- [ ] T034 Ensaio da migração (`docs/setup.md`, 9.2) e `supabase db push` na produção; `get_advisors`
-- [ ] T035 Atualizar o princípio V da constituição com a decisão de 13/11/2026 (`docs/trabalho-com-agente.md`, seção 8)
-- [ ] T036 Fechar a fatia (`docs/trabalho-com-agente.md`, seção 11): rastreabilidade, "Estado atual", seed e documentos
+- [x] T033 L12 a L14 no emulador, APIs 29 e 36, pelos `scripts/`; M05 com o responsável
+  - L06 a L14 verdes nas APIs 29 e 36 em 16/11/2026, por `scripts/integration-test.sh`. A rodada achou o L10 falhando na API 36: o teclado aberto pelo L09 ainda subia depois do `ensureVisible` e tirava o botão Salvar da tela; o `tapReady` passou a fechar o teclado antes do toque (`712edef`). M05 conferido com o responsável no celular, com o build da produção, em 16/11/2026.
+- [x] T034 Ensaio da migração (`docs/setup.md`, 9.2) e `supabase db push` na produção; `get_advisors`
+  - Feito em 16/11/2026: as 4 migrações e a `preview-invite` na produção, com os advisors registrados no `setup.md`, seção 9.5.
+- [x] T035 Atualizar o princípio V da constituição com a decisão de 13/11/2026 (`docs/trabalho-com-agente.md`, seção 8)
+- [x] T036 Fechar a fatia (`docs/trabalho-com-agente.md`, seção 11): rastreabilidade, "Estado atual", seed e documentos
+  - Feito em 16/11/2026: os 12 RFs da fatia concluídos em `docs/rastreabilidade.md`, "Estado atual" do `CLAUDE.md`, seed conferido contra o `setup.md` (seção 8) e o `setup.md` (3.1) com os cortes de memória depois da queda da sessão gráfica de 16/11/2026.
+
+**Sessão 4 concluída e fatia 3 fechada em 16/11/2026.**

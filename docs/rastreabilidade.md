@@ -11,6 +11,8 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 
 **Fatia 2, em 13/11/2026:** RFs com testes automáticos verdes e L06 a L11 nas APIs 29 e 36. M01 e M02 conferidos no celular contra o Supabase local, e M03 e M04 na produção, em 13/11/2026. Os 16 RFs da fatia estão concluídos.
 
+**Fatia 3, em 16/11/2026:** RFs com testes automáticos verdes e L12 a L14 nas APIs 29 e 36, com as migrações e a `preview-invite` na produção. M05 conferido no celular, com o build da produção, em 16/11/2026. Os 12 RFs da fatia estão concluídos. RF15 e RF16 cobrem o código de convite: abrir o convite por link fica para a fatia 8 (`plano-implementacao.md`). RF22 e RF102, os efeitos da saída do grupo sobre os jogos, ficam para a fatia 4.
+
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
 | RF01 | 2 | — | Auth; `profiles`, `profile_private` (`on_auth_user_confirmed`) | `/signup` | S01, S02, L08 | Concluído |
@@ -26,18 +28,18 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF11 | 2 | RN102, RN105 | `profile_private.pix_key_type`, `pix_key`; `private.is_valid_cpf`, `private.is_valid_cnpj` | `/profile/pix` | X01 a X14, U01, U02, U05, U06, S13 | Concluído |
 | RF12 | 2 | RN105 | `profiles`, `profile_private`; `profile_private_guard_pix_key_removal` | `/profile/edit`, `/profile/pix` | P01 a P09, N01 a N09, S12, S13, L10 | Concluído |
 | RF13 | 6 | RN65, RN103, RN104 | — | — | — | Pendente |
-| RF14 | 3 | RN10, RN106 | — | — | — | Pendente |
-| RF15 | 3 | RN11 | — | — | — | Pendente |
-| RF16 | 3 | RN12 | — | — | — | Pendente |
-| RF17 | 3 | RN12, RN107 | — | — | — | Pendente |
-| RF18 | 3 | RN106 | — | — | — | Pendente |
-| RF19 | 3 | RN107 | — | — | — | Pendente |
-| RF20 | 3 | RN14 | — | — | — | Pendente |
-| RF21 | 3 | RN14 | — | — | — | Pendente |
+| RF14 | 3 | RN10, RN106 | `groups`, `group_members`; `create_group`; Storage `avatars` (`groups/<id>/`) | `/groups/new` | G01 a G03, S20, S21, L13 | Concluído |
+| RF15 | 3 | RN11 | `groups.invite_code`; `regenerate_group_invite`, `invalidate_group_invite` | Sheet do convite em `/groups/:groupId` | G07 a G10, S27, S28, L13, M05 | Concluído |
+| RF16 | 3 | RN12 | `group_join_requests`; `request_group_join`; Edge Function `preview-invite` | `/groups/join` | G11 a G14, Q01 a Q07, C13, S22 a S24, L12 | Concluído |
+| RF17 | 3 | RN12, RN107 | `group_join_requests`; `decide_join_request`; leitura do perfil de quem pediu (RN107, exceção 2) | `/groups/:groupId/requests` | G15 a G18, C15, S32, L12 | Concluído |
+| RF18 | 3 | RN106 | `update_group`; Storage `avatars` (`groups/<id>/`) | `/groups/:groupId/edit` | G04 a G06, A07, A08, A12, A13, S33 | Concluído |
+| RF19 | 3 | RN107 | `group_members`; leitura de `profiles` por `private.shares_context` | `/groups/:groupId/members`, `/people/:userId` | K02, K07, S29, S30, S34, L12 | Concluído |
+| RF20 | 3 | RN14 | `remove_group_member` | `/groups/:groupId/members` | G27 a G29, S31 | Concluído |
+| RF21 | 3 | RN14 | `leave_group` | `/groups/:groupId` | G23, G26, K03, S26, L12 | Concluído |
 | RF22 | 4 | RN14, RN16, RN65 | — | — | — | Pendente |
-| RF23 | 3 | RN10 | — | — | — | Pendente |
-| RF24 | 3 | RN13 | — | — | — | Pendente |
-| RF25 | 3 | — | — | — | — | Pendente |
+| RF23 | 3 | RN10 | `set_group_role` | `/groups/:groupId/members` | G19, G21, G22, S29, S31, L14 | Concluído |
+| RF24 | 3 | RN13 | `set_group_role`, `leave_group`; invariante de admin da fatia 1 | `/groups/:groupId`, `/groups/:groupId/members` | G20, G24, G25, S26, S31 | Concluído |
+| RF25 | 3 | — | `group_members`; leitura de `groups` pelo membro | `/groups` | K01, S18, S19 | Concluído |
 | RF26 | 4 | RN06, RN15, RN20, RN21, RN23 | — | — | — | Pendente |
 | RF27 | 4 | RN20 | — | — | — | Pendente |
 | RF28 | 4 | RN23 | — | — | — | Pendente |
@@ -115,7 +117,7 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF100 | 7 | RN52 | — | — | — | Pendente |
 | RF101 | 4 | RN101, RN107 | — | — | — | Pendente |
 | RF102 | 4 | — | — | — | — | Pendente |
-| RF103 | 3 | RN13, RN17 | — | — | — | Pendente |
+| RF103 | 3 | RN13, RN17 | `archive_group` | `/groups/:groupId/edit` | G30 a G33, K04, S33, L13 | Concluído |
 | RF104 | 7 | RN17, RN58, RN66, RN80 | — | — | — | Pendente |
 | RF105 | 2 | — | `terms_acceptances`; `current_terms_versions()` | `/terms`, `/terms/:document` | P10 a P14, S09, S10, L08 | Concluído |
 | RF106 | 2 | — | Auth, código no endereço novo | `/profile/email` | S11, S14, L11 | Concluído |
