@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 import 'package:voleiin/app.dart';
+import 'package:voleiin/core/clock.dart';
+import 'package:voleiin/core/date_time_picker.dart';
 import 'package:voleiin/core/errors/error_code.dart';
 import 'package:voleiin/core/share.dart';
 import 'package:voleiin/core/router/app_router.dart';
@@ -20,6 +22,8 @@ import 'package:voleiin/features/auth/domain/pix_key.dart';
 import 'package:voleiin/features/auth/domain/profile.dart';
 import 'package:voleiin/features/auth/domain/profile_private.dart';
 import 'package:voleiin/features/auth/domain/terms.dart';
+import 'package:voleiin/features/games/data/games_repository.dart';
+import 'package:voleiin/features/games/domain/game_models.dart';
 import 'package:voleiin/features/groups/data/groups_repository.dart';
 import 'package:voleiin/features/groups/domain/group_models.dart';
 
@@ -34,6 +38,27 @@ class MockPhotoPicker extends Mock implements PhotoPicker {}
 class MockGroupsRepository extends Mock implements GroupsRepository {}
 
 class MockSharer extends Mock implements Sharer {}
+
+class MockGamesRepository extends Mock implements GamesRepository {}
+
+class FakeGameInput extends Fake implements GameInput {}
+
+/// Seletores nativos de data e hora trocados por respostas em fila: cada
+/// toque num campo de data ou de hora consome a próxima.
+class FakeDateTimePicker implements DateTimePicker {
+  final dates = <DateTime?>[];
+  final times = <TimeOfDay?>[];
+
+  @override
+  Future<DateTime?> pickDate(BuildContext context, {DateTime? initial}) async =>
+      dates.isEmpty ? null : dates.removeAt(0);
+
+  @override
+  Future<TimeOfDay?> pickTime(
+    BuildContext context, {
+    TimeOfDay? initial,
+  }) async => times.isEmpty ? null : times.removeAt(0);
+}
 
 // IDs do seed (docs/setup.md, seção 8).
 const anaId = '00000000-0000-0000-0000-00000000000a';
@@ -59,6 +84,8 @@ class TestHarness {
     registerFallbackValue(PixKeyType.cpf);
     registerFallbackValue(Uint8List(0));
     registerFallbackValue(GroupRole.member);
+    registerFallbackValue(FakeGameInput());
+    registerFallbackValue(() {});
 
     when(() => auth.onAuthStateChange)
         .thenAnswer((_) => const Stream<AuthState>.empty());
@@ -71,6 +98,19 @@ class TestHarness {
       (_) async => 'http://127.0.0.1:54321/storage/v1/object/sign/avatars/g',
     );
     when(() => sharer.shareText(any())).thenAnswer((_) async {});
+
+    myGames(const []);
+    when(() => games.hasPixKey()).thenAnswer((_) async => true);
+    when(() => games.fetchMyGroupOptions()).thenAnswer((_) async => const []);
+    when(() => games.fetchGroupGames(any())).thenAnswer((_) async => const []);
+    when(() => games.avatarUrl(any())).thenAnswer(
+      (_) async => 'http://127.0.0.1:54321/storage/v1/object/sign/avatars/p',
+    );
+    when(() => games.watchGame(any(), any())).thenAnswer((invocation) {
+      final gameId = invocation.positionalArguments[0] as String;
+      _realtime[gameId] = invocation.positionalArguments[1] as void Function();
+      return () => _realtime.remove(gameId);
+    });
   }
 
   final auth = MockAuthRepository();
@@ -79,6 +119,16 @@ class TestHarness {
   final picker = MockPhotoPicker();
   final groups = MockGroupsRepository();
   final sharer = MockSharer();
+  final games = MockGamesRepository();
+  final pickers = FakeDateTimePicker();
+
+  /// O relógio do aparelho, só para mostrar (docs/arquitetura-app.md, seção
+  /// 8). Segunda, 16/11/2026, 12:00 em Fortaleza, antes de todos os jogos dos
+  /// cenários.
+  DateTime now = DateTime.utc(2026, 11, 16, 15);
+
+  /// Quem assinou o Realtime de cada jogo (research R11).
+  final _realtime = <String, void Function()>{};
 
   late final ProviderContainer container = ProviderContainer(
     overrides: [
@@ -88,6 +138,9 @@ class TestHarness {
       photoPickerProvider.overrideWithValue(picker),
       groupsRepositoryProvider.overrideWithValue(groups),
       sharerProvider.overrideWithValue(sharer),
+      gamesRepositoryProvider.overrideWithValue(games),
+      dateTimePickerProvider.overrideWithValue(pickers),
+      clockProvider.overrideWithValue(() => now),
     ],
     // Sem repetição automática: quem tenta de novo é a pessoa.
     retry: (_, _) => null,
@@ -196,6 +249,39 @@ class TestHarness {
     when(() => groups.fetchPendingRequests(groupId))
         .thenAnswer((_) async => read());
   }
+
+  /// Meus jogos (docs/ui/telas.md, 7.1).
+  void myGames(List<GameSummary> list) {
+    when(() => games.fetchMyGames()).thenAnswer((_) async => list);
+  }
+
+  /// Os jogos do grupo `open` e `confirmed` (telas.md, 7.6).
+  void groupGames(String groupId, List<GameSummary> list) {
+    when(() => games.fetchGroupGames(groupId)).thenAnswer((_) async => list);
+  }
+
+  /// O jogo como o detalhe o lê. Cada leitura chama [read] de novo, para o
+  /// teste trocar o jogo depois de uma ação ou de um evento do Realtime.
+  void game(GameDetail Function() read) {
+    final id = read().id;
+    when(() => games.fetchGame(id)).thenAnswer((_) async => read());
+  }
+
+  /// O RLS não devolve o jogo: quem não pode vê-lo, ID que não existe.
+  void gameNotFound(String id) {
+    when(() => games.fetchGame(id))
+        .thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
+  }
+
+  /// O dublê do Realtime avisa que o jogo mudou no servidor (S51).
+  Future<void> realtimeEvent(WidgetTester tester, String gameId) async {
+    final onChange = _realtime[gameId];
+    expect(onChange, isNotNull, reason: 'o detalhe não assinou o Realtime');
+    onChange!();
+    await tester.pumpAndSettle();
+  }
+
+  bool isWatching(String gameId) => _realtime.containsKey(gameId);
 
   /// Abre o app num celular de 360 x 760 dp e, se pedido, vai à rota.
   Future<void> pumpApp(

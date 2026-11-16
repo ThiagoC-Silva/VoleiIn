@@ -433,6 +433,7 @@ Os textos provisórios da seção 5.2 continuam no ARB: a aba Cobranças ainda o
 | `gamesEmptyPastBody` | Os jogos concluídos e cancelados aparecem aqui. | Frase do estado vazio de Anteriores |
 | `gameStandalone` | Avulso | No lugar do nome do grupo, no card e no topo do detalhe |
 | `gameSlotsCount` | {occupied}/{limit} | Vagas no card e no trio do detalhe |
+| `gameSlotsUnit` | vagas | Palavra depois das vagas no card e dentro do anel do topo (decisão de 16/11/2026, `games.png` e `game.png`) |
 | `gameStatusOpen` | Aberto | Pílula. Rótulo de `game_status.open` |
 | `gameStatusConfirmed` | Confirmado | Pílula. Rótulo de `game_status.confirmed` |
 | `gameStatusCancelled` | Cancelado | Selo. Rótulo de `game_status.cancelled` |
@@ -499,6 +500,9 @@ Os textos provisórios da seção 5.2 continuam no ARB: a aba Cobranças ainda o
 | `gameTrioSlots` | Vagas | Rótulo do trio |
 | `gameTrioPerPerson` | Por pessoa | Rótulo do trio |
 | `gameTrioDeadline` | Prazo | Rótulo do trio |
+| `gameTrioFreeSlots` | 1 livre / {count} livres | Linha de apoio das vagas no trio, com vaga (plural; decisão de 16/11/2026, `game.png`) |
+| `gameTrioFull` | lista cheia | Linha de apoio das vagas no trio, sem vaga (`game-confirmado.png`) |
+| `gameTrioEstimate` | estimativa | Linha de apoio do valor por pessoa no trio (`game.png`) |
 | `gameDateTime` | {date}, {time} | Prazo no trio e nas frases (`formatShortDate` e `formatTime`) |
 | `gameReceiver` | Recebedor | Selo e título do bloco do recebedor |
 | `gameAdmin` | Admin | Selo do admin do jogo na lista |

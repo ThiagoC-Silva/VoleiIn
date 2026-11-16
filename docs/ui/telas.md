@@ -558,7 +558,7 @@ Os cenários estão em `testes-referencia.md`, seção 11.
 
 Decisões de 16/11/2026. A fatia 4 troca a aba Jogos vazia pela tela real e entrega a criação, o detalhe, a edição e o cancelamento do jogo, a lista de presença e a de espera, os admins do jogo, os jogos no detalhe do grupo, os bloqueios da saída do grupo (RF102) e o telefone visível no perfil de outra pessoa (RF101). A aba Cobranças continua com o estado provisório da seção 4.2. Os textos estão no `docs/copy.md`, seção 8, e as regras de quem lê o quê, na `rls-matriz.md` (fatia 4).
 
-**Nomes das rotas** (seção 1): `games`, `gamesNew`, `game` (`/games/:gameId`), `gameEdit` e `gameAdmins`. São também os nomes dos PNGs de referência.
+**Nomes das rotas** (seção 1): `games`, `gamesNew`, `game` (`/games/:gameId`), `gameEdit`, `gameAdmins` e `gamePerson` (`/games/:gameId/people/:userId`, o perfil de outra pessoa na aba Jogos, 7.3). São também os nomes dos PNGs de referência.
 
 **Regras comuns às telas de jogo:**
 
@@ -707,7 +707,7 @@ As linhas da lista de espera abrem o perfil, sem sheet.
 | Jogo que a pessoa não pode ver, ou ID que não existe | Estado "não encontrado" |
 
 - O texto da confirmação de saída escolhe a frase pelo relógio do aparelho, porque é só aviso. O resultado vem do servidor.
-- O perfil de outra pessoa (6.9) passa a abrir também na aba Jogos, empilhado sobre o detalhe. A forma de declarar a rota nas duas abas fica para a sessão do app.
+- O perfil de outra pessoa (6.9) passa a abrir também na aba Jogos, empilhado sobre o detalhe, pela rota `/games/:gameId/people/:userId` (nome `gamePerson`), com a mesma tela. A rota `/people/:userId` (`person`) continua no ramo da aba Grupos (decisão de 16/11/2026, sessão do app da etapa A).
 
 ### 7.4 Editar jogo (`/games/:gameId/edit`)
 

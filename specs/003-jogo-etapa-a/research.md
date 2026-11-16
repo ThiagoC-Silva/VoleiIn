@@ -58,3 +58,29 @@ Segue a seção 1 do `contratos-api.md` (autenticação, existência, papel, est
 
 - **Decision:** a migração de RLS põe `games`, `game_participants` e `game_waitlist` na publicação `supabase_realtime` com `alter publication ... add table`. A identidade de réplica fica a padrão (chave primária): o app relê o repositório a cada evento e não usa o conteúdo antigo da linha (S51).
 - **Rationale:** `docs/rls-matriz.md`, fatia 4, e `docs/stacks.md`, 4.1. O W15 confere a lista exata.
+
+## R9. Jogos no detalhe do grupo, montados pelo roteador (sessão 3)
+
+- **Decision:** a seção "Próximos jogos" do detalhe do grupo (`docs/ui/telas.md`, 7.6), com os cards, a leitura e o botão **Criar jogo**, é da feature `games` (`GroupGamesSection`). O roteador a entrega pronta à `GroupScreen`, num parâmetro, e a feature `groups` não importa nada de `games`. Puxar para baixo no detalhe do grupo relê também os jogos, pela função que o roteador passa junto.
+- **Rationale:** `docs/arquitetura-app.md`, seção 2: uma feature não lê o `data` nem o `presentation` de outra. Decisão do responsável de 16/11/2026, registrada na mesma seção.
+- **Alternatives considered:** o card em `shared/` e a leitura dos jogos duplicada no repositório de grupos; uma segunda exceção à regra da seção 2.
+
+## R10. Perfil de outra pessoa na aba Jogos
+
+- **Decision:** rota `/games/:gameId/people/:userId`, com o nome `gamePerson` e a mesma `PersonScreen`, no ramo da aba Jogos. A `/people/:userId` continua no ramo da aba Grupos.
+- **Rationale:** o `go_router` não aceita duas rotas com o mesmo nome, e um caminho só pertence a um ramo do `StatefulShellRoute`. Empilhar sob o jogo mantém a barra com **Jogos** ativo e o voltar no detalhe (`docs/ui/telas.md`, 7.3).
+
+## R11. Relógio e Realtime trocáveis nos testes
+
+- **Decision:** `clockProvider` (`core/clock.dart`) entrega o relógio do aparelho, usado só para mostrar (selos de tempo, o pé do detalhe e o aviso "início no passado" do formulário; `docs/arquitetura-app.md`, seção 8). O `GamesRepository.watchGame(gameId, onChange)` assina `games`, `game_participants` e `game_waitlist` num canal e devolve a função que cancela a assinatura. O provider do detalhe chama `ref.invalidateSelf()` a cada aviso (seção 6).
+- **Rationale:** o S47 e o S51 pedem o relógio e o Realtime trocados por dublês, e o repositório é a única camada que fala com o Supabase.
+
+## R12. O detalhe só com as ações da etapa A
+
+- **Decision:** nesta etapa, o pé do detalhe mostra **Entrar na lista**, **Entrar na lista de espera**, `gameFullHint`, `gameNeedsInvite`, `gameWaitlistNotice`, `gameReceiverCannotLeave` e `gameListLocked`. **Sair da lista** e **Sair da lista de espera** (etapa B) não aparecem: quem está na lista e não é o recebedor fica sem pé, e quem está na espera vê só o que a tabela da seção 7.3 lista além do botão de sair. O menu do admin tem só **Editar jogo**, e some quando não há opção; **Admins do jogo** e **Cancelar jogo** chegam na etapa C. Tocar numa pessoa da lista abre o perfil para todos; a sheet de remoção do admin chega na etapa B.
+- **Rationale:** `specs/003-jogo-etapa-a/spec.md`, "Fora desta etapa", e `tasks.md`, sessão 3.
+
+## R13. A seção do grupo e o S55
+
+- **Decision:** a seção "Próximos jogos" e o botão **Criar jogo** do detalhe do grupo entram nesta etapa (T026, e o L15 confere o jogo no grupo). O S55, que a tabela "Cenários por etapa" põe na etapa C, é escrito já agora, sem mudar o resultado esperado. A frase da saída do grupo com jogos e a sheet de bloqueio (S56, S57) continuam na etapa C.
+- **Rationale:** testar antes o que a etapa implementa (constituição, princípio III).

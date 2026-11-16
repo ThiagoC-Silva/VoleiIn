@@ -82,4 +82,31 @@ void main() {
       }
     },
   );
+  test('E15: os textos dos erros de jogo da etapa A são os do catálogo '
+      '(docs/copy.md, 8.8)', () {
+    const texts = {
+      ErrorCode.notGameAdmin: 'Só um admin do jogo pode fazer isso.',
+      ErrorCode.invalidGameDates:
+          'O prazo não pode passar do início, e o início precisa ser antes '
+          'do fim.',
+      ErrorCode.startInPast: 'O início precisa estar no futuro.',
+      ErrorCode.receiverNeedsPixKey: 'O recebedor precisa ter uma chave Pix.',
+      ErrorCode.noGameAccess:
+          'Para entrar neste jogo, você precisa ser membro do grupo ou ter o '
+          'convite.',
+      ErrorCode.gameNotOpen: 'Este jogo já foi cancelado ou concluído.',
+      ErrorCode.gameFull:
+          'A lista encheu. Você pode entrar na lista de espera.',
+      ErrorCode.gameNotFull:
+          'Abriu uma vaga. Você pode entrar direto na lista.',
+      ErrorCode.gameStarted: 'O jogo já começou.',
+      ErrorCode.alreadyParticipant: 'Você já está na lista.',
+      ErrorCode.alreadyOnWaitlist: 'Você já está na lista de espera.',
+      ErrorCode.slotLimitBelowParticipants:
+          'O limite não pode ficar abaixo do número de pessoas na lista.',
+    };
+    for (final entry in texts.entries) {
+      expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
+    }
+  });
 }

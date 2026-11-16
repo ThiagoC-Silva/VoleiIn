@@ -42,4 +42,25 @@ void main() {
       expect(formatCents(100).contains(' '), isFalse);
     });
   });
+
+  // Cenário U11 de docs/testes-referencia.md, seção 12.6: a estimativa por
+  // pessoa, ceil(total / limite), só com inteiros (RN24; docs/ui/telas.md,
+  // seção 7). É só exibição: a divisão final é do servidor, na conclusão.
+  group('U11: estimatedShareCents', () {
+    test('(9000, 3) dá 3000', () {
+      expect(estimatedShareCents(9000, 3), 3000);
+    });
+
+    test('(10000, 3) dá 3334, arredondado para cima', () {
+      expect(estimatedShareCents(10000, 3), 3334);
+    });
+
+    test('(1, 10) dá 1', () {
+      expect(estimatedShareCents(1, 10), 1);
+    });
+
+    test('(2147483647, 12) dá 178956971', () {
+      expect(estimatedShareCents(2147483647, 12), 178956971);
+    });
+  });
 }

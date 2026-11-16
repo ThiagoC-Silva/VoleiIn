@@ -50,6 +50,8 @@ app/integration_test/       # fluxos de ponta a ponta no emulador
 
 **Fluxo de dependência:** `presentation` → `data` → `domain`. `domain` não importa nada de Flutter nem do Supabase. Uma feature pode ler o `domain` de outra, mas não o `data` nem o `presentation`. O que é comum sobe para `core/` ou `shared/`. A exceção é a sessão: qualquer feature lê o usuário logado pelo `sessionUserIdProvider` de `features/auth/presentation/auth_providers.dart` (fatia 3, para marcar "você" nas listas).
 
+**Trecho de uma feature dentro da tela de outra** (decisão de 16/11/2026, fatia 4): quem monta é o roteador (`core/router/`), que já conhece as telas de todas as features. A tela que recebe o trecho declara um parâmetro (o widget ou um construtor dele) e não importa nada da outra feature. Exemplo: o detalhe do grupo recebe do roteador a seção "Próximos jogos", com os cards e a leitura dos jogos, que são da feature `games` (`docs/ui/telas.md`, 7.6). O mesmo vale para uma tela de uma feature aberta na aba de outra: o perfil de outra pessoa (`auth`) ganha uma segunda rota no ramo da aba Jogos.
+
 **Sem camada de casos de uso.** A regra está no servidor, então o repositório chama a função e o provider expõe o resultado. Uma camada a mais só repassaria chamadas.
 
 ## 3. Pacotes
