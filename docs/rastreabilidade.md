@@ -11,7 +11,7 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 
 **Fatia 2, em 13/11/2026:** RFs com testes automáticos verdes e L06 a L11 nas APIs 29 e 36. M01 e M02 conferidos no celular contra o Supabase local, e M03 e M04 na produção, em 13/11/2026. Os 16 RFs da fatia estão concluídos.
 
-**Fatia 3, em 16/11/2026:** RFs com testes automáticos verdes e L12 a L14 nas APIs 29 e 36, com as migrações e a `preview-invite` na produção. RF15 e RF16 cobrem o código de convite: abrir o convite por link fica para a fatia 8 (`plano-implementacao.md`). RF22 e RF102, os efeitos da saída do grupo sobre os jogos, ficam para a fatia 4.
+**Fatia 3, em 16/11/2026:** RFs com testes automáticos verdes e L12 a L14 nas APIs 29 e 36, com as migrações e a `preview-invite` na produção. M05 conferido no celular, com o build da produção, em 16/11/2026. Os 12 RFs da fatia estão concluídos. RF15 e RF16 cobrem o código de convite: abrir o convite por link fica para a fatia 8 (`plano-implementacao.md`). RF22 e RF102, os efeitos da saída do grupo sobre os jogos, ficam para a fatia 4.
 
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
@@ -29,7 +29,7 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF12 | 2 | RN105 | `profiles`, `profile_private`; `profile_private_guard_pix_key_removal` | `/profile/edit`, `/profile/pix` | P01 a P09, N01 a N09, S12, S13, L10 | Concluído |
 | RF13 | 6 | RN65, RN103, RN104 | — | — | — | Pendente |
 | RF14 | 3 | RN10, RN106 | `groups`, `group_members`; `create_group`; Storage `avatars` (`groups/<id>/`) | `/groups/new` | G01 a G03, S20, S21, L13 | Concluído |
-| RF15 | 3 | RN11 | `groups.invite_code`; `regenerate_group_invite`, `invalidate_group_invite` | Sheet do convite em `/groups/:groupId` | G07 a G10, S27, S28, L13, M05 | Falta M05 |
+| RF15 | 3 | RN11 | `groups.invite_code`; `regenerate_group_invite`, `invalidate_group_invite` | Sheet do convite em `/groups/:groupId` | G07 a G10, S27, S28, L13, M05 | Concluído |
 | RF16 | 3 | RN12 | `group_join_requests`; `request_group_join`; Edge Function `preview-invite` | `/groups/join` | G11 a G14, Q01 a Q07, C13, S22 a S24, L12 | Concluído |
 | RF17 | 3 | RN12, RN107 | `group_join_requests`; `decide_join_request`; leitura do perfil de quem pediu (RN107, exceção 2) | `/groups/:groupId/requests` | G15 a G18, C15, S32, L12 | Concluído |
 | RF18 | 3 | RN106 | `update_group`; Storage `avatars` (`groups/<id>/`) | `/groups/:groupId/edit` | G04 a G06, A07, A08, A12, A13, S33 | Concluído |

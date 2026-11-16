@@ -74,20 +74,20 @@ scripts/integration-test.sh       # todos; ou um arquivo: scripts/integration-te
 
 **Máquina mínima:** 16 GB de RAM. Recomendado ter 8 GB de swap (abaixo).
 
-Em 13/11/2026, numa máquina de 16 GB com 2 GB de swap, a sessão gráfica caiu inteira no meio dos testes de integração. O `systemd-oomd` (ligado por padrão no Ubuntu) encerra o grupo de processos que mais disputa memória quando a pressão passa de 50% por 20 segundos, e escolheu o GNOME Shell. Rodavam juntos o emulador, o build do Gradle (com os 8 GB de heap do modelo do Flutter), os testes de unidade, o Supabase local e os navegadores. Nenhum deles sozinho derruba a máquina; a soma, sim.
+Em 13/11/2026, numa máquina de 16 GB com 2 GB de swap, a sessão gráfica caiu inteira no meio dos testes de integração. Em 16/11/2026 caiu de novo, já com o heap do Gradle em 3 GB, durante builds do Flutter com o Supabase local de pé; daí o corte para 2 GB e o desligamento do Realtime e do Studio. O `systemd-oomd` (ligado por padrão no Ubuntu) encerra o grupo de processos que mais disputa memória quando a pressão passa de 50% por 20 segundos, e escolheu o GNOME Shell. Rodavam juntos o emulador, o build do Gradle (com os 8 GB de heap do modelo do Flutter), os testes de unidade, o Supabase local e os navegadores. Nenhum deles sozinho derruba a máquina; a soma, sim.
 
 O padrão do projeto, já no repositório e válido em qualquer máquina:
 
 | Item | Configuração | Onde | Memória |
 |------|--------------|------|---------|
-| Build do Gradle | heap de 3 GB, metaspace de 1 GB, Kotlin dentro do Gradle (sem segundo daemon), daemon sai após 10 min parado | `app/android/gradle.properties` | até ~4 GB, só durante o build |
+| Build do Gradle | heap de 2 GB, metaspace de 512 MB, Kotlin dentro do Gradle (sem segundo daemon), daemon sai após 10 min parado | `app/android/gradle.properties` | até ~3 GB, só durante o build |
 | Emulador | 2 GB de RAM, GPU por software, sem snapshot; um por vez | `scripts/emulator.sh` | ~3 GB |
-| Supabase local | `analytics` desligado (leva junto o `vector`) | `supabase/config.toml` | ~1,1 GB |
+| Supabase local | `analytics` (leva junto o `vector`), `realtime` e `studio` desligados; `edge_runtime` e `local_smtp` (códigos de confirmação) ficam ligados | `supabase/config.toml` | ~0,7 GB |
 | Testes de integração | só começam com 4,5 GB livres e sem testes de unidade rodando | `scripts/integration-test.sh` | — |
 
 **A regra:** com o emulador aberto, **um comando pesado por vez**. Não rode `flutter test`, `supabase test db`, `deno test` ou outro build enquanto o teste de integração compila ou roda. Antes de abrir o emulador, feche abas e navegadores que não estiver usando. Os scripts conferem a memória disponível e param com uma mensagem quando falta folga. `VOLEIIN_SKIP_MEMORY_CHECK=1` pula a conferência.
 
-**Swap (uma vez por máquina, com `sudo`).** Com 2 GB de swap, a memória chega ao limite sem margem. Com 8 GB, o sistema tira da RAM o que está parado (abas, Studio) antes de o oomd agir:
+**Swap (uma vez por máquina, com `sudo`).** Com 2 GB de swap, a memória chega ao limite sem margem. Com 8 GB, o sistema tira da RAM o que está parado (abas, containers ociosos) antes de o oomd agir:
 
 ```bash
 swapon --show                      # tamanho atual
@@ -325,6 +325,7 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
   - WARN `authenticated_security_definer_function_executable` nas 10 funções de grupo: é o desenho, porque toda escrita com regra passa por função `security definer` que confere o papel (ADR 0004, `contratos-api.md`, seção 1). O aviso volta a cada fatia com funções novas e não pede ação.
   - WARN de Auth: proteção contra senha vazada desligada e poucas opções de MFA. Nenhum dos dois faz parte das fatias até aqui, e ficam como estão.
   - Desempenho: WARN `multiple_permissive_policies` em `profiles` e `group_join_requests` (as políticas separadas por caso da `rls-matriz.md`), INFO de chaves estrangeiras sem índice e índices sem uso, num banco quase vazio.
+- **M05** conferido com o responsável, no celular, com o build da produção (`flutter build apk --release --dart-define-from-file=env/prod.json`, instalado por depuração sem fio): **Compartilhar** abriu o seletor do Android, e o texto chegou ao WhatsApp com o nome do grupo e o código no fim.
 
 ## 10. Domínio, e-mail e convites
 
