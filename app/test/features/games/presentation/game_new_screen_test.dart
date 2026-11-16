@@ -275,6 +275,8 @@ void main() {
 
     testWidgets('o contador não desce de 1', (tester) async {
       await openFromGames(tester);
+      await tester.ensureVisible(find.byTooltip(l10nPt.gameSlotLimitIncrease));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(l10nPt.gameSlotLimitIncrease));
       await tester.pumpAndSettle();
       expect(find.text('1'), findsOneWidget);

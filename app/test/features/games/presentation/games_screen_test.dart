@@ -66,20 +66,21 @@ void main() {
         top(tester, 'Praia do Coqueiro'),
         lessThan(top(tester, 'Quadra do Sesc')),
       );
+      expect(find.text(l10nPt.gameStandalone), findsOneWidget);
+      expect(find.text('2/12'), findsOneWidget);
+      expect(find.text(l10nPt.gameOnList), findsOneWidget);
+
+      // A lista é montada sob demanda: rola até o terceiro card.
+      await tester.scrollUntilVisible(find.text('Ginásio Verdão'), 200);
       expect(
         top(tester, 'Quadra do Sesc'),
         lessThan(top(tester, 'Ginásio Verdão')),
       );
-
-      expect(find.text(l10nPt.gameStandalone), findsOneWidget);
-      expect(find.text('Vôlei de Quinta'), findsNWidgets(2));
-      expect(find.text('2/12'), findsOneWidget);
       expect(find.text('2/2'), findsOneWidget);
-      expect(find.text(l10nPt.gameOnList), findsOneWidget);
       expect(find.text(l10nPt.gameWaitlistPosition('2')), findsOneWidget);
       expect(find.text('2º na espera'), findsOneWidget);
-      expect(find.text(l10nPt.gameStatusOpen), findsNWidgets(2));
       expect(find.text(l10nPt.gameStatusConfirmed), findsOneWidget);
+      expect(find.text('Vôlei de Quinta'), findsWidgets);
 
       // O cancelado só aparece em Anteriores.
       expect(find.text('Arena Delta'), findsNothing);

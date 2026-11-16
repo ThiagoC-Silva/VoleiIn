@@ -15,8 +15,13 @@ void main() {
     expect(toAppException(exception).code, ErrorCode.notFound);
   });
 
+  // Um código que o app não conhece. Até a fatia 3 era GAME_FULL, que a
+  // fatia 4 passou a conhecer.
   test('E02: P0001 com código desconhecido vira internalError', () {
-    final exception = PostgrestException(message: 'GAME_FULL', code: 'P0001');
+    final exception = PostgrestException(
+      message: 'CODE_THE_APP_DOES_NOT_KNOW',
+      code: 'P0001',
+    );
     expect(toAppException(exception).code, ErrorCode.internalError);
   });
 

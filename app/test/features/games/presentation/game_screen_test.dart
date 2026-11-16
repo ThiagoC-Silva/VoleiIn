@@ -358,6 +358,8 @@ void main() {
 
       expect(find.text(l10nPt.gameReceiverCannotLeave), findsOneWidget);
       expect(find.text('CPF · 123.456.789-09'), findsOneWidget);
+      await tester.ensureVisible(find.text(l10nPt.gamePixCopy));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(l10nPt.gamePixCopy));
       await tester.pumpAndSettle();
 
@@ -453,6 +455,8 @@ void main() {
     h.game(() => game1(viewerId: brunoId));
     await open(tester, game1Id);
 
+    await tester.ensureVisible(find.text('Carlinha'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Carlinha'));
     await tester.pumpAndSettle();
     expect(h.location, '/games/$game1Id/people/$carlaId');
@@ -462,6 +466,8 @@ void main() {
     expect(h.location, '/games/$game1Id');
 
     // A própria linha não é tocável.
+    await tester.ensureVisible(find.text(l10nPt.groupMemberYou('Brunão')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(l10nPt.groupMemberYou('Brunão')));
     await tester.pumpAndSettle();
     expect(h.location, '/games/$game1Id');
