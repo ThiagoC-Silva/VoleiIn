@@ -86,7 +86,7 @@ Cada valor de enum vira um selo ou uma pílula. Os rótulos são os da seção 3
 | `completed` | Pílula `#ECF4F7`, texto navy, "Concluído" |
 | `cancelled` | Selo `bad`, "Cancelado" |
 
-Jogo em andamento (derivado: `starts_at <= now()` e não concluído) mantém a pílula do status e ganha o selo `info` "Em andamento". O "agora" vem do servidor (RN02).
+Jogo em andamento (derivado: `starts_at <= agora < ends_at` e status `open` ou `confirmed`) mantém a pílula do status e ganha o selo `info` "Em andamento". Depois do fim, até a conclusão, o selo é `info` "Aguardando conclusão". Os dois selos usam o relógio do aparelho, porque só mostram: nenhuma ação é liberada por eles, e o servidor decide (RN02, `arquitetura-app.md`, seção 8; `docs/ui/telas.md`, seção 7).
 
 **Valor a pagar (`charge_status`)**
 
@@ -222,7 +222,7 @@ O ativo tem fundo `#ECF4F7` e texto `#192853`. O inativo tem só contorno `surfa
 
 ### 7.8 Topo colorido (herói de jogo ou de valor a pagar)
 
-Bloco com cantos de baixo 32 e botões circulares navy sobre ele. Contém a pílula do grupo (ou "Avulso"), a data (14 / 700), o horário em `number.xl` e o local. A cor segue o significado: `game` para jogo Aberto, `wait` para Confirmado, `owe` para valor a pagar. O anel segmentado mostra as vagas, com um gomo por vaga.
+Bloco com cantos de baixo 32 e botões circulares navy sobre ele. Contém a pílula do grupo (ou "Avulso"), a data (14 / 700), o horário em `number.xl` e o local. A cor segue o significado: `game` para jogo Aberto, `wait` para Confirmado, `owe` para valor a pagar. O jogo Cancelado usa `surfaceHigh`, com texto `onSurface` e botões circulares em `surface` (fatia 4). O anel segmentado mostra as vagas, com um gomo por vaga.
 
 ### 7.9 Blocos de valor
 

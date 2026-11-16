@@ -169,7 +169,8 @@ A mensagem é a versão inicial. O texto final fica no catálogo de textos (`pla
 - **Quem:** o próprio membro; admin do grupo para remover outra pessoa.
 - **Erros:** `NOT_FOUND`, `NOT_A_MEMBER`, `NOT_GROUP_ADMIN`, `TARGET_NOT_MEMBER`, `CANNOT_REMOVE_SELF` (na remoção), `LAST_ADMIN` (na saída), `MEMBER_IS_RECEIVER`, `MEMBER_IS_ONLY_GAME_ADMIN`. Nestes dois últimos, `detail` traz `game_ids`.
 - **Efeitos:** retira do grupo, apagando a linha de `group_members`. O último admin recebe `LAST_ADMIN` também quando é o único membro: nesse caso, ele exclui o grupo (RN13). Na fatia 3, a RN16 ainda não é conferida, e `games_left` volta vazio. A partir da fatia 4, também retira das listas de presença e de espera dos jogos do grupo não iniciados, sem multa e com motivo `left_group`, remove o papel de admin dos jogos `open`/`confirmed`, recalcula o status dos jogos e avisa a espera. Na remoção, notifica o removido (`removed_from_group`).
-- **Retorno:** `{ games_left: uuid[] }`.
+- **RN16, a partir da fatia 4:** os jogos do grupo `open` ou `confirmed`, iniciados ou não, entram na conferência. Ser recebedor vem antes: se a pessoa for recebedora de algum desses jogos, o erro é `MEMBER_IS_RECEIVER`, com `game_ids` desses jogos, mesmo que ela também seja a única admin de algum. Senão, se for a única admin de algum, `MEMBER_IS_ONLY_GAME_ADMIN`, com os `game_ids` deles. Nada muda em nenhum dos dois casos. A conferência vem depois de `LAST_ADMIN` (na saída) e de `TARGET_NOT_MEMBER` (na remoção).
+- **Retorno:** `{ games_left: uuid[] }`: os jogos de que a pessoa saiu da lista ou da espera, sem repetir. Os jogos em que ela só perdeu o papel de admin não entram.
 - **Origem:** RF20 a RF22, RF102, RN14, RN16, RF104.
 
 ### `archive_group(p_group_id uuid)`
@@ -193,22 +194,25 @@ O `p_data` de `emit_notification` em cada evento da fatia 3. O nome do grupo vai
 
 ### `create_game(p_group_id uuid, p_location_name text, p_maps_url text, p_cancellation_deadline timestamptz, p_starts_at timestamptz, p_ends_at timestamptz, p_total_cents integer, p_slot_limit integer)`
 - **Quem:** membro do grupo; em jogo avulso (`p_group_id` nulo), qualquer usuário autenticado.
-- **Erros:** `NOT_FOUND`, `NOT_A_MEMBER`, `RECEIVER_NEEDS_PIX_KEY`, `INVALID_GAME_DATES`, `START_IN_PAST`, `INVALID_INPUT`.
-- **Efeitos:** cria o jogo, o código de convite, o admin, a primeira passagem na lista e o histórico de limite. O status é `confirmed` se o limite for 1.
+- **Erros:** `NOT_FOUND`, `RECEIVER_NEEDS_PIX_KEY`, `START_IN_PAST`, `INVALID_GAME_DATES`, `INVALID_INPUT`. Quem não é membro do grupo, inclusive de um grupo arquivado ou que não existe, recebe `NOT_FOUND` (seção 1, "sem acesso, sem pista"), como nas funções de grupo da fatia 3: `NOT_A_MEMBER` não é devolvido aqui.
+- **Entrada:** `p_location_name` sem os espaços das pontas, de 1 a 120 caracteres; `p_maps_url` nulo ou começando com `https://`; `p_total_cents >= 1` (RN05); `p_slot_limit >= 1` (RN06). Fora disso, `INVALID_INPUT`.
+- **Efeitos:** cria o jogo com `receiver_id` e `created_by` = quem chama, o código de convite (12 caracteres base62, como o do grupo), o admin (`added_by` nulo), a primeira passagem na lista e o histórico de limite (pela *trigger*). O status é `confirmed` se o limite for 1 (RN40). Não notifica ninguém.
 - **Retorno:** `{ game_id, status, invite_code }`.
 - **Origem:** RF26 a RF32, RN05, RN06, RN20 a RN23, RN40.
 
 ### `update_game(p_game_id uuid, p_location_name text, p_maps_url text, p_cancellation_deadline timestamptz, p_starts_at timestamptz, p_ends_at timestamptz, p_total_cents integer)`
 - **Quem:** admin do jogo.
 - **Erros:** `NOT_FOUND`, `NOT_GAME_ADMIN`, `GAME_NOT_OPEN`, `GAME_STARTED`, `INVALID_GAME_DATES`, `START_IN_PAST`, `INVALID_INPUT`.
-- **Efeitos:** substitui os dados. O limite de vagas muda por `set_slot_limit`. Cancelamentos já feitos mantêm a classificação (RN35). Notifica os participantes (`game_updated`).
+- **Entrada:** a mesma de `create_game`.
+- **Efeitos:** substitui os dados. O limite de vagas muda por `set_slot_limit`, e o grupo não muda. Cancelamentos já feitos mantêm a classificação (RN35). Notifica os participantes com passagem `active`, exceto quem editou (`game_updated`).
 - **Retorno:** `{ game_id }`.
 - **Origem:** RF36, RN23, RN33, RN34, RN35, RF91.
 
 ### `join_game(p_game_id uuid, p_invite_code text default null)`
 - **Quem:** membro do grupo do jogo ou quem tem o código. O parâmetro do código é usado a partir da fatia 8.
 - **Erros:** `NOT_FOUND`, `NO_GAME_ACCESS`, `INVITE_INVALID`, `GAME_NOT_OPEN`, `GAME_STARTED`, `ALREADY_PARTICIPANT`, `GAME_FULL`.
-- **Efeitos:** bloqueia o jogo, conta as vagas e cria a passagem com `joined_at = now()`. Fecha a passagem na espera, anula o cancelamento anterior da pessoa (RN56) e recalcula o status. Ao encher, notifica os participantes (`game_confirmed`).
+- **Acesso:** quem não pode ver o jogo (`can_view_game`, `rls-matriz.md`, fatia 4) recebe `NOT_FOUND`. Quem vê o jogo mas não atende à RN50, porque não é membro do grupo (como o ex-membro com passagem) ou porque o jogo é avulso (como quem saiu da lista de um avulso), recebe `NO_GAME_ACCESS` quando não manda o código. O código passa a valer na fatia 8. A mesma regra vale para `join_waitlist`.
+- **Efeitos:** bloqueia o jogo, conta as vagas e cria a passagem com `joined_at = now()`. Fecha a passagem na espera, anula o cancelamento anterior da pessoa (RN56) e recalcula o status. Ao encher, notifica os outros participantes com passagem `active` (`game_confirmed`).
 - **Retorno:** `{ participant_id, status }`, em que `status` é o do jogo.
 - **Origem:** RF47, RF48, RF51, RF55, RN03, RN50 a RN54, RN56.
 
@@ -216,7 +220,7 @@ O `p_data` de `emit_notification` em cada evento da fatia 3. O nome do grupo vai
 - **Quem:** o próprio participante.
 - **Erros:** `NOT_FOUND`, `GAME_NOT_OPEN`, `NOT_PARTICIPANT`, `RECEIVER_LOCKED`, `LIST_LOCKED`.
 - **Efeitos:**
-  - antes do início: `cancelled`, com `late_cancellation` fixado por `now() > prazo`. Libera a vaga, recalcula o status e avisa a espera (`waitlist_slot_opened`);
+  - antes do início: `cancelled`, com `late_cancellation` fixado por `now() > prazo`. Libera a vaga, recalcula o status e avisa cada pessoa da espera com `left_at` nulo (`waitlist_slot_opened`);
   - entre o início e o fim: `left_after_start` com falta (`absence_source = left_after_start`). Não libera a vaga.
 - **Retorno:** `{ outcome }`, em que `outcome` é `cancelled_on_time`, `cancelled_late` ou `left_after_start`.
 - **Origem:** RF50, RN03, RN29, RN35, RN57, RN60, RN61.
@@ -231,7 +235,7 @@ O `p_data` de `emit_notification` em cada evento da fatia 3. O nome do grupo vai
 ### `set_slot_limit(p_game_id uuid, p_slot_limit integer)`
 - **Quem:** admin do jogo.
 - **Erros:** `NOT_FOUND`, `NOT_GAME_ADMIN`, `GAME_NOT_OPEN`, `GAME_STARTED`, `SLOT_LIMIT_BELOW_PARTICIPANTS`, `INVALID_INPUT`.
-- **Efeitos:** grava o limite (a *trigger* registra o histórico) e recalcula o status. No aumento, avisa a espera. Notifica os participantes (`game_updated` e, se a lista encher, `game_confirmed`).
+- **Efeitos:** grava o limite (a *trigger* registra o histórico) e recalcula o status. No aumento, avisa a espera (`waitlist_slot_opened`). Notifica os participantes com passagem `active`, exceto quem mudou (`game_updated` e, se a lista encher, `game_confirmed`). Gravar o limite que o jogo já tem é aceito e não notifica.
 - **Retorno:** `{ slot_limit, status }`.
 - **Origem:** RF52, RF53, RN41, RN42, RN53, RN59.
 
@@ -239,21 +243,21 @@ O `p_data` de `emit_notification` em cada evento da fatia 3. O nome do grupo vai
 - **Quem:** quem atende à RN50, na entrada; a própria pessoa, na saída.
 - **Erros na entrada:** `NOT_FOUND`, `NO_GAME_ACCESS`, `INVITE_INVALID`, `GAME_NOT_OPEN`, `GAME_STARTED`, `GAME_NOT_FULL`, `ALREADY_PARTICIPANT`, `ALREADY_ON_WAITLIST`.
 - **Erros na saída:** `NOT_FOUND`, `NOT_ON_WAITLIST`.
-- **Efeitos:** entrar cria a linha ou limpa `left_at`. Sair preenche `left_at`.
+- **Efeitos:** entrar cria a linha ou, se ela já existe, limpa `left_at` e grava `joined_at = now()`, para que quem volta à espera fique no fim da ordem (decisão de 16/11/2026). Sair preenche `left_at`. A ordem da espera é só de exibição: a espera não dá prioridade (RN53).
 - **Retorno:** `{ game_id }`.
 - **Origem:** RF49, RN51, RN54.
 
 ### `cancel_game(p_game_id uuid)`
 - **Quem:** admin do jogo.
 - **Erros:** `NOT_FOUND`, `NOT_GAME_ADMIN`, `GAME_NOT_OPEN`.
-- **Efeitos:** `cancelled`, sem rateio nem multas. Notifica a lista e a espera (`game_cancelled`).
+- **Efeitos:** `cancelled`, com `cancelled_at = now()` e `cancelled_by`, sem rateio nem multas. Vale também com o jogo em andamento ou depois do fim, até a conclusão (RN43). Notifica, exceto quem cancelou, as passagens `active` e `left_after_start` e a espera com `left_at` nulo (`game_cancelled`).
 - **Retorno:** `{ game_id }`.
 - **Origem:** RF39, RF66, RN43, RN67, RN114.
 
 ### `add_game_admin(p_game_id uuid, p_user_id uuid)` e `remove_game_admin(p_game_id uuid, p_user_id uuid)`
 - **Quem:** admin do jogo. Pode remover a si mesmo, desde que haja outro admin.
 - **Erros:** `NOT_FOUND`, `NOT_GAME_ADMIN`, `ADMIN_MUST_BE_PARTICIPANT` e `ALREADY_GAME_ADMIN` (na adição), `NOT_GAME_ADMIN_TARGET` e `LAST_GAME_ADMIN` (na remoção).
-- **Efeitos:** adiciona ou retira o papel. Vale também para jogos concluídos, já que nem o RF34 nem a RN25 limitam o momento e os admins continuam com a isenção de multas.
+- **Efeitos:** adiciona ou retira o papel, com `added_by` = quem chama. Vale também para jogos concluídos, já que nem o RF34 nem a RN25 limitam o momento e os admins continuam com a isenção de multas. Não notifica.
 - **Retorno:** `{ game_id, user_id }`.
 - **Origem:** RF34, RF35, RN25 a RN27.
 
@@ -268,10 +272,33 @@ O `p_data` de `emit_notification` em cada evento da fatia 3. O nome do grupo vai
 - **Quem:** usuário autenticado.
 - **Erros:** nenhum. Sem permissão ou com usuário inexistente, os campos voltam nulos.
 - **Regras:**
+  - quem chama é o próprio dono: devolve o telefone e a chave dele, como estão;
   - `phone`: o dono com `phone_visible = true` e contexto compartilhado com quem chama (RN101, RN107);
   - `pix_key_type` e `pix_key`: esse usuário é o recebedor de um jogo não cancelado em que quem chama tem passagem `active` ou `left_after_start`, ou quem chama tem um valor `pending` ou `under_review` devido a ele (RF45, RF77, RN102).
 - **Retorno:** `{ phone, pix_key_type, pix_key }`.
 - **Origem:** RF11, RF77, RF101, RN101, RN102, RN107.
+
+### `get_game_groups(p_game_ids uuid[])` (decisão de 16/11/2026)
+- **Quem:** usuário autenticado.
+- **Erros:** nenhum. IDs que não existem, de jogo avulso ou de jogo que quem chama não pode ver (`can_view_game`) ficam fora do retorno.
+- **Efeitos:** nenhum. É `security definer` e lê `groups` só para devolver o nome. Não devolve o código de convite nem os membros.
+- **Retorno:** `table (game_id uuid, group_id uuid, group_name text)`, uma linha por jogo de grupo visível. O nome vem também de grupo arquivado: os jogos dele continuam no histórico de quem participou (RN17).
+- **Por que existe:** o card e o topo do jogo mostram o nome do grupo, e quem vê o jogo sem ser membro (o ex-membro com o jogo no histórico, e, na fatia 8, quem entrou pelo convite) não lê `groups`, que guarda o `invite_code` do grupo (`rls-matriz.md`, fatia 4).
+- **Origem:** RF44, RF45.
+
+### Dados das notificações de jogo
+
+O `p_data` de `emit_notification` em cada evento da fatia 4, no mesmo formato da fatia 3. O local, o início e o nome do grupo vão junto porque quem foi removido ou saiu da espera pode deixar de ver o jogo, e a fatia 7 monta o texto a partir destes dados. `group_name` é nulo em jogo avulso.
+
+| Tipo | Para quem | `p_data` |
+|------|-----------|----------|
+| `game_confirmed` | Participantes `active`, exceto quem fez a lista encher | `{ "game_id", "group_name", "location_name", "starts_at" }` |
+| `game_updated` | Participantes `active`, exceto o admin que mudou | `{ "game_id", "group_name", "location_name", "starts_at" }` |
+| `game_cancelled` | Passagens `active` e `left_after_start` e a espera com `left_at` nulo, exceto quem cancelou | `{ "game_id", "group_name", "location_name", "starts_at" }` |
+| `waitlist_slot_opened` | Cada pessoa da espera com `left_at` nulo, só antes do início | `{ "game_id", "group_name", "location_name", "starts_at", "reason": "slot_freed" \| "limit_increased" }` |
+| `removed_from_game` | Quem foi removido pelo admin | `{ "game_id", "group_name", "location_name", "starts_at" }` |
+
+- Uma operação que libera várias vagas, como a saída do grupo de quem estava em vários jogos, gera um `waitlist_slot_opened` por jogo e por pessoa da espera.
 
 ## 5. Conclusão e rateio (fatia 5)
 
@@ -448,5 +475,9 @@ Sem permissão de execução para o app.
 | Uma falha da Claude API manda o comprovante para Em análise e não conta como leitura | RN86, `stacks.md` (seção 6.1) |
 | O admin do grupo vê nome e foto de quem tem solicitação pendente no grupo | RN107, `rls-matriz.md` (fatia 3) |
 | A prévia do convite de grupo diz se quem chama já tem solicitação pendente | `preview-invite`, `docs/ui/telas.md` (6.3) |
+| O nome do grupo dos jogos vem de `get_game_groups`, sem abrir `groups` a quem não é membro | `get_game_groups`, `rls-matriz.md` (fatia 4) |
+| Quem volta à lista de espera vai para o fim da ordem | `join_waitlist` |
+| Na RN16, ser recebedor é conferido antes de ser o único admin | `leave_group`, `docs/ui/telas.md` (7.8) |
+| Quem não pode ver o grupo recebe `NOT_FOUND` ao criar jogo nele, e não `NOT_A_MEMBER` | `create_game`, seção 1 |
 | Todo membro vê e compartilha o código do grupo; só os admins o regeneram e desativam | RN11, `docs/ui/telas.md` (6.5) |
 | O código de convite continua com 12 caracteres base62, com diferença entre maiúsculas e minúsculas | `modelo-dados.md` (seção 9), `docs/ui/telas.md` (6.3) |

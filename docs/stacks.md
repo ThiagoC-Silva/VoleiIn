@@ -36,7 +36,8 @@
 | Deep links (convites de grupo e jogo) | `app_links` | RF15, RF16, RF43, RF48 |
 | Foto de perfil e do grupo, comprovante | `image_picker`, `file_picker` (fotos redimensionadas para até 1024 px antes do envio, RN106) | RF09, RF14, RF78 |
 | Compartilhar o código do grupo, o link do jogo e a lista em texto | `share_plus` (entra na fatia 3) | RF15, RF43, RF100 |
-| Copiar chave Pix | `Clipboard` (nativo do Flutter) | RF77 |
+| Copiar chave Pix | `Clipboard` (nativo do Flutter) | RF45, RF77 |
+| Abrir o Maps, o discador e o WhatsApp | `url_launcher` (entra na fatia 4) | RF28, RF101 |
 | Push no aparelho | `firebase_core`, `firebase_messaging`, `flutter_local_notifications` | RF88 |
 | Gerenciamento de estado | `flutter_riverpod` | Todos |
 | Modelos imutáveis e JSON | `freezed` + `json_serializable` | Todos |

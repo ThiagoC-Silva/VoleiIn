@@ -397,7 +397,7 @@ Sem texto novo. O título é o `display_name`, e o estado "não encontrado" usa 
 
 ### 7.7 Erros
 
-Códigos das funções de grupo e da prévia do convite (`contratos-api.md`, seção 2). O texto final é este, e não a mensagem inicial do contrato. `MEMBER_IS_RECEIVER` e `MEMBER_IS_ONLY_GAME_ADMIN` entram na fatia 4, com a RN16.
+Códigos das funções de grupo e da prévia do convite (`contratos-api.md`, seção 2). O texto final é este, e não a mensagem inicial do contrato. `MEMBER_IS_RECEIVER` e `MEMBER_IS_ONLY_GAME_ADMIN` estão na seção 8.8, com a RN16.
 
 | Código | `ErrorCode` | Chave | Texto |
 |--------|-------------|-------|-------|
@@ -413,3 +413,214 @@ Códigos das funções de grupo e da prévia do convite (`contratos-api.md`, se�
 | `GROUP_HAS_ACTIVE_GAMES` | `groupHasActiveGames` | `errorGroupHasActiveGames` | O grupo ainda tem jogos Abertos ou Confirmados. |
 
 - A prévia do convite é uma Edge Function: o erro chega como `FunctionException`, com o código em `error.code` (`contratos-api.md`, seção 1), e passa pela mesma tabela.
+
+## 8. Fatia 4
+
+Decisões de 16/11/2026. Telas em `docs/ui/telas.md`, seção 7. As palavras do domínio seguem o glossário: **lista** (de presença), **lista de espera**, **vaga**, **limite de vagas**, **prazo de cancelamento**, **recebedor**. O verbo dos botões é **entrar** e **sair** ("Entrar na lista", "Sair da lista de espera").
+
+Os textos provisórios da seção 5.2 continuam no ARB: a aba Cobranças ainda os usa. Os plurais seguem a sintaxe ICU da seção 7.
+
+### 8.1 Meus jogos e card de jogo
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `gamesFilterUpcoming` | Próximos | Chip de Meus jogos |
+| `gamesFilterPast` | Anteriores | Chip de Meus jogos |
+| `gamesCreate` | Criar jogo | Botão de Meus jogos e do detalhe do grupo, título e botão principal da criação |
+| `gamesEmptyUpcomingTitle` | Nenhum jogo marcado | Título do estado vazio de Próximos |
+| `gamesEmptyUpcomingBody` | Crie um jogo ou espere alguém dos seus grupos marcar um. | Frase do estado vazio de Próximos |
+| `gamesEmptyPastTitle` | Nenhum jogo anterior | Título do estado vazio de Anteriores |
+| `gamesEmptyPastBody` | Os jogos concluídos e cancelados aparecem aqui. | Frase do estado vazio de Anteriores |
+| `gameStandalone` | Avulso | No lugar do nome do grupo, no card e no topo do detalhe |
+| `gameSlotsCount` | {occupied}/{limit} | Vagas no card e no trio do detalhe |
+| `gameStatusOpen` | Aberto | Pílula. Rótulo de `game_status.open` |
+| `gameStatusConfirmed` | Confirmado | Pílula. Rótulo de `game_status.confirmed` |
+| `gameStatusCancelled` | Cancelado | Selo. Rótulo de `game_status.cancelled` |
+| `gameStatusCompleted` | Concluído | Pílula. Rótulo de `game_status.completed` |
+| `gameInProgress` | Em andamento | Selo de tempo |
+| `gameAwaitingCompletion` | Aguardando conclusão | Selo de tempo |
+| `gameOnList` | Na lista | Selo da situação da pessoa. Rótulo de `participant_status.active` |
+| `gameLeftAfterStartBadge` | Saiu após o início | Selo da situação e da linha da lista. Rótulo de `participant_status.left_after_start` |
+| `gameWaitlistPosition` | {position}º na espera | Selo da posição na espera |
+| `gameCardLabel` | Jogo {group}, {date} às {time}, {location}, {status} | Rótulo do card para o TalkBack |
+
+### 8.2 Criar e editar jogo
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `gamePixNeededBody` | Quem cria o jogo é o recebedor: quem entrar na lista paga a você. Cadastre uma chave Pix para continuar. | Aviso em linha sem chave Pix |
+| `gamePixNeededAction` | Cadastrar chave Pix | Botão de contorno do aviso |
+| `gameGroupLabel` | Grupo | Rótulo do campo |
+| `gameGroupPlaceholder` | Escolha o grupo | Campo vazio |
+| `gameGroupRequired` | Escolha o grupo do jogo. | Erro do campo vazio |
+| `gameGroupSheetTitle` | Onde é o jogo? | Título da sheet de grupos |
+| `gameGroupStandaloneHint` | Num jogo avulso, só entra quem receber o convite do jogo. | Dica do campo com Avulso |
+| `gameLocationLabel` | Nome do local | Rótulo do campo |
+| `gameLocationRequired` | Informe o local. | Erro do campo vazio |
+| `gameLocationTooLong` | O local pode ter até 120 caracteres. | Erro do campo |
+| `gameMapsLabel` | Link do Google Maps (opcional) | Rótulo do campo |
+| `gameMapsHint` | Cole o link do local no Google Maps. | Dica do campo |
+| `gameMapsInvalid` | O link precisa começar com https://. | Erro do campo |
+| `gameDateLabel` | Data do jogo | Rótulo do campo |
+| `gameStartLabel` | Início | Rótulo do campo |
+| `gameEndLabel` | Fim | Rótulo do campo |
+| `gameDateRequired` | Escolha a data. | Erro do campo vazio |
+| `gameTimeRequired` | Escolha o horário. | Erro do campo vazio |
+| `gameEndsNextDay` | Termina {date}. | Dica do fim mais cedo que o início (`formatShortDate`) |
+| `gameEndSameAsStart` | O fim precisa ser depois do início. | Erro do campo |
+| `gameStartInPast` | O início precisa estar no futuro. | Erro do campo |
+| `gameDeadlineLabel` | Prazo de cancelamento | Rótulo dos campos de data e hora do prazo |
+| `gameDeadlineHint` | Até esse horário, quem sair da lista não paga multa. | Dica do prazo |
+| `gameDeadlineAfterStart` | O prazo não pode passar do início do jogo. | Erro do campo |
+| `gameTotalLabel` | Valor total do espaço | Rótulo do campo |
+| `gameTotalRequired` | Informe o valor total. | Erro do campo vazio ou com R$ 0,00 |
+| `gameSlotLimitLabel` | Limite de vagas | Rótulo do contador |
+| `gameSlotLimitRequired` | Informe o limite de vagas. | Erro do contador vazio |
+| `gameSlotLimitDecrease` | Diminuir vagas | Rótulo do botão − para o TalkBack |
+| `gameSlotLimitIncrease` | Aumentar vagas | Rótulo do botão + para o TalkBack |
+| `gameEstimate` | Cerca de {amount} por pessoa | Aviso da estimativa (`formatCents`) |
+| `gameEstimateHint` | É só uma estimativa. A divisão final é feita na conclusão do jogo. | Frase do aviso da estimativa |
+| `gameReceiverNotice` | Você vai ser o recebedor deste jogo. Quem entrar na lista vê a sua chave Pix. | Aviso do recebedor |
+| `gameCreated` | Jogo criado. | `SnackBar` |
+| `gameEdit` | Editar jogo | Opção do menu e título da edição |
+| `gameSlotsOccupiedHint` | 1 pessoa na lista / {count} pessoas na lista | Dica do contador na edição (plural) |
+| `gameSaved` | Jogo salvo. | `SnackBar` |
+| `gameEditStarted` | O jogo já começou. Depois do início, os dados não mudam. | Aviso no lugar do formulário |
+
+- O botão Salvar usa `commonSave`.
+
+### 8.3 Detalhe do jogo
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `gameMenuLabel` | Opções do jogo | Rótulo do botão `more_vert` para o TalkBack |
+| `gameOpenMaps` | Abrir no Maps | Rótulo do botão do mapa |
+| `gameTimeRange` | {start} – {end} | Horário no topo (`formatTime`) |
+| `gameTrioSlots` | Vagas | Rótulo do trio |
+| `gameTrioPerPerson` | Por pessoa | Rótulo do trio |
+| `gameTrioDeadline` | Prazo | Rótulo do trio |
+| `gameDateTime` | {date}, {time} | Prazo no trio e nas frases (`formatShortDate` e `formatTime`) |
+| `gameReceiver` | Recebedor | Selo e título do bloco do recebedor |
+| `gameAdmin` | Admin | Selo do admin do jogo na lista |
+| `gamePixCopy` | Copiar chave | Botão de texto do bloco do recebedor |
+| `gamePixCopied` | Chave Pix copiada. | `SnackBar` |
+| `gamePixOnlyParticipants` | A chave Pix do recebedor aparece para quem está na lista. | Frase do bloco do recebedor |
+| `gameListTitle` | Lista · {occupied} de {limit} | Título da lista de presença |
+| `gameWaitlistTitle` | Lista de espera · {count} | Título da lista de espera |
+| `gameJoin` | Entrar na lista | Botão principal |
+| `gameJoinWaitlist` | Entrar na lista de espera | Botão principal |
+| `gameFullHint` | A lista está cheia. Na espera, você é avisado quando abrir uma vaga. | Frase acima do botão da espera |
+| `gameNeedsInvite` | Para entrar neste jogo, você precisa do convite dele. | Frase do pé para quem não é membro do grupo ou num jogo avulso |
+| `gameLeaveWaitlist` | Sair da lista de espera | Botão de texto ou de contorno |
+| `gameWaitlistNotice` | Você é o {position}º na espera. Quando abrir uma vaga, ela fica com quem entrar primeiro. | Aviso em linha de quem está na espera (RN53) |
+| `gameReceiverCannotLeave` | Você é o recebedor deste jogo e não pode sair da lista. Se não puder jogar, o jogo precisa ser cancelado por um admin. | Aviso em linha do recebedor (RN29). Muda na fatia 5, com a troca de recebedor |
+| `gameListLocked` | A lista está travada até a conclusão do jogo. | Aviso em linha depois do fim (RN57) |
+| `gameJoined` | Você entrou na lista. | `SnackBar` |
+| `gameJoinedWaitlist` | Você entrou na lista de espera. | `SnackBar` |
+| `gameLeftWaitlist` | Você saiu da lista de espera. | `SnackBar` |
+
+### 8.4 Sair, remover e cancelar
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `gameLeave` | Sair da lista | Botão destrutivo de contorno e botão da confirmação |
+| `gameLeaveTitle` | Sair da lista? | Título da confirmação |
+| `gameLeaveOnTimeBody` | Saindo até {deadline}, você não paga multa, e a vaga fica livre para outra pessoa. | Frase da confirmação antes do prazo (`gameDateTime`) |
+| `gameLeaveLateBody` | O prazo de cancelamento já passou. A saída pode gerar uma multa igual à parte por vaga, decidida na conclusão do jogo. | Frase da confirmação entre o prazo e o início |
+| `gameLeaveAfterStartBody` | O jogo já começou. A saída fica registrada como falta, com multa igual à parte por vaga, e a vaga continua contando. | Frase da confirmação em andamento |
+| `gameLeftOnTime` | Você saiu da lista, sem multa. | `SnackBar` do `outcome` `cancelled_on_time` |
+| `gameLeftLate` | Você saiu da lista depois do prazo. A multa é decidida na conclusão do jogo. | `SnackBar` do `outcome` `cancelled_late` |
+| `gameLeftAfterStart` | Você saiu do jogo. A falta ficou registrada. | `SnackBar` do `outcome` `left_after_start` |
+| `gameParticipantRemove` | Remover da lista | Opção destrutiva da sheet do admin |
+| `gameParticipantRemoveTitle` | Remover {name} da lista? | Título da confirmação |
+| `gameParticipantRemoveBody` | {name} sai da lista sem multa, e a vaga fica livre para outra pessoa. | Frase da confirmação (RN58) |
+| `gameParticipantRemoveConfirm` | Remover | Botão destrutivo sólido da confirmação |
+| `gameParticipantRemoved` | Removemos {name} da lista. | `SnackBar` |
+| `gameCancel` | Cancelar jogo | Opção destrutiva do menu e botão da confirmação |
+| `gameCancelTitle` | Cancelar o jogo? | Título da confirmação |
+| `gameCancelBody` | O jogo não acontece e ninguém paga nada. Quem está na lista e na espera é avisado. Não dá para desfazer. | Frase da confirmação (RN43, RN67, RN114) |
+| `gameCancelled` | Jogo cancelado. | `SnackBar` |
+
+- A sheet do admin sobre um participante usa `groupMemberViewProfile` (Ver perfil), e o voltar das confirmações, `commonBack`.
+- "Avisado" nas frases acima é a notificação gravada no histórico (RN110). O push chega na fatia 7.
+
+### 8.5 Admins do jogo
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `gameAdmins` | Admins do jogo | Opção do menu e título da tela |
+| `gameAdminOnList` | Na lista | Subtítulo da linha |
+| `gameAdminOffList` | Fora da lista | Subtítulo da linha (RN26) |
+| `gameAdminAdd` | Adicionar admin | Botão principal |
+| `gameAdminAddSheetTitle` | Quem vai ser admin? | Título da sheet |
+| `gameAdminsNoCandidates` | Só quem está na lista pode ser admin, e todos da lista já são. | Frase da sheet sem ninguém para adicionar (RN27) |
+| `gameAdminRemove` | Remover admin | Opção da sheet |
+| `gameAdminAdded` | {name} agora é admin do jogo. | `SnackBar` |
+| `gameAdminRemoved` | {name} não é mais admin do jogo. | `SnackBar` |
+| `gameAdminStepDown` | Deixar de ser admin | Opção da sheet e botão da confirmação |
+| `gameAdminStepDownTitle` | Deixar de ser admin do jogo? | Título da confirmação |
+| `gameAdminStepDownBody` | Só outro admin do jogo poderá devolver esse papel a você. | Frase da confirmação |
+| `gameAdminSteppedDown` | Você não é mais admin deste jogo. | `SnackBar` |
+
+### 8.6 Jogos no grupo e saída do grupo
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `groupGamesTitle` | Próximos jogos | Título da seção no detalhe do grupo |
+| `groupGamesEmpty` | Nenhum jogo marcado neste grupo. | Frase da seção vazia |
+| `groupLeaveGamesBody` | Você também sai da lista e da espera dos jogos do grupo que ainda não começaram, sem multa. | Segunda frase da confirmação de saída (RN14) |
+| `groupLeftWithGames` | Você saiu do grupo e de 1 jogo. / Você saiu do grupo e de {count} jogos. | `SnackBar` (plural) |
+| `groupMemberRemoveGamesBody` | {name} também sai da lista e da espera dos jogos do grupo que ainda não começaram, sem multa. | Segunda frase da confirmação de remoção |
+| `groupMemberRemovedWithGames` | Removemos {name} do grupo e de 1 jogo. / Removemos {name} do grupo e de {count} jogos. | `SnackBar` (plural) |
+| `groupLeaveBlockedTitle` | Você ainda não pode sair do grupo | Título da sheet de bloqueio |
+| `groupRemoveBlockedTitle` | Ainda não dá para remover {name} | Título da sheet de bloqueio na remoção |
+| `groupBlockedReceiverBody` | Você é o recebedor destes jogos, que ainda não foram concluídos. Para sair do grupo, os jogos precisam ser cancelados ou concluídos. | Frase da sheet, `MEMBER_IS_RECEIVER`. Muda na fatia 5 |
+| `groupBlockedOnlyAdminBody` | Você é o único admin destes jogos. Indique outro admin em Admins do jogo antes de sair. | Frase da sheet, `MEMBER_IS_ONLY_GAME_ADMIN` |
+| `groupRemoveBlockedReceiverBody` | {name} é o recebedor destes jogos, que ainda não foram concluídos. Para remover, os jogos precisam ser cancelados ou concluídos. | Frase da sheet na remoção. Muda na fatia 5 |
+| `groupRemoveBlockedOnlyAdminBody` | {name} é o único admin destes jogos. Peça a {name} para indicar outro admin neles. | Frase da sheet na remoção (RN15: o admin do grupo não indica admin do jogo) |
+
+- A sheet usa `commonBack` no botão de contorno.
+
+### 8.7 Perfil de outra pessoa, telefone
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `personPhone` | Telefone | Rótulo da linha |
+| `personCall` | Ligar | Botão de contorno |
+| `personWhatsapp` | WhatsApp | Botão de contorno |
+| `commonCannotOpenLink` | Não foi possível abrir neste aparelho. | `SnackBar` quando o Maps, o discador ou o WhatsApp não abrem |
+
+**Formato do telefone** (`formatPhone`, em `app/lib/core/format/`): sem o `+55`, com o DDD entre parênteses e o hífen antes dos 4 últimos dígitos: `(86) 99999-8888` com 11 dígitos e `(86) 3322-4455` com 10 (U12).
+
+### 8.8 Erros
+
+Códigos das funções de jogo e da RN16 (`contratos-api.md`, seção 2). O texto final é este, e não a mensagem inicial do contrato. `GAME_CANCELLED` e `GAME_NOT_ENDED` entram na fatia 5.
+
+| Código | `ErrorCode` | Chave | Texto |
+|--------|-------------|-------|-------|
+| `NOT_GAME_ADMIN` | `notGameAdmin` | `errorNotGameAdmin` | Só um admin do jogo pode fazer isso. |
+| `INVALID_GAME_DATES` | `invalidGameDates` | `errorInvalidGameDates` | O prazo não pode passar do início, e o início precisa ser antes do fim. |
+| `START_IN_PAST` | `startInPast` | `errorStartInPast` | O início precisa estar no futuro. |
+| `RECEIVER_NEEDS_PIX_KEY` | `receiverNeedsPixKey` | `errorReceiverNeedsPixKey` | O recebedor precisa ter uma chave Pix. |
+| `NO_GAME_ACCESS` | `noGameAccess` | `errorNoGameAccess` | Para entrar neste jogo, você precisa ser membro do grupo ou ter o convite. |
+| `GAME_NOT_OPEN` | `gameNotOpen` | `errorGameNotOpen` | Este jogo já foi cancelado ou concluído. |
+| `GAME_FULL` | `gameFull` | `errorGameFull` | A lista encheu. Você pode entrar na lista de espera. |
+| `GAME_NOT_FULL` | `gameNotFull` | `errorGameNotFull` | Abriu uma vaga. Você pode entrar direto na lista. |
+| `GAME_STARTED` | `gameStarted` | `errorGameStarted` | O jogo já começou. |
+| `LIST_LOCKED` | `listLocked` | `errorListLocked` | A lista está travada até a conclusão do jogo. |
+| `ALREADY_PARTICIPANT` | `alreadyParticipant` | `errorAlreadyParticipant` | Você já está na lista. |
+| `ALREADY_ON_WAITLIST` | `alreadyOnWaitlist` | `errorAlreadyOnWaitlist` | Você já está na lista de espera. |
+| `NOT_ON_WAITLIST` | `notOnWaitlist` | `errorNotOnWaitlist` | Você não está na lista de espera. |
+| `NOT_PARTICIPANT` | `notParticipant` | `errorNotParticipant` | Esta pessoa não está mais na lista. |
+| `RECEIVER_LOCKED` | `receiverLocked` | `errorReceiverLocked` | O recebedor não pode sair da lista. |
+| `SLOT_LIMIT_BELOW_PARTICIPANTS` | `slotLimitBelowParticipants` | `errorSlotLimitBelowParticipants` | O limite não pode ficar abaixo do número de pessoas na lista. |
+| `ADMIN_MUST_BE_PARTICIPANT` | `adminMustBeParticipant` | `errorAdminMustBeParticipant` | Só quem está na lista pode ser admin do jogo. |
+| `ALREADY_GAME_ADMIN` | `alreadyGameAdmin` | `errorAlreadyGameAdmin` | Esta pessoa já é admin do jogo. |
+| `NOT_GAME_ADMIN_TARGET` | `notGameAdminTarget` | `errorNotGameAdminTarget` | Esta pessoa não é mais admin do jogo. |
+| `LAST_GAME_ADMIN` | `lastGameAdmin` | `errorLastGameAdmin` | Indique outro admin antes. O jogo precisa de ao menos um. |
+| `MEMBER_IS_RECEIVER` | `memberIsReceiver` | `errorMemberIsReceiver` | Há jogos em aberto deste grupo com esta pessoa como recebedora. |
+| `MEMBER_IS_ONLY_GAME_ADMIN` | `memberIsOnlyGameAdmin` | `errorMemberIsOnlyGameAdmin` | Há jogos em aberto deste grupo com esta pessoa como única admin. |
+
+- `MEMBER_IS_RECEIVER` e `MEMBER_IS_ONLY_GAME_ADMIN` normalmente abrem a sheet de bloqueio (`docs/ui/telas.md`, 7.8). O texto da tabela é a reserva, para quando a leitura dos jogos de `detail.game_ids` falhar.
+- `CANNOT_REMOVE_SELF` (fatia 3) também é devolvido por `remove_participant`. A tela do jogo nunca oferece remover a si mesmo (`docs/ui/telas.md`, 7.3), então o texto de grupo continua valendo.
+- O `ErrorCode` passa a guardar o `detail` do erro quando ele traz `game_ids`, para a sheet de bloqueio (E16).

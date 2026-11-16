@@ -41,7 +41,7 @@ Depois do login, o app abre na aba Jogos.
 | **Jogos** | | | | |
 | Meus jogos | `/games` | Aba Jogos | 1 e 4 | RF44 |
 | Criar jogo | `/games/new` | Fora das abas | 4 | RF26 a RF32 |
-| Detalhe do jogo, com lista e espera | `/games/:gameId` | Aba Jogos | 4 | RF37, RF45 a RF55, RF65, RF101 |
+| Detalhe do jogo, com lista e espera | `/games/:gameId` | Aba Jogos | 4 e 5 | RF37, RF39, RF45 a RF55, RF65 |
 | Editar jogo | `/games/:gameId/edit` | Fora das abas | 4 | RF36, RF52, RF53 |
 | Admins do jogo | `/games/:gameId/admins` | Aba Jogos | 4 | RF34, RF35 |
 | Concluir jogo (faltas, total, aviso do valor por conta do recebedor) | `/games/:gameId/complete` | Fora das abas | 5 | RF40, RF41, RF60 |
@@ -53,12 +53,13 @@ Depois do login, o app abre na aba Jogos.
 | Meus grupos | `/groups` | Aba Grupos | 1 e 3 | RF25 |
 | Criar grupo | `/groups/new` | Fora das abas | 3 | RF14 |
 | Entrar por código (com a prévia do grupo) | `/groups/join` | Fora das abas | 3 | RF16 |
-| Detalhe do grupo, com os jogos do grupo | `/groups/:groupId` | Aba Grupos | 3 e 4 | RF21, RF44 |
+| Detalhe do grupo, com os jogos do grupo | `/groups/:groupId` | Aba Grupos | 3 e 4 | RF21, RF22, RF26, RF44, RF102 |
 | Editar grupo, com a exclusão | `/groups/:groupId/edit` | Fora das abas | 3 | RF18, RF103 |
 | Convite do grupo (código) | — | Sheet sobre o detalhe | 3 | RF15 |
-| Integrantes | `/groups/:groupId/members` | Aba Grupos | 3 e 4 | RF19, RF20, RF23, RF24, RF102 |
+| Integrantes | `/groups/:groupId/members` | Aba Grupos | 3 e 4 | RF19, RF20, RF22, RF23, RF24, RF102 |
 | Solicitações pendentes | `/groups/:groupId/requests` | Aba Grupos | 3 | RF17 |
 | Perfil de outra pessoa | `/people/:userId` | Na aba de origem | 3 e 4 | RF19, RF101 |
+| Sheet de bloqueio da saída do grupo | — | Sheet sobre o detalhe do grupo ou Integrantes | 4 | RF102 |
 | **Cobranças** | | | | |
 | Totais a pagar e a receber | `/charges` | Aba Cobranças | 1, 5 e 6 | RF75, RF76 |
 | Valor a pagar (chave Pix, copiar, comprovantes enviados) | `/charges/:chargeId` | Aba Cobranças | 6 | RF65, RF77, RF78, RF86 |
@@ -444,7 +445,7 @@ Em todos os estados, o botão de texto **Usar outro código** volta à etapa 1 c
    - **Editar grupo**, só para admins, com o subtítulo "Nome e foto".
 3. Botão destrutivo de contorno **Sair do grupo**. Fica oculto quando a pessoa é o único membro: nesse caso ela exclui o grupo em Editar grupo (RN13).
 
-- **A fatia 4 acrescenta** os jogos do grupo e o botão **Criar jogo** (RF26, RF44).
+- **Completado na fatia 4** com os jogos do grupo, o botão **Criar jogo** e os efeitos da saída sobre os jogos (seção 7.6).
 
 | Situação | O que acontece |
 |----------|----------------|
@@ -500,7 +501,7 @@ Em todos os estados, o botão de texto **Usar outro código** volta à etapa 1 c
 | `TARGET_NOT_MEMBER` (a pessoa saiu nesse meio tempo) | `SnackBar`, e a lista relê |
 
 - Admin remove outro admin sem rebaixar antes: o grupo continua com quem removeu como admin (RN10, RN13).
-- **A fatia 4 acrescenta** os bloqueios da RN16 (`MEMBER_IS_RECEIVER`, `MEMBER_IS_ONLY_GAME_ADMIN`) na remoção e na saída, com o aviso dos jogos que impedem (RF102).
+- **Completado na fatia 4** com os bloqueios da RN16 (`MEMBER_IS_RECEIVER`, `MEMBER_IS_ONLY_GAME_ADMIN`) na remoção e na saída, com a sheet dos jogos que impedem (seções 7.7 e 7.8, RF102).
 
 ### 6.7 Solicitações (`/groups/:groupId/requests`)
 
@@ -541,7 +542,7 @@ Em todos os estados, o botão de texto **Usar outro código** volta à etapa 1 c
 
 **Objetivo:** ver o apelido, o nome e a foto de outra pessoa (RF19, RN107). Abre na aba de origem, com a barra inferior. Barra superior interna com voltar.
 
-**Conteúdo:** avatar de 96 (`design-system.md`, 3.4), o `display_name` em `title.md` (RN100) e, embaixo, o nome em `body.md` `onSurfaceVariant`, só quando há apelido. **A fatia 4 acrescenta** o telefone visível (RF101).
+**Conteúdo:** avatar de 96 (`design-system.md`, 3.4), o `display_name` em `title.md` (RN100) e, embaixo, o nome em `body.md` `onSurfaceVariant`, só quando há apelido. **Completado na fatia 4** com o telefone visível (seção 7.9, RF101).
 
 | Situação | O que acontece |
 |----------|----------------|
@@ -552,3 +553,259 @@ Em todos os estados, o botão de texto **Usar outro código** volta à etapa 1 c
 ### 6.10 Testes da fatia 3
 
 Os cenários estão em `testes-referencia.md`, seção 11.
+
+## 7. Fatia 4
+
+Decisões de 16/11/2026. A fatia 4 troca a aba Jogos vazia pela tela real e entrega a criação, o detalhe, a edição e o cancelamento do jogo, a lista de presença e a de espera, os admins do jogo, os jogos no detalhe do grupo, os bloqueios da saída do grupo (RF102) e o telefone visível no perfil de outra pessoa (RF101). A aba Cobranças continua com o estado provisório da seção 4.2. Os textos estão no `docs/copy.md`, seção 8, e as regras de quem lê o quê, na `rls-matriz.md` (fatia 4).
+
+**Nomes das rotas** (seção 1): `games`, `gamesNew`, `game` (`/games/:gameId`), `gameEdit` e `gameAdmins`. São também os nomes dos PNGs de referência.
+
+**Regras comuns às telas de jogo:**
+
+- **Toda escrita passa pelas funções do servidor** (`contratos-api.md`, seção 4). O app lê `games`, `game_admins`, `game_participants` e `game_waitlist` direto, limitado pelo RLS. O nome do grupo vem de `get_game_groups` (decisão de 16/11/2026), porque quem vê o jogo sem ser membro do grupo não lê `groups`. A chave Pix do recebedor e o telefone de outra pessoa vêm de `get_profile_contact`.
+- **Realtime só no detalhe do jogo.** O detalhe assina `games` (filtro `id`), `game_participants` e `game_waitlist` (filtro `game_id`) e, a cada evento, relê tudo (`arquitetura-app.md`, seção 6). Meus jogos, o detalhe do grupo e Admins do jogo releem ao abrir, ao voltar de outra tela e ao puxar para baixo.
+- **Relógio do aparelho só para mostrar** (`arquitetura-app.md`, seção 8): ele decide quais botões aparecem e os selos "Em andamento" e "Aguardando conclusão", mas nunca libera uma ação. A recusa do servidor (`GAME_STARTED`, `LIST_LOCKED` etc.) vira `SnackBar`, e a tela relê o jogo.
+- **Não encontrado:** quem não pode ver o jogo (`can_view_game`, `rls-matriz.md`, fatia 4) recebe o estado "não encontrado". Quem não é admin do jogo e abre Editar jogo ou Admins do jogo também.
+- **Erros das funções** viram `SnackBar` com o texto do código (`docs/copy.md`, 8.8), salvo onde a tabela da tela diz outra coisa. Depois de um erro que indica que os dados mudaram (`GAME_FULL`, `GAME_NOT_FULL`, `GAME_NOT_OPEN`, `GAME_STARTED`, `LIST_LOCKED`, `NOT_GAME_ADMIN`, `NOT_PARTICIPANT`), a tela relê o jogo.
+- **Datas e horas** em `America/Fortaleza` (RN01). O dia vem com `formatShortDate` ("sáb, 22/11") e a hora com `formatTime` (`docs/copy.md`, seção 3).
+- **Dinheiro** sempre com `formatCents`. A estimativa por pessoa é `ceil(total_cents / slot_limit)`, calculada em inteiros e só exibida (RN24, `modelo-dados.md`, seção 5).
+- **Ordem dos jogos:** **Próximos** são os jogos com status `open` ou `confirmed`, inclusive em andamento e aguardando conclusão, do início mais cedo para o mais tarde. **Anteriores** são os `completed` e `cancelled`, do início mais recente para o mais antigo. O jogo cancelado vai direto para Anteriores (decisão de 16/11/2026).
+
+**Selos de tempo** (`design-system.md`, seção 4), ao lado da pílula do status, só em jogos `open` ou `confirmed`:
+
+| Situação, pelo relógio do aparelho | Selo |
+|------------------------------------|------|
+| `starts_at <= agora < ends_at` | `info` "Em andamento" |
+| `agora >= ends_at` | `info` "Aguardando conclusão". Na fatia 4 o jogo fica assim até a conclusão, que chega na fatia 5 |
+
+**Situação da pessoa no jogo**, usada no card e no detalhe:
+
+| Situação | Selo no card |
+|----------|--------------|
+| Passagem `active` | `ok` "Na lista" |
+| Passagem `left_after_start` | `bad` "Saiu após o início" |
+| Na espera (`left_at` nulo) | `waiting` "1º na espera", com a posição pela ordem de `joined_at` |
+| Nenhuma das anteriores | Sem selo |
+
+### 7.1 Meus jogos (`/games`)
+
+**Objetivo:** ver os jogos que a pessoa pode ver (RF44): os dos grupos de que ela é membro, os que tem ou teve passagem na lista ou na espera e os que administra. Substitui a aba Jogos vazia da seção 4.2. Barra superior de raiz com o título da aba.
+
+**Conteúdo:**
+
+1. Dois chips de filtro (`design-system.md`, 7.5): **Próximos**, ativo ao abrir, e **Anteriores**.
+2. A lista de cards de jogo (`design-system.md`, 7.12), na ordem das regras comuns. Cada card tem o bloco da data (dia da semana, dia e hora do início), o nome do grupo ou "Avulso", o local, as vagas ocupadas e o limite ("8/12"), a pílula do status, o selo de tempo, o selo da situação da pessoa e a barra de ocupação. Toca para abrir o detalhe.
+3. No pé da tela, fixo, o botão principal **Criar jogo**, que abre `/games/new` sem grupo escolhido (7.2).
+
+| Situação | O que acontece |
+|----------|----------------|
+| Nenhum jogo em Próximos | Estado vazio (`design-system.md`, 7.16) com o ícone `sports_volleyball`, título e frase. O botão do pé continua |
+| Nenhum jogo em Anteriores | Estado vazio com o ícone `history`, título e frase |
+| Erro ou sem conexão | Estados de erro e de sem conexão, com "Tentar de novo" |
+
+- O chip escolhido fica só em memória, enquanto a aba existir.
+- **Vagas ocupadas** são as passagens `active` e `left_after_start` (`modelo-dados.md`, seção 5).
+
+### 7.2 Criar jogo (`/games/new`)
+
+**Objetivo:** criar um jogo de grupo ou avulso (RF26 a RF32). Quem cria vira o único admin, o recebedor e o primeiro da lista (RN21). Barra superior interna com voltar. Abre de Meus jogos (sem grupo) ou do detalhe do grupo (com o grupo escolhido, pelo parâmetro de consulta `groupId`).
+
+**Conteúdo, de cima para baixo:**
+
+1. **Sem chave Pix:** no topo, um aviso em linha (`design-system.md`, 7.14) com o ícone `pix` em `owe`, a frase de que quem cria o jogo é o recebedor e precisa de chave Pix (RN22) e o botão de contorno **Cadastrar chave Pix**, que abre `/profile/pix`. Ao voltar, a tela relê a chave e mantém o que foi digitado. Enquanto não houver chave, o botão **Criar jogo** fica desabilitado.
+2. **Grupo:** um campo de seleção que abre uma sheet com os grupos da pessoa, em ordem alfabética, e a opção **Avulso** no fim (decisão de 16/11/2026). Vem escolhido quando a tela abre pelo detalhe do grupo ou quando a pessoa tem um grupo só. Com **Avulso**, o campo mostra a dica `gameGroupStandaloneHint`.
+3. **Nome do local**, obrigatório, até 120 caracteres, contados sem os espaços das pontas (RF28).
+4. **Link do Google Maps**, opcional. Precisa começar com `https://` (`modelo-dados.md`, 4.3). O app tira os espaços das pontas e manda nulo quando o campo fica vazio.
+5. **Data do jogo**, **Início** e **Fim**, com os seletores nativos (`design-system.md`, 7.2). O fim é só a hora: **um fim mais cedo que o início termina no dia seguinte**, e o campo mostra a dica `gameEndsNextDay` com a data ("Termina dom, 23/11"). Fim igual ao início é erro no campo.
+6. **Prazo de cancelamento:** data e hora, com a dica `gameDeadlineHint` (RF30).
+7. **Valor total do espaço**, com o prefixo `R$` (`design-system.md`, 7.2). Os dígitos entram pela direita, como nas maquininhas: digitar `1`, `2`, `0`, `0`, `0` mostra `R$ 120,00` e guarda `12000` centavos (U09). Mínimo de R$ 0,01 (RN05).
+8. **Limite de vagas:** o contador (`design-system.md`, 7.3), com o número no centro editável pelo teclado numérico. Mínimo 1 (RN06), sem teto.
+9. **Estimativa por pessoa:** aviso em linha com o ícone `calculate` em `split`, que aparece quando o valor e o limite estão preenchidos: "Cerca de R$ 10,00 por pessoa", com a frase de que a divisão final é feita na conclusão (RN24).
+10. **Recebedor:** aviso em linha com o ícone `pix` em `receive` e a frase de que a pessoa vai ser a recebedora e de que quem entrar na lista vê a chave Pix dela (RN102). Só aparece quando há chave.
+11. Botão principal **Criar jogo**.
+
+Todos os campos começam vazios, sem sugestão de horário (decisão de 16/11/2026).
+
+| Situação | O que acontece |
+|----------|----------------|
+| Campo obrigatório vazio | Erro no campo. O app não chama o servidor |
+| Local acima de 120 caracteres; link sem `https://`; valor zero | Erro no campo |
+| Prazo depois do início | Erro no campo do prazo (`gameDeadlineAfterStart`) |
+| Início no passado, pelo relógio do aparelho | Erro no campo do início (`gameStartInPast`). O servidor confere de novo (`START_IN_PAST`) |
+| Criar | `create_game` com os instantes convertidos para UTC (`arquitetura-app.md`, seção 8). Sucesso: troca esta tela pelo detalhe do jogo, que não volta para a criação, com o `SnackBar` "Jogo criado" |
+| `RECEIVER_NEEDS_PIX_KEY` (a chave foi removida em outro aparelho) | A tela relê a chave e mostra o aviso do item 1 |
+| `INVALID_GAME_DATES`, `START_IN_PAST` | `SnackBar` com o texto do código. A tela mantém o que foi digitado |
+| `NOT_FOUND` com grupo escolhido (a pessoa saiu ou o grupo foi excluído) | `SnackBar`, e a sheet de grupos relê a lista |
+
+- Voltar descarta o que foi digitado, sem confirmação.
+
+### 7.3 Detalhe do jogo (`/games/:gameId`)
+
+**Objetivo:** ver o jogo (RF45, RF37), a lista de presença (RF46) e a de espera (RF49), entrar e sair (RF47, RF50, RF55) e, para os admins, chegar à edição, aos admins, ao cancelamento e à remoção de participantes (RF36, RF34, RF39, RF54). Abre na aba Jogos, também quando a pessoa toca num jogo do detalhe do grupo. Barra superior interna com voltar e, só para admins do jogo, o botão de menu `more_vert` (rótulo `gameMenuLabel`).
+
+**Conteúdo, de cima para baixo:**
+
+1. **Topo colorido** (`design-system.md`, 7.8), em `game` com o jogo Aberto, em `wait` com o Confirmado e em `surfaceHigh` com texto `onSurface` com o Cancelado: a pílula do grupo ou "Avulso", a data, o horário de início e fim em `number.xl` ("20:00 – 22:00"), o local, a pílula do status, o selo de tempo e o anel segmentado das vagas. Com `maps_url`, o botão circular `map` (rótulo `gameOpenMaps`) abre o link no app do Maps (`url_launcher`, decisão de 16/11/2026).
+2. **Trio de números** (`design-system.md`, 7.10): **Vagas** ("8/12"), **Por pessoa** (a estimativa, em `split`) e **Prazo** (data curta e hora).
+3. **Recebedor:** linha de pessoa com o avatar, o nome e o selo `neutral` **Recebedor**. Embaixo:
+   - para quem tem passagem `active` ou `left_after_start` e para o próprio recebedor, a chave Pix formatada (`profilePixSummary`) e o botão de texto **Copiar chave**, que copia a chave sem formatação e mostra o `SnackBar` "Chave Pix copiada" (RN102);
+   - para os demais, a frase `gamePixOnlyParticipants`, sem a chave.
+   A chave vem de `get_profile_contact(receiver_id)`. Se ela voltar nula para quem deveria vê-la, a linha mostra a mesma frase dos demais.
+4. **Lista de presença**, com o título "Lista · 8 de 12": as passagens `active` e `left_after_start`, por ordem de `joined_at` (RN52), numeradas. Cada linha (`design-system.md`, 7.13) tem o número, o avatar de 44, o nome (a própria pessoa com `groupMemberYou`) e, à direita, os selos `neutral` **Recebedor** e **Admin** (admin do jogo) e o `bad` "Saiu após o início". Cancelamentos e remoções não aparecem: o histórico de cada pessoa no jogo chega na fatia 5 (RF65).
+5. **Lista de espera**, só antes do início e quando há alguém nela, com o título "Lista de espera · 2": as linhas com `left_at` nulo, por ordem de `joined_at`, com o selo `waiting` da posição.
+6. **Pé da tela, fixo:** a ação da pessoa, pela tabela abaixo.
+
+**Ação da pessoa no pé**, com o jogo `open` ou `confirmed`. Num jogo cancelado o pé fica vazio, e o topo já diz "Cancelado".
+
+| Momento | Situação | Pé da tela |
+|---------|----------|------------|
+| Antes do início | Fora das listas, jogo Aberto, membro do grupo | Botão principal **Entrar na lista** |
+| Antes do início | Fora das listas, jogo Confirmado, membro do grupo | Botão principal **Entrar na lista de espera**, com a frase `gameFullHint` acima |
+| Antes do início | Fora das listas, sem ser membro do grupo, ou em jogo avulso | A frase `gameNeedsInvite`, sem botão. Entrar pelo convite chega na fatia 8 |
+| Antes do início | Na espera, jogo Aberto | Botão principal **Entrar na lista** e botão de texto **Sair da lista de espera** |
+| Antes do início | Na espera, jogo Confirmado | Aviso em linha com `hourglass_top` em `wait` e a frase `gameWaitlistNotice` ("Você é o 2º na espera...") e o botão de contorno **Sair da lista de espera** |
+| Antes do início ou em andamento | Na lista, sem ser o recebedor | Botão destrutivo de contorno **Sair da lista** |
+| Antes do início ou em andamento | Na lista, recebedor | Aviso em linha com `lock` em `split` e a frase `gameReceiverCannotLeave`, sem botão (RN29). A troca de recebedor chega na fatia 5 |
+| Em andamento | Fora da lista, ou na espera | Sem pé: as listas fecharam no início (RN54, RN55) |
+| Após o fim | Qualquer uma | Aviso em linha com `lock` e a frase `gameListLocked` (RN57) |
+| Em andamento | Saiu após o início | Sem pé: a falta já está registrada |
+
+**Menu do admin** (`more_vert`), com as opções que valem no momento:
+
+| Opção | Quando aparece | Abre |
+|-------|----------------|------|
+| **Editar jogo** | Antes do início, jogo `open` ou `confirmed` | `/games/:gameId/edit` (7.4) |
+| **Admins do jogo** | Sempre | `/games/:gameId/admins` (7.5) |
+| **Cancelar jogo**, em tom destrutivo | Jogo `open` ou `confirmed`, inclusive depois do início (RN43) | Confirmação destrutiva |
+
+**Toque numa linha da lista:**
+
+| Quem toca | Em quem | O que abre |
+|-----------|---------|------------|
+| Quem não é admin do jogo | Outra pessoa | O perfil dela (6.9) |
+| Admin do jogo, antes do início | Outra pessoa que não é o recebedor | Sheet com o nome como título e as opções **Ver perfil** e **Remover da lista**, esta em tom destrutivo |
+| Admin do jogo, antes do início | O recebedor; ou depois do início, qualquer outra pessoa | O perfil dela. Depois do início, o admin usa a falta e a isenção da fatia 5 (RN58) |
+| Qualquer um | Si mesmo | Nada: a linha não é tocável |
+
+As linhas da lista de espera abrem o perfil, sem sheet.
+
+| Situação | O que acontece |
+|----------|----------------|
+| Entrar na lista | `join_game`, sem confirmação. Sucesso: `SnackBar` "Você entrou na lista" e a tela relê |
+| `GAME_FULL` ao entrar (alguém pegou a vaga antes) | `SnackBar` com o texto do código, que oferece a espera, e a tela relê: o pé passa a **Entrar na lista de espera** |
+| Entrar na lista de espera | `join_waitlist`, sem confirmação. `SnackBar` "Você entrou na lista de espera" |
+| `GAME_NOT_FULL` ao entrar na espera (abriu uma vaga) | `SnackBar`, e a tela relê: o pé passa a **Entrar na lista** |
+| Sair da lista de espera | `leave_waitlist`, sem confirmação. `SnackBar` "Você saiu da lista de espera" |
+| Sair da lista, antes do prazo | Confirmação destrutiva (`design-system.md`, 7.15) com o título `gameLeaveTitle` e a frase `gameLeaveOnTimeBody`, que diz até quando a saída não gera multa |
+| Sair da lista, entre o prazo e o início | A mesma confirmação, com a frase `gameLeaveLateBody`: a saída pode gerar multa igual à parte por vaga, decidida na conclusão (RN61, RN62) |
+| Sair da lista, em andamento | A mesma confirmação, com a frase `gameLeaveAfterStartBody`: a saída fica registrada como falta, com multa, e a vaga continua contando (RN57, RN63) |
+| Saída aceita | `leave_game`. O `SnackBar` segue o `outcome` devolvido pelo servidor, e não o relógio do aparelho: `cancelled_on_time` → `gameLeftOnTime`; `cancelled_late` → `gameLeftLate`; `left_after_start` → `gameLeftAfterStart` |
+| `RECEIVER_LOCKED` ou `LIST_LOCKED` | `SnackBar`, e a tela relê |
+| Remover da lista | Confirmação destrutiva com o nome no título e a frase de que a pessoa sai sem multa e a vaga fica livre (RN58). Ao confirmar, `remove_participant`. `SnackBar` "Removemos {nome} da lista" |
+| Cancelar jogo | Confirmação destrutiva com o título `gameCancelTitle` e a frase de que o jogo não acontece, ninguém paga nada e a lista e a espera são avisadas (RN43, RN67, RN114). Ao confirmar, `cancel_game`. `SnackBar` "Jogo cancelado", e a tela relê |
+| Evento do Realtime | A tela relê tudo, sem `SnackBar` e sem perder a posição da rolagem |
+| Jogo que a pessoa não pode ver, ou ID que não existe | Estado "não encontrado" |
+
+- O texto da confirmação de saída escolhe a frase pelo relógio do aparelho, porque é só aviso. O resultado vem do servidor.
+- O perfil de outra pessoa (6.9) passa a abrir também na aba Jogos, empilhado sobre o detalhe. A forma de declarar a rota nas duas abas fica para a sessão do app.
+
+### 7.4 Editar jogo (`/games/:gameId/edit`)
+
+**Objetivo:** mudar os dados e o limite de vagas antes do início (RF36, RF52, RF53, RN33). Só para admins do jogo. Barra superior interna com voltar. Tudo é gravado junto, no botão **Salvar**.
+
+**Conteúdo:** os campos da criação (7.2, itens 3 a 9), já preenchidos, e o botão principal **Salvar**. O grupo aparece só como texto, acima dos campos ("Vôlei de Quinta" ou "Avulso"): ele não muda depois da criação. No contador, o botão − fica desabilitado no número de vagas ocupadas, com a dica `gameSlotsOccupiedHint` ("8 pessoas na lista"), porque o limite não fica abaixo dele (RN59).
+
+| Situação | O que acontece |
+|----------|----------------|
+| Validação | A mesma da criação. O início continua precisando estar no futuro (RN33) |
+| Salvar | Nesta ordem: `set_slot_limit`, se o limite mudou; `update_game`, se algum outro dado mudou. Depois, `SnackBar` "Jogo salvo" e volta ao detalhe. Sem mudança, só volta |
+| O limite foi gravado, mas o `update_game` falhou | `SnackBar` com o texto do código. A tela continua aberta, com os dados digitados, e o limite já vale |
+| `SLOT_LIMIT_BELOW_PARTICIPANTS` (alguém entrou nesse meio tempo) | `SnackBar`, e a tela relê o número de ocupadas |
+| `GAME_STARTED` ou `GAME_NOT_OPEN` | `SnackBar`, e volta ao detalhe |
+| Quem não é admin do jogo, ou jogo já iniciado ao abrir | Estado "não encontrado" para quem não é admin. Para o admin com o jogo iniciado, o aviso `gameEditStarted` no lugar do formulário |
+
+- Mudar o prazo não muda a classificação dos cancelamentos já feitos (RN35). A tela não avisa disso: não há nada a decidir.
+- Voltar com alterações não salvas descarta as alterações, sem confirmação.
+
+### 7.5 Admins do jogo (`/games/:gameId/admins`)
+
+**Objetivo:** ver, adicionar e remover os admins do jogo (RF34, RF35, RN25 a RN27). Só para admins do jogo. Abre na aba Jogos. Barra superior interna com voltar.
+
+**Conteúdo:**
+
+1. A lista dos admins, em ordem alfabética do `display_name`. Cada linha tem o avatar de 44, o nome (a própria pessoa com `groupMemberYou`) e o subtítulo "Na lista" ou "Fora da lista", porque ser admin não depende de estar na lista (RN26).
+2. No pé, o botão principal **Adicionar admin**, que abre uma sheet com as pessoas da lista de presença com passagem `active` que ainda não são admins, em ordem de `joined_at` (RN27). Sem ninguém para adicionar, a sheet mostra a frase `gameAdminsNoCandidates`.
+
+**Toque numa linha:**
+
+| Em quem | O que abre |
+|---------|------------|
+| Outra pessoa | Sheet com o nome como título e as opções **Ver perfil** e **Remover admin** |
+| Si mesmo, com outro admin no jogo | Sheet com a opção **Deixar de ser admin** |
+| Si mesmo, único admin | Nada: a linha não é tocável |
+
+| Situação | O que acontece |
+|----------|----------------|
+| Adicionar | Toque numa pessoa da sheet. `add_game_admin`, sem confirmação. `SnackBar` "{nome} agora é admin do jogo", e a lista relê |
+| Remover admin | Sem confirmação: outro admin pode devolver o papel. `remove_game_admin`. `SnackBar` "{nome} não é mais admin do jogo" |
+| Deixar de ser admin | Confirmação, com a frase de que só outro admin pode devolver o papel. Ao confirmar, `remove_game_admin` sobre si. `SnackBar` "Você não é mais admin deste jogo" e volta ao detalhe, que perde o menu |
+| `ADMIN_MUST_BE_PARTICIPANT` (a pessoa saiu da lista nesse meio tempo), `ALREADY_GAME_ADMIN`, `NOT_GAME_ADMIN_TARGET`, `LAST_GAME_ADMIN` | `SnackBar`, e a lista relê |
+| Quem não é admin do jogo | Estado "não encontrado" |
+
+### 7.6 Jogos no detalhe do grupo (completa a seção 6.4)
+
+Entre a lista de linhas e o botão **Sair do grupo**, o detalhe do grupo ganha:
+
+1. O título **Próximos jogos** e os cards (7.1) dos jogos do grupo `open` ou `confirmed`, na ordem de Próximos. Sem nenhum, a frase `groupGamesEmpty`. Os jogos anteriores do grupo ficam em Meus jogos, no chip Anteriores.
+2. O botão principal **Criar jogo**, que abre `/games/new` com o grupo escolhido (RF26). Qualquer membro cria (RN20).
+
+- Tocar num card abre o detalhe do jogo na aba Jogos (7.3).
+- O detalhe do grupo continua sem Realtime (6.4).
+
+**Saída do grupo** (completa a tabela da seção 6.4):
+
+| Situação | O que acontece |
+|----------|----------------|
+| Sair do grupo | A confirmação ganha a frase `groupLeaveGamesBody`: a pessoa sai da lista e da espera dos jogos do grupo que ainda não começaram, sem multa (RN14) |
+| Saída aceita com `games_left` não vazio | Volta a Meus grupos com o `SnackBar` `groupLeftWithGames` ("Você saiu do grupo e de 2 jogos") |
+| `MEMBER_IS_RECEIVER` ou `MEMBER_IS_ONLY_GAME_ADMIN` | Sheet de bloqueio (7.8) com os jogos de `detail.game_ids` |
+
+### 7.7 Integrantes, remoção com jogos (completa a seção 6.6)
+
+| Situação | O que acontece |
+|----------|----------------|
+| Remover do grupo | A confirmação ganha a mesma frase sobre os jogos, com o nome da pessoa (`groupMemberRemoveGamesBody`) |
+| Remoção aceita com `games_left` não vazio | `SnackBar` `groupMemberRemovedWithGames` ("Removemos Brunão do grupo e de 2 jogos") |
+| `MEMBER_IS_RECEIVER` ou `MEMBER_IS_ONLY_GAME_ADMIN` | Sheet de bloqueio (7.8), com o nome da pessoa |
+
+### 7.8 Sheet de bloqueio da saída do grupo (sheet sobre o detalhe do grupo ou sobre Integrantes)
+
+**Objetivo:** explicar por que a saída ou a remoção foi recusada e mostrar os jogos que a impedem (RF102, RN16).
+
+**Conteúdo:**
+
+1. Título `groupLeaveBlockedTitle` ("Você ainda não pode sair do grupo") ou, na remoção, `groupRemoveBlockedTitle` com o nome.
+2. A frase do motivo, pelo código:
+   - `MEMBER_IS_RECEIVER`: a pessoa é a recebedora destes jogos. Na fatia 4, sem troca de recebedor, o caminho é cancelar o jogo ou esperar a conclusão (`groupBlockedReceiverBody`). A fatia 5 troca a frase para indicar outro recebedor;
+   - `MEMBER_IS_ONLY_GAME_ADMIN`: a pessoa é a única admin destes jogos e precisa indicar outro admin em Admins do jogo (`groupBlockedOnlyAdminBody`).
+3. Os cards (7.1) dos jogos de `detail.game_ids`, lidos de `games`. Tocar num card fecha a sheet e abre o detalhe do jogo.
+4. Botão de contorno **Voltar**.
+
+- Quando a pessoa é recebedora e única admin ao mesmo tempo, o servidor devolve `MEMBER_IS_RECEIVER` (`contratos-api.md`, `leave_group`).
+
+### 7.9 Perfil de outra pessoa, telefone (completa a seção 6.9)
+
+Abaixo do nome, quando `get_profile_contact` devolve `phone` (o dono deixou visível e compartilha contexto com quem abre, RN101, RN107):
+
+1. A linha **Telefone**, com o número formatado ("(86) 99999-8888", sem o `+55`).
+2. Dois botões de contorno, lado a lado: **Ligar**, que abre o discador com `tel:+55...`, e **WhatsApp**, que abre `https://wa.me/55...` (U12). Os dois usam o `url_launcher` (decisão de 16/11/2026).
+
+| Situação | O que acontece |
+|----------|----------------|
+| `phone` nulo (oculto, sem telefone ou sem contexto) | Nada aparece, sem dizer qual dos três |
+| O próprio perfil | Mostra o próprio telefone, se houver, pela mesma função |
+| O link não abre (sem discador ou sem WhatsApp no aparelho) | `SnackBar` `commonCannotOpenLink` |
+
+### 7.10 Testes da fatia 4
+
+Os cenários estão em `testes-referencia.md`, seção 12.

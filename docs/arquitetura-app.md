@@ -66,6 +66,7 @@ app/integration_test/       # fluxos de ponta a ponta no emulador
 | `google_sign_in` | Login com Google |
 | `image_picker` | Foto do perfil, da galeria ou da câmera, já reduzida a 1024 px no maior lado (fatia 2) |
 | `share_plus` | Compartilhar o código do grupo (fatia 3), o link do jogo (fatia 8) e a lista em texto (fatia 7) |
+| `url_launcher` | Abrir o link do Google Maps do jogo, o discador e o WhatsApp no perfil de outra pessoa (fatia 4, decisão de 16/11/2026). Mantido pelo time do Flutter, sem custo |
 | `file_picker`, `app_links`, `firebase_core`, `firebase_messaging`, `flutter_local_notifications` | Entram nas fatias que os usam (`stacks.md`, 3.1) |
 | `http` | Já vem com `supabase_flutter`; declarada porque a conversão de erros cita `ClientException` (seção 7) |
 | `mocktail` (dev) | Dublês nos testes |
