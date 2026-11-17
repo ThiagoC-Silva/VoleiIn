@@ -40,6 +40,8 @@ Numa conversa nova, depois do *merge* da sessão 2, com os PNGs da etapa B confe
 
 ## Sessão 4 — Validação
 
-- [ ] T011 L16 e L17 no emulador, APIs 29 e 36, pelos `scripts/`
-- [ ] T012 Ensaio (`docs/setup.md`, 9.2) e `supabase db push`; `get_advisors`
-- [ ] T013 `docs/rastreabilidade.md` e a linha "Estado atual" do `CLAUDE.md`
+- [x] T011 L16 e L17 no emulador, APIs 29 e 36, pelos `scripts/`
+- [x] T012 Ensaio (`docs/setup.md`, 9.2) e `supabase db push`; `get_advisors`
+- [x] T013 `docs/rastreabilidade.md` e a linha "Estado atual" do `CLAUDE.md`
+
+**Sessão 4 em 17/11/2026**, na mesma conversa: L15, L16 e L17 verdes nas APIs 29 e 36. O L17 falhou na primeira vez porque o Realtime do Supabase local estava desligado no `config.toml` desde a fatia 1, para poupar memória; ele foi religado (`docs/setup.md`, 3.1). Com o celular do responsável conectado por depuração sem fio, o `scripts/emulator.sh` recusou "mais de um aparelho"; os comandos rodaram com `ANDROID_SERIAL=emulator-5554`. Migração na produção com o ensaio (`docs/setup.md`, 9.7). RF49, RF50 e RF54 ficam "Em andamento" na `docs/rastreabilidade.md` até a etapa C.
