@@ -82,7 +82,7 @@ O padrão do projeto, já no repositório e válido em qualquer máquina:
 |------|--------------|------|---------|
 | Build do Gradle | heap de 2 GB, metaspace de 512 MB, Kotlin dentro do Gradle (sem segundo daemon), daemon sai após 10 min parado | `app/android/gradle.properties` | até ~3 GB, só durante o build |
 | Emulador | 2 GB de RAM, GPU por software, sem snapshot; um por vez | `scripts/emulator.sh` | ~3 GB |
-| Supabase local | `analytics` (leva junto o `vector`), `realtime` e `studio` desligados; `edge_runtime` e `local_smtp` (códigos de confirmação) ficam ligados | `supabase/config.toml` | ~0,7 GB |
+| Supabase local | `analytics` (leva junto o `vector`) e `studio` desligados; `realtime` religado em 17/11/2026, porque o detalhe do jogo assina a lista (L17); `edge_runtime` e `local_smtp` (códigos de confirmação) ficam ligados | `supabase/config.toml` | ~0,7 GB |
 | Testes de integração | só começam com 4,5 GB livres e sem testes de unidade rodando | `scripts/integration-test.sh` | — |
 
 **A regra:** com o emulador aberto, **um comando pesado por vez**. Não rode `flutter test`, `supabase test db`, `deno test` ou outro build enquanto o teste de integração compila ou roda. Antes de abrir o emulador, feche abas e navegadores que não estiver usando. Os scripts conferem a memória disponível e param com uma mensagem quando falta folga. `VOLEIIN_SKIP_MEMORY_CHECK=1` pula a conferência.
