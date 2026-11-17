@@ -10,8 +10,10 @@
 - [x] T004 [P] [US4] W12 em `games_security.test.sql`
 - [x] T005 [P] [US1] [US3] C07 e C16 em `_tests/concurrency/games_test.ts`
 - [x] T006 Saída da falha e *commit* só de testes
-- [ ] T007 Migração `create_game_admin_functions` (research R1 a R4)
-- [ ] T008 Comandos verdes, documentos e PR
+- [x] T007 Migração `create_game_admin_functions` (research R1 a R4)
+- [x] T008 Comandos verdes, documentos e PR
+
+**Sessão 2 concluída em 17/11/2026** no *branch* `fatia-4/servidor-c`: `supabase test db` (505 testes), `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes, com C07 e C16 em 50 de 50. Testes antes no *commit* `5a2d339`, com a saída da falha. O C16 devolve a conta `conc-26` ao grupo a cada repetição (`rejoinGroup` em `support.ts`).
 
 ## Sessão 3 — App
 
