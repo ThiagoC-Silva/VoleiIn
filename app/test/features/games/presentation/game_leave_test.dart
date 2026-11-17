@@ -5,7 +5,6 @@ import 'package:voleiin/core/errors/error_code.dart';
 import 'package:voleiin/features/games/domain/game_models.dart';
 
 import '../../../helpers/games_fixtures.dart';
-import '../../../helpers/groups_fixtures.dart';
 import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
 
@@ -21,9 +20,8 @@ void main() {
     h.signedIn(userId: brunoId);
     when(() => h.games.joinGame(any())).thenAnswer((_) async {});
     when(() => h.games.leaveWaitlist(any())).thenAnswer((_) async {});
-    when(
-      () => h.games.leaveGame(any()),
-    ).thenAnswer((_) async => LeaveOutcome.cancelledOnTime);
+    when(() => h.games.leaveGame(any()))
+        .thenAnswer((_) async => LeaveOutcome.cancelledOnTime);
     when(
       () => h.games.removeParticipant(
         gameId: any(named: 'gameId'),
@@ -65,9 +63,8 @@ void main() {
     testWidgets('o SnackBar segue o outcome do servidor, e não o relógio', (
       tester,
     ) async {
-      when(
-        () => h.games.leaveGame(any()),
-      ).thenAnswer((_) async => LeaveOutcome.cancelledLate);
+      when(() => h.games.leaveGame(any()))
+          .thenAnswer((_) async => LeaveOutcome.cancelledLate);
       h.game(() => game1(viewerId: brunoId));
       await open(tester, game1Id);
 
@@ -95,9 +92,8 @@ void main() {
     });
 
     testWidgets('RECEIVER_LOCKED: SnackBar e relê', (tester) async {
-      when(
-        () => h.games.leaveGame(any()),
-      ).thenThrow(const AppException(ErrorCode.receiverLocked));
+      when(() => h.games.leaveGame(any()))
+          .thenThrow(const AppException(ErrorCode.receiverLocked));
       var reads = 0;
       h.game(() {
         reads++;
@@ -162,12 +158,9 @@ void main() {
   });
 
   group('S47: tempo', () {
-    testWidgets('em andamento: selo e gameLeaveAfterStartBody', (
-      tester,
-    ) async {
-      when(
-        () => h.games.leaveGame(any()),
-      ).thenAnswer((_) async => LeaveOutcome.leftAfterStart);
+    testWidgets('em andamento: selo e gameLeaveAfterStartBody', (tester) async {
+      when(() => h.games.leaveGame(any()))
+          .thenAnswer((_) async => LeaveOutcome.leftAfterStart);
       h.now = DateTime.utc(2026, 11, 21, 23, 30);
       h.game(() => game1(viewerId: brunoId));
       await open(tester, game1Id);
@@ -242,10 +235,12 @@ void main() {
         tester,
         l10nPt.gameParticipantRemoveConfirm,
       );
-      verify(
-        () => h.games.removeParticipant(gameId: game1Id, userId: brunoId),
-      ).called(1);
-      expect(find.text(l10nPt.gameParticipantRemoved('Brunão')), findsOneWidget);
+      verify(() => h.games.removeParticipant(gameId: game1Id, userId: brunoId))
+          .called(1);
+      expect(
+        find.text(l10nPt.gameParticipantRemoved('Brunão')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('depois do início, o toque abre o perfil, sem sheet', (

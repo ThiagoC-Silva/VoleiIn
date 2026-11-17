@@ -203,7 +203,11 @@ void main() {
   testWidgets('L16: Bruno entra e sai da lista, e sai e volta à espera', (
     tester,
   ) async {
-    await openAs(tester, 'bruno', pickers: _FixedPickers(dates: [], times: []));
+    await openAs(
+      tester,
+      'bruno',
+      pickers: _FixedPickers(dates: [], times: []),
+    );
     final me = find.text(l10nPt.groupMemberYou('Brunão'));
 
     // Quinta Aberto: entra e sai antes do prazo.
@@ -230,7 +234,11 @@ void main() {
   });
 
   testWidgets('L17: a lista acompanha a Carla pelo Realtime', (tester) async {
-    await openAs(tester, 'ana', pickers: _FixedPickers(dates: [], times: []));
+    await openAs(
+      tester,
+      'ana',
+      pickers: _FixedPickers(dates: [], times: []),
+    );
     await openGame(tester, quintaOpen);
     await pumpUntil(tester, find.text(l10nPt.groupMemberYou('Ana')).last);
 

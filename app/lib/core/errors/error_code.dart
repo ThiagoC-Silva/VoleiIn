@@ -62,6 +62,10 @@ enum ErrorCode {
   alreadyParticipant,
   alreadyOnWaitlist,
   slotLimitBelowParticipants,
+  listLocked,
+  notOnWaitlist,
+  notParticipant,
+  receiverLocked,
 }
 
 /// Único tipo de exceção que sai da camada `data`.

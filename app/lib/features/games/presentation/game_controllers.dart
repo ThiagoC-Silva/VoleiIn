@@ -61,9 +61,10 @@ final gameFormControllerProvider =
       GameFormController.new,
     );
 
-/// Entrar na lista e na espera (telas.md, 7.3). Depois de cada uma, com
-/// sucesso ou erro, o jogo é relido: `GAME_FULL`, `GAME_NOT_FULL`,
-/// `GAME_NOT_OPEN` e `GAME_STARTED` indicam que os dados mudaram.
+/// Entrar e sair da lista e da espera, e remover alguém (telas.md, 7.3).
+/// Depois de cada uma, com sucesso ou erro, o jogo é relido: `GAME_FULL`,
+/// `GAME_NOT_FULL`, `GAME_NOT_OPEN`, `GAME_STARTED`, `RECEIVER_LOCKED` e
+/// `LIST_LOCKED` indicam que os dados mudaram.
 class GameActionsController extends SubmitController {
   GamesRepository get _games => ref.read(gamesRepositoryProvider);
 
@@ -72,6 +73,23 @@ class GameActionsController extends SubmitController {
 
   Future<AppException?> joinWaitlist(String gameId) =>
       _run(gameId, () => _games.joinWaitlist(gameId));
+
+  Future<AppException?> leaveWaitlist(String gameId) =>
+      _run(gameId, () => _games.leaveWaitlist(gameId));
+
+  /// O `outcome` do servidor, ou o erro.
+  Future<(LeaveOutcome?, AppException?)> leave(String gameId) async {
+    LeaveOutcome? outcome;
+    final error = await _run(gameId, () async {
+      outcome = await _games.leaveGame(gameId);
+    });
+    return (outcome, error);
+  }
+
+  Future<AppException?> remove(String gameId, String userId) => _run(
+    gameId,
+    () => _games.removeParticipant(gameId: gameId, userId: userId),
+  );
 
   Future<AppException?> _run(
     String gameId,

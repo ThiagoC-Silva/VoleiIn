@@ -8,8 +8,9 @@ import '../../../helpers/groups_fixtures.dart';
 import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
 
-/// Cenário S59 de docs/testes-referencia.md, seção 12.6, com as telas da
-/// etapa A (Meus jogos, Criar jogo, o detalhe, Editar jogo e os jogos no
+/// Cenário S59 de docs/testes-referencia.md, seção 12.6, com as telas das
+/// etapas A e B (na B, o pé de quem está na lista e na espera, e as sheets de
+/// saída e de remoção) e da etapa A (Meus jogos, Criar jogo, o detalhe, Editar jogo e os jogos no
 /// detalhe do grupo) e a sheet de grupos: fonte do sistema em 150%, num
 /// celular pequeno (360 x 640 dp), sem overflow (RNF05).
 void main() {
@@ -136,6 +137,67 @@ void main() {
     await open(tester, ['/groups', '/groups/$quintaId']);
     await tester.ensureVisible(find.text('Ginásio Verdão'));
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('S59 (etapa B): pé da espera e confirmação de saída', (
+    tester,
+  ) async {
+    h.signedIn(userId: carlaId);
+    h.game(
+      () => game1(
+        viewerId: carlaId,
+        locationName: longPlace,
+        participants: [participant(anaId, 'Ana Souza de Oliveira Albuquerque')],
+        waitlist: [waiting(carlaId, 'Carlinha das quadras de areia')],
+      ),
+    );
+    await open(tester, ['/games', '/games/$game1Id']);
+    expect(find.text(l10nPt.gameLeaveWaitlist), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    h.signedIn(userId: brunoId);
+    h.game(
+      () => game1(
+        viewerId: brunoId,
+        locationName: longPlace,
+        participants: [
+          participant(anaId, 'Ana Souza de Oliveira Albuquerque'),
+          participant(brunoId, 'Brunão do vôlei de praia', minute: 5),
+        ],
+      ),
+    );
+    await open(tester, ['/games', '/games/$game1Id']);
+    final leave = find.text(l10nPt.gameLeave);
+    await tester.ensureVisible(leave);
+    await tester.tap(leave);
+    await tester.pumpAndSettle();
+    expect(find.text(l10nPt.gameLeaveTitle), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('S59 (etapa B): sheet de remoção do admin', (tester) async {
+    h.game(
+      () => game1(
+        locationName: longPlace,
+        participants: [
+          participant(anaId, 'Ana Souza de Oliveira Albuquerque'),
+          participant(brunoId, 'Brunão do vôlei de praia', minute: 5),
+        ],
+      ),
+    );
+    await open(tester, ['/games', '/games/$game1Id']);
+    final bruno = find.text('Brunão do vôlei de praia');
+    await tester.ensureVisible(bruno);
+    await tester.pumpAndSettle();
+    await tester.tap(bruno);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nPt.gameParticipantRemove));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(l10nPt.gameParticipantRemoveTitle('Brunão do vôlei de praia')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

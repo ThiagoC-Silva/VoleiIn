@@ -609,5 +609,44 @@
   "errorGameStarted": "O jogo já começou.",
   "errorAlreadyParticipant": "Você já está na lista.",
   "errorAlreadyOnWaitlist": "Você já está na lista de espera.",
-  "errorSlotLimitBelowParticipants": "O limite não pode ficar abaixo do número de pessoas na lista."
+  "errorSlotLimitBelowParticipants": "O limite não pode ficar abaixo do número de pessoas na lista.",
+  "errorListLocked": "A lista está travada até a conclusão do jogo.",
+  "errorNotOnWaitlist": "Você não está na lista de espera.",
+  "errorNotParticipant": "Esta pessoa não está mais na lista.",
+  "errorReceiverLocked": "O recebedor não pode sair da lista.",
+  "gameLeaveWaitlist": "Sair da lista de espera",
+  "gameLeftWaitlist": "Você saiu da lista de espera.",
+  "gameLeave": "Sair da lista",
+  "gameLeaveTitle": "Sair da lista?",
+  "gameLeaveOnTimeBody": "Saindo até {deadline}, você não paga multa, e a vaga fica livre para outra pessoa.",
+  "@gameLeaveOnTimeBody": {
+    "placeholders": {
+      "deadline": {"type": "String"}
+    }
+  },
+  "gameLeaveLateBody": "O prazo de cancelamento já passou. A saída pode gerar uma multa igual à parte por vaga, decidida na conclusão do jogo.",
+  "gameLeaveAfterStartBody": "O jogo já começou. A saída fica registrada como falta, com multa igual à parte por vaga, e a vaga continua contando.",
+  "gameLeftOnTime": "Você saiu da lista, sem multa.",
+  "gameLeftLate": "Você saiu da lista depois do prazo. A multa é decidida na conclusão do jogo.",
+  "gameLeftAfterStart": "Você saiu do jogo. A falta ficou registrada.",
+  "gameParticipantRemove": "Remover da lista",
+  "gameParticipantRemoveTitle": "Remover {name} da lista?",
+  "@gameParticipantRemoveTitle": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "gameParticipantRemoveBody": "{name} sai da lista sem multa, e a vaga fica livre para outra pessoa.",
+  "@gameParticipantRemoveBody": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "gameParticipantRemoveConfirm": "Remover",
+  "gameParticipantRemoved": "Removemos {name} da lista.",
+  "@gameParticipantRemoved": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  }
 }

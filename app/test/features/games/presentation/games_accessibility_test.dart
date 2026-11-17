@@ -8,8 +8,8 @@ import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
 
 /// Cenário S60 de docs/testes-referencia.md, seção 12.6, e a lista de
-/// acessibilidade de docs/ui/design-system.md, seção 8 (RNF05), nas telas da
-/// etapa A: área de toque de 48 x 48 dp, rótulo para o TalkBack em todo alvo
+/// acessibilidade de docs/ui/design-system.md, seção 8 (RNF05), nas telas das
+/// etapas A e B: área de toque de 48 x 48 dp, rótulo para o TalkBack em todo alvo
 /// de toque e contraste de 4,5:1 no texto. A fonte em 150% é o S59
 /// (games_text_scale_test.dart).
 void main() {
@@ -130,5 +130,20 @@ void main() {
   testWidgets('detalhe do grupo com os jogos', (tester) async {
     await open(tester, ['/groups', '/groups/$quintaId']);
     await meetsChecklist(tester);
+  });
+
+  testWidgets('S60 (etapa B): pé de quem está na lista e na espera', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    h.signedIn(userId: brunoId);
+    h.game(() => game1(viewerId: brunoId));
+    await open(tester, ['/games', '/games/$game1Id']);
+    await meetsChecklist(tester);
+
+    h.game(() => game2(viewerId: brunoId));
+    await open(tester, ['/games', '/games/$game2Id']);
+    await meetsChecklist(tester);
+    semantics.dispose();
   });
 }

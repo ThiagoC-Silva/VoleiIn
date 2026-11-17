@@ -4,6 +4,22 @@ import '../../auth/domain/pix_key.dart';
 
 part 'game_models.freezed.dart';
 
+/// Resultado de `leave_game` (docs/contratos-api.md, seção 4). O `SnackBar`
+/// da saída segue este valor, e não o relógio do aparelho (telas.md, 7.3).
+enum LeaveOutcome {
+  cancelledOnTime('cancelled_on_time'),
+  cancelledLate('cancelled_late'),
+  leftAfterStart('left_after_start');
+
+  const LeaveOutcome(this.value);
+
+  /// Valor devolvido pelo servidor.
+  final String value;
+
+  static LeaveOutcome fromValue(String value) =>
+      values.firstWhere((outcome) => outcome.value == value);
+}
+
 /// Enum `game_status` do banco (docs/modelo-dados.md, seção 3).
 enum GameStatus {
   @JsonValue('open')
