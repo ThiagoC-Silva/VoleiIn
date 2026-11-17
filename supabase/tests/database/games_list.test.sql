@@ -1,7 +1,7 @@
--- Lista de presença, espera e limite de vagas (fatia 4, etapa A).
--- Cenários O01 a O07 e O20 a O23 de docs/testes-referencia.md, seção 12.2, e
--- T03 a T05 da seção 3. Os O08 a O19 (saídas, espera e remoção) e T01, T02 e
--- T06 a T10 entram na etapa B.
+-- Lista de presença, espera e limite de vagas (fatia 4, etapas A e B).
+-- Cenários O01 a O23 de docs/testes-referencia.md, seção 12.2, e T01 a T10 da
+-- seção 3. A etapa A trouxe O01 a O07, O20 a O23 e T03 a T05; a etapa B, as
+-- saídas, a espera e a remoção (O08 a O19, T01, T02 e T06 a T10).
 -- Contratos: docs/contratos-api.md, seção 4.
 --
 -- Base e jogo base: os mesmos de games_functions.test.sql (seção 12; research
@@ -12,7 +12,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(41);
+select plan(94);
 
 -- Personagens (docs/setup.md, seção 8), mais o Edu, que só existe nos testes.
 insert into auth.users (
@@ -536,6 +536,430 @@ select throws_ok(
 );
 reset role;
 rollback to savepoint o23;
+
+-- =========================================================================
+-- Etapa B: saídas, espera e remoção
+-- =========================================================================
+
+-- Linha ativa na espera.
+create function pg_temp.add_waitlist(p_game uuid, p_user uuid, p_joined timestamptz default now())
+returns void
+language sql
+as $fn$
+  insert into public.game_waitlist (game_id, user_id, joined_at) values (p_game, p_user, p_joined);
+$fn$;
+
+-- Jogo 401 com as datas dadas e Bruno na lista (limite 3).
+create function pg_temp.game_with_bruno(p_deadline timestamptz, p_starts timestamptz, p_ends timestamptz)
+returns void
+language sql
+as $fn$
+  select pg_temp.make_game('00000000-0000-0000-0000-000000000401', p_deadline, p_starts, p_ends);
+  select pg_temp.add_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b');
+$fn$;
+
+-- Bruno chama leave_game no jogo 401 e guarda o retorno em t.<p_name>.
+create function pg_temp.bruno_leaves(p_name text)
+returns void
+language plpgsql
+as $fn$
+begin
+  perform pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+  set local role authenticated;
+  perform set_config('t.' || p_name, public.leave_game('00000000-0000-0000-0000-000000000401')::text, true);
+  reset role;
+end;
+$fn$;
+
+-- Status, left_at = now(), late_cancellation e falta da última passagem do Bruno no 401.
+create function pg_temp.bruno_passage()
+returns table (status text, left_now boolean, late boolean, absent boolean, source text)
+language sql
+as $fn$
+  select p.status::text, p.left_at = now(), p.late_cancellation, p.absent, p.absence_source::text
+  from public.game_participants p
+  where p.game_id = '00000000-0000-0000-0000-000000000401'
+    and p.user_id = '00000000-0000-0000-0000-00000000000b'
+  order by p.joined_at desc
+  limit 1;
+$fn$;
+
+-- Sair (RF50, RN29, RN57, RN60, RN61) ------------------------------------
+
+-- O08. Lista cheia, Edu na espera; Bruno sai antes do prazo.
+savepoint o08;
+select pg_temp.full_base_game();
+select pg_temp.add_waitlist('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000e');
+select lives_ok($$ select pg_temp.bruno_leaves('o08') $$, 'O08a: Bruno sai');
+select is(pg_temp.saved('o08') ->> 'outcome', 'cancelled_on_time', 'O08b: outcome = cancelled_on_time');
+select results_eq(
+  $$ select status, left_now, late from pg_temp.bruno_passage() $$,
+  $$ values ('cancelled'::text, true, false) $$,
+  'O08c: passagem cancelled, left_at = now() e late_cancellation = false'
+);
+select is(pg_temp.occupied('00000000-0000-0000-0000-000000000401'), 2::bigint, 'O08d: 2 ocupadas');
+select is(
+  (select status::text from public.games where id = '00000000-0000-0000-0000-000000000401'),
+  'open', 'O08e: status = open (RN42)'
+);
+select set_eq(
+  $$ select user_id, type::text, data ->> 'game_id', data ->> 'reason', data ->> 'group_name'
+     from public.notifications $$,
+  $$ values ('00000000-0000-0000-0000-00000000000e'::uuid, 'waitlist_slot_opened'::text,
+             '00000000-0000-0000-0000-000000000401'::text, 'slot_freed'::text, 'Vôlei de Quinta'::text) $$,
+  'O08f: notifica só o Edu (waitlist_slot_opened, reason slot_freed)'
+);
+select is(
+  (select left_at from public.game_waitlist
+   where game_id = '00000000-0000-0000-0000-000000000401' and user_id = '00000000-0000-0000-0000-00000000000e'),
+  null::timestamptz, 'O08g: Edu continua na espera (RN51)'
+);
+rollback to savepoint o08;
+
+-- O09. Prazo vencido, Bruno sai.
+savepoint o09;
+select pg_temp.game_with_bruno(now() - interval '1 hour', now() + interval '2 hours', now() + interval '4 hours');
+select pg_temp.bruno_leaves('o09');
+select is(pg_temp.saved('o09') ->> 'outcome', 'cancelled_late', 'O09a: outcome = cancelled_late');
+select is((select late from pg_temp.bruno_passage()), true, 'O09b: late_cancellation = true');
+rollback to savepoint o09;
+
+-- O10. Jogo iniciado e não terminado, lista cheia, Edu com linha na espera.
+savepoint o10;
+select pg_temp.make_game(
+  '00000000-0000-0000-0000-000000000401',
+  now() - interval '3 hours', now() - interval '1 hour', now() + interval '1 hour'
+);
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000c');
+select pg_temp.add_waitlist('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000e');
+select pg_temp.bruno_leaves('o10');
+select is(pg_temp.saved('o10') ->> 'outcome', 'left_after_start', 'O10a: outcome = left_after_start');
+select results_eq(
+  $$ select status, absent, source from pg_temp.bruno_passage() $$,
+  $$ values ('left_after_start'::text, true, 'left_after_start'::text) $$,
+  'O10b: passagem left_after_start, absent = true, absence_source = left_after_start'
+);
+select is(pg_temp.occupied('00000000-0000-0000-0000-000000000401'), 3::bigint, 'O10c: 3 ocupadas');
+select is(
+  (select status::text from public.games where id = '00000000-0000-0000-0000-000000000401'),
+  'confirmed', 'O10d: status = confirmed'
+);
+select is_empty($$ select 1 from public.notifications $$, 'O10e: nenhuma notificação');
+rollback to savepoint o10;
+
+-- O11. Ana, a recebedora, sai do jogo base e de um jogo iniciado.
+savepoint o11;
+select pg_temp.base_game();
+select pg_temp.make_game(
+  '00000000-0000-0000-0000-000000000402',
+  now() - interval '3 hours', now() - interval '1 hour', now() + interval '1 hour'
+);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'RECEIVER_LOCKED', 'O11a: jogo base (RN29)'
+);
+select throws_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000402') $$,
+  'P0001', 'RECEIVER_LOCKED', 'O11b: jogo iniciado'
+);
+reset role;
+rollback to savepoint o11;
+
+-- O12. Jogo depois do fim; jogo cancelado.
+savepoint o12;
+select pg_temp.game_with_bruno(now() - interval '5 hours', now() - interval '3 hours', now() - interval '1 hour');
+select pg_temp.make_game(
+  '00000000-0000-0000-0000-000000000402',
+  now() + interval '1 day', now() + interval '26 hours', now() + interval '28 hours'
+);
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000402', '00000000-0000-0000-0000-00000000000b');
+update public.games
+set status = 'cancelled', cancelled_at = now(), cancelled_by = '00000000-0000-0000-0000-00000000000a'
+where id = '00000000-0000-0000-0000-000000000402';
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select throws_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'LIST_LOCKED', 'O12a: depois do fim (T10)'
+);
+select throws_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000402') $$,
+  'P0001', 'GAME_NOT_OPEN', 'O12b: jogo cancelado'
+);
+reset role;
+rollback to savepoint o12;
+
+-- O13. Carla fora da lista; Diego.
+savepoint o13;
+select pg_temp.base_game();
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000c');
+set local role authenticated;
+select throws_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'NOT_PARTICIPANT', 'O13a: Carla, fora da lista'
+);
+reset role;
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000d');
+set local role authenticated;
+select throws_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'NOT_FOUND', 'O13b: Diego'
+);
+reset role;
+rollback to savepoint o13;
+
+-- O14. Prazo vencido; Bruno cancelou fora do prazo, volta e sai de novo (RN56).
+savepoint o14;
+select pg_temp.make_game(
+  '00000000-0000-0000-0000-000000000401',
+  now() - interval '1 hour', now() + interval '2 hours', now() + interval '4 hours'
+);
+insert into public.game_participants (id, game_id, user_id, joined_at, status, left_at, late_cancellation)
+values (
+  '00000000-0000-0000-0000-000000000501', '00000000-0000-0000-0000-000000000401',
+  '00000000-0000-0000-0000-00000000000b', now() - interval '50 minutes', 'cancelled',
+  now() - interval '30 minutes', true
+);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select lives_ok(
+  $$ select public.join_game('00000000-0000-0000-0000-000000000401') $$,
+  'O14a: Bruno volta'
+);
+reset role;
+select is(
+  (select cancellation_voided_at from public.game_participants where id = '00000000-0000-0000-0000-000000000501'),
+  now(), 'O14b: a passagem antiga ganha cancellation_voided_at = now() (RN56)'
+);
+select is(
+  (select user_id from public.game_participants
+   where game_id = '00000000-0000-0000-0000-000000000401' and status = 'active'
+   order by joined_at desc limit 1),
+  '00000000-0000-0000-0000-00000000000b'::uuid, 'O14c: a nova passagem é active, no fim da ordem'
+);
+select pg_temp.bruno_leaves('o14');
+select is(pg_temp.saved('o14') ->> 'outcome', 'cancelled_late', 'O14d: a nova saída é cancelled_late');
+select isnt(
+  (select cancellation_voided_at from public.game_participants where id = '00000000-0000-0000-0000-000000000501'),
+  null::timestamptz, 'O14e: a passagem antiga continua anulada'
+);
+rollback to savepoint o14;
+
+-- Espera (RF49, RN51, RN53, RN54) ----------------------------------------
+
+-- O15. Edu na espera, e o jogo voltou a Aberto (O08).
+savepoint o15;
+select pg_temp.full_base_game();
+select pg_temp.add_waitlist('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000e');
+select pg_temp.bruno_leaves('o15');
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000e');
+set local role authenticated;
+select lives_ok(
+  $$ select public.join_game('00000000-0000-0000-0000-000000000401') $$,
+  'O15a: Edu entra na lista'
+);
+reset role;
+select is(
+  (select left_at from public.game_waitlist
+   where game_id = '00000000-0000-0000-0000-000000000401' and user_id = '00000000-0000-0000-0000-00000000000e'),
+  now(), 'O15b: a linha da espera fica com left_at = now() (RN54)'
+);
+rollback to savepoint o15;
+
+-- O16. Edu na espera, lista cheia: sai, sai de novo e volta.
+savepoint o16;
+select pg_temp.full_base_game();
+select pg_temp.add_waitlist(
+  '00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000e', now() - interval '1 hour'
+);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000e');
+set local role authenticated;
+select lives_ok(
+  $$ select public.leave_waitlist('00000000-0000-0000-0000-000000000401') $$,
+  'O16a: Edu sai da espera'
+);
+reset role;
+select is(
+  (select left_at from public.game_waitlist
+   where game_id = '00000000-0000-0000-0000-000000000401' and user_id = '00000000-0000-0000-0000-00000000000e'),
+  now(), 'O16b: left_at = now()'
+);
+set local role authenticated;
+select throws_ok(
+  $$ select public.leave_waitlist('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'NOT_ON_WAITLIST', 'O16c: de novo, NOT_ON_WAITLIST'
+);
+select lives_ok(
+  $$ select public.join_waitlist('00000000-0000-0000-0000-000000000401') $$,
+  'O16d: Edu volta à espera'
+);
+reset role;
+select results_eq(
+  $$ select left_at, joined_at = now() from public.game_waitlist
+     where game_id = '00000000-0000-0000-0000-000000000401'
+       and user_id = '00000000-0000-0000-0000-00000000000e' $$,
+  $$ values (null::timestamptz, true) $$,
+  'O16e: left_at nulo e joined_at = now(), no fim da ordem'
+);
+rollback to savepoint o16;
+
+-- Remover (RF54, RF59, RN58) ---------------------------------------------
+
+-- O17. Lista cheia, Edu na espera; Ana remove o Bruno.
+savepoint o17;
+select pg_temp.full_base_game();
+select pg_temp.add_waitlist('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000e');
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select lives_ok(
+  $$ select set_config('t.o17', public.remove_participant(
+       '00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b')::text, true) $$,
+  'O17a: Ana remove o Bruno'
+);
+reset role;
+select is(pg_temp.saved('o17') ->> 'status', 'open', 'O17b: devolve status = open');
+select results_eq(
+  $$ select status, left_now, late from pg_temp.bruno_passage() $$,
+  $$ values ('removed'::text, true, null::boolean) $$,
+  'O17c: passagem removed e late_cancellation nulo'
+);
+select is(
+  (select removal_reason::text from public.game_participants
+   where game_id = '00000000-0000-0000-0000-000000000401' and user_id = '00000000-0000-0000-0000-00000000000b'),
+  'by_admin', 'O17d: removal_reason = by_admin'
+);
+select set_eq(
+  $$ select user_id, type::text, data ->> 'game_id', data ->> 'location_name' from public.notifications $$,
+  $$ values
+       ('00000000-0000-0000-0000-00000000000b'::uuid, 'removed_from_game'::text,
+        '00000000-0000-0000-0000-000000000401'::text, 'Quadra do Sesc'::text),
+       ('00000000-0000-0000-0000-00000000000e'::uuid, 'waitlist_slot_opened'::text,
+        '00000000-0000-0000-0000-000000000401'::text, 'Quadra do Sesc'::text) $$,
+  'O17e: notifica Bruno (removed_from_game) e Edu (waitlist_slot_opened)'
+);
+rollback to savepoint o17;
+
+-- O18. Jogo base com Bruno na lista.
+savepoint o18;
+select pg_temp.base_game();
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.make_game(
+  '00000000-0000-0000-0000-000000000402',
+  now() - interval '3 hours', now() - interval '1 hour', now() + interval '1 hour'
+);
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000402', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  $$ select public.remove_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000a') $$,
+  'P0001', 'CANNOT_REMOVE_SELF', 'O18a: Ana remove a si mesma (F12)'
+);
+select throws_ok(
+  $$ select public.remove_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000c') $$,
+  'P0001', 'NOT_PARTICIPANT', 'O18b: Ana remove a Carla, fora da lista'
+);
+select throws_ok(
+  $$ select public.remove_participant('00000000-0000-0000-0000-000000000402', '00000000-0000-0000-0000-00000000000b') $$,
+  'P0001', 'GAME_STARTED', 'O18d: Ana remove o Bruno com o jogo iniciado'
+);
+reset role;
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select throws_ok(
+  $$ select public.remove_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000a') $$,
+  'P0001', 'NOT_GAME_ADMIN', 'O18c: Bruno remove a Ana'
+);
+reset role;
+rollback to savepoint o18;
+
+-- O19. Bruno admin e na lista remove a Ana, a recebedora.
+savepoint o19;
+select pg_temp.base_game();
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b');
+insert into public.game_admins (game_id, user_id, added_by)
+values ('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000a');
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select throws_ok(
+  $$ select public.remove_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000a') $$,
+  'P0001', 'RECEIVER_LOCKED', 'O19: Bruno remove a recebedora (RN29)'
+);
+reset role;
+rollback to savepoint o19;
+
+-- =========================================================================
+-- Limites de tempo na saída (seção 3: T01, T02 e T06 a T10)
+-- =========================================================================
+
+-- T01. Prazo em now().
+savepoint t01;
+select pg_temp.game_with_bruno(now(), now() + interval '2 hours', now() + interval '4 hours');
+select pg_temp.bruno_leaves('t01');
+select is(pg_temp.saved('t01') ->> 'outcome', 'cancelled_on_time', 'T01a: outcome = cancelled_on_time');
+select results_eq(
+  $$ select status, late from pg_temp.bruno_passage() $$,
+  $$ values ('cancelled'::text, false) $$, 'T01b: cancelled, late_cancellation = false'
+);
+rollback to savepoint t01;
+
+-- T02. Prazo 1 µs antes de now(), início no futuro.
+savepoint t02;
+select pg_temp.game_with_bruno(now() - interval '1 microsecond', now() + interval '2 hours', now() + interval '4 hours');
+select pg_temp.bruno_leaves('t02');
+select is(pg_temp.saved('t02') ->> 'outcome', 'cancelled_late', 'T02a: outcome = cancelled_late');
+select results_eq(
+  $$ select status, late from pg_temp.bruno_passage() $$,
+  $$ values ('cancelled'::text, true) $$, 'T02b: cancelled, late_cancellation = true'
+);
+rollback to savepoint t02;
+
+-- T06. Início 1 µs depois de now().
+savepoint t06;
+select pg_temp.game_with_bruno(now() - interval '1 hour', now() + interval '1 microsecond', now() + interval '2 hours');
+select pg_temp.bruno_leaves('t06');
+select is((select status from pg_temp.bruno_passage()), 'cancelled', 'T06a: cancelled');
+select is(pg_temp.occupied('00000000-0000-0000-0000-000000000401'), 1::bigint, 'T06b: libera a vaga');
+rollback to savepoint t06;
+
+-- T07. Início em now().
+savepoint t07;
+select pg_temp.game_with_bruno(now() - interval '1 hour', now(), now() + interval '2 hours');
+select pg_temp.bruno_leaves('t07');
+select results_eq(
+  $$ select status, absent from pg_temp.bruno_passage() $$,
+  $$ values ('left_after_start'::text, true) $$, 'T07a: left_after_start, com falta'
+);
+select is(pg_temp.occupied('00000000-0000-0000-0000-000000000401'), 2::bigint, 'T07b: não libera a vaga');
+rollback to savepoint t07;
+
+-- T08. Prazo e início em now(): o início prevalece.
+savepoint t08;
+select pg_temp.game_with_bruno(now(), now(), now() + interval '2 hours');
+select pg_temp.bruno_leaves('t08');
+select is(pg_temp.saved('t08') ->> 'outcome', 'left_after_start', 'T08: left_after_start');
+rollback to savepoint t08;
+
+-- T09. Fim 1 µs depois de now(), jogo iniciado.
+savepoint t09;
+select pg_temp.game_with_bruno(now() - interval '3 hours', now() - interval '2 hours', now() + interval '1 microsecond');
+select pg_temp.bruno_leaves('t09');
+select is(pg_temp.saved('t09') ->> 'outcome', 'left_after_start', 'T09: left_after_start');
+rollback to savepoint t09;
+
+-- T10. Fim em now().
+savepoint t10;
+select pg_temp.game_with_bruno(now() - interval '3 hours', now() - interval '2 hours', now());
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select throws_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'LIST_LOCKED', 'T10: fim em now(), LIST_LOCKED'
+);
+reset role;
+rollback to savepoint t10;
 
 -- Sem finish(): o rollback para cada savepoint apaga a tabela de resultados do
 -- pgTAP (a numeração segue certa, porque vem de uma sequência). O pg_prove

@@ -120,7 +120,7 @@ select set_eq(
 
 -- B06. Funções de public que anon ou authenticated podem executar, fora as de
 -- extensões. Lista esperada: current_terms_versions() (fatia 2), as dez
--- funções de grupo (fatia 3) e as sete funções da etapa A da fatia 4, só para
+-- funções de grupo (fatia 3) e as sete da etapa A e as três da etapa B da fatia 4, só para
 -- authenticated. Este é o teste que cobra o `revoke execute ... from public, anon`
 -- de toda função nova (docs/arquitetura-app.md, 14.3).
 select set_eq(
@@ -146,11 +146,14 @@ select set_eq(
     'update_game(uuid,text,text,timestamp with time zone,timestamp with time zone,timestamp with time zone,integer)',
     'join_game(uuid,text)',
     'join_waitlist(uuid,text)',
+    'leave_game(uuid)',
+    'remove_participant(uuid,uuid)',
+    'leave_waitlist(uuid)',
     'set_slot_limit(uuid,integer)',
     'get_profile_contact(uuid)',
     'get_game_groups(uuid[])'
   ],
-  'B06a: authenticated executa só as funções da lista esperada (fatia 4, etapa A)'
+  'B06a: authenticated executa só as funções da lista esperada (fatia 4, etapa B)'
 );
 
 select is_empty(
