@@ -82,9 +82,11 @@ Começa numa conversa nova, depois do *merge* da sessão 2, com os PNGs de `docs
 
 ### Phase 7
 
-- [ ] T028 L15 (sem o cancelamento) no emulador, APIs 29 e 36, pelos `scripts/`; M06 com o responsável, no celular
-- [ ] T029 Ensaio da migração (`docs/setup.md`, 9.2) e `supabase db push` na produção; `get_advisors`
-- [ ] T030 Atualizar `docs/rastreabilidade.md` (RFs com teste, ainda "Em andamento" até a etapa C) e a linha "Estado atual" do `CLAUDE.md`
+- [x] T028 L15 (sem o cancelamento) no emulador, APIs 29 e 36, pelos `scripts/`; M06 com o responsável, no celular
+- [x] T029 Ensaio da migração (`docs/setup.md`, 9.2) e `supabase db push` na produção; `get_advisors`
+- [x] T030 Atualizar `docs/rastreabilidade.md` (RFs com teste, ainda "Em andamento" até a etapa C) e a linha "Estado atual" do `CLAUDE.md`
+
+**Sessão 4 em 17/11/2026:** L15 verde nas APIs 29 e 36, depois de dois ajustes no próprio teste, sem mudar o que ele confere. O `.last` do `flutter_test` lança `StateError` quando ainda não há widget, e o `pumpUntil` caía na primeira volta na API 29, mais lenta. E na tela menor da API 29 o card novo ficava abaixo da dobra, então a espera em Meus jogos e no grupo passou a rolar a lista (`pumpUntilScrolled`). As 4 migrações na produção, com o ensaio (`docs/setup.md`, 9.6). **Falta o M06**, com o responsável, no celular, com o build da produção.
 
 ## Dependencies & Execution Order
 

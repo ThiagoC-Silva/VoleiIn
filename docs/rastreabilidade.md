@@ -4,7 +4,7 @@ Liga cada requisito funcional (RF) às regras (RN), à fatia, ao banco, às tela
 
 - **Fonte:** os RFs vêm de `requisitos.md`, a fatia de `plano-implementacao.md` e as RNs da última coluna de `regras-negocio.md`. Os IDs de teste são os cenários de `testes-referencia.md`.
 - **Preenchimento:** banco, telas e testes entram ao fechar cada fatia. As fatias ainda não feitas têm só RN e fatia.
-- **Status:** *Pendente*; *Feito no local*, com os testes automáticos verdes e o fluxo conferido no emulador; *Falta Mxx*, à espera da conferência manual; *Concluído*, depois da conferência na produção (M03 e M04, na fatia 2).
+- **Status:** *Pendente*; *Em andamento*, com parte do RF feita e testada numa etapa da fatia e o resto numa etapa seguinte; *Feito no local*, com os testes automáticos verdes e o fluxo conferido no emulador; *Falta Mxx*, à espera da conferência manual; *Concluído*, depois da conferência na produção (M03 e M04, na fatia 2).
 - **Critério** (`plan-docs.md`, 5.4): nenhum RF sem fatia; nenhum RF concluído sem teste.
 
 A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos por `supabase/tests/database/` e pelas seções 1 a 8 de `testes-referencia.md`.
@@ -12,6 +12,8 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 **Fatia 2, em 13/11/2026:** RFs com testes automáticos verdes e L06 a L11 nas APIs 29 e 36. M01 e M02 conferidos no celular contra o Supabase local, e M03 e M04 na produção, em 13/11/2026. Os 16 RFs da fatia estão concluídos.
 
 **Fatia 3, em 16/11/2026:** RFs com testes automáticos verdes e L12 a L14 nas APIs 29 e 36, com as migrações e a `preview-invite` na produção. M05 conferido no celular, com o build da produção, em 16/11/2026. Os 12 RFs da fatia estão concluídos. RF15 e RF16 cobrem o código de convite: abrir o convite por link fica para a fatia 8 (`plano-implementacao.md`). RF22 e RF102, os efeitos da saída do grupo sobre os jogos, ficam para a fatia 4.
+
+**Fatia 4, etapa A, em 17/11/2026:** criar, ver e editar o jogo, entrar na lista e na espera. Testes automáticos verdes e L15 (sem o cancelamento) nas APIs 29 e 36, com as 4 migrações na produção. Os RFs da etapa ficam *Em andamento* até a etapa C, que fecha a fatia com a saída, a espera, o cancelamento e os efeitos da saída do grupo (RF22, RF102).
 
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
@@ -40,36 +42,36 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF23 | 3 | RN10 | `set_group_role` | `/groups/:groupId/members` | G19, G21, G22, S29, S31, L14 | Concluído |
 | RF24 | 3 | RN13 | `set_group_role`, `leave_group`; invariante de admin da fatia 1 | `/groups/:groupId`, `/groups/:groupId/members` | G20, G24, G25, S26, S31 | Concluído |
 | RF25 | 3 | — | `group_members`; leitura de `groups` pelo membro | `/groups` | K01, S18, S19 | Concluído |
-| RF26 | 4 | RN06, RN15, RN20, RN21, RN23 | — | — | — | Pendente |
-| RF27 | 4 | RN20 | — | — | — | Pendente |
-| RF28 | 4 | RN23 | — | — | — | Pendente |
-| RF29 | 4 | RN05, RN24 | — | — | — | Pendente |
-| RF30 | 4 | RN23 | — | — | — | Pendente |
-| RF31 | 4 | RN21, RN28 | — | — | — | Pendente |
-| RF32 | 4 | RN22, RN28 | — | — | — | Pendente |
+| RF26 | 4 | RN06, RN15, RN20, RN21, RN23 | `games`; `create_game` | `/games/new`, `/groups/:groupId` | J01, J02, J05 a J08, S39 a S41, L15 | Em andamento |
+| RF27 | 4 | RN20 | `create_game` (sem rascunho) | `/games/new` | J01, J02, J05 a J08, S39 a S41, L15 | Em andamento |
+| RF28 | 4 | RN23 | `games.location_name`, `maps_url` | `/games/new`, `/games/:gameId` | J01, J02, J05 a J08, S39 a S41, L15 | Em andamento |
+| RF29 | 4 | RN05, RN24 | `games.total_cents`; estimativa no app (RN05) | `/games/new` | J07, U09, U11, S41 | Em andamento |
+| RF30 | 4 | RN23 | `games.starts_at`, `ends_at`, `cancellation_deadline` | `/games/new` | J01, J02, J05 a J08, S39 a S41, L15 | Em andamento |
+| RF31 | 4 | RN21, RN28 | `game_admins` (criador) | `/games/new` | J01, J04, S38 | Em andamento |
+| RF32 | 4 | RN22, RN28 | `games.receiver_id` | `/games/new` | J01, J04, S38 | Em andamento |
 | RF33 | 5 | RN29, RN30, RN31, RN94, RN115 | — | — | — | Pendente |
 | RF34 | 4 | RN15, RN25, RN27 | — | — | — | Pendente |
 | RF35 | 4 | RN16, RN25, RN26 | — | — | — | Pendente |
-| RF36 | 4 | RN33, RN34, RN35 | — | — | — | Pendente |
-| RF37 | 4 | RN40 | — | — | — | Pendente |
-| RF38 | 4 | RN41, RN42 | — | — | — | Pendente |
+| RF36 | 4 | RN33, RN34, RN35 | `update_game` | `/games/:gameId/edit` | J09 a J13, S53 | Em andamento |
+| RF37 | 4 | RN40 | `games.slot_limit`; `game_limit_history` | `/games/new` | J03, O01, O02, O20, O21 | Em andamento |
+| RF38 | 4 | RN41, RN42 | `join_game` (limite) | `/games/:gameId` | J03, O01, O02, O20, O21 | Em andamento |
 | RF39 | 4 | RN43 | — | — | — | Pendente |
 | RF40 | 5 | RN34, RN36, RN44, RN46, RN47, RN70 | — | — | — | Pendente |
 | RF41 | 5 | RN34, RN48, RN74 | — | — | — | Pendente |
 | RF42 | 5 | RN45, RN46, RN49 | — | — | — | Pendente |
 | RF43 | 8 | RN55 | — | — | — | Pendente |
-| RF44 | 4 | — | — | — | — | Pendente |
-| RF45 | 4 | RN102 | — | — | — | Pendente |
-| RF46 | 4 | RN52, RN107 | — | — | — | Pendente |
-| RF47 | 4 | RN50 | — | — | — | Pendente |
+| RF44 | 4 | — | `can_view_game`; RLS de `games` | `/games`, `/games/:gameId` | W01 a W04, W13, W14, S36, S37, S50 | Em andamento |
+| RF45 | 4 | RN102 | `get_profile_contact` (chave Pix) | `/games/:gameId` | W08 a W11, S42, S44 | Em andamento |
+| RF46 | 4 | RN52, RN107 | RLS de `game_participants`, `game_waitlist`; Realtime | `/games/:gameId` | W01 a W04, W13, W14, S36, S37, S50 | Em andamento |
+| RF47 | 4 | RN50 | `join_game`; `game_participants` | `/games/:gameId` | O01 a O07, T03 a T05, S42 | Em andamento |
 | RF48 | 8 | RN50, RN107 | — | — | — | Pendente |
-| RF49 | 4 | RN51, RN54 | — | — | — | Pendente |
+| RF49 | 4 | RN51, RN54 | `join_waitlist`; `game_waitlist` (só a entrada) | `/games/:gameId` | O03, O04, T05 | Em andamento |
 | RF50 | 4 | RN02, RN29, RN56, RN57 | — | — | — | Pendente |
-| RF51 | 4 | RN53 | — | — | — | Pendente |
-| RF52 | 4 | RN42, RN53, RN59 | — | — | — | Pendente |
-| RF53 | 4 | RN33, RN41, RN59 | — | — | — | Pendente |
+| RF51 | 4 | RN53 | `join_game` com trava por jogo (RN53) | `/games/:gameId` | C01, C02, C04, C05 | Em andamento |
+| RF52 | 4 | RN42, RN53, RN59 | `set_slot_limit` | `/games/:gameId/edit` | O20 a O23, C05, S53 | Em andamento |
+| RF53 | 4 | RN33, RN41, RN59 | `set_slot_limit` (redução) | `/games/:gameId/edit` | O20 a O23, C05, S53 | Em andamento |
 | RF54 | 4 | RN29, RN58 | — | — | — | Pendente |
-| RF55 | 4 | RN02, RN03, RN51 | — | — | — | Pendente |
+| RF55 | 4 | RN02, RN03, RN51 | `join_game` (prazo e início, RN03) | `/games/:gameId` | O01 a O07, T03 a T05, S42 | Em andamento |
 | RF56 | 5 | RN02, RN03, RN35, RN57, RN60 | — | — | — | Pendente |
 | RF57 | 5 | RN03, RN56, RN61 | — | — | — | Pendente |
 | RF58 | 5 | RN62 | — | — | — | Pendente |
