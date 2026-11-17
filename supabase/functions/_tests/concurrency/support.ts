@@ -226,3 +226,30 @@ export async function gameState(
   if (countError) throw new Error(`Could not count: ${countError.message}`);
   return { occupied: count ?? 0, slotLimit: game.slot_limit, status: game.status };
 }
+
+// Devolve a conta ao grupo de teste, se ela tiver saído (C16).
+export async function rejoinGroup({ accounts, groupId }: Fixture, account: Account): Promise<void> {
+  const owner = accounts[0].client;
+  const { data: member } = await owner
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', groupId)
+    .eq('user_id', account.id)
+    .maybeSingle();
+  if (member) return;
+  const { data: group, error } = await owner
+    .from('groups')
+    .select('invite_code')
+    .eq('id', groupId)
+    .single();
+  if (error) throw new Error(`Could not read the group: ${error.message}`);
+  const request = await rpc(account.client, 'request_group_join', {
+    p_invite_code: group.invite_code,
+  });
+  if (request.error) throw new Error(`${account.email} could not ask: ${request.error.message}`);
+  const decision = await rpc(owner, 'decide_join_request', {
+    p_request_id: (request.data as { request_id: string }).request_id,
+    p_approve: true,
+  });
+  if (decision.error) throw new Error(`Could not approve: ${decision.error.message}`);
+}

@@ -1,6 +1,6 @@
--- Funções de jogo: criar e editar (fatia 4, etapa A).
--- Cenários J01 a J13 de docs/testes-referencia.md, seção 12.1. Os J14 a J21
--- (cancelar e admins) entram na etapa C.
+-- Funções de jogo: criar, editar, cancelar e admins (fatia 4, etapas A e C).
+-- Cenários J01 a J21 de docs/testes-referencia.md, seção 12.1. J01 a J13 são
+-- da etapa A; J14 a J21 (cancelar e admins), da etapa C.
 -- Contratos: docs/contratos-api.md, seção 4.
 --
 -- Base dos cenários (seção 12), inserida aqui sem depender do seed
@@ -18,7 +18,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(43);
+select plan(68);
 
 -- Personagens (docs/setup.md, seção 8), mais o Edu, que só existe nos testes.
 insert into auth.users (
@@ -583,6 +583,209 @@ select is(
   'J13b: a passagem do Bruno continua com late_cancellation = true (RN35)'
 );
 rollback to savepoint j13;
+
+-- =========================================================================
+-- Etapa C: cancelar (RF39, RN43, RN67, RN114) e admins (RF34, RF35, RN25 a RN27)
+-- =========================================================================
+
+
+-- J14. Jogo base cheio (limite 3: Ana, Bruno e Carla), Edu na espera.
+savepoint j14;
+select pg_temp.base_game();
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000c');
+insert into public.game_waitlist (game_id, user_id)
+values ('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000e');
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select lives_ok(
+  $$ select public.cancel_game('00000000-0000-0000-0000-000000000401') $$,
+  'J14a: Ana cancela'
+);
+reset role;
+select results_eq(
+  $$ select status::text, cancelled_at = now(), cancelled_by from public.games
+     where id = '00000000-0000-0000-0000-000000000401' $$,
+  $$ values ('cancelled'::text, true, '00000000-0000-0000-0000-00000000000a'::uuid) $$,
+  'J14b: cancelled, cancelled_at = now() e cancelled_by = Ana'
+);
+select set_eq(
+  $$ select user_id, type::text, data ->> 'game_id' as game_id from public.notifications $$,
+  $$ values
+       ('00000000-0000-0000-0000-00000000000b'::uuid, 'game_cancelled'::text, '00000000-0000-0000-0000-000000000401'::text),
+       ('00000000-0000-0000-0000-00000000000c'::uuid, 'game_cancelled'::text, '00000000-0000-0000-0000-000000000401'::text),
+       ('00000000-0000-0000-0000-00000000000e'::uuid, 'game_cancelled'::text, '00000000-0000-0000-0000-000000000401'::text) $$,
+  'J14c: notifica Bruno, Carla e Edu (game_cancelled), e não Ana'
+);
+set local role authenticated;
+select throws_ok(
+  $$ select public.cancel_game('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'GAME_NOT_OPEN', 'J14d: de novo, GAME_NOT_OPEN'
+);
+reset role;
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000e');
+set local role authenticated;
+select throws_ok(
+  $$ select public.join_waitlist('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'GAME_NOT_OPEN', 'J14e: Edu na espera, GAME_NOT_OPEN'
+);
+reset role;
+rollback to savepoint j14;
+
+-- J15. Jogo iniciado; jogo depois do fim.
+savepoint j15;
+select pg_temp.make_game(
+  '00000000-0000-0000-0000-000000000401',
+  now() - interval '3 hours', now() - interval '1 hour', now() + interval '1 hour'
+);
+select pg_temp.make_game(
+  '00000000-0000-0000-0000-000000000402',
+  now() - interval '5 hours', now() - interval '3 hours', now() - interval '1 hour'
+);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select lives_ok(
+  $$ select public.cancel_game('00000000-0000-0000-0000-000000000401') $$,
+  'J15a: jogo iniciado, aceito (RN43)'
+);
+select lives_ok(
+  $$ select public.cancel_game('00000000-0000-0000-0000-000000000402') $$,
+  'J15b: jogo depois do fim, aceito'
+);
+reset role;
+rollback to savepoint j15;
+
+-- J16. Bruno, membro e não admin; Diego.
+savepoint j16;
+select pg_temp.base_game();
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select throws_ok(
+  $$ select public.cancel_game('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'NOT_GAME_ADMIN', 'J16a: Bruno'
+);
+reset role;
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000d');
+set local role authenticated;
+select throws_ok(
+  $$ select public.cancel_game('00000000-0000-0000-0000-000000000401') $$,
+  'P0001', 'NOT_FOUND', 'J16b: Diego'
+);
+reset role;
+rollback to savepoint j16;
+
+-- J17 a J20 em sequência: Bruno vira admin, Ana deixa o papel, Bruno sai da lista.
+savepoint j17;
+select pg_temp.base_game();
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b');
+insert into public.game_waitlist (game_id, user_id)
+values ('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000e');
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select lives_ok(
+  $$ select public.add_game_admin('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b') $$,
+  'J17a: Ana adiciona o Bruno'
+);
+reset role;
+select is(
+  (select added_by from public.game_admins
+   where game_id = '00000000-0000-0000-0000-000000000401' and user_id = '00000000-0000-0000-0000-00000000000b'),
+  '00000000-0000-0000-0000-00000000000a'::uuid, 'J17b: Bruno admin, com added_by = Ana'
+);
+set local role authenticated;
+select throws_ok(
+  $$ select public.add_game_admin('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b') $$,
+  'P0001', 'ALREADY_GAME_ADMIN', 'J17c: de novo com o Bruno'
+);
+select throws_ok(
+  $$ select public.add_game_admin('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000e') $$,
+  'P0001', 'ADMIN_MUST_BE_PARTICIPANT', 'J17d: Edu, na espera (RN27)'
+);
+select throws_ok(
+  $$ select public.add_game_admin('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000d') $$,
+  'P0001', 'ADMIN_MUST_BE_PARTICIPANT', 'J17e: Diego'
+);
+reset role;
+select is_empty($$ select 1 from public.notifications $$, 'J17f: nenhuma notificação');
+
+-- J19. Depois do J17, Ana deixa de ser admin.
+set local role authenticated;
+select lives_ok(
+  $$ select public.remove_game_admin('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000a') $$,
+  'J19a: Ana remove a si mesma'
+);
+reset role;
+select results_eq(
+  $$ select user_id from public.game_admins where game_id = '00000000-0000-0000-0000-000000000401' $$,
+  $$ values ('00000000-0000-0000-0000-00000000000b'::uuid) $$,
+  'J19b: Bruno fica como único admin'
+);
+select results_eq(
+  $$ select g.receiver_id, exists (
+       select 1 from public.game_participants p
+       where p.game_id = g.id and p.user_id = g.receiver_id and p.status = 'active')
+     from public.games g where g.id = '00000000-0000-0000-0000-000000000401' $$,
+  $$ values ('00000000-0000-0000-0000-00000000000a'::uuid, true) $$,
+  'J19c: Ana continua na lista e recebedora'
+);
+
+-- J20. Bruno sai da lista antes do prazo e continua admin.
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select lives_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000401') $$,
+  'J20a: Bruno sai da lista'
+);
+reset role;
+select ok(
+  exists (select 1 from public.game_admins
+          where game_id = '00000000-0000-0000-0000-000000000401' and user_id = '00000000-0000-0000-0000-00000000000b'),
+  'J20b: Bruno continua admin (RN26)'
+);
+set local role authenticated;
+select lives_ok(
+  $$ select public.update_game('00000000-0000-0000-0000-000000000401', 'Ginásio Verdão', null,
+       now() + interval '1 day', now() + interval '26 hours', now() + interval '28 hours', 9000) $$,
+  'J20c: e o update_game dele é aceito'
+);
+reset role;
+rollback to savepoint j17;
+
+-- J18. Ana única admin.
+savepoint j18;
+select pg_temp.base_game();
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  $$ select public.remove_game_admin('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000a') $$,
+  'P0001', 'LAST_GAME_ADMIN', 'J18a: Ana remove a si mesma'
+);
+select throws_ok(
+  $$ select public.remove_game_admin('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000c') $$,
+  'P0001', 'NOT_GAME_ADMIN_TARGET', 'J18b: Carla não é admin'
+);
+reset role;
+rollback to savepoint j18;
+
+-- J21. Bruno, membro e não admin; Diego.
+savepoint j21;
+select pg_temp.base_game();
+select pg_temp.add_participant('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select throws_ok(
+  $$ select public.add_game_admin('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b') $$,
+  'P0001', 'NOT_GAME_ADMIN', 'J21a: Bruno'
+);
+reset role;
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000d');
+set local role authenticated;
+select throws_ok(
+  $$ select public.add_game_admin('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-00000000000b') $$,
+  'P0001', 'NOT_FOUND', 'J21b: Diego'
+);
+reset role;
+rollback to savepoint j21;
 
 -- Sem finish(): o rollback para cada savepoint apaga a tabela de resultados do
 -- pgTAP (a numeração segue certa, porque vem de uma sequência). O pg_prove

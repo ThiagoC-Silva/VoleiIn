@@ -1,6 +1,6 @@
--- RLS e visibilidade dos jogos (fatia 4, etapa A).
--- Cenários W01 a W11 e W13 a W15 de docs/testes-referencia.md, seção 12.4. O W12
--- (telefone oculto) entra na etapa C.
+-- RLS e visibilidade dos jogos (fatia 4, etapas A e C).
+-- Cenários W01 a W15 de docs/testes-referencia.md, seção 12.4. O W12 (telefone
+-- oculto) é da etapa C.
 -- Documentos: docs/rls-matriz.md (fatia 4) e docs/contratos-api.md (seção 4,
 -- get_profile_contact e get_game_groups).
 --
@@ -12,7 +12,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(41);
+select plan(43);
 
 -- Personagens (docs/setup.md, seção 8), mais o Edu, que só existe nos testes.
 insert into auth.users (
@@ -558,6 +558,18 @@ select set_eq(
   array['games', 'game_participants', 'game_waitlist'],
   'W15: a publicação supabase_realtime tem exatamente games, game_participants e game_waitlist'
 );
+
+-- W12. Bruno com telefone oculto; o próprio contato.
+savepoint w12;
+select is(
+  pg_temp.contact_as('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b') ->> 'phone',
+  null, 'W12a: Ana recebe o telefone do Bruno nulo (RN101)'
+);
+select is(
+  pg_temp.contact_as('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a'),
+  pg_temp.ana_contact(true, true), 'W12b: o próprio telefone e a própria chave'
+);
+rollback to savepoint w12;
 
 -- Sem finish(): o rollback para cada savepoint apaga a tabela de resultados do
 -- pgTAP (a numeração segue certa, porque vem de uma sequência). O pg_prove
