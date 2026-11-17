@@ -177,7 +177,8 @@ void main() {
 
   // Códigos das funções de jogo da etapa A da fatia 4 (docs/copy.md, 8.8;
   // contratos-api.md, seção 4: create_game, update_game, join_game,
-  // join_waitlist e set_slot_limit). As etapas B e C acrescentam os seus.
+  // join_waitlist e set_slot_limit) e da etapa B (leave_game, remove_participant
+  // e leave_waitlist). A etapa C acrescenta os seus.
   const gameCodes = {
     'NOT_GAME_ADMIN': ErrorCode.notGameAdmin,
     'INVALID_GAME_DATES': ErrorCode.invalidGameDates,
@@ -191,6 +192,11 @@ void main() {
     'ALREADY_PARTICIPANT': ErrorCode.alreadyParticipant,
     'ALREADY_ON_WAITLIST': ErrorCode.alreadyOnWaitlist,
     'SLOT_LIMIT_BELOW_PARTICIPANTS': ErrorCode.slotLimitBelowParticipants,
+    // Etapa B: leave_game, remove_participant e leave_waitlist.
+    'LIST_LOCKED': ErrorCode.listLocked,
+    'NOT_ON_WAITLIST': ErrorCode.notOnWaitlist,
+    'NOT_PARTICIPANT': ErrorCode.notParticipant,
+    'RECEIVER_LOCKED': ErrorCode.receiverLocked,
   };
 
   for (final entry in gameCodes.entries) {
