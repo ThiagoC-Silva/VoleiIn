@@ -74,9 +74,24 @@ void main() {
     final deadline = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(deadline)) {
       await tester.pump(const Duration(milliseconds: 100));
-      if (finder.evaluate().isNotEmpty) return;
+      if (_found(finder)) return;
     }
     throw TestFailure('Não apareceu em ${timeout.inSeconds} s: $finder');
+  }
+
+  /// Espera o texto aparecer, rolando a lista: na tela menor da API 29 o
+  /// card novo fica abaixo da dobra, e a lista não monta o que não aparece.
+  Future<void> pumpUntilScrolled(WidgetTester tester, Finder finder) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 20));
+    while (DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 200));
+      if (_found(finder)) return;
+      final scrollables = find.byType(Scrollable);
+      if (_found(scrollables)) {
+        await tester.drag(scrollables.last, const Offset(0, -300));
+      }
+    }
+    throw TestFailure('Não apareceu em 20 s, rolando: $finder');
   }
 
   Future<void> tapReady(WidgetTester tester, Finder finder) async {
@@ -153,14 +168,24 @@ void main() {
     // Em Meus jogos, Próximos.
     await tapReady(tester, find.byTooltip(l10nPt.commonBack));
     await pumpUntil(tester, find.text(l10nPt.gamesFilterUpcoming));
-    await pumpUntil(tester, find.text(name));
+    await pumpUntilScrolled(tester, find.text(name));
 
     // No grupo, em Próximos jogos.
     await tapReady(tester, find.text(l10nPt.navGroups).last);
     await pumpUntil(tester, find.text(l10nPt.groupGamesTitle));
-    await tester.drag(find.byType(Scrollable).last, const Offset(0, -300));
-    await pumpUntil(tester, find.text(name));
+    await pumpUntilScrolled(tester, find.text(name));
   });
+}
+
+/// Se o finder acha algo. O `.last` lança `StateError` enquanto não há nenhum
+/// widget, em vez de devolver vazio: num aparelho mais lento (API 29), a
+/// primeira volta do `pumpUntil` chegava antes da tela e o teste caía ali.
+bool _found(Finder finder) {
+  try {
+    return finder.evaluate().isNotEmpty;
+  } on StateError {
+    return false;
+  }
 }
 
 /// Respostas fixas no lugar dos seletores nativos, na ordem dos toques.

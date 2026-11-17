@@ -343,6 +343,17 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
   - Desempenho: WARN `multiple_permissive_policies` em `profiles` e `group_join_requests` (as políticas separadas por caso da `rls-matriz.md`), INFO de chaves estrangeiras sem índice e índices sem uso, num banco quase vazio.
 - **M05** conferido com o responsável, no celular, com o build da produção (`flutter build apk --release --dart-define-from-file=env/prod.json`, instalado por depuração sem fio): **Compartilhar** abriu o seletor do Android, e o texto chegou ao WhatsApp com o nome do grupo e o código no fim.
 
+### 9.6 Migrações da etapa A da fatia 4 (17/11/2026)
+
+**Feita em 17/11/2026**, pelo agente. A produção tinha as 23 migrações das fatias 1 a 3, uma conta e um grupo.
+
+- Ensaio da seção 9.2: cópia em `~/voleiin-dumps`, banco local montado na versão `20261115120300` sem seed. A carga falhou na primeira vez: o Auth da produção ganhou colunas que o Supabase local ainda não tem (`one_time_tokens.link_token_hash`, `saml_providers.dedicated_scope`), e o `COPY` cita as colunas. As duas tabelas estavam vazias, então a carga rodou de uma cópia do dump sem os blocos `COPY` vazios (`data-local.sql`, na mesma pasta): sobram só as tabelas com dados, e nenhuma delas mudou de colunas. As 4 migrações novas aplicadas sem erro e os 398 testes pgTAP verdes. Contagens iguais antes e depois (1 conta, 1 perfil, 2 aceites, 1 grupo, 1 membro), jogos vazios e nenhuma tabela sem RLS.
+- `supabase db push --dry-run` listou as mesmas 4, sem seed nem roles, e o `supabase db push` as aplicou: `20261116120000` a `20261116120300`. Nenhuma Edge Function nova.
+- Conferência: `list_migrations` com as 27 migrações. Advisors:
+  - INFO de RLS sem política em 9 tabelas das fatias seguintes (eram 14; `games`, `game_participants`, `game_waitlist`, `game_admins` e `game_limit_history` ganharam política).
+  - WARN `authenticated_security_definer_function_executable` em 17 funções, as 10 de grupo e as 7 de jogo: é o desenho (seção 9.5).
+  - Os mesmos WARN de Auth e de desempenho da seção 9.5, e INFO de chaves estrangeiras sem índice e índices sem uso.
+
 ## 10. Domínio, e-mail e convites
 
 | Item | Valor | Observação |
