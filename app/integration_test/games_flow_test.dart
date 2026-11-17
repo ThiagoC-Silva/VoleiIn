@@ -145,6 +145,8 @@ void main() {
     await pumpUntil(tester, find.text(l10nPt.groupGamesTitle));
     await tapReady(tester, button<FilledButton>(l10nPt.gamesCreate));
     await pumpUntil(tester, find.text(l10nPt.gameLocationLabel));
+    // O nome do grupo chega com a leitura dos grupos, mais lenta na API 29.
+    await pumpUntil(tester, find.text(quinta));
     expect(find.text(quinta), findsOneWidget);
 
     await tester.enterText(field('gameLocationField'), name);
@@ -330,6 +332,8 @@ void main() {
     );
     await tapReady(tester, find.text(l10nPt.navGroups).last);
     await tapReady(tester, find.text(quinta));
+    // Os jogos do grupo empurram o botão para baixo da dobra.
+    await pumpUntilScrolled(tester, button<OutlinedButton>(l10nPt.groupLeave));
     await tapReady(tester, button<OutlinedButton>(l10nPt.groupLeave));
     await tapReady(tester, button<FilledButton>(l10nPt.groupLeave).last);
     await pumpUntil(tester, find.text(l10nPt.groupBlockedReceiverBody));

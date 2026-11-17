@@ -25,6 +25,8 @@
 
 ## Sessão 4 — Validação
 
-- [ ] T012 L15, L18 e L19 nas APIs 29 e 36; M07 com o responsável
+- [x] T012 L15, L18 e L19 nas APIs 29 e 36; M07 com o responsável
 - [ ] T013 Ensaio e `supabase db push`; advisors
 - [ ] T014 Fechamento da fatia 4 (`docs/trabalho-com-agente.md`, seção 11): rastreabilidade e "Estado atual"
+
+**Sessão 4, parcial, em 17/11/2026:** L15 a L19 verdes nas APIs 29 e 36, e o fluxo de grupos da fatia 3 verde na API 29. Ajustes só nos testes de integração, sem mudar o que conferem: o L19 rola até **Sair do grupo** (os jogos do grupo o empurram para baixo da dobra) e o L15 espera o nome do grupo na criação (mais lento na API 29). **Falta:** M07 com o responsável no celular, o ensaio e o `supabase db push` da migração `20261117130000` (T013) e o fechamento da fatia 4 (T014).
