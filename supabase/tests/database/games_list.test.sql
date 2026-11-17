@@ -603,7 +603,8 @@ select is(
   'open', 'O08e: status = open (RN42)'
 );
 select set_eq(
-  $$ select user_id, type::text, data ->> 'game_id', data ->> 'reason', data ->> 'group_name'
+  $$ select user_id, type::text, data ->> 'game_id' as game_id, data ->> 'reason' as reason,
+            data ->> 'group_name' as group_name
      from public.notifications $$,
   $$ values ('00000000-0000-0000-0000-00000000000e'::uuid, 'waitlist_slot_opened'::text,
              '00000000-0000-0000-0000-000000000401'::text, 'slot_freed'::text, 'Vôlei de Quinta'::text) $$,
@@ -832,7 +833,8 @@ select is(
   'by_admin', 'O17d: removal_reason = by_admin'
 );
 select set_eq(
-  $$ select user_id, type::text, data ->> 'game_id', data ->> 'location_name' from public.notifications $$,
+  $$ select user_id, type::text, data ->> 'game_id' as game_id, data ->> 'location_name' as location_name
+     from public.notifications $$,
   $$ values
        ('00000000-0000-0000-0000-00000000000b'::uuid, 'removed_from_game'::text,
         '00000000-0000-0000-0000-000000000401'::text, 'Quadra do Sesc'::text),

@@ -17,12 +17,14 @@
 
 ### Phase 2: Implementação do servidor
 
-- [ ] T005 [US1] [US2] [US3] Migração `create_game_exit_functions`: `leave_game`, `remove_participant`, `leave_waitlist` (research R1 a R5)
+- [x] T005 [US1] [US2] [US3] Migração `create_game_exit_functions`: `leave_game`, `remove_participant`, `leave_waitlist` (research R1 a R5)
 
 ### Phase 3: Convergência do servidor
 
-- [ ] T006 `supabase db reset`, `supabase test db`, `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes
-- [ ] T007 Atualizar os documentos afetados e a linha "Estado atual" do `CLAUDE.md`; enviar o *branch* e abrir o PR
+- [x] T006 `supabase db reset`, `supabase test db`, `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes
+- [x] T007 Atualizar os documentos afetados e a linha "Estado atual" do `CLAUDE.md`; enviar o *branch* e abrir o PR
+
+**Sessão 2 concluída em 17/11/2026** no *branch* `fatia-4/servidor-b`: `supabase test db` (451 testes), `supabase db lint`, `deno fmt --check`, `deno lint` e `deno test` verdes, com C01 a C06 em 50 de 50 repetições. Testes antes do código no *commit* `2db4778`, com a saída da falha. Um ajuste no próprio teste depois da implementação, sem mudar o que ele confere: o `set_eq` do O08f e do O17e precisava de nomes nas colunas. Decisões técnicas no `research.md` (R1 a R6). A migração vai à produção só na sessão 4, depois do ensaio.
 
 ---
 

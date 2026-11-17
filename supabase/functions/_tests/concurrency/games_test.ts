@@ -126,7 +126,10 @@ Deno.test('C03: a espera disputa a vaga aberta pelo aumento do limite', options,
       const queued = await rpc(account.client, 'join_waitlist', { p_game_id: gameId });
       if (queued.error) throw new Error(`${account.email}: ${queued.error.message}`);
     }
-    const raised = await rpc(owner.client, 'set_slot_limit', { p_game_id: gameId, p_slot_limit: 6 });
+    const raised = await rpc(owner.client, 'set_slot_limit', {
+      p_game_id: gameId,
+      p_slot_limit: 6,
+    });
     assertEquals(raised.error, null, `repetition ${i}: limit raised`);
     const calls = await Promise.all(
       waiting.map((account) => rpc(account.client, 'join_game', { p_game_id: gameId })),
