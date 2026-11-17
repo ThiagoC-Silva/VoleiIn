@@ -1,6 +1,6 @@
-// Concorrência na lista de presença (RN53), fatia 4, etapa A.
-// Cenários C01, C02, C04 e C05 de docs/testes-referencia.md, seção 8. C03 e C06
-// entram na etapa B, e C07 e C16, na etapa C.
+// Concorrência na lista de presença (RN53), fatia 4, etapas A e B.
+// Cenários C01 a C06 de docs/testes-referencia.md, seção 8. C07 e C16 entram
+// na etapa C.
 //
 // Cada repetição cria um jogo novo da conc-00 no grupo de teste, enche as vagas
 // iniciais e dispara as chamadas juntas, por clientes separados: o PostgREST
@@ -108,6 +108,80 @@ Deno.test('C05: uma entrada e a redução do limite ao mesmo tempo', options, as
       assertEquals(join.error.message, 'GAME_FULL', `repetition ${i}`);
       assertEquals(reduce.error, null, `repetition ${i}`);
       assertEquals(state, { occupied: 9, slotLimit: 9, status: 'confirmed' }, `repetition ${i}`);
+    }
+    assert(state.occupied <= state.slotLimit, `repetition ${i}: never occupied > limit`);
+  }
+});
+
+Deno.test('C03: a espera disputa a vaga aberta pelo aumento do limite', options, async () => {
+  const fixture = await concurrencyFixture();
+  const { accounts } = fixture;
+  const owner = accounts[0];
+  // conc-00 e conc-01 a conc-04: lista cheia com limite 5; conc-05 a conc-09 na espera.
+  const fillers = accounts.slice(1, 5);
+  const waiting = accounts.slice(5, 10);
+  for (let i = 0; i < REPETITIONS; i++) {
+    const gameId = await newGame(fixture, 5, fillers);
+    for (const account of waiting) {
+      const queued = await rpc(account.client, 'join_waitlist', { p_game_id: gameId });
+      if (queued.error) throw new Error(`${account.email}: ${queued.error.message}`);
+    }
+    const raised = await rpc(owner.client, 'set_slot_limit', {
+      p_game_id: gameId,
+      p_slot_limit: 6,
+    });
+    assertEquals(raised.error, null, `repetition ${i}: limit raised`);
+    const calls = await Promise.all(
+      waiting.map((account) => rpc(account.client, 'join_game', { p_game_id: gameId })),
+    );
+    assertEquals(
+      outcomes(calls),
+      ['GAME_FULL', 'GAME_FULL', 'GAME_FULL', 'GAME_FULL', 'ok'],
+      `repetition ${i}`,
+    );
+    assertEquals(
+      await gameState(fixture, gameId),
+      { occupied: 6, slotLimit: 6, status: 'confirmed' },
+      `repetition ${i}: 6 occupied and confirmed`,
+    );
+    const winner = waiting[calls.findIndex((call) => call.error === null)];
+    const { data: rows, error } = await owner.client
+      .from('game_waitlist')
+      .select('user_id, left_at')
+      .eq('game_id', gameId);
+    if (error) throw new Error(`Could not read the waitlist: ${error.message}`);
+    for (const row of rows) {
+      assertEquals(
+        row.left_at !== null,
+        row.user_id === winner.id,
+        `repetition ${i}: only the winner left the waitlist (RN54)`,
+      );
+    }
+  }
+});
+
+Deno.test('C06: uma saída e uma entrada ao mesmo tempo, com a lista cheia', options, async () => {
+  const fixture = await concurrencyFixture();
+  const { accounts } = fixture;
+  // conc-00 e conc-01 a conc-04: lista cheia com limite 5; conc-04 sai e conc-05 entra.
+  const fillers = accounts.slice(1, 5);
+  const leaver = accounts[4];
+  const joiner = accounts[5];
+  for (let i = 0; i < REPETITIONS; i++) {
+    const gameId = await newGame(fixture, 5, fillers);
+    const [leave, join] = await Promise.all([
+      rpc(leaver.client, 'leave_game', { p_game_id: gameId }),
+      rpc(joiner.client, 'join_game', { p_game_id: gameId }),
+    ]);
+    assertEquals(leave.error, null, `repetition ${i}: the leave always works`);
+    const state = await gameState(fixture, gameId);
+    if (join.error === null) {
+      // A saída veio antes e a entrada ocupou a vaga.
+      assertEquals(state, { occupied: 5, slotLimit: 5, status: 'confirmed' }, `repetition ${i}`);
+    } else {
+      // A entrada veio antes e encontrou a lista cheia.
+      assertEquals(join.error.message, 'GAME_FULL', `repetition ${i}`);
+      assertEquals(state, { occupied: 4, slotLimit: 5, status: 'open' }, `repetition ${i}`);
     }
     assert(state.occupied <= state.slotLimit, `repetition ${i}: never occupied > limit`);
   }
