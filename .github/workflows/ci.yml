@@ -55,9 +55,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Versão fixa, a mesma da máquina de desenvolvimento, que aplica as
+      # migrações na produção (setup.md, seção 3). Com `latest`, a ação
+      # consultava a API do GitHub a cada execução e falhava por limite de
+      # chamadas ("rate limit exceeded", 16/11/2026).
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.1
 
       - uses: denoland/setup-deno@v2
         with:
