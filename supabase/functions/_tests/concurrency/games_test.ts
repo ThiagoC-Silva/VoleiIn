@@ -1,6 +1,6 @@
-// Concorrência na lista de presença (RN53), fatia 4, etapas A e B.
-// Cenários C01 a C06 de docs/testes-referencia.md, seção 8. C07 e C16 entram
-// na etapa C.
+// Concorrência na lista de presença (RN53), fatia 4, etapas A a C.
+// Cenários C01 a C07 de docs/testes-referencia.md, seção 8, e C16 da seção
+// 12.5 (etapa C).
 //
 // Cada repetição cria um jogo novo da conc-00 no grupo de teste, enche as vagas
 // iniciais e dispara as chamadas juntas, por clientes separados: o PostgREST
@@ -11,7 +11,7 @@
 //   SUPABASE_URL=... SUPABASE_PUBLISHABLE_KEY=... SUPABASE_SECRET_KEY=... \
 //     SUPABASE_JWT_SECRET=... deno test --allow-net --allow-env
 import { assert, assertEquals } from '@std/assert';
-import { concurrencyFixture, gameState, newGame, outcomes, rpc } from './support.ts';
+import { concurrencyFixture, gameState, newGame, outcomes, rejoinGroup, rpc } from './support.ts';
 
 const REPETITIONS = 50;
 const options = { sanitizeOps: false, sanitizeResources: false };
@@ -184,5 +184,66 @@ Deno.test('C06: uma saída e uma entrada ao mesmo tempo, com a lista cheia', opt
       assertEquals(state, { occupied: 4, slotLimit: 5, status: 'open' }, `repetition ${i}`);
     }
     assert(state.occupied <= state.slotLimit, `repetition ${i}: never occupied > limit`);
+  }
+});
+
+Deno.test('C07: uma entrada e o cancelamento ao mesmo tempo', options, async () => {
+  const fixture = await concurrencyFixture();
+  const { accounts } = fixture;
+  const owner = accounts[0];
+  const joiner = accounts[1];
+  for (let i = 0; i < REPETITIONS; i++) {
+    const gameId = await newGame(fixture, 10, []);
+    const [join, cancel] = await Promise.all([
+      rpc(joiner.client, 'join_game', { p_game_id: gameId }),
+      rpc(owner.client, 'cancel_game', { p_game_id: gameId }),
+    ]);
+    assertEquals(cancel.error, null, `repetition ${i}: the cancel always works`);
+    if (join.error !== null) {
+      // A entrada veio depois.
+      assertEquals(join.error.message, 'GAME_NOT_OPEN', `repetition ${i}`);
+    }
+    assertEquals(
+      (await gameState(fixture, gameId)).status,
+      'cancelled',
+      `repetition ${i}: the game ends cancelled`,
+    );
+  }
+});
+
+Deno.test('C16: uma entrada no jogo e a saída do grupo ao mesmo tempo', options, async () => {
+  const fixture = await concurrencyFixture();
+  const { accounts } = fixture;
+  const owner = accounts[0];
+  const bruno = accounts[26];
+  try {
+    for (let i = 0; i < REPETITIONS; i++) {
+      await rejoinGroup(fixture, bruno);
+      const gameId = await newGame(fixture, 10, []);
+      const [join, leave] = await Promise.all([
+        rpc(bruno.client, 'join_game', { p_game_id: gameId }),
+        rpc(bruno.client, 'leave_group', { p_group_id: fixture.groupId }),
+      ]);
+      assertEquals(leave.error, null, `repetition ${i}: the leave always works`);
+      const gamesLeft = (leave.data as { games_left: string[] }).games_left;
+      if (join.error === null) {
+        // A entrada venceu, e a saída a retirou.
+        assert(gamesLeft.includes(gameId), `repetition ${i}: the game is in games_left`);
+      } else {
+        // A saída venceu.
+        assertEquals(join.error.message, 'NO_GAME_ACCESS', `repetition ${i}`);
+        assertEquals(gamesLeft, [], `repetition ${i}`);
+      }
+      const { count, error } = await owner.client
+        .from('game_participants')
+        .select('id', { count: 'exact', head: true })
+        .eq('game_id', gameId)
+        .eq('user_id', bruno.id)
+        .eq('status', 'active');
+      if (error) throw new Error(`Could not count: ${error.message}`);
+      assertEquals(count, 0, `repetition ${i}: never active without being a member`);
+    }
+  } finally {
+    await rejoinGroup(fixture, bruno);
   }
 });
