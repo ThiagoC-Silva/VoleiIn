@@ -17,9 +17,11 @@
 
 ## Sessão 3 — App
 
-- [ ] T009 Testes antes: E15 e E16, U12, S48, S49, S54 a S58, L15 (cancelamento), L18, L19
-- [ ] T010 Cancelar jogo, admins do jogo (7.5), sheet de saída bloqueada (7.8) e telefone no perfil (6.9)
-- [ ] T011 `dart format`, `dart analyze` e `flutter test` verdes; S59 e S60
+- [x] T009 Testes antes: E15 e E16, U12, S48, S49, S54 a S58, L15 (cancelamento), L18, L19
+- [x] T010 Cancelar jogo, admins do jogo (7.5), sheet de saída bloqueada (7.8) e telefone no perfil (6.9)
+- [x] T011 `dart format`, `dart analyze` e `flutter test` verdes; S59 e S60
+
+**Sessão 3 concluída em 17/11/2026** no *branch* `fatia-4/app-c`: `dart format`, `dart analyze` e `flutter test` (468 testes) verdes, com os testes antes (*commit* `8367fa1`, com a saída da falha). O menu do admin tem Editar jogo, Admins do jogo e Cancelar jogo; a tela de admins lê `game_admins` com o perfil, porque quem saiu da lista continua admin (RN26); a sheet de bloqueio é da feature `games` e chega às telas de grupo pelo roteador (`docs/arquitetura-app.md`, seção 2); o `AppException` guarda `game_ids` (E16). Ajustes em testes de etapas anteriores, sem mudar resultado de `testes-referencia.md`: o teste da etapa A que esperava o menu sumir depois do início passou a conferir o menu sem Editar jogo (S48, `telas.md` 7.3); os dublês de `leaveGroup` e `removeMember` devolvem o número de jogos.
 
 ## Sessão 4 — Validação
 

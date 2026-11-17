@@ -280,7 +280,11 @@ void main() {
   testWidgets('L18: Ana edita o Quinta Confirmado e gerencia os admins', (
     tester,
   ) async {
-    await openAs(tester, 'ana', pickers: _FixedPickers(dates: [], times: []));
+    await openAs(
+      tester,
+      'ana',
+      pickers: _FixedPickers(dates: [], times: []),
+    );
     await openGame(tester, quintaFull);
     await pumpUntil(tester, find.text('Ginásio Verdão'));
 
@@ -319,7 +323,11 @@ void main() {
   testWidgets('L19: Carla tenta sair do Quinta e vê o jogo dela', (
     tester,
   ) async {
-    await openAs(tester, 'carla', pickers: _FixedPickers(dates: [], times: []));
+    await openAs(
+      tester,
+      'carla',
+      pickers: _FixedPickers(dates: [], times: []),
+    );
     await tapReady(tester, find.text(l10nPt.navGroups).last);
     await tapReady(tester, find.text(quinta));
     await tapReady(tester, button<OutlinedButton>(l10nPt.groupLeave));

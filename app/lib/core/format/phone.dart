@@ -15,6 +15,13 @@ String formatPhone(String e164) {
   return formatPhoneDigits(e164.substring(3));
 }
 
+/// O discador com o número (docs/ui/telas.md, 7.9; U12).
+Uri phoneCallUri(String e164) => Uri.parse('tel:$e164');
+
+/// A conversa do WhatsApp com o número, sem o `+` (U12).
+Uri phoneWhatsappUri(String e164) =>
+    Uri.parse('https://wa.me/${e164.replaceAll(RegExp(r'[^0-9]'), '')}');
+
 /// Máscara do número sem o `+55`, parcial enquanto se digita:
 /// `(86) 3322-1234` com 10 dígitos e `(86) 99999-1234` com 11.
 String formatPhoneDigits(String text) {

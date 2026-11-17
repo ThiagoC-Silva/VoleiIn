@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:voleiin/features/auth/domain/profile.dart';
 import 'package:voleiin/features/games/domain/game_models.dart';
 
 import '../../../helpers/games_fixtures.dart';
@@ -9,7 +10,7 @@ import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
 
 /// Cenário S59 de docs/testes-referencia.md, seção 12.6, com as telas das
-/// etapas A e B (na B, o pé de quem está na lista e na espera, e as sheets de
+/// etapas A a C (na C, admins do jogo, a sheet de bloqueio e o telefone) (na B, o pé de quem está na lista e na espera, e as sheets de
 /// saída e de remoção) e da etapa A (Meus jogos, Criar jogo, o detalhe, Editar jogo e os jogos no
 /// detalhe do grupo) e a sheet de grupos: fonte do sistema em 150%, num
 /// celular pequeno (360 x 640 dp), sem overflow (RNF05).
@@ -198,6 +199,46 @@ void main() {
       find.text(l10nPt.gameParticipantRemoveTitle('Brunão do vôlei de praia')),
       findsOneWidget,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('S59 (etapa C): admins do jogo e a sheet de adicionar', (
+    tester,
+  ) async {
+    when(() => h.games.fetchGameAdmins(game1Id)).thenAnswer(
+      (_) async => const [
+        GameAdmin(
+          userId: anaId,
+          displayName: 'Ana Souza de Oliveira Albuquerque',
+        ),
+        GameAdmin(
+          userId: carlaId,
+          displayName: 'Carlinha das quadras de areia',
+        ),
+      ],
+    );
+    await open(tester, ['/games', '/games/$game1Id', '/games/$game1Id/admins']);
+    await tester.tap(find.text(l10nPt.gameAdminAdd));
+    await tester.pumpAndSettle();
+    expect(find.text(l10nPt.gameAdminAddSheetTitle), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('S59 (etapa C): telefone no perfil de outra pessoa', (
+    tester,
+  ) async {
+    when(() => h.profiles.fetchProfile(brunoId)).thenAnswer(
+      (_) async => const Profile(
+        id: brunoId,
+        name: 'Bruno de Oliveira Albuquerque Lima',
+        nickname: 'Brunão do vôlei de praia',
+        displayName: 'Brunão do vôlei de praia',
+      ),
+    );
+    when(() => h.profiles.fetchContactPhone(brunoId))
+        .thenAnswer((_) async => '+5586999998888');
+    await open(tester, ['/games', '/games/$game1Id/people/$brunoId']);
+    expect(find.text(l10nPt.personWhatsapp), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

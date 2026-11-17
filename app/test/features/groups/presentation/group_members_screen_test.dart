@@ -222,23 +222,24 @@ void main() {
   testWidgets('S57: remover o Bruno com MEMBER_IS_ONLY_GAME_ADMIN', (
     tester,
   ) async {
-    when(
-      () => h.groups.removeMember(groupId: quintaId, userId: brunoId),
-    ).thenAnswer(
-      (_) async => throw const AppException(
-        ErrorCode.memberIsOnlyGameAdmin,
-        gameIds: [game1Id],
-      ),
-    );
-    when(
-      () => h.games.fetchGameSummaries([game1Id]),
-    ).thenAnswer((_) async => [summary()]);
+    when(() => h.groups.removeMember(groupId: quintaId, userId: brunoId))
+        .thenAnswer(
+          (_) async => throw const AppException(
+            ErrorCode.memberIsOnlyGameAdmin,
+            gameIds: [game1Id],
+          ),
+        );
+    when(() => h.games.fetchGameSummaries([game1Id]))
+        .thenAnswer((_) async => [summary()]);
     await open(tester);
     await tester.tap(find.text('Bruno'));
     await tester.pumpAndSettle();
     await tester.tap(find.text(l10nPt.groupMemberRemove));
     await tester.pumpAndSettle();
-    expect(find.textContaining(l10nPt.groupMemberRemoveGamesBody('Bruno')), findsOneWidget);
+    expect(
+      find.textContaining(l10nPt.groupMemberRemoveGamesBody('Bruno')),
+      findsOneWidget,
+    );
     await tester.tap(
       buttonWithText<FilledButton>(l10nPt.groupMemberRemoveConfirm),
     );

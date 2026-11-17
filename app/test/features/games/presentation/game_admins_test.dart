@@ -146,9 +146,8 @@ void main() {
 
       await tester.tap(find.text('Carlinha'));
       await tester.pumpAndSettle();
-      verify(
-        () => h.games.addGameAdmin(gameId: game1Id, userId: carlaId),
-      ).called(1);
+      verify(() => h.games.addGameAdmin(gameId: game1Id, userId: carlaId))
+          .called(1);
       expect(find.text(l10nPt.gameAdminAdded('Carlinha')), findsOneWidget);
     });
 
@@ -160,9 +159,8 @@ void main() {
       await tester.tap(find.text(l10nPt.gameAdminRemove));
       await tester.pumpAndSettle();
 
-      verify(
-        () => h.games.removeGameAdmin(gameId: game1Id, userId: brunoId),
-      ).called(1);
+      verify(() => h.games.removeGameAdmin(gameId: game1Id, userId: brunoId))
+          .called(1);
       expect(find.text(l10nPt.gameAdminRemoved('Brunão')), findsOneWidget);
     });
 
@@ -177,9 +175,8 @@ void main() {
       await tester.tap(buttonWithText<FilledButton>(l10nPt.gameAdminStepDown));
       await tester.pumpAndSettle();
 
-      verify(
-        () => h.games.removeGameAdmin(gameId: game1Id, userId: anaId),
-      ).called(1);
+      verify(() => h.games.removeGameAdmin(gameId: game1Id, userId: anaId))
+          .called(1);
       expect(h.location, '/games/$game1Id');
       expect(find.text(l10nPt.gameAdminSteppedDown), findsOneWidget);
     });

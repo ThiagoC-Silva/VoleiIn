@@ -389,13 +389,16 @@ void main() {
       expect(find.byTooltip(l10nPt.gameMenuLabel), findsNothing);
     });
 
-    testWidgets('depois do início, sem Editar jogo nem menu', (tester) async {
+    // Na etapa C, o menu continua depois do início, sem Editar jogo (S48).
+    testWidgets('depois do início, sem Editar jogo no menu', (tester) async {
       h.signedIn();
       h.now = DateTime.utc(2026, 11, 21, 23, 30);
       h.game(game1);
       await open(tester, game1Id);
 
-      expect(find.byTooltip(l10nPt.gameMenuLabel), findsNothing);
+      await tester.tap(find.byTooltip(l10nPt.gameMenuLabel));
+      await tester.pumpAndSettle();
+      expect(find.text(l10nPt.gameEdit), findsNothing);
     });
 
     testWidgets('em andamento: selo e sem pé para quem está fora', (

@@ -63,3 +63,17 @@ List<GameSummary> upcomingGames(List<GameSummary> games) =>
 List<GameSummary> pastGames(List<GameSummary> games) =>
     games.where((game) => !game.status.isActive).toList()
       ..sort((a, b) => b.startsAt.compareTo(a.startsAt));
+
+/// Os admins do jogo, com o nome (telas.md, 7.5).
+final gameAdminsProvider = FutureProvider.autoDispose
+    .family<List<GameAdmin>, String>(
+      (ref, gameId) =>
+          ref.watch(gamesRepositoryProvider).fetchGameAdmins(gameId),
+    );
+
+/// Os cards dos jogos da sheet de bloqueio (telas.md, 7.8).
+final gameSummariesProvider = FutureProvider.autoDispose
+    .family<List<GameSummary>, String>(
+      (ref, ids) =>
+          ref.watch(gamesRepositoryProvider).fetchGameSummaries(ids.split(',')),
+    );

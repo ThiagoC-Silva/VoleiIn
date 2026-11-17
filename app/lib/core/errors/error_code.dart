@@ -66,13 +66,23 @@ enum ErrorCode {
   notOnWaitlist,
   notParticipant,
   receiverLocked,
+  adminMustBeParticipant,
+  alreadyGameAdmin,
+  notGameAdminTarget,
+  lastGameAdmin,
+  memberIsReceiver,
+  memberIsOnlyGameAdmin,
 }
 
 /// Único tipo de exceção que sai da camada `data`.
 class AppException implements Exception {
-  const AppException(this.code);
+  const AppException(this.code, {this.gameIds = const []});
 
   final ErrorCode code;
+
+  /// Os jogos de `detail.game_ids`, em `MEMBER_IS_RECEIVER` e
+  /// `MEMBER_IS_ONLY_GAME_ADMIN` (RN16; E16). Vazio nos outros códigos.
+  final List<String> gameIds;
 
   @override
   String toString() => 'AppException(${code.name})';

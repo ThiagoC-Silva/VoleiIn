@@ -77,9 +77,8 @@ void main() {
     });
 
     testWidgets('a linha Telefone, Ligar e WhatsApp', (tester) async {
-      when(
-        () => h.profiles.fetchContactPhone(anaId),
-      ).thenAnswer((_) async => '+5586999998888');
+      when(() => h.profiles.fetchContactPhone(anaId))
+          .thenAnswer((_) async => '+5586999998888');
       h.signedIn(userId: brunoId);
       await open(tester, anaId);
 
@@ -96,9 +95,8 @@ void main() {
     });
 
     testWidgets('o link não abre: commonCannotOpenLink', (tester) async {
-      when(
-        () => h.profiles.fetchContactPhone(anaId),
-      ).thenAnswer((_) async => '+5586999998888');
+      when(() => h.profiles.fetchContactPhone(anaId))
+          .thenAnswer((_) async => '+5586999998888');
       h.links.works = false;
       h.signedIn(userId: brunoId);
       await open(tester, anaId);

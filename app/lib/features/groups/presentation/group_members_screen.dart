@@ -18,6 +18,7 @@ import '../../auth/presentation/auth_providers.dart';
 import '../domain/group_models.dart';
 import 'group_avatar_view.dart';
 import 'group_controllers.dart';
+import 'group_screen.dart';
 import 'groups_providers.dart';
 
 /// Opções da sheet do admin (docs/ui/telas.md, 6.6).
@@ -27,9 +28,12 @@ enum _MemberAction { viewProfile, makeAdmin, makeMember, remove, stepDown }
 /// groupMembers-acoes.png). Primeiro os admins, depois os demais, cada bloco
 /// em ordem alfabética.
 class GroupMembersScreen extends ConsumerWidget {
-  const GroupMembersScreen({required this.groupId, super.key});
+  const GroupMembersScreen({required this.groupId, this.blocked, super.key});
 
   final String groupId;
+
+  /// A sheet de bloqueio da remoção (telas.md, 7.7 e 7.8), do roteador.
+  final GroupBlockedSheet? blocked;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,7 +46,11 @@ class GroupMembersScreen extends ConsumerWidget {
       body: switch (members) {
         AsyncValue(:final value?) => RefreshIndicator(
           onRefresh: () => ref.refresh(groupMembersProvider(groupId).future),
-          child: _MemberList(groupId: groupId, members: value),
+          child: _MemberList(
+            groupId: groupId,
+            members: value,
+            blocked: blocked,
+          ),
         ),
         AsyncError(:final error) => ErrorStateView(
           error: error,
@@ -55,9 +63,14 @@ class GroupMembersScreen extends ConsumerWidget {
 }
 
 class _MemberList extends ConsumerWidget {
-  const _MemberList({required this.groupId, required this.members});
+  const _MemberList({
+    required this.groupId,
+    required this.members,
+    this.blocked,
+  });
 
   final String groupId;
+  final GroupBlockedSheet? blocked;
   final List<GroupMember> members;
 
   Future<void> _onTap(
@@ -182,18 +195,29 @@ class _MemberList extends ConsumerWidget {
         final confirmed = await confirmDestructive(
           context,
           title: l10n.groupMemberRemoveTitle(name),
-          body: l10n.groupMemberRemoveBody(name),
+          body:
+              '${l10n.groupMemberRemoveBody(name)} '
+              '${l10n.groupMemberRemoveGamesBody(name)}',
           confirmLabel: l10n.groupMemberRemoveConfirm,
         );
         if (!confirmed || !context.mounted) return;
-        final error = await actions.removeMember(
+        final (gamesLeft, error) = await actions.removeMember(
           groupId: groupId,
           userId: member.userId,
         );
         if (!context.mounted) return;
-        error == null
-            ? showSnack(context, l10n.groupMemberRemoved(name))
-            : showErrorSnack(context, error);
+        if (error == null) {
+          showSnack(
+            context,
+            gamesLeft > 0
+                ? l10n.groupMemberRemovedWithGames(name, gamesLeft)
+                : l10n.groupMemberRemoved(name),
+          );
+        } else if (blocked != null && opensBlockedSheet(error)) {
+          await blocked!(context, error, name: name);
+        } else {
+          showErrorSnack(context, error);
+        }
     }
   }
 

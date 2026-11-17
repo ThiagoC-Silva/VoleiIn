@@ -145,14 +145,18 @@ final groupJoinControllerProvider =
 class GroupActionsController extends SubmitController {
   GroupsRepository get _groups => ref.read(groupsRepositoryProvider);
 
-  /// Na saída, só Meus grupos relê: o detalhe sai da tela.
-  Future<AppException?> leave(String groupId) async {
-    final error = await submit(() => _groups.leaveGroup(groupId));
+  /// Na saída, só Meus grupos relê: o detalhe sai da tela. Devolve quantos
+  /// jogos a pessoa deixou (`games_left`, RN14), ou o erro.
+  Future<(int, AppException?)> leave(String groupId) async {
+    var gamesLeft = 0;
+    final error = await submit(() async {
+      gamesLeft = await _groups.leaveGroup(groupId);
+    });
     if (ref.mounted) {
       ref.invalidate(myGroupsProvider);
       if (error != null) ref.invalidate(groupDetailProvider(groupId));
     }
-    return error;
+    return (gamesLeft, error);
   }
 
   Future<AppException?> regenerateInvite(String groupId) =>
@@ -171,14 +175,17 @@ class GroupActionsController extends SubmitController {
     members: true,
   );
 
-  Future<AppException?> removeMember({
+  /// Quantos jogos a pessoa removida deixou (`games_left`), ou o erro.
+  Future<(int, AppException?)> removeMember({
     required String groupId,
     required String userId,
-  }) => _run(
-    groupId,
-    () => _groups.removeMember(groupId: groupId, userId: userId),
-    members: true,
-  );
+  }) async {
+    var gamesLeft = 0;
+    final error = await _run(groupId, () async {
+      gamesLeft = await _groups.removeMember(groupId: groupId, userId: userId);
+    }, members: true);
+    return (gamesLeft, error);
+  }
 
   Future<AppException?> decideRequest({
     required String groupId,

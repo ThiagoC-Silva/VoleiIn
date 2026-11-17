@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
+
+import '../../../core/format/phone.dart';
+import '../../../core/link_opener.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/icon_square.dart';
+import '../../../shared/widgets/snack.dart';
 import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/inner_app_bar.dart';
 import '../../../shared/widgets/state_views.dart';
@@ -77,6 +84,86 @@ class _PersonBody extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
           ],
+          _PhoneSection(userId: profile.id),
+        ],
+      ),
+    );
+  }
+}
+
+/// A linha Telefone, com Ligar e WhatsApp, só quando `get_profile_contact`
+/// devolve o número (RF101, RN101; telas.md, 7.9; person-telefone.png).
+class _PhoneSection extends ConsumerWidget {
+  const _PhoneSection({required this.userId});
+
+  final String userId;
+
+  Future<void> _open(BuildContext context, WidgetRef ref, Uri uri) async {
+    final opened = await ref.read(linkOpenerProvider).open(uri);
+    if (!opened && context.mounted) {
+      showSnack(context, AppLocalizations.of(context).commonCannotOpenLink);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final phone = ref.watch(personPhoneProvider(userId)).value;
+    if (phone == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                const IconSquare(icon: Symbols.call),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.personPhone,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        formatPhone(phone),
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => _open(context, ref, phoneCallUri(phone)),
+                icon: const Icon(Symbols.call),
+                label: Text(l10n.personCall),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _open(context, ref, phoneWhatsappUri(phone)),
+                icon: const Icon(Symbols.chat),
+                label: Text(l10n.personWhatsapp),
+              ),
+            ],
+          ),
         ],
       ),
     );

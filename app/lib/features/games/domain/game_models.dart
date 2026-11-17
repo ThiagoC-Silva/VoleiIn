@@ -183,6 +183,20 @@ abstract class GameDetail with _$GameDetail {
   }
 }
 
+/// Admin do jogo, com o nome, para a tela de admins (telas.md, 7.5): quem
+/// saiu da lista continua admin (RN26) e não aparece em `participants`.
+class GameAdmin {
+  const GameAdmin({
+    required this.userId,
+    required this.displayName,
+    this.photoPath,
+  });
+
+  final String userId;
+  final String displayName;
+  final String? photoPath;
+}
+
 /// Grupo na sheet da criação (telas.md, 7.2).
 @freezed
 abstract class GameGroupOption with _$GameGroupOption {

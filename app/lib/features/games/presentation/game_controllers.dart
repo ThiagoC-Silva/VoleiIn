@@ -86,6 +86,17 @@ class GameActionsController extends SubmitController {
     return (outcome, error);
   }
 
+  Future<AppException?> cancel(String gameId) =>
+      _run(gameId, () => _games.cancelGame(gameId));
+
+  Future<AppException?> addAdmin(String gameId, String userId) =>
+      _run(gameId, () => _games.addGameAdmin(gameId: gameId, userId: userId));
+
+  Future<AppException?> removeAdmin(String gameId, String userId) => _run(
+    gameId,
+    () => _games.removeGameAdmin(gameId: gameId, userId: userId),
+  );
+
   Future<AppException?> remove(String gameId, String userId) => _run(
     gameId,
     () => _games.removeParticipant(gameId: gameId, userId: userId),
@@ -98,6 +109,7 @@ class GameActionsController extends SubmitController {
     final error = await submit(action);
     if (ref.mounted) {
       ref.invalidate(gameDetailProvider(gameId));
+      ref.invalidate(gameAdminsProvider(gameId));
       ref.invalidate(myGamesProvider);
     }
     return error;

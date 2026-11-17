@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/errors/error_code.dart';
 import '../../../core/router/routes.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/arrow_rows.dart';
@@ -50,8 +51,29 @@ class GroupScreen extends ConsumerWidget {
 /// Trecho de outra feature dentro do detalhe do grupo, montado pelo roteador
 /// (docs/arquitetura-app.md, seção 2): a feature de grupos não importa a de
 /// jogos.
+/// A sheet de bloqueio da saída ou da remoção do grupo (telas.md, 7.8), que
+/// é da feature `games` e chega pelo roteador. [name] só na remoção.
+typedef GroupBlockedSheet = Future<void> Function(
+  BuildContext context,
+  AppException error, {
+  String? name,
+});
+
+/// Se o erro abre a sheet de bloqueio (RN16), em vez do `SnackBar`.
+bool opensBlockedSheet(AppException error) =>
+    (error.code == ErrorCode.memberIsReceiver ||
+        error.code == ErrorCode.memberIsOnlyGameAdmin) &&
+    error.gameIds.isNotEmpty;
+
 class GroupGamesSlot {
-  const GroupGamesSlot({required this.build, required this.refresh});
+  const GroupGamesSlot({
+    required this.build,
+    required this.refresh,
+    this.blocked,
+  });
+
+  /// A sheet de bloqueio da saída.
+  final GroupBlockedSheet? blocked;
 
   /// A seção dos jogos do grupo.
   final Widget Function(String groupId) build;
@@ -77,19 +99,27 @@ class _GroupBody extends ConsumerWidget {
     final confirmed = await confirmDestructive(
       context,
       title: l10n.groupLeaveTitle(group.name),
-      body: l10n.groupLeaveBody,
+      body: '${l10n.groupLeaveBody} ${l10n.groupLeaveGamesBody}',
       confirmLabel: l10n.groupLeave,
     );
     if (!confirmed || !context.mounted) return;
-    final error = await ref
+    final (gamesLeft, error) = await ref
         .read(groupActionsControllerProvider.notifier)
         .leave(group.id);
     if (!context.mounted) return;
     if (error != null) {
-      showErrorSnack(context, error);
+      final blocked = games?.blocked;
+      if (blocked != null && opensBlockedSheet(error)) {
+        await blocked(context, error);
+      } else {
+        showErrorSnack(context, error);
+      }
       return;
     }
-    showSnack(context, l10n.groupLeft);
+    showSnack(
+      context,
+      gamesLeft > 0 ? l10n.groupLeftWithGames(gamesLeft) : l10n.groupLeft,
+    );
     context.goNamed(Routes.groups);
   }
 

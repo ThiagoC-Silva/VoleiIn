@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
@@ -23,6 +24,7 @@ AppException toAppException(Object error) {
     if (error.code == 'P0001') {
       return AppException(
         _serverCodes[error.message.trim()] ?? ErrorCode.internalError,
+        gameIds: _gameIds(error.details),
       );
     }
     return const AppException(ErrorCode.internalError);
@@ -85,6 +87,23 @@ Future<T> guard<T>(Future<T> Function() call) async {
 
 /// Códigos do servidor (docs/contratos-api.md, seção 2) que esta fatia conhece.
 /// Cada fatia acrescenta os seus.
+/// Os `game_ids` do `detail` do erro (contratos-api.md, `leave_group`), que
+/// o PostgREST devolve como texto JSON.
+List<String> _gameIds(Object? details) {
+  Object? decoded = details;
+  if (details is String) {
+    try {
+      decoded = jsonDecode(details);
+    } on FormatException {
+      return const [];
+    }
+  }
+  if (decoded is Map && decoded['game_ids'] is List) {
+    return [for (final id in decoded['game_ids'] as List) '$id'];
+  }
+  return const [];
+}
+
 const Map<String, ErrorCode> _serverCodes = {
   'NOT_AUTHENTICATED': ErrorCode.notAuthenticated,
   'NOT_FOUND': ErrorCode.notFound,
@@ -120,6 +139,12 @@ const Map<String, ErrorCode> _serverCodes = {
   'NOT_ON_WAITLIST': ErrorCode.notOnWaitlist,
   'NOT_PARTICIPANT': ErrorCode.notParticipant,
   'RECEIVER_LOCKED': ErrorCode.receiverLocked,
+  'ADMIN_MUST_BE_PARTICIPANT': ErrorCode.adminMustBeParticipant,
+  'ALREADY_GAME_ADMIN': ErrorCode.alreadyGameAdmin,
+  'NOT_GAME_ADMIN_TARGET': ErrorCode.notGameAdminTarget,
+  'LAST_GAME_ADMIN': ErrorCode.lastGameAdmin,
+  'MEMBER_IS_RECEIVER': ErrorCode.memberIsReceiver,
+  'MEMBER_IS_ONLY_GAME_ADMIN': ErrorCode.memberIsOnlyGameAdmin,
 };
 
 /// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).

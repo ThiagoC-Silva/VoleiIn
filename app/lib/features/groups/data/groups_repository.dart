@@ -249,19 +249,27 @@ class GroupsRepository {
     );
   });
 
-  Future<void> leaveGroup(String groupId) => guard(() async {
-    await _db.rpc('leave_group', params: {'p_group_id': groupId});
+  /// Quantos jogos a pessoa deixou (`games_left`, RN14).
+  Future<int> leaveGroup(String groupId) => guard(() async {
+    final result = await _db.rpc(
+      'leave_group',
+      params: {'p_group_id': groupId},
+    );
+    return _gamesLeft(result);
   });
 
-  Future<void> removeMember({
-    required String groupId,
-    required String userId,
-  }) => guard(() async {
-    await _db.rpc(
-      'remove_group_member',
-      params: {'p_group_id': groupId, 'p_user_id': userId},
-    );
-  });
+  /// Quantos jogos a pessoa removida deixou (`games_left`, RN14).
+  Future<int> removeMember({required String groupId, required String userId}) =>
+      guard(() async {
+        final result = await _db.rpc(
+          'remove_group_member',
+          params: {'p_group_id': groupId, 'p_user_id': userId},
+        );
+        return _gamesLeft(result);
+      });
+
+  static int _gamesLeft(Object? result) =>
+      ((result as Map?)?['games_left'] as List?)?.length ?? 0;
 
   Future<void> archiveGroup(String groupId) => guard(() async {
     await _db.rpc('archive_group', params: {'p_group_id': groupId});

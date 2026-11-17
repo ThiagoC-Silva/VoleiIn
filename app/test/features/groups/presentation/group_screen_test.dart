@@ -190,6 +190,8 @@ void main() {
       expect(find.text('Ginásio Verdão'), findsOneWidget);
       expect(h.location, '/groups/$quintaId');
 
+      await tester.ensureVisible(find.text('Ginásio Verdão'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Ginásio Verdão'));
       await tester.pumpAndSettle();
       expect(h.location, '/games/$game2Id');

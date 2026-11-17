@@ -18,6 +18,8 @@ import '../../features/auth/presentation/profile_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/terms_document_screen.dart';
 import '../../features/auth/presentation/terms_screen.dart';
+import '../../features/games/presentation/game_admins_screen.dart';
+import '../../features/games/presentation/group_blocked_sheet.dart';
 import '../../features/games/presentation/game_edit_screen.dart';
 import '../../features/games/presentation/game_new_screen.dart';
 import '../../features/games/presentation/game_screen.dart';
@@ -156,6 +158,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                         builder: (context, state) =>
                             GameEditScreen(gameId: _gameId(state)),
                       ),
+                      GoRoute(
+                        path: Routes.gameAdminsPath,
+                        name: Routes.gameAdmins,
+                        builder: (context, state) =>
+                            GameAdminsScreen(gameId: _gameId(state)),
+                      ),
                       // O perfil de outra pessoa (feature auth) também abre
                       // na aba Jogos (arquitetura-app.md, seção 2).
                       GoRoute(
@@ -202,6 +210,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                       games: const GroupGamesSlot(
                         build: _groupGames,
                         refresh: GroupGamesSection.refresh,
+                        blocked: showGroupBlockedSheet,
                       ),
                     ),
                     routes: [
@@ -215,8 +224,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: Routes.groupMembersPath,
                         name: Routes.groupMembers,
-                        builder: (context, state) =>
-                            GroupMembersScreen(groupId: _groupId(state)),
+                        builder: (context, state) => GroupMembersScreen(
+                          groupId: _groupId(state),
+                          blocked: showGroupBlockedSheet,
+                        ),
                       ),
                       GoRoute(
                         path: Routes.groupRequestsPath,

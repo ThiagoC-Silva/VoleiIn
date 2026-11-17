@@ -249,6 +249,61 @@ class GamesRepository {
     await _db.rpc('join_waitlist', params: {'p_game_id': gameId});
   });
 
+  /// Os cards dos jogos de `detail.game_ids` (sheet de bloqueio, telas.md,
+  /// 7.8), na ordem pedida.
+  Future<List<GameSummary>> fetchGameSummaries(List<String> gameIds) => guard(
+    () async {
+      if (gameIds.isEmpty) return const <GameSummary>[];
+      final rows = await _db
+          .from('games')
+          .select(_summaryColumns)
+          .inFilter('id', gameIds);
+      final summaries = await _summaries(rows);
+      return [for (final id in gameIds) ...summaries.where((s) => s.id == id)];
+    },
+  );
+
+  /// Os admins do jogo com o nome (telas.md, 7.5).
+  Future<List<GameAdmin>> fetchGameAdmins(String gameId) => guard(() async {
+    _requireUuid(gameId);
+    final rows = await _db
+        .from('game_admins')
+        .select(
+          'user_id, profiles!game_admins_user_id_fkey(display_name, photo_path)',
+        )
+        .eq('game_id', gameId);
+    return [
+      for (final row in rows)
+        GameAdmin(
+          userId: row['user_id'] as String,
+          displayName: _displayName(row),
+          photoPath: _photoPath(row),
+        ),
+    ];
+  });
+
+  Future<void> cancelGame(String gameId) => guard(() async {
+    await _db.rpc('cancel_game', params: {'p_game_id': gameId});
+  });
+
+  Future<void> addGameAdmin({required String gameId, required String userId}) =>
+      guard(() async {
+        await _db.rpc(
+          'add_game_admin',
+          params: {'p_game_id': gameId, 'p_user_id': userId},
+        );
+      });
+
+  Future<void> removeGameAdmin({
+    required String gameId,
+    required String userId,
+  }) => guard(() async {
+    await _db.rpc(
+      'remove_game_admin',
+      params: {'p_game_id': gameId, 'p_user_id': userId},
+    );
+  });
+
   Future<void> leaveWaitlist(String gameId) => guard(() async {
     await _db.rpc('leave_waitlist', params: {'p_game_id': gameId});
   });

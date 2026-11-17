@@ -57,6 +57,17 @@ class ProfileRepository {
   /// é decidido pelo RLS: contexto ou solicitação pendente num grupo que quem
   /// chama administra. Sem linha, ou com um ID que não é UUID, "não
   /// encontrado", sem dizer qual dos dois (contratos-api.md, seção 1).
+  /// O telefone de outra pessoa, ou nulo: oculto, sem telefone ou sem
+  /// contexto, sem dizer qual (`get_profile_contact`, RN101; telas.md, 7.9).
+  Future<String?> fetchContactPhone(String userId) => guard(() async {
+    if (!_uuidPattern.hasMatch(userId)) return null;
+    final contact = await _db.rpc(
+      'get_profile_contact',
+      params: {'p_user_id': userId},
+    );
+    return (contact as Map?)?['phone'] as String?;
+  });
+
   Future<Profile> fetchProfile(String userId) => guard(() async {
     if (!_uuidPattern.hasMatch(userId)) {
       throw const AppException(ErrorCode.notFound);
