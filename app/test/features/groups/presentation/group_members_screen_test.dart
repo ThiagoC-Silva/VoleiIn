@@ -6,6 +6,7 @@ import 'package:voleiin/features/auth/domain/profile.dart';
 import 'package:voleiin/features/groups/domain/group_models.dart';
 import 'package:voleiin/shared/widgets/list_card.dart';
 
+import '../../../helpers/games_fixtures.dart';
 import '../../../helpers/groups_fixtures.dart';
 import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
@@ -32,7 +33,7 @@ void main() {
         groupId: any(named: 'groupId'),
         userId: any(named: 'userId'),
       ),
-    ).thenAnswer((_) async {});
+    ).thenAnswer((_) async => 0);
     when(() => h.profiles.fetchProfile(any())).thenAnswer(
       (_) async =>
           const Profile(id: anaId, name: 'Ana Souza', displayName: 'Ana Souza'),
@@ -164,6 +165,7 @@ void main() {
       when(() => h.groups.removeMember(groupId: quintaId, userId: carlaId))
           .thenAnswer((_) async {
             list = list.where((m) => m.userId != carlaId).toList();
+            return 0;
           });
       await open(tester);
       await tapRow(tester, 'Carla');
@@ -215,5 +217,38 @@ void main() {
     await h.push(tester, '/groups/$quintaId/members');
 
     expect(find.text(l10nPt.errorNotFound), findsOneWidget);
+  });
+
+  testWidgets('S57: remover o Bruno com MEMBER_IS_ONLY_GAME_ADMIN', (
+    tester,
+  ) async {
+    when(
+      () => h.groups.removeMember(groupId: quintaId, userId: brunoId),
+    ).thenAnswer(
+      (_) async => throw const AppException(
+        ErrorCode.memberIsOnlyGameAdmin,
+        gameIds: [game1Id],
+      ),
+    );
+    when(
+      () => h.games.fetchGameSummaries([game1Id]),
+    ).thenAnswer((_) async => [summary()]);
+    await open(tester);
+    await tester.tap(find.text('Bruno'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nPt.groupMemberRemove));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(l10nPt.groupMemberRemoveGamesBody('Bruno')), findsOneWidget);
+    await tester.tap(
+      buttonWithText<FilledButton>(l10nPt.groupMemberRemoveConfirm),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10nPt.groupRemoveBlockedTitle('Bruno')), findsOneWidget);
+    expect(
+      find.text(l10nPt.groupRemoveBlockedOnlyAdminBody('Bruno')),
+      findsOneWidget,
+    );
+    expect(find.text('Quadra do Sesc'), findsOneWidget);
   });
 }

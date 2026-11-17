@@ -68,4 +68,50 @@ void main() {
 
     expect(find.text(l10nPt.navGroups), findsOneWidget);
   });
+
+  group('S58: telefone visível (fatia 4, etapa C)', () {
+    setUp(() {
+      when(() => h.profiles.fetchProfile(anaId)).thenAnswer(
+        (_) async => const Profile(id: anaId, name: 'Ana', displayName: 'Ana'),
+      );
+    });
+
+    testWidgets('a linha Telefone, Ligar e WhatsApp', (tester) async {
+      when(
+        () => h.profiles.fetchContactPhone(anaId),
+      ).thenAnswer((_) async => '+5586999998888');
+      h.signedIn(userId: brunoId);
+      await open(tester, anaId);
+
+      expect(find.text(l10nPt.personPhone), findsOneWidget);
+      expect(find.text('(86) 99999-8888'), findsOneWidget);
+      await tester.tap(find.text(l10nPt.personCall));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10nPt.personWhatsapp));
+      await tester.pumpAndSettle();
+      expect(h.links.opened, [
+        Uri.parse('tel:+5586999998888'),
+        Uri.parse('https://wa.me/5586999998888'),
+      ]);
+    });
+
+    testWidgets('o link não abre: commonCannotOpenLink', (tester) async {
+      when(
+        () => h.profiles.fetchContactPhone(anaId),
+      ).thenAnswer((_) async => '+5586999998888');
+      h.links.works = false;
+      h.signedIn(userId: brunoId);
+      await open(tester, anaId);
+      await tester.tap(find.text(l10nPt.personCall));
+      await tester.pumpAndSettle();
+      expect(find.text(l10nPt.commonCannotOpenLink), findsOneWidget);
+    });
+
+    testWidgets('telefone nulo: sem a linha', (tester) async {
+      h.signedIn(userId: brunoId);
+      await open(tester, anaId);
+      expect(find.text(l10nPt.personPhone), findsNothing);
+      expect(find.text(l10nPt.personCall), findsNothing);
+    });
+  });
 }
