@@ -13,7 +13,7 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 
 **Fatia 3, em 16/11/2026:** RFs com testes automáticos verdes e L12 a L14 nas APIs 29 e 36, com as migrações e a `preview-invite` na produção. M05 conferido no celular, com o build da produção, em 16/11/2026. Os 12 RFs da fatia estão concluídos. RF15 e RF16 cobrem o código de convite: abrir o convite por link fica para a fatia 8 (`plano-implementacao.md`). RF22 e RF102, os efeitos da saída do grupo sobre os jogos, ficam para a fatia 4.
 
-**Fatia 4, etapa A, em 17/11/2026:** criar, ver e editar o jogo, entrar na lista e na espera. Testes automáticos verdes e L15 (sem o cancelamento) nas APIs 29 e 36, com as 4 migrações na produção. Os RFs da etapa ficam *Em andamento* até a etapa C, que fecha a fatia com a saída, a espera, o cancelamento e os efeitos da saída do grupo (RF22, RF102).
+**Fatia 4, etapa A, em 17/11/2026:** criar, ver e editar o jogo, entrar na lista e na espera. Testes automáticos verdes e L15 (sem o cancelamento) nas APIs 29 e 36, com as 4 migrações na produção. M06 conferido no celular, com o build da produção, em 17/11/2026, no Wi-Fi em vez do 4G (`specs/003-jogo-etapa-a/tasks.md`). Os RFs da etapa ficam *Em andamento* até a etapa C, que fecha a fatia com a saída, a espera, o cancelamento e os efeitos da saída do grupo (RF22, RF102).
 
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
