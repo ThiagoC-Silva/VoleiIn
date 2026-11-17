@@ -82,7 +82,7 @@ void main() {
       }
     },
   );
-  test('E15: os textos dos erros de jogo da etapa A são os do catálogo '
+  test('E15: os textos dos erros de jogo das etapas A e B são os do catálogo '
       '(docs/copy.md, 8.8)', () {
     const texts = {
       ErrorCode.notGameAdmin: 'Só um admin do jogo pode fazer isso.',
@@ -104,6 +104,11 @@ void main() {
       ErrorCode.alreadyOnWaitlist: 'Você já está na lista de espera.',
       ErrorCode.slotLimitBelowParticipants:
           'O limite não pode ficar abaixo do número de pessoas na lista.',
+      // Etapa B.
+      ErrorCode.listLocked: 'A lista está travada até a conclusão do jogo.',
+      ErrorCode.notOnWaitlist: 'Você não está na lista de espera.',
+      ErrorCode.notParticipant: 'Esta pessoa não está mais na lista.',
+      ErrorCode.receiverLocked: 'O recebedor não pode sair da lista.',
     };
     for (final entry in texts.entries) {
       expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);

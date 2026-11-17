@@ -7,13 +7,15 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:voleiin/app.dart';
 import 'package:voleiin/core/date_time_picker.dart';
 import 'package:voleiin/core/env.dart';
+import 'package:voleiin/core/router/app_router.dart';
 import 'package:voleiin/core/format/date_time.dart';
 import 'package:voleiin/shared/widgets/list_card.dart';
 
 import '../test/helpers/test_app.dart';
 
-/// Cenário L15 de docs/testes-referencia.md, seção 12.6, sem o cancelamento,
-/// que chega na etapa C (specs/003-jogo-etapa-a/tasks.md, T017).
+/// Cenários L15 (sem o cancelamento, que chega na etapa C), L16 e L17 de
+/// docs/testes-referencia.md, seção 12.6 (specs/003-jogo-etapa-a e
+/// specs/004-jogo-etapa-b). L16 e L17 deixam o seed como encontraram.
 ///
 /// Roda no emulador, contra o Supabase local com o seed (docs/setup.md, 8),
 /// pelos scripts/ (setup.md, 3.1). Sem o cancelamento, o jogo criado fica no
@@ -174,6 +176,92 @@ void main() {
     await tapReady(tester, find.text(l10nPt.navGroups).last);
     await pumpUntil(tester, find.text(l10nPt.groupGamesTitle));
     await pumpUntilScrolled(tester, find.text(name));
+  });
+
+  /// Abre o detalhe do jogo do seed pelo roteador: os cards de Meus jogos
+  /// repetem locais, e o caminho até eles não é o que estes fluxos conferem.
+  Future<void> openGame(WidgetTester tester, String gameId) async {
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(VoleiInApp)),
+    );
+    container.read(routerProvider).push('/games/$gameId');
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> pumpUntilGone(WidgetTester tester, Finder finder) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 20));
+    while (DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (!_found(finder)) return;
+    }
+    throw TestFailure('Não sumiu em 20 s: $finder');
+  }
+
+  const quintaOpen = '00000000-0000-0000-0000-000000000201';
+  const quintaFull = '00000000-0000-0000-0000-000000000202';
+
+  testWidgets('L16: Bruno entra e sai da lista, e sai e volta à espera', (
+    tester,
+  ) async {
+    await openAs(
+      tester,
+      'bruno',
+      pickers: _FixedPickers(dates: [], times: []),
+    );
+    final me = find.text(l10nPt.groupMemberYou('Brunão'));
+
+    // Quinta Aberto: entra e sai antes do prazo.
+    await openGame(tester, quintaOpen);
+    await tapReady(tester, button<FilledButton>(l10nPt.gameJoin));
+    await pumpUntil(tester, find.text(l10nPt.gameJoined));
+    await pumpUntil(tester, me);
+    await tapReady(tester, button<OutlinedButton>(l10nPt.gameLeave));
+    await tapReady(tester, button<FilledButton>(l10nPt.gameLeave).last);
+    await pumpUntil(tester, find.text(l10nPt.gameLeftOnTime));
+    await pumpUntilGone(tester, me);
+
+    // Quinta Confirmado: sai da espera e entra de novo.
+    await tapReady(tester, find.byTooltip(l10nPt.commonBack));
+    await openGame(tester, quintaFull);
+    final waitlistTitle = find.text(l10nPt.gameWaitlistTitle('1'));
+    await pumpUntil(tester, waitlistTitle);
+    await tapReady(tester, button<OutlinedButton>(l10nPt.gameLeaveWaitlist));
+    await pumpUntil(tester, find.text(l10nPt.gameLeftWaitlist));
+    await pumpUntilGone(tester, waitlistTitle);
+    await tapReady(tester, button<FilledButton>(l10nPt.gameJoinWaitlist));
+    await pumpUntil(tester, find.text(l10nPt.gameJoinedWaitlist));
+    await pumpUntil(tester, waitlistTitle);
+  });
+
+  testWidgets('L17: a lista acompanha a Carla pelo Realtime', (tester) async {
+    await openAs(
+      tester,
+      'ana',
+      pickers: _FixedPickers(dates: [], times: []),
+    );
+    await openGame(tester, quintaOpen);
+    await pumpUntil(tester, find.text(l10nPt.groupMemberYou('Ana')).last);
+
+    // Outro cliente, logado como Carla, sem tocar na sessão do app.
+    final carla = SupabaseClient(
+      Env.supabaseUrl,
+      Env.supabasePublishableKey,
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    await carla.auth.signInWithPassword(
+      email: 'carla@voleiin.test',
+      password: password,
+    );
+    final carlinha = find.text('Carlinha');
+    try {
+      await carla.rpc('join_game', params: {'p_game_id': quintaOpen});
+      await pumpUntil(tester, carlinha, timeout: const Duration(seconds: 5));
+      await carla.rpc('leave_game', params: {'p_game_id': quintaOpen});
+      await pumpUntilGone(tester, carlinha);
+    } finally {
+      await carla.auth.signOut();
+      await carla.dispose();
+    }
   });
 }
 

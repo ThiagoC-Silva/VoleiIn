@@ -65,12 +65,12 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF46 | 4 | RN52, RN107 | RLS de `game_participants`, `game_waitlist`; Realtime | `/games/:gameId` | W01 a W04, W13, W14, S36, S37, S50 | Em andamento |
 | RF47 | 4 | RN50 | `join_game`; `game_participants` | `/games/:gameId` | O01 a O07, T03 a T05, S42 | Em andamento |
 | RF48 | 8 | RN50, RN107 | — | — | — | Pendente |
-| RF49 | 4 | RN51, RN54 | `join_waitlist`; `game_waitlist` (só a entrada) | `/games/:gameId` | O03, O04, T05 | Em andamento |
-| RF50 | 4 | RN02, RN29, RN56, RN57 | — | — | — | Pendente |
+| RF49 | 4 | RN51, RN54 | `join_waitlist`, `leave_waitlist`; `game_waitlist` | `/games/:gameId` | O03, O04, O15, O16, T05, C03, S45, L16 | Em andamento |
+| RF50 | 4 | RN02, RN29, RN56, RN57 | `leave_game`; `game_participants` | `/games/:gameId` | O08 a O14, T01, T02, T06 a T10, C06, S43, S44, S47, L16, L17 | Em andamento |
 | RF51 | 4 | RN53 | `join_game` com trava por jogo (RN53) | `/games/:gameId` | C01, C02, C04, C05 | Em andamento |
 | RF52 | 4 | RN42, RN53, RN59 | `set_slot_limit` | `/games/:gameId/edit` | O20 a O23, C05, S53 | Em andamento |
 | RF53 | 4 | RN33, RN41, RN59 | `set_slot_limit` (redução) | `/games/:gameId/edit` | O20 a O23, C05, S53 | Em andamento |
-| RF54 | 4 | RN29, RN58 | — | — | — | Pendente |
+| RF54 | 4 | RN29, RN58 | `remove_participant`; `game_participants` | `/games/:gameId` | O17 a O19 | Em andamento |
 | RF55 | 4 | RN02, RN03, RN51 | `join_game` (prazo e início, RN03) | `/games/:gameId` | O01 a O07, T03 a T05, S42 | Em andamento |
 | RF56 | 5 | RN02, RN03, RN35, RN57, RN60 | — | — | — | Pendente |
 | RF57 | 5 | RN03, RN56, RN61 | — | — | — | Pendente |

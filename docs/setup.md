@@ -82,7 +82,7 @@ O padrão do projeto, já no repositório e válido em qualquer máquina:
 |------|--------------|------|---------|
 | Build do Gradle | heap de 2 GB, metaspace de 512 MB, Kotlin dentro do Gradle (sem segundo daemon), daemon sai após 10 min parado | `app/android/gradle.properties` | até ~3 GB, só durante o build |
 | Emulador | 2 GB de RAM, GPU por software, sem snapshot; um por vez | `scripts/emulator.sh` | ~3 GB |
-| Supabase local | `analytics` (leva junto o `vector`), `realtime` e `studio` desligados; `edge_runtime` e `local_smtp` (códigos de confirmação) ficam ligados | `supabase/config.toml` | ~0,7 GB |
+| Supabase local | `analytics` (leva junto o `vector`) e `studio` desligados; `realtime` religado em 17/11/2026, porque o detalhe do jogo assina a lista (L17); `edge_runtime` e `local_smtp` (códigos de confirmação) ficam ligados | `supabase/config.toml` | ~0,7 GB |
 | Testes de integração | só começam com 4,5 GB livres e sem testes de unidade rodando | `scripts/integration-test.sh` | — |
 
 **A regra:** com o emulador aberto, **um comando pesado por vez**. Não rode `flutter test`, `supabase test db`, `deno test` ou outro build enquanto o teste de integração compila ou roda. Antes de abrir o emulador, feche abas e navegadores que não estiver usando. Os scripts conferem a memória disponível e param com uma mensagem quando falta folga. `VOLEIIN_SKIP_MEMORY_CHECK=1` pula a conferência.
@@ -353,6 +353,14 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
   - INFO de RLS sem política em 9 tabelas das fatias seguintes (eram 14; `games`, `game_participants`, `game_waitlist`, `game_admins` e `game_limit_history` ganharam política).
   - WARN `authenticated_security_definer_function_executable` em 17 funções, as 10 de grupo e as 7 de jogo: é o desenho (seção 9.5).
   - Os mesmos WARN de Auth e de desempenho da seção 9.5, e INFO de chaves estrangeiras sem índice e índices sem uso.
+
+### 9.7 Migração da etapa B da fatia 4 (17/11/2026)
+
+**Feita em 17/11/2026**, pelo agente. A produção tinha as 27 migrações até a etapa A, uma conta, um grupo e o jogo de teste "Teste M06".
+
+- Ensaio da seção 9.2: banco local na versão `20261116120300`, sem seed, com a carga de `data-local.sql` (o dump sem os blocos `COPY` vazios, pelo mesmo motivo da seção 9.6: `one_time_tokens` e `saml_providers` estavam vazias). A migração `20261117120000` aplicou sem erro, os 451 testes pgTAP passaram, e as contagens ficaram iguais antes e depois (1 conta, 1 perfil, 1 grupo, 1 membro, 1 jogo, 1 passagem, 1 admin, 1 linha de histórico de limite, 2 aceites) e nenhuma tabela sem RLS.
+- `supabase db push --dry-run` listou só ela, e o `supabase db push` a aplicou.
+- Advisors de segurança: os mesmos da seção 9.6, com o WARN `authenticated_security_definer_function_executable` em 20 funções (as 3 novas entram por desenho) e o INFO de RLS sem política nas 9 tabelas das fatias seguintes.
 
 ## 10. Domínio, e-mail e convites
 

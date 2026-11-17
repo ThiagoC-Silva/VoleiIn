@@ -48,6 +48,10 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.alreadyOnWaitlist => l10n.errorAlreadyOnWaitlist,
     ErrorCode.slotLimitBelowParticipants =>
       l10n.errorSlotLimitBelowParticipants,
+    ErrorCode.listLocked => l10n.errorListLocked,
+    ErrorCode.notOnWaitlist => l10n.errorNotOnWaitlist,
+    ErrorCode.notParticipant => l10n.errorNotParticipant,
+    ErrorCode.receiverLocked => l10n.errorReceiverLocked,
   };
 }
 

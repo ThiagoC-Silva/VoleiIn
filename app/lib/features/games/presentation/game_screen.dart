@@ -16,8 +16,10 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/badge.dart';
 import '../../../shared/widgets/buttons.dart';
+import '../../../shared/widgets/confirm_sheet.dart';
 import '../../../shared/widgets/inline_notice.dart';
 import '../../../shared/widgets/list_card.dart';
+import '../../../shared/widgets/sheet_option.dart';
 import '../../../shared/widgets/snack.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/pix_key.dart';
@@ -29,9 +31,9 @@ import 'games_providers.dart';
 /// Detalhe do jogo (RF37, RF45 a RF47, RF49, RF55; docs/ui/telas.md, 7.3;
 /// game.png, game-admin.png, game-confirmado.png, game-espera.png,
 /// game-andamento.png e game-cancelado.png). Na aba Jogos, com a barra
-/// inferior. Relê tudo a cada evento do Realtime. Nesta etapa, o pé só tem as
-/// entradas, e o menu só tem Editar jogo (research R12 de
-/// specs/003-jogo-etapa-a).
+/// inferior. Relê tudo a cada evento do Realtime. O pé tem as entradas e as
+/// saídas (etapas A e B), e o admin remove pela linha da lista; o menu só tem
+/// Editar jogo até a etapa C (research R12 de specs/003-jogo-etapa-a).
 class GameScreen extends ConsumerWidget {
   const GameScreen({required this.gameId, super.key});
 
@@ -167,15 +169,19 @@ class _GameBody extends ConsumerWidget {
     }
     final mine = game.myParticipant;
     if (mine != null) {
-      if (mine.status == ParticipantStatus.active && game.isReceiver) {
+      // Quem saiu após o início fica sem pé: a falta já está registrada.
+      if (mine.status != ParticipantStatus.active) return null;
+      if (game.isReceiver) {
         return InlineNotice(
           icon: Symbols.lock,
           color: colors.split,
           text: l10n.gameReceiverCannotLeave,
         );
       }
-      // Sair da lista chega na etapa B.
-      return null;
+      return DestructiveOutlinedButton(
+        label: l10n.gameLeave,
+        onPressed: busy ? null : () => _leave(context, ref, game),
+      );
     }
     // As listas fecham no início (RN54, RN55).
     if (!now.isBefore(game.startsAt)) return null;
@@ -204,19 +210,49 @@ class _GameBody extends ConsumerWidget {
       }
     }
 
+    Future<void> leaveWaitlist() async {
+      final error = await ref
+          .read(gameActionsControllerProvider.notifier)
+          .leaveWaitlist(game.id);
+      if (!context.mounted) return;
+      if (error != null) {
+        showErrorSnack(context, error);
+      } else {
+        showSnack(context, l10n.gameLeftWaitlist);
+      }
+    }
+
     final position = game.myWaitlistPosition;
     if (position != null) {
       if (game.status == GameStatus.open) {
-        return PrimaryButton(
-          label: l10n.gameJoin,
-          loading: busy,
-          onPressed: join,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            PrimaryButton(label: l10n.gameJoin, loading: busy, onPressed: join),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: busy ? null : leaveWaitlist,
+              child: Text(l10n.gameLeaveWaitlist),
+            ),
+          ],
         );
       }
-      return InlineNotice(
-        icon: Symbols.hourglass_top,
-        color: colors.wait,
-        text: l10n.gameWaitlistNotice('$position'),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InlineNotice(
+            icon: Symbols.hourglass_top,
+            color: colors.wait,
+            text: l10n.gameWaitlistNotice('$position'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: busy ? null : leaveWaitlist,
+            child: Text(l10n.gameLeaveWaitlist, textAlign: TextAlign.center),
+          ),
+        ],
       );
     }
     // Fora das listas. Sem ser membro do grupo, ou num avulso, só pelo
@@ -252,6 +288,48 @@ class _GameBody extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Sair da lista, com a confirmação destrutiva. A frase escolhe pelo relógio
+/// do aparelho, porque é só aviso; o `SnackBar` segue o `outcome` do servidor
+/// (telas.md, 7.3).
+Future<void> _leave(
+  BuildContext context,
+  WidgetRef ref,
+  GameDetail game,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final now = ref.read(clockProvider)();
+  final body = !now.isBefore(game.startsAt)
+      ? l10n.gameLeaveAfterStartBody
+      : now.isAfter(game.cancellationDeadline)
+      ? l10n.gameLeaveLateBody
+      : l10n.gameLeaveOnTimeBody(
+          l10n.gameDateTime(
+            formatShortDate(game.cancellationDeadline),
+            formatTime(game.cancellationDeadline),
+          ),
+        );
+  final confirmed = await confirmDestructive(
+    context,
+    title: l10n.gameLeaveTitle,
+    body: body,
+    confirmLabel: l10n.gameLeave,
+  );
+  if (!confirmed || !context.mounted) return;
+  final (outcome, error) = await ref
+      .read(gameActionsControllerProvider.notifier)
+      .leave(game.id);
+  if (!context.mounted) return;
+  if (error != null) {
+    showErrorSnack(context, error);
+    return;
+  }
+  showSnack(context, switch (outcome!) {
+    LeaveOutcome.cancelledOnTime => l10n.gameLeftOnTime,
+    LeaveOutcome.cancelledLate => l10n.gameLeftLate,
+    LeaveOutcome.leftAfterStart => l10n.gameLeftAfterStart,
+  });
 }
 
 /// Topo colorido (design-system.md, 7.8): `game` com o jogo Aberto, `wait`
@@ -892,14 +970,23 @@ void _openPerson(BuildContext context, String gameId, String userId) {
 
 /// Lista de presença (RF46, RN52): as passagens que ocupam vaga, por ordem de
 /// `joined_at`, numeradas.
-class _ParticipantList extends StatelessWidget {
+class _ParticipantList extends ConsumerWidget {
   const _ParticipantList({required this.game, required this.now});
 
   final GameDetail game;
   final DateTime now;
 
+  /// O admin, antes do início, abre a sheet sobre quem não é o recebedor;
+  /// nos outros casos, o toque abre o perfil (telas.md, 7.3).
+  bool _opensSheet(GameParticipant person) =>
+      game.isAdmin &&
+      game.status.isActive &&
+      now.isBefore(game.startsAt) &&
+      person.status == ParticipantStatus.active &&
+      person.userId != game.receiverId;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colors = VoleiColors.of(context);
@@ -970,6 +1057,8 @@ class _ParticipantList extends StatelessWidget {
                       // A própria linha não é tocável (telas.md, 7.3).
                       onTap: isYou
                           ? null
+                          : _opensSheet(person)
+                          ? () => _participantSheet(context, ref, game, person)
                           : () => _openPerson(context, game.id, person.userId),
                     );
                   },
@@ -978,6 +1067,63 @@ class _ParticipantList extends StatelessWidget {
           ),
       ],
     );
+  }
+}
+
+/// Sheet do admin sobre um participante (game-participante.png): Ver perfil e
+/// Remover da lista, esta com a confirmação destrutiva (RN58).
+Future<void> _participantSheet(
+  BuildContext context,
+  WidgetRef ref,
+  GameDetail game,
+  GameParticipant person,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final remove = await showVoleiSheet<bool>(context, (context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(person.displayName, style: theme.textTheme.headlineMedium),
+        const SizedBox(height: 16),
+        SheetOptions(
+          options: [
+            SheetOption(
+              icon: Symbols.person,
+              label: l10n.groupMemberViewProfile,
+              onTap: () => Navigator.of(context).pop(false),
+            ),
+            SheetOption(
+              icon: Symbols.person_remove,
+              label: l10n.gameParticipantRemove,
+              color: theme.colorScheme.error,
+              onTap: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        ),
+      ],
+    );
+  });
+  if (remove == null || !context.mounted) return;
+  if (!remove) {
+    _openPerson(context, game.id, person.userId);
+    return;
+  }
+  final confirmed = await confirmDestructive(
+    context,
+    title: l10n.gameParticipantRemoveTitle(person.displayName),
+    body: l10n.gameParticipantRemoveBody(person.displayName),
+    confirmLabel: l10n.gameParticipantRemoveConfirm,
+  );
+  if (!confirmed || !context.mounted) return;
+  final error = await ref
+      .read(gameActionsControllerProvider.notifier)
+      .remove(game.id, person.userId);
+  if (!context.mounted) return;
+  if (error != null) {
+    showErrorSnack(context, error);
+  } else {
+    showSnack(context, l10n.gameParticipantRemoved(person.displayName));
   }
 }
 

@@ -249,6 +249,27 @@ class GamesRepository {
     await _db.rpc('join_waitlist', params: {'p_game_id': gameId});
   });
 
+  Future<void> leaveWaitlist(String gameId) => guard(() async {
+    await _db.rpc('leave_waitlist', params: {'p_game_id': gameId});
+  });
+
+  Future<LeaveOutcome> leaveGame(String gameId) => guard(() async {
+    final result = await _db.rpc('leave_game', params: {'p_game_id': gameId});
+    return LeaveOutcome.fromValue(
+      (result as Map<String, dynamic>)['outcome'] as String,
+    );
+  });
+
+  Future<void> removeParticipant({
+    required String gameId,
+    required String userId,
+  }) => guard(() async {
+    await _db.rpc(
+      'remove_participant',
+      params: {'p_game_id': gameId, 'p_user_id': userId},
+    );
+  });
+
   static Map<String, Object?> _inputParams(GameInput input) => {
     'p_location_name': input.locationName,
     'p_maps_url': input.mapsUrl,

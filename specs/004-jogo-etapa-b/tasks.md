@@ -32,12 +32,16 @@
 
 Numa conversa nova, depois do *merge* da sessão 2, com os PNGs da etapa B conferidos.
 
-- [ ] T008 Códigos de erro novos e textos da etapa (`docs/copy.md`, seção 8) e testes E15, S43 a S47, L16, L17 escritos antes
-- [ ] T009 Repositório e ações de sair, sair da espera e remover no detalhe do jogo (7.3)
-- [ ] T010 `dart format`, `dart analyze` e `flutter test` verdes; acessibilidade (S59, S60)
+- [x] T008 Códigos de erro novos e textos da etapa (`docs/copy.md`, seção 8) e testes E15, S43 a S47, L16, L17 escritos antes
+- [x] T009 Repositório e ações de sair, sair da espera e remover no detalhe do jogo (7.3)
+- [x] T010 `dart format`, `dart analyze` e `flutter test` verdes; acessibilidade (S59, S60)
+
+**Sessão 3 concluída em 17/11/2026**, na mesma conversa da sessão 2, a pedido do responsável, no *branch* `fatia-4/app-b`: `dart format`, `dart analyze` e `flutter test` (439 testes) verdes, com os testes escritos antes (*commit* `8b682ec`, com a saída da falha). O pé do detalhe ganhou **Sair da lista** (com a frase pelo relógio do aparelho e o `SnackBar` pelo `outcome` do servidor) e **Sair da lista de espera**; o admin remove pela sheet da linha, antes do início e sem ser sobre o recebedor (`game-participante.png`). O S46 já estava coberto pela etapa A. L16 e L17 escritos em `app/integration_test/games_flow_test.dart`, com o detalhe aberto pelo roteador, porque os cards de Meus jogos repetem locais do seed. Ajustes nos testes depois de escrevê-los, sem mudar o que conferem: um *import* sobrando e o `viewerId` no novo caso do S59.
 
 ## Sessão 4 — Validação
 
-- [ ] T011 L16 e L17 no emulador, APIs 29 e 36, pelos `scripts/`
-- [ ] T012 Ensaio (`docs/setup.md`, 9.2) e `supabase db push`; `get_advisors`
-- [ ] T013 `docs/rastreabilidade.md` e a linha "Estado atual" do `CLAUDE.md`
+- [x] T011 L16 e L17 no emulador, APIs 29 e 36, pelos `scripts/`
+- [x] T012 Ensaio (`docs/setup.md`, 9.2) e `supabase db push`; `get_advisors`
+- [x] T013 `docs/rastreabilidade.md` e a linha "Estado atual" do `CLAUDE.md`
+
+**Sessão 4 em 17/11/2026**, na mesma conversa: L15, L16 e L17 verdes nas APIs 29 e 36. O L17 falhou na primeira vez porque o Realtime do Supabase local estava desligado no `config.toml` desde a fatia 1, para poupar memória; ele foi religado (`docs/setup.md`, 3.1). Com o celular do responsável conectado por depuração sem fio, o `scripts/emulator.sh` recusou "mais de um aparelho"; os comandos rodaram com `ANDROID_SERIAL=emulator-5554`. Migração na produção com o ensaio (`docs/setup.md`, 9.7). RF49, RF50 e RF54 ficam "Em andamento" na `docs/rastreabilidade.md` até a etapa C.

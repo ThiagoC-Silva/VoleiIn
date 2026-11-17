@@ -116,6 +116,10 @@ const Map<String, ErrorCode> _serverCodes = {
   'ALREADY_PARTICIPANT': ErrorCode.alreadyParticipant,
   'ALREADY_ON_WAITLIST': ErrorCode.alreadyOnWaitlist,
   'SLOT_LIMIT_BELOW_PARTICIPANTS': ErrorCode.slotLimitBelowParticipants,
+  'LIST_LOCKED': ErrorCode.listLocked,
+  'NOT_ON_WAITLIST': ErrorCode.notOnWaitlist,
+  'NOT_PARTICIPANT': ErrorCode.notParticipant,
+  'RECEIVER_LOCKED': ErrorCode.receiverLocked,
 };
 
 /// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).
