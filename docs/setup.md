@@ -372,6 +372,15 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 - `supabase db push --dry-run` listou só ela, e o `supabase db push` a aplicou.
 - Advisors de segurança: os mesmos da seção 9.7, com o WARN `authenticated_security_definer_function_executable` em 23 funções (as 3 novas entram por desenho) e o INFO de RLS sem política nas 9 tabelas das fatias seguintes.
 
+### 9.9 Migrações da etapa A da fatia 5 (18/11/2026)
+
+**Feita em 18/11/2026**, pelo agente. A produção tinha as 29 migrações até a fatia 4, com os mesmos dados da seção 9.7.
+
+- Ensaio da seção 9.2: banco local na versão `20261117130000`, sem seed, com a carga de `data-local.sql` (o dump sem os blocos `COPY` vazios, como na seção 9.6). As migrações `20261118120000` (`completion_rls`) e `20261118120100` (`create_completion_functions`) aplicaram sem erro, os 632 testes pgTAP passaram, e as contagens ficaram iguais antes e depois (1 conta, 1 perfil, 1 grupo, 1 membro, 1 jogo, 1 passagem, 1 admin, 1 linha de histórico de limite, 2 aceites) e nenhuma tabela sem RLS. O job `auto-complete-due-games` ficou agendado a cada 5 min.
+- O jogo de teste "Teste M06" estava Aberto, com fim em 21/11/2026 às 01:00 UTC. A migração não o tocou. Se ninguém o concluir, o `pg_cron` o conclui até 1 h 05 min depois do fim.
+- `supabase db push --dry-run` listou as mesmas 2, sem seed nem roles, e o `supabase db push` as aplicou.
+- Conferência: 31 migrações, o job ativo, nenhuma tabela sem RLS e nenhum valor a pagar. Advisors de segurança: o INFO de RLS sem política em 6 tabelas (eram 9; `charges`, `charge_events` e `receiver_changes` ganharam política), o WARN `authenticated_security_definer_function_executable` em 25 funções (`preview_complete_game` e `complete_game` entram por desenho; `auto_complete_due_games` não aparece no aviso, porque só o `pg_cron` a chama) e os mesmos WARN de Auth.
+
 ## 10. Domínio, e-mail e convites
 
 | Item | Valor | Observação |
