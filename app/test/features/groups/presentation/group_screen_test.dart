@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:voleiin/core/errors/error_code.dart';
+import 'package:voleiin/features/games/domain/game_models.dart';
 import 'package:voleiin/features/groups/domain/group_models.dart';
 
+import '../../../helpers/games_fixtures.dart';
 import '../../../helpers/groups_fixtures.dart';
 import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
@@ -17,7 +19,7 @@ void main() {
     h = TestHarness();
     h.signedIn();
     h.group(quinta);
-    when(() => h.groups.leaveGroup(any())).thenAnswer((_) async {});
+    when(() => h.groups.leaveGroup(any())).thenAnswer((_) async => 0);
   });
 
   Future<void> open(WidgetTester tester) async {
@@ -143,5 +145,56 @@ void main() {
     await tester.tap(find.text(l10nPt.groupEdit));
     await tester.pumpAndSettle();
     expect(h.location, '/groups/$quintaId/edit');
+  });
+
+  group('S56: saída com jogos (fatia 4, etapa C)', () {
+    testWidgets('confirmação com groupLeaveGamesBody e SnackBar com 2 jogos', (
+      tester,
+    ) async {
+      when(() => h.groups.leaveGroup(any())).thenAnswer((_) async => 2);
+      await open(tester);
+      final leave = buttonWithText<OutlinedButton>(l10nPt.groupLeave);
+      await tester.ensureVisible(leave);
+      await tester.pumpAndSettle();
+      await tester.tap(leave);
+      await tester.pumpAndSettle();
+      expect(find.textContaining(l10nPt.groupLeaveGamesBody), findsOneWidget);
+      await tester.tap(buttonWithText<FilledButton>(l10nPt.groupLeave));
+      await tester.pumpAndSettle();
+
+      expect(h.location, '/groups');
+      expect(find.text(l10nPt.groupLeftWithGames(2)), findsOneWidget);
+    });
+
+    testWidgets('MEMBER_IS_RECEIVER: sheet com os dois jogos, que abrem', (
+      tester,
+    ) async {
+      when(() => h.groups.leaveGroup(any())).thenAnswer(
+        (_) async => throw const AppException(
+          ErrorCode.memberIsReceiver,
+          gameIds: [game1Id, game2Id],
+        ),
+      );
+      when(() => h.games.fetchGameSummaries([game1Id, game2Id])).thenAnswer(
+        (_) async => [
+          summary(myStatus: ParticipantStatus.active),
+          summary(id: game2Id, locationName: 'Ginásio Verdão'),
+        ],
+      );
+      h.game(game1);
+      await open(tester);
+      await leaveAndConfirm(tester);
+
+      expect(find.text(l10nPt.groupLeaveBlockedTitle), findsOneWidget);
+      expect(find.text(l10nPt.groupBlockedReceiverBody), findsOneWidget);
+      expect(find.text('Ginásio Verdão'), findsOneWidget);
+      expect(h.location, '/groups/$quintaId');
+
+      await tester.ensureVisible(find.text('Ginásio Verdão'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ginásio Verdão'));
+      await tester.pumpAndSettle();
+      expect(h.location, '/games/$game2Id');
+    });
   });
 }

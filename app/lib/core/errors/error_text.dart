@@ -52,6 +52,12 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.notOnWaitlist => l10n.errorNotOnWaitlist,
     ErrorCode.notParticipant => l10n.errorNotParticipant,
     ErrorCode.receiverLocked => l10n.errorReceiverLocked,
+    ErrorCode.adminMustBeParticipant => l10n.errorAdminMustBeParticipant,
+    ErrorCode.alreadyGameAdmin => l10n.errorAlreadyGameAdmin,
+    ErrorCode.notGameAdminTarget => l10n.errorNotGameAdminTarget,
+    ErrorCode.lastGameAdmin => l10n.errorLastGameAdmin,
+    ErrorCode.memberIsReceiver => l10n.errorMemberIsReceiver,
+    ErrorCode.memberIsOnlyGameAdmin => l10n.errorMemberIsOnlyGameAdmin,
   };
 }
 

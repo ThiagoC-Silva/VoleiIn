@@ -10,6 +10,7 @@ import 'package:voleiin/app.dart';
 import 'package:voleiin/core/clock.dart';
 import 'package:voleiin/core/date_time_picker.dart';
 import 'package:voleiin/core/errors/error_code.dart';
+import 'package:voleiin/core/link_opener.dart';
 import 'package:voleiin/core/share.dart';
 import 'package:voleiin/core/router/app_router.dart';
 import 'package:voleiin/features/auth/data/auth_repository.dart';
@@ -42,6 +43,19 @@ class MockSharer extends Mock implements Sharer {}
 class MockGamesRepository extends Mock implements GamesRepository {}
 
 class FakeGameInput extends Fake implements GameInput {}
+
+/// Guarda os links que o app pediu para abrir (Maps, discador, WhatsApp).
+/// [works] falso simula o aparelho sem app para o link.
+class FakeLinkOpener implements LinkOpener {
+  final opened = <Uri>[];
+  bool works = true;
+
+  @override
+  Future<bool> open(Uri uri) async {
+    opened.add(uri);
+    return works;
+  }
+}
 
 /// Seletores nativos de data e hora trocados por respostas em fila: cada
 /// toque num campo de data ou de hora consome a próxima.
@@ -98,6 +112,7 @@ class TestHarness {
       (_) async => 'http://127.0.0.1:54321/storage/v1/object/sign/avatars/g',
     );
     when(() => sharer.shareText(any())).thenAnswer((_) async {});
+    when(() => profiles.fetchContactPhone(any())).thenAnswer((_) async => null);
 
     myGames(const []);
     when(() => games.hasPixKey()).thenAnswer((_) async => true);
@@ -121,6 +136,7 @@ class TestHarness {
   final sharer = MockSharer();
   final games = MockGamesRepository();
   final pickers = FakeDateTimePicker();
+  final links = FakeLinkOpener();
 
   /// O relógio do aparelho, só para mostrar (docs/arquitetura-app.md, seção
   /// 8). Segunda, 16/11/2026, 12:00 em Fortaleza, antes de todos os jogos dos
@@ -141,6 +157,7 @@ class TestHarness {
       gamesRepositoryProvider.overrideWithValue(games),
       dateTimePickerProvider.overrideWithValue(pickers),
       clockProvider.overrideWithValue(() => now),
+      linkOpenerProvider.overrideWithValue(links),
     ],
     // Sem repetição automática: quem tenta de novo é a pessoa.
     retry: (_, _) => null,

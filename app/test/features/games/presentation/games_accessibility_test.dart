@@ -9,7 +9,7 @@ import '../../../helpers/test_app.dart';
 
 /// Cenário S60 de docs/testes-referencia.md, seção 12.6, e a lista de
 /// acessibilidade de docs/ui/design-system.md, seção 8 (RNF05), nas telas das
-/// etapas A e B: área de toque de 48 x 48 dp, rótulo para o TalkBack em todo alvo
+/// etapas A a C: área de toque de 48 x 48 dp, rótulo para o TalkBack em todo alvo
 /// de toque e contraste de 4,5:1 no texto. A fonte em 150% é o S59
 /// (games_text_scale_test.dart).
 void main() {
@@ -143,6 +143,16 @@ void main() {
 
     h.game(() => game2(viewerId: brunoId));
     await open(tester, ['/games', '/games/$game2Id']);
+    await meetsChecklist(tester);
+    semantics.dispose();
+  });
+
+  testWidgets('S60 (etapa C): admins do jogo', (tester) async {
+    final semantics = tester.ensureSemantics();
+    when(() => h.games.fetchGameAdmins(game1Id)).thenAnswer(
+      (_) async => const [GameAdmin(userId: anaId, displayName: 'Ana')],
+    );
+    await open(tester, ['/games', '/games/$game1Id', '/games/$game1Id/admins']);
     await meetsChecklist(tester);
     semantics.dispose();
   });

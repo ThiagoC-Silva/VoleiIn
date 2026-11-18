@@ -42,6 +42,9 @@ class Routes {
 
   /// `/games/:gameId/people/:userId`: o perfil de outra pessoa na aba Jogos
   /// (telas.md, 7.3; research R10 de specs/003-jogo-etapa-a).
+  static const String gameAdmins = 'gameAdmins';
+  static const String gameAdminsPath = 'admins';
+
   static const String gamePerson = 'gamePerson';
   static const String gamePersonPath = 'people/:userId';
 

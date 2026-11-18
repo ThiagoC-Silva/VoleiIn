@@ -82,7 +82,7 @@ void main() {
       }
     },
   );
-  test('E15: os textos dos erros de jogo das etapas A e B são os do catálogo '
+  test('E15: os textos dos erros de jogo das etapas A a C são os do catálogo '
       '(docs/copy.md, 8.8)', () {
     const texts = {
       ErrorCode.notGameAdmin: 'Só um admin do jogo pode fazer isso.',
@@ -109,6 +109,17 @@ void main() {
       ErrorCode.notOnWaitlist: 'Você não está na lista de espera.',
       ErrorCode.notParticipant: 'Esta pessoa não está mais na lista.',
       ErrorCode.receiverLocked: 'O recebedor não pode sair da lista.',
+      // Etapa C.
+      ErrorCode.adminMustBeParticipant:
+          'Só quem está na lista pode ser admin do jogo.',
+      ErrorCode.alreadyGameAdmin: 'Esta pessoa já é admin do jogo.',
+      ErrorCode.notGameAdminTarget: 'Esta pessoa não é mais admin do jogo.',
+      ErrorCode.lastGameAdmin:
+          'Indique outro admin antes. O jogo precisa de ao menos um.',
+      ErrorCode.memberIsReceiver:
+          'Há jogos em aberto deste grupo com esta pessoa como recebedora.',
+      ErrorCode.memberIsOnlyGameAdmin:
+          'Há jogos em aberto deste grupo com esta pessoa como única admin.',
     };
     for (final entry in texts.entries) {
       expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);

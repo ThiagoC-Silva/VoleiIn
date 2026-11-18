@@ -19,3 +19,9 @@ final avatarUrlProvider = FutureProvider.autoDispose.family<String, String>(
 final personProvider = FutureProvider.autoDispose.family<Profile, String>(
   (ref, userId) => ref.watch(profileRepositoryProvider).fetchProfile(userId),
 );
+
+/// O telefone de outra pessoa, ou nulo (RN101; telas.md, 7.9).
+final personPhoneProvider = FutureProvider.autoDispose.family<String?, String>(
+  (ref, userId) =>
+      ref.watch(profileRepositoryProvider).fetchContactPhone(userId),
+);

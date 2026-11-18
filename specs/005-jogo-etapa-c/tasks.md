@@ -17,12 +17,18 @@
 
 ## Sessão 3 — App
 
-- [ ] T009 Testes antes: E15 e E16, U12, S48, S49, S54 a S58, L15 (cancelamento), L18, L19
-- [ ] T010 Cancelar jogo, admins do jogo (7.5), sheet de saída bloqueada (7.8) e telefone no perfil (6.9)
-- [ ] T011 `dart format`, `dart analyze` e `flutter test` verdes; S59 e S60
+- [x] T009 Testes antes: E15 e E16, U12, S48, S49, S54 a S58, L15 (cancelamento), L18, L19
+- [x] T010 Cancelar jogo, admins do jogo (7.5), sheet de saída bloqueada (7.8) e telefone no perfil (6.9)
+- [x] T011 `dart format`, `dart analyze` e `flutter test` verdes; S59 e S60
+
+**Sessão 3 concluída em 17/11/2026** no *branch* `fatia-4/app-c`: `dart format`, `dart analyze` e `flutter test` (468 testes) verdes, com os testes antes (*commit* `8367fa1`, com a saída da falha). O menu do admin tem Editar jogo, Admins do jogo e Cancelar jogo; a tela de admins lê `game_admins` com o perfil, porque quem saiu da lista continua admin (RN26); a sheet de bloqueio é da feature `games` e chega às telas de grupo pelo roteador (`docs/arquitetura-app.md`, seção 2); o `AppException` guarda `game_ids` (E16). Ajustes em testes de etapas anteriores, sem mudar resultado de `testes-referencia.md`: o teste da etapa A que esperava o menu sumir depois do início passou a conferir o menu sem Editar jogo (S48, `telas.md` 7.3); os dublês de `leaveGroup` e `removeMember` devolvem o número de jogos.
 
 ## Sessão 4 — Validação
 
-- [ ] T012 L15, L18 e L19 nas APIs 29 e 36; M07 com o responsável
-- [ ] T013 Ensaio e `supabase db push`; advisors
-- [ ] T014 Fechamento da fatia 4 (`docs/trabalho-com-agente.md`, seção 11): rastreabilidade e "Estado atual"
+- [x] T012 L15, L18 e L19 nas APIs 29 e 36; M07 com o responsável
+- [x] T013 Ensaio e `supabase db push`; advisors
+- [x] T014 Fechamento da fatia 4 (`docs/trabalho-com-agente.md`, seção 11): rastreabilidade e "Estado atual"
+
+**Sessão 4, parcial, em 17/11/2026:** L15 a L19 verdes nas APIs 29 e 36, e o fluxo de grupos da fatia 3 verde na API 29. Ajustes só nos testes de integração, sem mudar o que conferem: o L19 rola até **Sair do grupo** (os jogos do grupo o empurram para baixo da dobra) e o L15 espera o nome do grupo na criação (mais lento na API 29). **Falta:** M07 com o responsável no celular, o ensaio e o `supabase db push` da migração `20261117130000` (T013) e o fechamento da fatia 4 (T014).
+
+**Sessão 4 concluída em 18/11/2026:** M07 conferido no celular (Abrir no Maps com o build da produção; Ligar e WhatsApp com o build do Supabase local, logado como Bruno, no perfil da Ana), a migração `20261117130000` na produção com o ensaio (`docs/setup.md`, 9.8) e a fatia 4 fechada em `docs/rastreabilidade.md`.

@@ -32,8 +32,8 @@ import 'games_providers.dart';
 /// game.png, game-admin.png, game-confirmado.png, game-espera.png,
 /// game-andamento.png e game-cancelado.png). Na aba Jogos, com a barra
 /// inferior. Relê tudo a cada evento do Realtime. O pé tem as entradas e as
-/// saídas (etapas A e B), e o admin remove pela linha da lista; o menu só tem
-/// Editar jogo até a etapa C (research R12 de specs/003-jogo-etapa-a).
+/// saídas (etapas A e B), o admin remove pela linha da lista, e o menu tem
+/// Editar jogo, Admins do jogo e Cancelar jogo (etapa C).
 class GameScreen extends ConsumerWidget {
   const GameScreen({required this.gameId, super.key});
 
@@ -409,10 +409,11 @@ class _Hero extends ConsumerWidget {
                     }
                   },
                 ),
-              if (canEdit) ...[
+              if (game.isAdmin) ...[
                 const SizedBox(width: 12),
                 _AdminMenu(
-                  gameId: game.id,
+                  game: game,
+                  canEdit: canEdit,
                   background: buttonBackground,
                   foreground: buttonForeground,
                 ),
@@ -527,22 +528,66 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
-/// O botão `more_vert` do admin. Nesta etapa, só com Editar jogo.
-class _AdminMenu extends StatelessWidget {
+/// O que o admin escolheu no menu.
+enum _AdminAction { edit, admins, cancel }
+
+/// O botão `more_vert` do admin, com as opções que valem no momento
+/// (telas.md, 7.3): Editar jogo antes do início; Admins do jogo sempre;
+/// Cancelar jogo com o jogo Aberto ou Confirmado, mesmo depois do início
+/// (RN43).
+class _AdminMenu extends ConsumerWidget {
   const _AdminMenu({
-    required this.gameId,
+    required this.game,
+    required this.canEdit,
     required this.background,
     required this.foreground,
   });
 
-  final String gameId;
+  final GameDetail game;
+  final bool canEdit;
   final Color background;
   final Color foreground;
 
-  @override
-  Widget build(BuildContext context) {
+  Future<void> _cancel(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
-    return PopupMenuButton<String>(
+    final confirmed = await confirmDestructive(
+      context,
+      title: l10n.gameCancelTitle,
+      body: l10n.gameCancelBody,
+      confirmLabel: l10n.gameCancel,
+    );
+    if (!confirmed || !context.mounted) return;
+    final error = await ref
+        .read(gameActionsControllerProvider.notifier)
+        .cancel(game.id);
+    if (!context.mounted) return;
+    error == null
+        ? showSnack(context, l10n.gameCancelled)
+        : showErrorSnack(context, error);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final error = Theme.of(context).colorScheme.error;
+    PopupMenuItem<_AdminAction> item(
+      _AdminAction value,
+      IconData icon,
+      String label, {
+      Color? color,
+    }) => PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 16),
+          Flexible(
+            child: Text(label, style: TextStyle(color: color)),
+          ),
+        ],
+      ),
+    );
+    return PopupMenuButton<_AdminAction>(
       tooltip: l10n.gameMenuLabel,
       style: IconButton.styleFrom(
         backgroundColor: background,
@@ -552,21 +597,27 @@ class _AdminMenu extends StatelessWidget {
       icon: Icon(Symbols.more_vert, color: foreground),
       color: Theme.of(context).colorScheme.surfaceContainerHigh,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      onSelected: (_) => context.pushNamed(
-        Routes.gameEdit,
-        pathParameters: {'gameId': gameId},
-      ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: Routes.gameEdit,
-          child: Row(
-            children: [
-              const Icon(Symbols.edit),
-              const SizedBox(width: 16),
-              Flexible(child: Text(l10n.gameEdit)),
-            ],
-          ),
+      onSelected: (action) => switch (action) {
+        _AdminAction.edit => context.pushNamed(
+          Routes.gameEdit,
+          pathParameters: {'gameId': game.id},
         ),
+        _AdminAction.admins => context.pushNamed(
+          Routes.gameAdmins,
+          pathParameters: {'gameId': game.id},
+        ),
+        _AdminAction.cancel => _cancel(context, ref),
+      },
+      itemBuilder: (context) => [
+        if (canEdit) item(_AdminAction.edit, Symbols.edit, l10n.gameEdit),
+        item(_AdminAction.admins, Symbols.shield_person, l10n.gameAdmins),
+        if (game.status.isActive)
+          item(
+            _AdminAction.cancel,
+            Symbols.event_busy,
+            l10n.gameCancel,
+            color: error,
+          ),
       ],
     );
   }

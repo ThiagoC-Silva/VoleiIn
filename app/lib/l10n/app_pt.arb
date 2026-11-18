@@ -621,7 +621,9 @@
   "gameLeaveOnTimeBody": "Saindo até {deadline}, você não paga multa, e a vaga fica livre para outra pessoa.",
   "@gameLeaveOnTimeBody": {
     "placeholders": {
-      "deadline": {"type": "String"}
+      "deadline": {
+        "type": "String"
+      }
     }
   },
   "gameLeaveLateBody": "O prazo de cancelamento já passou. A saída pode gerar uma multa igual à parte por vaga, decidida na conclusão do jogo.",
@@ -633,20 +635,121 @@
   "gameParticipantRemoveTitle": "Remover {name} da lista?",
   "@gameParticipantRemoveTitle": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "gameParticipantRemoveBody": "{name} sai da lista sem multa, e a vaga fica livre para outra pessoa.",
   "@gameParticipantRemoveBody": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "gameParticipantRemoveConfirm": "Remover",
   "gameParticipantRemoved": "Removemos {name} da lista.",
   "@gameParticipantRemoved": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
-  }
+  },
+  "errorAdminMustBeParticipant": "Só quem está na lista pode ser admin do jogo.",
+  "errorAlreadyGameAdmin": "Esta pessoa já é admin do jogo.",
+  "errorNotGameAdminTarget": "Esta pessoa não é mais admin do jogo.",
+  "errorLastGameAdmin": "Indique outro admin antes. O jogo precisa de ao menos um.",
+  "errorMemberIsReceiver": "Há jogos em aberto deste grupo com esta pessoa como recebedora.",
+  "errorMemberIsOnlyGameAdmin": "Há jogos em aberto deste grupo com esta pessoa como única admin.",
+  "gameCancel": "Cancelar jogo",
+  "gameCancelTitle": "Cancelar o jogo?",
+  "gameCancelBody": "O jogo não acontece e ninguém paga nada. Quem está na lista e na espera é avisado. Não dá para desfazer.",
+  "gameCancelled": "Jogo cancelado.",
+  "gameAdmins": "Admins do jogo",
+  "gameAdminOnList": "Na lista",
+  "gameAdminOffList": "Fora da lista",
+  "gameAdminAdd": "Adicionar admin",
+  "gameAdminAddSheetTitle": "Quem vai ser admin?",
+  "gameAdminsNoCandidates": "Só quem está na lista pode ser admin, e todos da lista já são.",
+  "gameAdminRemove": "Remover admin",
+  "gameAdminAdded": "{name} agora é admin do jogo.",
+  "@gameAdminAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "gameAdminRemoved": "{name} não é mais admin do jogo.",
+  "@gameAdminRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "gameAdminStepDown": "Deixar de ser admin",
+  "gameAdminStepDownTitle": "Deixar de ser admin do jogo?",
+  "gameAdminStepDownBody": "Só outro admin do jogo poderá devolver esse papel a você.",
+  "gameAdminSteppedDown": "Você não é mais admin deste jogo.",
+  "groupLeaveGamesBody": "Você também sai da lista e da espera dos jogos do grupo que ainda não começaram, sem multa.",
+  "groupLeftWithGames": "{count, plural, =1{Você saiu do grupo e de 1 jogo.} other{Você saiu do grupo e de {count} jogos.}}",
+  "@groupLeftWithGames": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupMemberRemoveGamesBody": "{name} também sai da lista e da espera dos jogos do grupo que ainda não começaram, sem multa.",
+  "@groupMemberRemoveGamesBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupMemberRemovedWithGames": "{count, plural, =1{Removemos {name} do grupo e de 1 jogo.} other{Removemos {name} do grupo e de {count} jogos.}}",
+  "@groupMemberRemovedWithGames": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupLeaveBlockedTitle": "Você ainda não pode sair do grupo",
+  "groupRemoveBlockedTitle": "Ainda não dá para remover {name}",
+  "@groupRemoveBlockedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupBlockedReceiverBody": "Você é o recebedor destes jogos, que ainda não foram concluídos. Para sair do grupo, os jogos precisam ser cancelados ou concluídos.",
+  "groupBlockedOnlyAdminBody": "Você é o único admin destes jogos. Indique outro admin em Admins do jogo antes de sair.",
+  "groupRemoveBlockedReceiverBody": "{name} é o recebedor destes jogos, que ainda não foram concluídos. Para remover, os jogos precisam ser cancelados ou concluídos.",
+  "@groupRemoveBlockedReceiverBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupRemoveBlockedOnlyAdminBody": "{name} é o único admin destes jogos. Peça a {name} para indicar outro admin neles.",
+  "@groupRemoveBlockedOnlyAdminBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "personPhone": "Telefone",
+  "personCall": "Ligar",
+  "personWhatsapp": "WhatsApp"
 }

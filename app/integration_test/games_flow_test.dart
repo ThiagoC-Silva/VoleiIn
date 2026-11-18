@@ -13,9 +13,9 @@ import 'package:voleiin/shared/widgets/list_card.dart';
 
 import '../test/helpers/test_app.dart';
 
-/// Cenários L15 (sem o cancelamento, que chega na etapa C), L16 e L17 de
-/// docs/testes-referencia.md, seção 12.6 (specs/003-jogo-etapa-a e
-/// specs/004-jogo-etapa-b). L16 e L17 deixam o seed como encontraram.
+/// Cenários L15 a L19 de docs/testes-referencia.md, seção 12.6
+/// (specs/003-jogo-etapa-a a 005-jogo-etapa-c). L16 a L19 deixam o seed como
+/// encontraram; o jogo do L15 termina cancelado.
 ///
 /// Roda no emulador, contra o Supabase local com o seed (docs/setup.md, 8),
 /// pelos scripts/ (setup.md, 3.1). Sem o cancelamento, o jogo criado fica no
@@ -145,6 +145,8 @@ void main() {
     await pumpUntil(tester, find.text(l10nPt.groupGamesTitle));
     await tapReady(tester, button<FilledButton>(l10nPt.gamesCreate));
     await pumpUntil(tester, find.text(l10nPt.gameLocationLabel));
+    // O nome do grupo chega com a leitura dos grupos, mais lenta na API 29.
+    await pumpUntil(tester, find.text(quinta));
     expect(find.text(quinta), findsOneWidget);
 
     await tester.enterText(field('gameLocationField'), name);
@@ -175,6 +177,17 @@ void main() {
     // No grupo, em Próximos jogos.
     await tapReady(tester, find.text(l10nPt.navGroups).last);
     await pumpUntil(tester, find.text(l10nPt.groupGamesTitle));
+    await pumpUntilScrolled(tester, find.text(name));
+
+    // Cancela (etapa C): sai de Próximos e aparece em Anteriores.
+    await tapReady(tester, find.text(name));
+    await tapReady(tester, find.byTooltip(l10nPt.gameMenuLabel));
+    await tapReady(tester, find.text(l10nPt.gameCancel));
+    await tapReady(tester, button<FilledButton>(l10nPt.gameCancel));
+    await pumpUntil(tester, find.text(l10nPt.gameCancelled));
+    await pumpUntil(tester, find.text(l10nPt.gameStatusCancelled));
+    await tapReady(tester, find.text(l10nPt.navGames).last);
+    await tapReady(tester, find.text(l10nPt.gamesFilterPast));
     await pumpUntilScrolled(tester, find.text(name));
   });
 
@@ -262,6 +275,81 @@ void main() {
       await carla.auth.signOut();
       await carla.dispose();
     }
+  });
+
+  const quintaCarla = '00000000-0000-0000-0000-000000000206';
+
+  testWidgets('L18: Ana edita o Quinta Confirmado e gerencia os admins', (
+    tester,
+  ) async {
+    await openAs(
+      tester,
+      'ana',
+      pickers: _FixedPickers(dates: [], times: []),
+    );
+    await openGame(tester, quintaFull);
+    await pumpUntil(tester, find.text('Ginásio Verdão'));
+
+    Future<void> edit(String location, String counter) async {
+      await tapReady(tester, find.byTooltip(l10nPt.gameMenuLabel));
+      await tapReady(tester, find.text(l10nPt.gameEdit));
+      await pumpUntil(tester, field('gameLocationField'));
+      await tester.enterText(field('gameLocationField'), location);
+      await tapReady(tester, find.byTooltip(counter));
+      await tapReady(tester, button<FilledButton>(l10nPt.commonSave));
+      await pumpUntil(tester, find.text(l10nPt.gameSaved));
+    }
+
+    await edit('Ginásio Verdão L18', l10nPt.gameSlotLimitIncrease);
+    await pumpUntil(tester, find.text('Ginásio Verdão L18'));
+    await pumpUntil(tester, find.text(l10nPt.gameListTitle('2', '3')));
+    expect(find.text(l10nPt.gameStatusOpen), findsOneWidget);
+
+    await edit('Ginásio Verdão', l10nPt.gameSlotLimitDecrease);
+    await pumpUntil(tester, find.text(l10nPt.gameListTitle('2', '2')));
+    expect(find.text(l10nPt.gameStatusConfirmed), findsOneWidget);
+
+    // Admins: a Carlinha entra e sai.
+    await tapReady(tester, find.byTooltip(l10nPt.gameMenuLabel));
+    await tapReady(tester, find.text(l10nPt.gameAdmins));
+    await tapReady(tester, button<FilledButton>(l10nPt.gameAdminAdd));
+    await tapReady(tester, find.text('Carlinha'));
+    await pumpUntil(tester, find.text(l10nPt.gameAdminAdded('Carlinha')));
+    await tester.pump(const Duration(seconds: 5));
+    await tapReady(tester, find.text('Carlinha'));
+    await tapReady(tester, find.text(l10nPt.gameAdminRemove));
+    await pumpUntil(tester, find.text(l10nPt.gameAdminRemoved('Carlinha')));
+    await pumpUntilGone(tester, find.text(l10nPt.gameAdminOffList));
+  });
+
+  testWidgets('L19: Carla tenta sair do Quinta e vê o jogo dela', (
+    tester,
+  ) async {
+    await openAs(
+      tester,
+      'carla',
+      pickers: _FixedPickers(dates: [], times: []),
+    );
+    await tapReady(tester, find.text(l10nPt.navGroups).last);
+    await tapReady(tester, find.text(quinta));
+    // Os jogos do grupo empurram o botão para baixo da dobra.
+    await pumpUntilScrolled(tester, button<OutlinedButton>(l10nPt.groupLeave));
+    await tapReady(tester, button<OutlinedButton>(l10nPt.groupLeave));
+    await tapReady(tester, button<FilledButton>(l10nPt.groupLeave).last);
+    await pumpUntil(tester, find.text(l10nPt.groupBlockedReceiverBody));
+    await pumpUntil(tester, find.text('Arena Delta').last);
+    await tapReady(tester, find.text('Arena Delta').last);
+    await pumpUntil(tester, find.text(l10nPt.gameReceiverCannotLeave));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(VoleiInApp)),
+    );
+    expect(
+      container.read(routerProvider).state.uri.path,
+      '/games/$quintaCarla',
+    );
+    // Carla continua no grupo.
+    await tapReady(tester, find.text(l10nPt.navGroups).last);
+    await pumpUntil(tester, find.text(quinta));
   });
 }
 

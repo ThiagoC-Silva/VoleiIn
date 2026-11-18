@@ -232,4 +232,44 @@ void main() {
       ),
     );
   });
+
+  // E16 (docs/testes-referencia.md, 12.6): o detail com os game_ids da RN16.
+  test('E16: MEMBER_IS_RECEIVER guarda os game_ids do detail', () {
+    const exception = PostgrestException(
+      message: 'MEMBER_IS_RECEIVER',
+      code: 'P0001',
+      details: '{"game_ids":["id1","id2"]}',
+    );
+    final error = toAppException(exception);
+    expect(error.code, ErrorCode.memberIsReceiver);
+    expect(error.gameIds, ['id1', 'id2']);
+  });
+
+  test('E16: o detail já decodificado também vale', () {
+    const exception = PostgrestException(
+      message: 'MEMBER_IS_ONLY_GAME_ADMIN',
+      code: 'P0001',
+      details: {
+        'game_ids': ['id1'],
+      },
+    );
+    final error = toAppException(exception);
+    expect(error.code, ErrorCode.memberIsOnlyGameAdmin);
+    expect(error.gameIds, ['id1']);
+  });
+
+  const stageCCodes = {
+    'ADMIN_MUST_BE_PARTICIPANT': ErrorCode.adminMustBeParticipant,
+    'ALREADY_GAME_ADMIN': ErrorCode.alreadyGameAdmin,
+    'NOT_GAME_ADMIN_TARGET': ErrorCode.notGameAdminTarget,
+    'LAST_GAME_ADMIN': ErrorCode.lastGameAdmin,
+    'MEMBER_IS_RECEIVER': ErrorCode.memberIsReceiver,
+    'MEMBER_IS_ONLY_GAME_ADMIN': ErrorCode.memberIsOnlyGameAdmin,
+  };
+  for (final entry in stageCCodes.entries) {
+    test('E15 (etapa C): P0001 com ${entry.key} vira ${entry.value.name}', () {
+      final exception = PostgrestException(message: entry.key, code: 'P0001');
+      expect(toAppException(exception).code, entry.value);
+    });
+  }
 }
