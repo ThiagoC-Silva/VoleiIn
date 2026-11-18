@@ -19,6 +19,8 @@ import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/terms_document_screen.dart';
 import '../../features/auth/presentation/terms_screen.dart';
 import '../../features/games/presentation/game_admins_screen.dart';
+import '../../features/games/presentation/game_complete_screen.dart';
+import '../../features/games/presentation/game_split_screen.dart';
 import '../../features/games/presentation/group_blocked_sheet.dart';
 import '../../features/games/presentation/game_edit_screen.dart';
 import '../../features/games/presentation/game_new_screen.dart';
@@ -157,6 +159,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                         parentNavigatorKey: _rootNavigatorKey,
                         builder: (context, state) =>
                             GameEditScreen(gameId: _gameId(state)),
+                      ),
+                      // A conclusão cobre a barra (telas.md, 8.2).
+                      GoRoute(
+                        path: Routes.gameCompletePath,
+                        name: Routes.gameComplete,
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) =>
+                            GameCompleteScreen(gameId: _gameId(state)),
+                      ),
+                      GoRoute(
+                        path: Routes.gameSplitPath,
+                        name: Routes.gameSplit,
+                        builder: (context, state) =>
+                            GameSplitScreen(gameId: _gameId(state)),
                       ),
                       GoRoute(
                         path: Routes.gameAdminsPath,

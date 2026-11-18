@@ -246,7 +246,8 @@ begin
     ('00000000-0000-0000-0000-000000000209', v_quinta, v_ana, v_ana, 'JogoAguard01',
      'Ginásio Verdão', null,
      now() - interval '250 minutes', now() - interval '130 minutes', now() - interval '10 minutes',
-     9000, 6, 'open');
+     -- 3 vagas, lista cheia: R$ 30,00 por vaga e R$ 60,00 a receber no L20.
+     9000, 3, 'confirmed');
 
   insert into public.game_admins (game_id, user_id)
   values ('00000000-0000-0000-0000-000000000208', v_ana), ('00000000-0000-0000-0000-000000000209', v_ana);

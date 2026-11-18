@@ -59,6 +59,7 @@ class GamesRepository {
         .select(
           'id, group_id, location_name, maps_url, cancellation_deadline, '
           'starts_at, ends_at, total_cents, slot_limit, status, receiver_id, '
+          'share_cents, '
           'receiver:profiles!games_receiver_id_fkey(display_name, photo_path)',
         )
         .eq('id', gameId)
@@ -68,11 +69,21 @@ class GamesRepository {
 
     final groupId = game['group_id'] as String?;
     final receiverId = game['receiver_id'] as String;
+    final status = GameStatus.parse(game['status'] as String);
+    // O próprio valor, no card do Rateio do jogo concluído (telas.md, 8.1).
+    final myCharges = status == GameStatus.completed
+        ? await _db
+              .from('charges')
+              .select(_chargeColumns)
+              .eq('game_id', gameId)
+              .eq('payer_id', uid)
+        : const <Map<String, dynamic>>[];
     final results = await Future.wait<Object?>([
       _db
           .from('game_participants')
           .select(
-            'user_id, status, joined_at, profiles(display_name, photo_path)',
+            'user_id, status, joined_at, absent, '
+            'profiles(display_name, photo_path)',
           )
           .eq('game_id', gameId)
           .inFilter('status', [
@@ -110,7 +121,7 @@ class GamesRepository {
       endsAt: _instant(game['ends_at']),
       totalCents: game['total_cents'] as int,
       slotLimit: game['slot_limit'] as int,
-      status: GameStatus.parse(game['status'] as String),
+      status: status,
       receiverId: receiverId,
       receiverName: receiver?['display_name'] as String? ?? '',
       receiverPhotoPath: receiver?['photo_path'] as String?,
@@ -126,6 +137,7 @@ class GamesRepository {
             photoPath: _photoPath(row),
             status: ParticipantStatus.parse(row['status'] as String),
             joinedAt: _instant(row['joined_at']),
+            absent: row['absent'] as bool? ?? false,
           ),
       ],
       waitlist: [
@@ -142,6 +154,8 @@ class GamesRepository {
       ],
       isGroupMember: results.length > 5 && results[5] != null,
       viewerId: uid,
+      shareCents: game['share_cents'] as int?,
+      myCharge: _myCharge([for (final row in myCharges) _charge(row)]),
     );
   });
 
@@ -332,17 +346,109 @@ class GamesRepository {
     required String gameId,
     required int? totalCents,
     required List<String> absentUserIds,
-  }) => throw UnimplementedError();
+  }) => guard(() async {
+    final result = await _db.rpc(
+      'preview_complete_game',
+      params: _completionParams(gameId, totalCents, absentUserIds),
+    );
+    return CompletionPreview.fromJson(Map<String, dynamic>.from(result as Map));
+  });
 
   /// `complete_game`, com os mesmos parâmetros do último *preview*.
   Future<CompletionPreview> completeGame({
     required String gameId,
     required int? totalCents,
     required List<String> absentUserIds,
-  }) => throw UnimplementedError();
+  }) => guard(() async {
+    final result = await _db.rpc(
+      'complete_game',
+      params: _completionParams(gameId, totalCents, absentUserIds),
+    );
+    return CompletionPreview.fromJson(Map<String, dynamic>.from(result as Map));
+  });
 
-  /// O Rateio do jogo concluído (docs/ui/telas.md, 8.3).
-  Future<GameSplit> fetchSplit(String gameId) => throw UnimplementedError();
+  /// O Rateio do jogo concluído (docs/ui/telas.md, 8.3): o jogo, os valores
+  /// que o RLS devolve (rls-matriz.md, fatia 5) e todas as passagens, para os
+  /// motivos de quem não tem valor. Outro status é "não encontrado".
+  Future<GameSplit> fetchSplit(String gameId) async {
+    final game = await fetchGame(gameId);
+    if (game.status != GameStatus.completed) {
+      throw const AppException(ErrorCode.notFound);
+    }
+    return guard(() async {
+      final results = await Future.wait<List<Map<String, dynamic>>>([
+        _db.from('charges').select(_chargeColumns).eq('game_id', gameId),
+        _db
+            .from('game_participants')
+            .select(
+              'user_id, status, joined_at, late_cancellation, '
+              'late_cancellation_exempt, absent, '
+              'profiles(display_name, photo_path)',
+            )
+            .eq('game_id', gameId),
+      ]);
+      return GameSplit(
+        game: game,
+        charges: [for (final row in results[0]) _charge(row)],
+        passages: [
+          for (final row in results[1])
+            GamePassage(
+              userId: row['user_id'] as String,
+              displayName: _displayName(row),
+              photoPath: _photoPath(row),
+              status: ParticipantStatus.parse(row['status'] as String),
+              joinedAt: _instant(row['joined_at']),
+              lateCancellation: row['late_cancellation'] as bool? ?? false,
+              lateCancellationExempt:
+                  row['late_cancellation_exempt'] as bool? ?? false,
+              absent: row['absent'] as bool? ?? false,
+            ),
+        ],
+      );
+    });
+  }
+
+  static const _chargeColumns =
+      'id, payer_id, receiver_id, kind, amount_cents, status, waive_reason, '
+      'payer:profiles!charges_payer_id_fkey(display_name, photo_path), '
+      'receiver:profiles!charges_receiver_id_fkey(display_name)';
+
+  static GameCharge _charge(Map<String, dynamic> row) {
+    final payer = row['payer'] as Map?;
+    final receiver = row['receiver'] as Map?;
+    final reason = row['waive_reason'] as String?;
+    return GameCharge(
+      id: row['id'] as String,
+      payerId: row['payer_id'] as String,
+      payerName: payer?['display_name'] as String? ?? '',
+      payerPhotoPath: payer?['photo_path'] as String?,
+      receiverId: row['receiver_id'] as String,
+      receiverName: receiver?['display_name'] as String? ?? '',
+      kind: ChargeKind.parse(row['kind'] as String),
+      amountCents: row['amount_cents'] as int,
+      status: ChargeStatus.parse(row['status'] as String),
+      waiveReason: reason == null ? null : ChargeWaiveReason.parse(reason),
+    );
+  }
+
+  /// O valor da pessoa: o que não é Isento, se houver.
+  static GameCharge? _myCharge(List<GameCharge> charges) {
+    if (charges.isEmpty) return null;
+    return charges.firstWhere(
+      (charge) => charge.status != ChargeStatus.waived,
+      orElse: () => charges.first,
+    );
+  }
+
+  static Map<String, Object?> _completionParams(
+    String gameId,
+    int? totalCents,
+    List<String> absentUserIds,
+  ) => {
+    'p_game_id': gameId,
+    'p_total_cents': totalCents,
+    'p_absent_user_ids': absentUserIds,
+  };
 
   static Map<String, Object?> _inputParams(GameInput input) => {
     'p_location_name': input.locationName,

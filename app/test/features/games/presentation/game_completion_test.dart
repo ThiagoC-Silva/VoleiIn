@@ -8,6 +8,8 @@ import 'package:voleiin/core/format/money.dart';
 import 'package:voleiin/features/games/domain/charge_models.dart';
 import 'package:voleiin/features/games/domain/game_models.dart';
 
+import 'package:voleiin/features/games/presentation/game_badges.dart';
+
 import '../../../helpers/games_fixtures.dart';
 import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
@@ -146,10 +148,7 @@ void main() {
 
       expect(find.text(l10nPt.gameAwaitingCompletion), findsOneWidget);
       expect(find.text(l10nPt.gameCompleteHint), findsOneWidget);
-      expect(
-        buttonWithText<FilledButton>(l10nPt.gameComplete),
-        findsOneWidget,
-      );
+      expect(buttonWithText<FilledButton>(l10nPt.gameComplete), findsOneWidget);
       expect(find.text(l10nPt.gameListLocked), findsNothing);
       expect(await menuOptions(tester), [
         l10nPt.gameComplete,
@@ -276,8 +275,10 @@ void main() {
     await openComplete(tester);
 
     expect(
-      find.text('6 vagas ficaram sem ninguém. R\$${nbsp}145,80 fica por '
-          'conta de Ana.'),
+      find.text(
+        '6 vagas ficaram sem ninguém. R\$${nbsp}145,80 fica por '
+        'conta de Ana.',
+      ),
       findsOneWidget,
     );
     expect(find.textContaining('isentada'), findsNothing);
@@ -297,8 +298,10 @@ void main() {
     await openComplete(tester);
 
     expect(
-      find.text('Ana recebe R\$${nbsp}0,08 a mais que o total, pelo '
-          'arredondamento.'),
+      find.text(
+        'Ana recebe R\$${nbsp}0,08 a mais que o total, pelo '
+        'arredondamento.',
+      ),
       findsOneWidget,
     );
     expect(find.textContaining('-'), findsNothing);
@@ -378,9 +381,7 @@ void main() {
     testWidgets('GAME_NOT_OPEN: SnackBar e volta ao detalhe', (tester) async {
       h.game(() => finishedGame());
       stubPreview(() async => r01Preview);
-      stubComplete(
-        () async => throw const AppException(ErrorCode.gameNotOpen),
-      );
+      stubComplete(() async => throw const AppException(ErrorCode.gameNotOpen));
       await openComplete(tester);
 
       await tester.tap(buttonWithText<FilledButton>(l10nPt.gameComplete));
@@ -544,9 +545,9 @@ void main() {
 
     testWidgets('jogo não concluído: não encontrado', (tester) async {
       h.game(() => finishedGame());
-      when(() => h.games.fetchSplit(finishedId)).thenAnswer(
-        (_) async => throw const AppException(ErrorCode.notFound),
-      );
+      when(
+        () => h.games.fetchSplit(finishedId),
+      ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
       await h.pumpApp(tester, location: '/games');
       await h.push(tester, '/games/$finishedId/split');
 
@@ -556,17 +557,18 @@ void main() {
 
   group('S69: Rateio da recebedora (sem Isentos)', () {
     GameSplit r08Split({String otherReceiverFor = ''}) {
-      final payers = [
-        (brunoId, 'Brunão'),
-        (eduId, 'Edu'),
-        ..._others,
-      ];
+      final payers = [(brunoId, 'Brunão'), (eduId, 'Edu'), ..._others];
       return GameSplit(
         game: completedGame(),
         charges: [
           for (final (id, name) in payers)
             id == otherReceiverFor
-                ? charge(id, name, receiverId: carlaId, receiverName: 'Carlinha')
+                ? charge(
+                    id,
+                    name,
+                    receiverId: carlaId,
+                    receiverName: 'Carlinha',
+                  )
                 : charge(id, name),
         ],
         passages: [
@@ -595,7 +597,8 @@ void main() {
       expect(find.text(l10nPt.splitReceiverCovers('Ana')), findsOneWidget);
       expect(find.text(formatCents(4160)), findsWidgets);
       expect(find.text(l10nPt.splitCharges), findsOneWidget);
-      expect(find.text(l10nPt.chargeStatusPending), findsNWidgets(10));
+      // O total Pendente tem o mesmo texto do selo: conta os selos.
+      expect(find.byType(ChargeStatusBadge), findsNWidgets(10));
       expect(find.text(l10nPt.splitWaived), findsNothing);
       expect(find.text(l10nPt.splitNoChargeSection), findsOneWidget);
       expect(find.text(l10nPt.historyExempt), findsOneWidget);

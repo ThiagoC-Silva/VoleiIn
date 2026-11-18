@@ -120,3 +120,34 @@ final gameActionsControllerProvider =
     AsyncNotifierProvider.autoDispose<GameActionsController, void>(
       GameActionsController.new,
     );
+
+/// Concluir o jogo (docs/ui/telas.md, 8.2). Com sucesso ou erro, o jogo e
+/// Meus jogos são relidos: `GAME_NOT_OPEN` e as faltas recusadas indicam que
+/// os dados mudaram.
+class GameCompletionController extends SubmitController {
+  Future<AppException?> complete({
+    required String gameId,
+    required int? totalCents,
+    required List<String> absentUserIds,
+  }) async {
+    final error = await submit(
+      () => ref
+          .read(gamesRepositoryProvider)
+          .completeGame(
+            gameId: gameId,
+            totalCents: totalCents,
+            absentUserIds: absentUserIds,
+          ),
+    );
+    if (ref.mounted) {
+      ref.invalidate(gameDetailProvider(gameId));
+      ref.invalidate(myGamesProvider);
+    }
+    return error;
+  }
+}
+
+final gameCompletionControllerProvider =
+    AsyncNotifierProvider.autoDispose<GameCompletionController, void>(
+      GameCompletionController.new,
+    );

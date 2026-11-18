@@ -58,9 +58,9 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.lastGameAdmin => l10n.errorLastGameAdmin,
     ErrorCode.memberIsReceiver => l10n.errorMemberIsReceiver,
     ErrorCode.memberIsOnlyGameAdmin => l10n.errorMemberIsOnlyGameAdmin,
-    ErrorCode.gameNotEnded ||
-    ErrorCode.absentNotParticipant ||
-    ErrorCode.receiverCannotBeAbsent => l10n.errorInternalError,
+    ErrorCode.gameNotEnded => l10n.errorGameNotEnded,
+    ErrorCode.absentNotParticipant => l10n.errorAbsentNotParticipant,
+    ErrorCode.receiverCannotBeAbsent => l10n.errorReceiverCannotBeAbsent,
   };
 }
 

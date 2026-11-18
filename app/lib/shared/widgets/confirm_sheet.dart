@@ -30,6 +30,35 @@ Future<bool> confirmDestructive(
   required String title,
   required String body,
   required String confirmLabel,
+}) => _confirm(
+  context,
+  title: title,
+  body: body,
+  confirmLabel: confirmLabel,
+  destructive: true,
+);
+
+/// Confirmação em tom normal, com o botão principal amarelo e o "Voltar"
+/// (design-system.md, 7.15). Verdadeiro ao confirmar.
+Future<bool> confirmAction(
+  BuildContext context, {
+  required String title,
+  required String body,
+  required String confirmLabel,
+}) => _confirm(
+  context,
+  title: title,
+  body: body,
+  confirmLabel: confirmLabel,
+  destructive: false,
+);
+
+Future<bool> _confirm(
+  BuildContext context, {
+  required String title,
+  required String body,
+  required String confirmLabel,
+  required bool destructive,
 }) async {
   final l10n = AppLocalizations.of(context);
   final confirmed = await showVoleiSheet<bool>(context, (context) {
@@ -43,7 +72,7 @@ Future<bool> confirmDestructive(
         const SizedBox(height: 24),
         PrimaryButton(
           label: confirmLabel,
-          destructive: true,
+          destructive: destructive,
           onPressed: () => Navigator.of(context).pop(true),
         ),
         const SizedBox(height: 12),

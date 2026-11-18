@@ -641,6 +641,9 @@ Decisões de 18/11/2026. Telas em `docs/ui/telas.md`, seção 8. Palavras do dom
 | `gameCompleteHint` | Se ninguém concluir, o app conclui sozinho 1 hora depois do fim. | Frase acima do botão do pé (RN45) |
 | `gameSharePerSlot` | Parte por vaga | Rótulo do trio e do resumo |
 | `gameTotal` | Total | Rótulo do trio |
+| `gameTrioAtStart` | no início | Legenda de Vagas no trio do concluído (decisão de 18/11/2026, sessão 3, pelo PNG) |
+| `gameTrioFinal` | final | Legenda de Parte por vaga no trio do concluído |
+| `gameTrioVenue` | do espaço | Legenda de Total no trio do concluído e do Rateio |
 | `gameAbsentBadge` | Faltou | Selo `bad` da lista do jogo concluído |
 | `gameChangeReceiver` | Trocar recebedor | Opção do menu do admin e título da sheet |
 | `splitCardTitle` | Rateio | Título do card do detalhe e da tela |
@@ -668,6 +671,7 @@ Decisões de 18/11/2026. Telas em `docs/ui/telas.md`, seção 8. Palavras do dom
 | `completeReceiverNoAbsence` | O recebedor não leva falta. | Frase abaixo da lista (RF63) |
 | `completeSummaryTitle` | Rateio | Título do resumo |
 | `completeToReceive` | A receber | Linha do resumo |
+| `completeShareFormula` | {total} ÷ {slots} vagas | Legenda da parte por vaga no resumo (pelo PNG) |
 | `splitReceiverCovers` | Por conta de {name} | Rótulo do valor por conta do recebedor (RN74), no resumo e no rateio |
 | `splitReceiverExtra` | {name} recebe {amount} a mais que o total, pelo arredondamento. | No lugar do valor quando o por conta é negativo (R04) |
 | `completeExemptedCount` | 1 multa de cancelamento isentada: sobraram vagas. / {count} multas de cancelamento isentadas: sobraram vagas. | Linha do resumo (plural) |
@@ -693,6 +697,8 @@ Decisões de 18/11/2026. Telas em `docs/ui/telas.md`, seção 8. Palavras do dom
 | `splitCharges` | Valores | Título da lista |
 | `splitWaived` | Isentos | Título da lista |
 | `splitNoChargeSection` | Sem valor a pagar | Título da lista |
+| `splitTrioLimit` | limite | Legenda de Vagas no trio do Rateio (pelo PNG) |
+| `splitShareFormula` | {total} ÷ {slots} | Legenda de Parte por vaga no trio do Rateio (pelo PNG) |
 | `chargeKindShare` | Parte do jogo | Rótulo do `kind` |
 | `chargeKindAbsence` | Multa por falta | Rótulo do `kind` |
 | `chargeKindLateCancellation` | Multa por cancelamento | Rótulo do `kind` |

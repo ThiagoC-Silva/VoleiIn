@@ -18,9 +18,16 @@
 
 ## Sessão 3 — App
 
-- [ ] T010 Testes antes: U13, E15, S61 a S66, S68, S69 (sem Isentos), S75, S76, L20
-- [ ] T011 Detalhe depois do fim e concluído, Concluir jogo e Rateio (`docs/ui/telas.md`, 8.1 a 8.3)
-- [ ] T012 `dart format`, `dart analyze` e `flutter test` verdes
+- [x] T010 Testes antes: U13, E15, S61 a S66, S68, S69 (sem Isentos), S75, S76, L20
+- [x] T011 Detalhe depois do fim e concluído, Concluir jogo e Rateio (`docs/ui/telas.md`, 8.1 a 8.3)
+- [x] T012 `dart format`, `dart analyze` e `flutter test` verdes
+
+**Sessão 3 concluída em 18/11/2026** no *branch* `fatia-5/app-a`: `dart format`, `dart analyze` e `flutter test` (502 testes) verdes. Testes antes no *commit* `c408b9e`, com a saída da falha (`+66 -31`). Depois dele, só um seletor mudou no S69: o selo e o total "Pendente" têm o mesmo texto, e a contagem passou a ser pelos selos. Nenhum resultado esperado mudou. Decisões da sessão:
+
+- **L20 (responsável):** o jogo do seed aguardando conclusão (`...0209`) passou a ter 3 vagas e status Confirmado, para dar os R$ 30,00 por vaga e os R$ 60,00 a receber do L20 (`setup.md`, seção 8). O L20 está em `integration_test/completion_flow_test.dart` e roda na sessão 4.
+- **Fora da etapa A, apesar dos PNGs:** as caixas de "Quem faltou?" e o card "Sua participação" (etapa B), Trocar recebedor no menu e o contador da aba Cobranças (etapa C). O S61 confere o menu só com **Admins do jogo**; **Trocar recebedor** entra na etapa C.
+- **Legendas dos números, pelos PNGs:** `gameTrioAtStart`, `gameTrioFinal`, `gameTrioVenue`, `completeShareFormula`, `splitTrioLimit` e `splitShareFormula` (`copy.md`, 9.1 a 9.3). As linhas "11 valores de R$ 20,84", "11 pessoas" e "Recebe os valores do jogo" dos PNGs ficaram de fora: não estão no `copy.md`, e a primeira exigiria conta no app.
+- **"Seu valor" para o recebedor:** aparece, com `splitNoChargeReceiver`, como manda o `telas.md` (8.3), embora o PNG do recebedor não o mostre.
 
 ## Sessão 4 — Validação
 

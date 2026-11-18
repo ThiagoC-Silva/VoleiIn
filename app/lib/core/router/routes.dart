@@ -45,6 +45,14 @@ class Routes {
   static const String gameAdmins = 'gameAdmins';
   static const String gameAdminsPath = 'admins';
 
+  /// `/games/:gameId/complete` e `/games/:gameId/split` (telas.md, 8.2 e
+  /// 8.3).
+  static const String gameComplete = 'gameComplete';
+  static const String gameCompletePath = 'complete';
+
+  static const String gameSplit = 'gameSplit';
+  static const String gameSplitPath = 'split';
+
   static const String gamePerson = 'gamePerson';
   static const String gamePersonPath = 'people/:userId';
 
