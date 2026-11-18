@@ -888,6 +888,7 @@ Decisões de 18/11/2026. Base: `contratos-api.md` (seção 5), `modelo-dados.md`
 
 S75 e S76 crescem a cada etapa, com as telas dela. E15 também, com os códigos das funções que a etapa cria. O seed ganha, na etapa A, um jogo do Quinta concluído com valores e um jogo depois do fim aguardando conclusão, e na etapa B uma multa Pendente e um valor Isento (`setup.md`, seção 8).
 
+- **Decisão de 18/11/2026 (responsável):** `complete_game` nasce na etapa A com o passo a passo inteiro do `modelo-dados.md` (seção 6), inclusive a isenção automática (RN62), as faltas de `p_absent_user_ids` e a notificação `penalty_waived`, para a produção nunca cobrar multa que a regra isenta entre as etapas (research R1 de `specs/006-conclusao-etapa-a`). A divisão da tabela continua valendo para os **cenários**: os da etapa B passam a conferir um comportamento que já existe.
 - **F03** fica na etapa A porque a conclusão automática mantém as faltas de saída após o início (RN49) desde o começo. **F07** e **F12** repetem regras da fatia 4 (RN29, RN58) e entram na etapa B só como regressão.
 - **C09** cita a marcação de pagamento, que só existe na fatia 6. Na fatia 5, ele roda com a multa Pendente do Edu e duas chamadas simultâneas de `waive_penalty`, por Ana e por outro admin do jogo: uma vale, a outra recebe `CHARGE_NOT_PENDING`. O C09 como está escrito, com `mark_charge_paid`, roda na fatia 6.
 

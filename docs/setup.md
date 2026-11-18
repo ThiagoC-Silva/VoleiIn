@@ -242,9 +242,11 @@ Diego continua sem grupo: a solicitação pendente não é contexto (RN107), e e
 | Quinta prazo vencido | `00000000-0000-0000-0000-000000000205` | `JogoPrazo001` | Começa 1 h depois do `db reset`; prazo 1 h antes dele | Ginásio Verdão; R$ 60,00; 6 | Ana | Bruno cancelou fora do prazo, 30 min antes do `db reset` |
 | Jogo da Carla | `00000000-0000-0000-0000-000000000206` | `JogoCarla001` | Dia +5, 19h às 21h, prazo às 17h | Arena Delta; R$ 80,00; 8 | Carla e Ana | Carla é a recebedora e a única admin (L19) |
 | Avulso da Ana | `00000000-0000-0000-0000-000000000207` | `JogoAvulso01` | Dia +6, 18h às 20h, prazo às 16h | Praia do Coqueiro; R$ 40,00; 4 | Ana | Sem grupo |
+| Quinta concluído (fatia 5) | `00000000-0000-0000-0000-000000000208` | `JogoConclu01` | Dia −1, 20h às 22h, prazo às 18h | Quadra do Sesc; R$ 60,00; 6 | Ana, Bruno e Carla | Concluído pela Ana no seed, com `complete_game_core`: parte de R$ 10,00, um `share` Pendente para o Bruno e outro para a Carla, R$ 40,00 por conta da Ana |
+| Quinta aguardando conclusão (fatia 5) | `00000000-0000-0000-0000-000000000209` | `JogoAguard01` | Terminou 10 min antes do `db reset`; início 2 h antes do fim, prazo 2 h antes do início | Ginásio Verdão; R$ 90,00; 6 | Ana, Bruno e Carla | Status Aberto, depois do fim |
 
 - Em todos, quem está primeiro na lista é o admin e o recebedor, e o `game_limit_history` tem a linha do limite inicial.
-- O jogo em andamento e o de prazo vencido dependem da hora do `supabase db reset`: depois de umas horas, eles passam a "aguardando conclusão". Para voltar ao cenário, rode o `db reset` de novo.
+- O jogo em andamento, o de prazo vencido e o aguardando conclusão dependem da hora do `supabase db reset`. Desde a fatia 5, o `pg_cron` local conclui sozinho todo jogo que passa de 1 h depois do fim (`auto_complete_due_games`): o aguardando conclusão vira Concluído uns 50 min depois do reset, e os outros dois, umas horas depois. Para voltar ao cenário, rode o `db reset` de novo.
 
 - Senha de todos: `voleiin123`. Contas com e-mail já confirmado e termos aceitos na versão vigente, que vem de `current_terms_versions()` (`contratos-api.md`, seção 9). O seed grava a mesma versão (`1.0`); quando uma migração trocar a versão, o seed muda junto.
 - IDs fixos (UUIDs legíveis, como `00000000-0000-0000-0000-00000000000a` para a Ana), para que testes e anotações possam citá-los.
@@ -259,7 +261,7 @@ Diego continua sem grupo: a solicitação pendente não é contexto (RN107), e e
 | 2 | Perfis completos: apelido, telefone visível e oculto, chave Pix. O aceite dos termos na versão `1.0`, a mesma de `current_terms_versions()` |
 | 3 | Dois grupos com admin e membros e uma solicitação pendente (tabela acima) |
 | 4 | Sete jogos: Aberto, Confirmado (com espera), em andamento, Cancelado, com o prazo vencido, um com a Carla como recebedora e um avulso; passagens canceladas no prazo e fora dele (tabela acima) |
-| 5 | Jogo Concluído com rateio, multas mantidas e isentadas, troca de recebedor |
+| 5 | Etapa A: um jogo Concluído com valores e um aguardando conclusão (tabela acima). Etapa B: uma multa Pendente e um valor Isento. Etapa C: troca de recebedor |
 | 6 | Valores Pendentes, Em análise, Pagos e Isentos; comprovantes nos três status |
 | 7 | Notificações lidas e não lidas, preferências desligadas |
 

@@ -352,12 +352,10 @@ select pg_temp.check_split(
 rollback to savepoint r09;
 
 -- R10. Sobra mínima.
-savepoint r10;
 select pg_temp.ended_game('00000000-0000-0000-0000-000000000710', 1000, 7);
 select pg_temp.fill('00000000-0000-0000-0000-000000000710', 7);
 select pg_temp.ana_calls('complete_game', 'r10', '00000000-0000-0000-0000-000000000710');
 select pg_temp.check_split('R10', '00000000-0000-0000-0000-000000000710', 'r10', 143, 6, 858, 142);
-rollback to savepoint r10;
 
 select * from finish();
 rollback;
