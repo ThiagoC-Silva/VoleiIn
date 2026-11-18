@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../auth/domain/pix_key.dart';
+import 'charge_models.dart';
 
 part 'game_models.freezed.dart';
 
@@ -105,6 +106,9 @@ abstract class GameParticipant with _$GameParticipant {
     String? photoPath,
     required ParticipantStatus status,
     required DateTime joinedAt,
+
+    /// Falta registrada (saída após o início ou marcada na conclusão).
+    @Default(false) bool absent,
   }) = _GameParticipant;
 }
 
@@ -152,6 +156,12 @@ abstract class GameDetail with _$GameDetail {
 
     /// Quem lê, para as perguntas abaixo.
     required String viewerId,
+
+    /// Parte por vaga, gravada na conclusão (RN71). Nula antes dela.
+    int? shareCents,
+
+    /// O valor a pagar de quem lê, no jogo concluído, ou nulo.
+    GameCharge? myCharge,
   }) = _GameDetail;
 
   int get occupiedSlots => participants.where((p) => p.status.takesSlot).length;

@@ -72,6 +72,12 @@ enum ErrorCode {
   lastGameAdmin,
   memberIsReceiver,
   memberIsOnlyGameAdmin,
+
+  // Conclusão, etapa A da fatia 5 (docs/copy.md, 9.6): os códigos de
+  // preview_complete_game e complete_game. As etapas B e C acrescentam os seus.
+  gameNotEnded,
+  absentNotParticipant,
+  receiverCannotBeAbsent,
 }
 
 /// Único tipo de exceção que sai da camada `data`.

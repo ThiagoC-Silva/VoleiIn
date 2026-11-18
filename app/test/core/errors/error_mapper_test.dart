@@ -272,4 +272,19 @@ void main() {
       expect(toAppException(exception).code, entry.value);
     });
   }
+
+  // Fatia 5, etapa A: preview_complete_game e complete_game (docs/copy.md,
+  // 9.6). As etapas B e C acrescentam os seus.
+  const completionCodes = {
+    'GAME_NOT_ENDED': ErrorCode.gameNotEnded,
+    'ABSENT_NOT_PARTICIPANT': ErrorCode.absentNotParticipant,
+    'RECEIVER_CANNOT_BE_ABSENT': ErrorCode.receiverCannotBeAbsent,
+  };
+  for (final entry in completionCodes.entries) {
+    test('E15 (fatia 5, etapa A): P0001 com ${entry.key} vira '
+        '${entry.value.name}', () {
+      final exception = PostgrestException(message: entry.key, code: 'P0001');
+      expect(toAppException(exception).code, entry.value);
+    });
+  }
 }

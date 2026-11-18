@@ -5,6 +5,7 @@ import '../../../core/errors/error_code.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/supabase.dart';
 import '../../auth/domain/pix_key.dart';
+import '../domain/charge_models.dart';
 import '../domain/game_models.dart';
 
 /// Jogo, lista e espera da etapa A da fatia 4 (RF26 a RF32, RF36 a RF38,
@@ -324,6 +325,24 @@ class GamesRepository {
       params: {'p_game_id': gameId, 'p_user_id': userId},
     );
   });
+
+  /// `preview_complete_game`: os números da conclusão, sem gravar
+  /// (docs/contratos-api.md, seção 5).
+  Future<CompletionPreview> previewCompleteGame({
+    required String gameId,
+    required int? totalCents,
+    required List<String> absentUserIds,
+  }) => throw UnimplementedError();
+
+  /// `complete_game`, com os mesmos parâmetros do último *preview*.
+  Future<CompletionPreview> completeGame({
+    required String gameId,
+    required int? totalCents,
+    required List<String> absentUserIds,
+  }) => throw UnimplementedError();
+
+  /// O Rateio do jogo concluído (docs/ui/telas.md, 8.3).
+  Future<GameSplit> fetchSplit(String gameId) => throw UnimplementedError();
 
   static Map<String, Object?> _inputParams(GameInput input) => {
     'p_location_name': input.locationName,
