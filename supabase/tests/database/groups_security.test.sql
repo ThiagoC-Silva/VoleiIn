@@ -35,6 +35,9 @@ on conflict do nothing;
 
 -- Desde a fatia 4, o seed também põe Ana, Bruno e Carla nos mesmos jogos, que
 -- também são contexto: os jogos saem antes (research R6 de specs/003-jogo-etapa-a).
+-- Valores do jogo concluído do seed (fatia 5) saem antes das passagens.
+delete from public.charge_events;
+delete from public.charges;
 delete from public.game_waitlist;
 delete from public.game_participants;
 delete from public.game_admins;

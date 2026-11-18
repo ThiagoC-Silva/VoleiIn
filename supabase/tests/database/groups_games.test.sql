@@ -35,6 +35,9 @@ on conflict do nothing;
 
 -- Limpeza dos jogos e das linhas de grupo do seed (research R6). Os jogos saem
 -- antes da chave Pix da Carla, que a RN105 prende enquanto ela é recebedora.
+-- Valores do jogo concluído do seed (fatia 5) saem antes das passagens.
+delete from public.charge_events;
+delete from public.charges;
 delete from public.game_waitlist;
 delete from public.game_participants;
 delete from public.game_admins;
