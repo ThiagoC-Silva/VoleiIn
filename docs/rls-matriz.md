@@ -340,6 +340,67 @@ $$;
 
 **Casos negativos**, cada um com teste (`testes-referencia.md`, seção 12.4): quem não pode ver o jogo (sem grupo e sem passagem, ou fora do jogo avulso) não lê nenhuma das quatro tabelas; o ex-membro não lê os jogos do grupo em que não teve passagem; quem não é admin do jogo não lê `game_limit_history`, mesmo estando na lista; ninguém escreve direto nas cinco tabelas; quem está só na espera, quem cancelou e quem não está no jogo não recebem a chave Pix do recebedor, nem em jogo cancelado (RN102); o telefone oculto, ou de quem não compartilha contexto, volta nulo (RN101); `get_game_groups` não devolve o grupo de um jogo que quem chama não vê; `anon` não lê nada.
 
+### Fatia 5
+
+Decisões de 18/11/2026. O pagador lê os próprios valores; o recebedor atual do jogo e os admins do jogo leem todos os valores do jogo (RN76); e quem é o `receiver_id` de um valor o lê, mesmo depois de deixar de ser o recebedor do jogo (RN31, item 2: o valor Pago continua com ele). Os eventos de um valor seguem a leitura do valor. As trocas de recebedor ficam com os admins do jogo. `audit_log` continua fechada. Toda escrita passa pelas funções do `contratos-api.md` (seção 5). Nas condições, `uid` é `(select auth.uid())` (seção 6).
+
+**Funções auxiliares**, no esquema `private`, com as mesmas propriedades das fatias anteriores:
+
+```sql
+-- Recebedor atual do jogo (RN28).
+create function private.is_game_receiver(p_game_id uuid, p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.games g
+    where g.id = p_game_id and g.receiver_id = p_user_id
+  );
+$$;
+
+-- Pode ver o valor a pagar: o pagador, o recebedor do valor (RN32), o recebedor
+-- atual do jogo e os admins do jogo (RN76).
+create function private.can_view_charge(p_charge_id uuid, p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.charges c
+    where c.id = p_charge_id
+      and (c.payer_id = p_user_id
+        or c.receiver_id = p_user_id
+        or private.is_game_receiver(c.game_id, p_user_id)
+        or private.is_game_admin(c.game_id, p_user_id))
+  );
+$$;
+```
+
+- **Índices de apoio**, já criados na fatia 1: `charges` pela PK, por `(payer_id, status)`, `(receiver_id, status)` e `(game_id)`; `charge_events` por `(charge_id, created_at)`; `games` pela PK.
+- O antigo recebedor que não é admin deixa de ver o rateio completo depois da troca. Continua vendo os valores devidos a ele (os Pagos) e o próprio valor novo, como pagador.
+
+**Privilégios de `authenticated`** acrescentados às listas das fatias anteriores (lista esperada do B04). `anon` continua sem nenhum.
+
+| Tabela | Privilégio | Colunas |
+|--------|------------|---------|
+| `charges` | `select` | Todas |
+| `charge_events` | `select` | Todas |
+| `receiver_changes` | `select` | Todas |
+
+- Sem `insert`, `update` e `delete` nas três: as escritas são das funções. `audit_log` continua sem privilégio.
+
+**Políticas** acrescentadas (lista esperada do B03)
+
+| Tabela | Política | Operação | `using` |
+|--------|----------|----------|---------|
+| `charges` | `charges_select_party` | `select` | `payer_id = uid or receiver_id = uid or private.is_game_receiver(game_id, uid) or private.is_game_admin(game_id, uid)` |
+| `charge_events` | `charge_events_select_party` | `select` | `private.can_view_charge(charge_id, uid)` |
+| `receiver_changes` | `receiver_changes_select_admin` | `select` | `private.is_game_admin(game_id, uid)` |
+
+- A política de `charges` escreve as condições do pagador e do recebedor do valor direto nas colunas, sem a função, para usar os índices `(payer_id, status)` e `(receiver_id, status)` nos totais da aba Cobranças.
+- Os nomes nas telas de rateio e de cobranças vêm de `profiles` pela política `profiles_select_context` da fatia 3: todo pagador teve passagem no jogo, e isso é contexto (RN107). Nenhuma política de `profiles` muda.
+
+**Funções do app** acrescentadas à lista do B06, todas com `execute` só para `authenticated`: `preview_complete_game(uuid, integer, uuid[])`, `complete_game(uuid, integer, uuid[])`, `change_receiver(uuid, uuid)` e `waive_penalty(uuid)`. `auto_complete_due_games()` é interna (`contratos-api.md`, seção 7): sem `execute` para `anon` nem `authenticated`, chamada só pelo `pg_cron`.
+
+**Realtime:** nada muda. `charges` fica fora da publicação: as telas da fatia 5 releem ao abrir (`docs/ui/telas.md`, seção 8), e o detalhe do jogo já recebe a mudança de status de `games`.
+
+**Casos negativos**, cada um com teste (`testes-referencia.md`, seção 13.4): outro pagador do mesmo jogo não lê o valor de ninguém além do próprio, nem os eventos dele; quem está na lista sem valor e sem ser admin ou recebedor não lê nenhum valor do jogo; quem não está no jogo não lê nada; o antigo recebedor, sem ser admin, não lê os valores Pendentes que passaram ao novo; quem não é admin do jogo não lê `receiver_changes`, nem sendo o recebedor; ninguém escreve direto nas três tabelas; `audit_log` continua fechada; `anon` não lê nada; o app não executa `auto_complete_due_games`.
+
 ## 6. Cuidados nas próximas fatias
 
 - **Desempenho:** nas políticas, use `(select auth.uid())` em vez de `auth.uid()`, para o Postgres calcular uma vez por consulta e não uma vez por linha. As funções auxiliares são `stable` e consultam por colunas indexadas (`modelo-dados.md`, seção 4).

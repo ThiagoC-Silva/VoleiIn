@@ -868,7 +868,128 @@ Deno test, em `supabase/functions/_tests/concurrency/games_test.ts`, com conexõ
 | M06 | RNF04: do toque no card de um jogo até a lista visível, em até 2 s em ao menos 9 de 10 medições, com a internet 4G do celular |
 | M07 | **Abrir no Maps** abre o Google Maps no local do link; **Ligar** abre o discador com o número; **WhatsApp** abre a conversa com o número |
 
-## 13. Rastreabilidade
+## 13. Conclusão, multas e rateio (fatia 5)
+
+Decisões de 18/11/2026. Base: `contratos-api.md` (seção 5), `modelo-dados.md` (seção 6, `complete_game`), `rls-matriz.md` (fatia 5), `docs/ui/telas.md` (seção 8) e `docs/copy.md` (seção 9). Os cenários das seções 3 a 8 marcados para a fatia 5 (T11 a T16, R01 a R10, I01 a I12, F01 a F14, V01 a V11, C08 e C09) rodam junto destes, em pgTAP e Deno, com os resultados escritos lá.
+
+**Base dos cenários pgTAP**, inserida como `postgres` no começo de cada teste, sem depender do seed: a base da seção 12 (o grupo **Quinta**, com Ana admin e Bruno, Carla e Edu membros; Diego sem grupo), mais as pessoas que o cenário pedir para completar a lista (Davi, Fábio e outras, membros do Quinta). Ana, Bruno e Carla têm chave Pix; Edu não, salvo quando o cenário diz.
+
+**Jogo base**, inserido direto, como `postgres`: do Quinta, com prazo, início e fim nos horários da seção 2 levados para o passado, de modo que `now()` fique depois do fim e antes de `fim + 1h` ("jogo depois do fim"); Ana como admin, recebedora e primeira da lista; total e limite pelo cenário. As passagens, os cancelamentos, as faltas e o histórico de limite também são inseridos direto, com os instantes do cenário. "Jogo concluído" é o resultado de `complete_game` sobre ele, salvo quando o cenário insere os valores direto.
+
+"Notifica" é conferido em `notifications`, com o tipo, o `user_id` e o `data` da tabela "Dados das notificações de conclusão" do `contratos-api.md` (seção 5). Os resultados de B03, B04 e B06 passam a ser as listas da fatia 5 da `rls-matriz.md`.
+
+**Cenários por etapa.** A fatia 5 roda em três etapas, cada uma com a sua especificação e as suas sessões 2 a 4 (`plano-implementacao.md`, fatia 5; `trabalho-com-agente.md`, 3.1). A etapa A cria `complete_game` já com a assinatura final; a etapa B acrescenta ao corpo dela as faltas marcadas pelo admin e a isenção automática, sem mudar o contrato. Um cenário que precisa de dado de uma etapa seguinte o insere direto, como `postgres`. As listas do B03, B04 e B06 crescem a cada etapa, só com o que ela cria:
+
+| Etapa | Escopo | Cenários |
+|-------|--------|----------|
+| **A** | Conclusão manual e automática, rateio; Rateio do jogo e detalhe do jogo concluído | T11 a T15, R01 a R07, R09, R10, F03, F04, C08, Z01 a Z07, Y01 a Y03, Y05 a Y07, U13, S61 a S66, S68, S69 (sem Isentos), L20, M08 |
+| **B** | Faltas, multas e isenções, automática e manual; histórico da pessoa no jogo | T16, I01 a I12, F01, F02, F05 a F14, R08, C09, Z08, Z09, S67, S69 (Isentos), S70, S71, L21 |
+| **C** | Troca de recebedor e totais; aba Cobranças | V01 a V11, Z10 a Z15, Y04, S72 a S74, L22 |
+
+S75 e S76 crescem a cada etapa, com as telas dela. E15 também, com os códigos das funções que a etapa cria. O seed ganha, na etapa A, um jogo do Quinta concluído com valores e um jogo depois do fim aguardando conclusão, e na etapa B uma multa Pendente e um valor Isento (`setup.md`, seção 8).
+
+- **F03** fica na etapa A porque a conclusão automática mantém as faltas de saída após o início (RN49) desde o começo. **F07** e **F12** repetem regras da fatia 4 (RN29, RN58) e entram na etapa B só como regressão.
+- **C09** cita a marcação de pagamento, que só existe na fatia 6. Na fatia 5, ele roda com a multa Pendente do Edu e duas chamadas simultâneas de `waive_penalty`, por Ana e por outro admin do jogo: uma vale, a outra recebe `CHARGE_NOT_PENDING`. O C09 como está escrito, com `mark_charge_paid`, roda na fatia 6.
+
+### 13.1 Conclusão
+
+pgTAP, em `supabase/tests/database/completion_functions.test.sql`.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| Z01 | Jogo base do R01 (total 25.000, limite 12, 10 na lista com Ana, Carla e Davi com multa de cancelamento mantida) | Ana chama `complete_game` | Jogo `completed`, `share_cents = 2084`, `completed_at = now()`, `completion_mode = manual`. 11 valores `pending`, todos com `receiver_id` = Ana. Um `charge_events` por valor, de nulo para `pending`, com `actor_id` = Ana. Uma linha `game_completed` em `audit_log`. Notifica `game_completed` às passagens que ocupam vaga, exceto Ana, e `charge_created` a cada pagador |
+| Z02 | Jogo base do R06 (6 na lista) | Ana chama `complete_game` | Devolve `share_cents` 2.084, `total_to_receive_cents` 10.420, `receiver_covered_cents` 14.580, `uncovered_slots` 6, `penalties_exempted` 0 e `charges_created` 5 |
+| Z03 | Jogos base do R01, R04, R06 e R07 | Ana chama `preview_complete_game` com os mesmos parâmetros e depois `complete_game` | O *preview* devolve os mesmos números da conclusão. Antes da conclusão, `games`, `game_participants`, `charges`, `charge_events`, `notifications` e `audit_log` continuam iguais ao início do teste |
+| Z04 | Jogo base | Bruno chama `complete_game` e `preview_complete_game`; Ana chama num jogo cancelado, num já concluído e com um `uuid` qualquer; Ana chama com `p_total_cents` 0 e −1 | `NOT_GAME_ADMIN`; `GAME_NOT_OPEN`, `GAME_NOT_OPEN` e `NOT_FOUND`; `INVALID_INPUT`. Nada é gravado em nenhum caso |
+| Z05 | Jogo base com `fim + 1h <= now()` e Edu `left_after_start` com falta | Roda `auto_complete_due_games` | `completion_mode = automatic`, o total não muda, Edu tem `absence_penalty` (F03). Os `charge_events` e o `audit_log` têm `actor_id` nulo. Notifica `game_completed` a todas as passagens que ocupam vaga, inclusive Ana |
+| Z06 | Jogo concluído | Ana chama `cancel_game` e de novo `complete_game` | `GAME_NOT_OPEN` nos dois. `share_cents`, `total_cents` e os valores não mudam (RN36) |
+| Z07 | Banco após reset | Lê `cron.job` | Uma tarefa que chama `auto_complete_due_games()`, com o agendamento `*/5 * * * *` |
+
+### 13.2 Isenção e troca de recebedor
+
+pgTAP, em `supabase/tests/database/completion_functions.test.sql`.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| Z08 | Jogo concluído do F09, com a multa Pendente do Edu; Carla na lista, sem ser admin | Ana chama `waive_penalty`; Carla chama sobre outra multa; Ana chama com um `uuid` qualquer | `waived`, `waive_reason = manual_waiver`, `waived_by` = Ana, um `charge_events` de `pending` para `waived` com `actor_id` = Ana, e notifica `penalty_waived` ao Edu com `reason` `manual_waiver`; `NOT_GAME_ADMIN`; `NOT_FOUND` |
+| Z09 | Jogo base do I01, com outra recebedora (nota da seção 5) | A recebedora, admin do jogo, conclui | `late_cancellation_exempt = true` na passagem de quem foi isento e `false` nas mantidas. Notifica `penalty_waived` a quem foi isento, com `charge_id` nulo e `reason` `automatic` |
+| Z10 | Jogo base antes do início, com Carla na lista | Ana chama `change_receiver(carla)` | `games.receiver_id` = Carla. Uma linha em `receiver_changes` com o antigo, o novo, o autor e o instante. Nenhum valor. Notifica `receiver_changed` a Carla. `audit_log` com `receiver_changed`. Devolve `charges_transferred` 0 e `charge_created` falso |
+| Z11 | Depois do Z10 | Ana sai da lista; Carla tenta sair | Ana sai (`cancelled`). Carla recebe `RECEIVER_LOCKED` (RN29) |
+| Z12 | Depois do Z10, com Carla também admin do jogo | Ana chama `leave_group(quinta)` | O jogo não aparece como bloqueio de recebedor (RN16): a saída segue as regras da seção 12.3 |
+| Z13 | Jogo base antes do início | Bruno chama `change_receiver(carla)`; Ana chama `change_receiver(edu)`, com Edu na lista e sem chave Pix | `NOT_GAME_ADMIN`; `RECEIVER_NEEDS_PIX_KEY` |
+| Z14 | Depois do Z10 | Ana conclui | Os valores são devidos a Carla, e Ana tem um `share` como qualquer participante (seção 7, "Antes da conclusão") |
+| Z15 | Base do V02 | Ana chama `change_receiver(carla)` | Os efeitos do V02. Mais: um `charge_events` de `pending` para `waived` no valor de Carla, com a nota `receiver_change`; notifica `receiver_changed` a Carla, Davi e Edu e `charge_created` a Ana; devolve `charges_transferred` 2 e `charge_created` verdadeiro |
+
+### 13.3 Rateio, isenção automática, faltas e troca
+
+pgTAP, em `supabase/tests/database/completion_split.test.sql`, um teste por linha das seções 4 a 7, com os resultados escritos lá. Cada cenário confere também as notas de "Em todos" da sua seção.
+
+### 13.4 RLS (RN76, RN32)
+
+pgTAP, em `supabase/tests/database/completion_security.test.sql`.
+
+**Base:** jogo concluído, inserido direto: Ana recebedora e admin; Edu admin, na lista, com `share` Pendente; Bruno com `share` Pendente; Carla com `absence_penalty` Pendente; Fábio com passagem `cancelled` no prazo, sem valor; Diego fora do jogo.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| Y01 | Base | Ana, Edu, Bruno, Carla, Fábio e Diego leem `charges` | Ana e Edu veem os três valores. Bruno e Carla, só o próprio. Fábio e Diego, nenhum |
+| Y02 | Base, com os `charge_events` da conclusão | Os mesmos leem `charge_events` | O mesmo recorte do Y01 |
+| Y03 | Base, com uma linha em `receiver_changes` | Ana, Edu e Bruno leem `receiver_changes` | Ana e Edu veem a linha. Bruno, nenhuma |
+| Y04 | Base do V02, com Edu como único admin (Ana deixou de ser admin), depois da troca Ana → Carla | Ana, Carla e Davi leem `charges` | Ana vê o valor Pago de Bruno (devido a ela) e o próprio `share` novo, e não vê os de Davi e Edu. Carla, nova recebedora, vê todos. Davi, só o próprio. Carla não lê `receiver_changes` |
+| Y05 | Ana logada | `insert`, `update` e `delete` em `charges`, `charge_events` e `receiver_changes`; `select` em `audit_log` | `42501` em todos |
+| Y06 | `role anon` | `select` nas três tabelas | `42501` em todas |
+| Y07 | Ana logada | Chama `auto_complete_due_games()` | `42501` |
+
+### 13.5 Concorrência
+
+Deno test, em `supabase/functions/_tests/concurrency/completion_test.ts`, com conexões separadas e cada cenário repetido 50 vezes, como na seção 8. Roda o C08 e o C09 na forma da fatia 5 (início desta seção). No C08, a conclusão automática é disparada pela chamada direta a `auto_complete_due_games`, com a conexão de `postgres`.
+
+### 13.6 App
+
+**Formatação**, teste unitário em `app/test/`:
+
+| ID | Entrada | Função | Resultado |
+|----|---------|--------|-----------|
+| U13 | 2.076, 0 e −8, com o recebedor Ana | Texto do valor por conta do recebedor (`docs/ui/telas.md`, seção 8) | `R$ 20,76`; `R$ 0,00`; a frase `splitReceiverExtra`: "Ana recebe R$ 0,08 a mais que o total, pelo arredondamento." |
+
+**Conversão de erros:** o E15 passa a cobrir também os códigos da seção 9.6 do `docs/copy.md`.
+
+**Telas**, testes de widget com os repositórios e o relógio trocados por dublês (`docs/ui/telas.md`, seção 8). Os números dos dublês são os da seção 4:
+
+| ID | Tela | Quando | Então |
+|----|------|--------|-------|
+| S61 | Detalhe | Jogo concluído do R01, visto por Bruno, com `share` Pendente de 2.084, e Edu com `absent = true`; o mesmo jogo visto por Ana | Topo com **Concluído** e sem selo de tempo; trio "10/12", "R$ 20,84" e "R$ 250,00"; card **Rateio** com "Parte do jogo", "R$ 20,84" e **Pendente**; selo **Faltou** no Edu; sem lista de espera e sem pé. O menu da Ana tem **Trocar recebedor** e **Admins do jogo**, sem **Editar jogo**, **Concluir jogo** e **Cancelar jogo** |
+| S62 | Detalhe | Jogo Aberto depois do fim, visto por Ana (admin) e por Bruno; o mesmo jogo antes do fim, visto por Ana | Ana: botão **Concluir jogo** com `gameCompleteHint`, e a opção no menu. Bruno: o aviso `gameListLocked`. Antes do fim, sem a opção no menu |
+| S63 | Concluir jogo | Abre com o R01; muda o total para R$ 300,00; o *preview* demora; o *preview* falha | `preview_complete_game` com total nulo; o campo com "R$ 250,00"; o resumo com "R$ 20,84", "R$ 229,24" e "Por conta de Ana" "R$ 20,76". 400 ms depois da mudança, novo *preview* com 30.000. **Concluir jogo** desabilitado enquanto o *preview* não volta e depois da falha, que mostra **Tentar de novo** |
+| S64 | Concluir jogo | *Preview* do R06 | O aviso em `owe`: "6 vagas ficaram sem ninguém. R$ 145,80 fica por conta de Ana." |
+| S65 | Concluir jogo | *Preview* do R04 | "Ana recebe R$ 0,08 a mais que o total, pelo arredondamento.", sem sinal de menos |
+| S66 | Concluir jogo | Tocar em **Concluir jogo** e confirmar; outro caso com `GAME_NOT_OPEN`; outro com o total apagado | Confirmação com `completeConfirmTitle`; `complete_game` com o mesmo total e as mesmas faltas do último *preview*; `gameCompleted`; a tela vira o Rateio, e o voltar leva ao detalhe. `errorGameNotOpen` e volta ao detalhe. Erro `gameTotalRequired`, sem chamar o servidor |
+| S67 | Concluir jogo | Edu `left_after_start` com falta, Carla e Bruno na lista; marcar Carla; desmarcar Edu; *preview* com `penalties_exempted` 2; `ABSENT_NOT_PARTICIPANT` ao concluir | Edu já marcado, com "Saiu às 20:30"; Ana fora da lista, com `completeReceiverNoAbsence`. *Preview* com `[edu, carla]`, depois com `[carla]`. "2 multas de cancelamento isentadas: sobraram vagas." `SnackBar`, e a tela relê e refaz o *preview* |
+| S68 | Rateio | Bruno com `share` Pendente; Davi, que cancelou no prazo; Fábio, isento na conclusão | Bruno: **Seu valor** com "Parte do jogo", "R$ 20,84", **Pendente** e "Para Ana", sem totais e sem a lista. Davi: `splitNoChargeOnTime`. Fábio: `splitNoChargeExempt` |
+| S69 | Rateio | Ana recebedora no R08 (uma multa isentada pelo admin); o mesmo com um valor cujo `receiver_id` é outra pessoa | Totais "R$ 0,00" recebido, "R$ 208,40" pendente e "Por conta de Ana" "R$ 41,60"; 10 linhas em **Valores**; 1 em **Isentos**, com `chargeWaivedManual`; em **Sem valor a pagar**, Ana com **Recebedor** e o isento com `historyExempt`. A linha de apoio "Para {nome}" no valor de outro recebedor |
+| S70 | Rateio | Ana toca na multa Pendente do Edu, isenta e confirma; Ana toca num `share`; Bruno toca na multa; `CHARGE_NOT_PENDING` | Sheet com **Isentar multa**; confirmação com `waiveTitle`; `waive_penalty` e `penaltyWaived`. O perfil, sem sheet, nos dois casos seguintes. `SnackBar`, e a tela relê |
+| S71 | Detalhe | Bruno cancelou às 18:30, fora do prazo, voltou às 19:00 e foi marcado faltoso, com `absence_penalty` Pendente; Carla só na lista; Davi cancelou no prazo | Card **Sua participação** do Bruno com `historyCancelledLate`, `historyVoided` com "19:00", `historyMarkedAbsent` e o valor "Multa por falta". Sem card para a Carla. Davi: `historyCancelledOnTime` |
+| S72 | Detalhe, sheet | Ana troca o recebedor antes do início: lista com Bruno, Carla e Edu `left_after_start`; toca em Carla e confirma; outro caso com `RECEIVER_NEEDS_PIX_KEY` | `receiverChangeBeforeBody`; Brunão e Carlinha na lista, sem a Ana e sem o Edu; `receiverChangeConfirmTitle`; `change_receiver(carla)` e "Carlinha agora é o recebedor."; o `SnackBar` do código, com a sheet aberta |
+| S73 | Detalhe, sheet | Jogo concluído; `RECEIVER_CHANGE_BLOCKED`; só Ana na lista | `receiverChangeAfterBody`; `SnackBar` e a sheet fecha; `receiverChangeEmpty` |
+| S74 | Cobranças | Bruno deve `share` de 2.084 à Ana (qui, 19/11, Quadra do Sesc) e `absence_penalty` de 1.500 à Carla (sáb, 21/11, Ginásio Verdão); Ana tem 11 valores Pendentes a receber no jogo de 19/11; tocar numa linha; sem nenhum valor | Bruno: **A pagar** "R$ 35,84" e "em 2 jogos"; as duas linhas nessa ordem, com "Para Ana" e "Para Carlinha · Multa por falta"; contador 2 na aba. Ana: **A receber** "R$ 229,24", "de 11 pessoas" e a linha com "11 pessoas". Abre `/games/:gameId/split`. Estado vazio com `chargesEmptyTitle` |
+| S75 | Todas as telas da seção 8 do `telas.md` e as sheets | Fonte do sistema em 150% | Nenhum *overflow* |
+| S76 | Concluir jogo, Rateio, Cobranças e a barra inferior | Leitura pelo TalkBack (`Semantics`) | Caixas de falta com `completeAbsentLabel`; contador da aba com `chargesTabBadgeLabel`; botões e linhas tocáveis com rótulo e área de 48 × 48 |
+
+**Fluxos**, testes de integração no emulador (API 29 e 36) contra o Supabase local com o seed, pelos `scripts/` (`setup.md`, 3.1). A conclusão é definitiva, então cada fluxo prepara o próprio jogo: antes de abrir o app, o teste insere com a chave secreta um jogo `L2x <data e hora>` do Quinta, depois do fim, com Ana recebedora e admin e Bruno e Carla na lista (total R$ 90,00, limite 3). O seed não muda.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| L20 | Ana logada, jogo `L20` | Abre o jogo pelo Quinta, toca em **Concluir jogo**, confere o resumo e conclui | Resumo com "R$ 30,00" por vaga e "R$ 60,00" a receber. O Rateio mostra Brunão e Carlinha com "R$ 30,00" e **Pendente**. O jogo vai para **Anteriores**, com **Concluído** |
+| L21 | Ana logada, jogo `L21` | Marca a falta da Carla e conclui; no Rateio, isenta a multa dela | A Carlinha aparece com "Multa por falta" e, depois, em **Isentos**, com `chargeWaivedManual`. **Pendente** cai de "R$ 60,00" para "R$ 30,00" |
+| L22 | Ana logada, jogo `L22` já concluído pelo teste | Troca o recebedor para o Bruno; abre Cobranças | O detalhe mostra o Brunão como recebedor. Cobranças mostra em **A pagar** a linha do `L22` com "Para Brunão" e "R$ 30,00" |
+
+**Conferência manual**, com o build da produção:
+
+| ID | O que conferir |
+|----|----------------|
+| M08 | RN45: um jogo de teste na produção, sem conclusão manual, aparece **Concluído** em até 1 h 05 min depois do fim, com `completion_mode = automatic` (o `pg_cron` da produção está ativo) |
+
+## 14. Rastreabilidade
 
 | Regra | Cenários |
 |-------|----------|
@@ -908,3 +1029,9 @@ Deno test, em `supabase/functions/_tests/concurrency/games_test.ts`, com conexõ
 | RN50 a RN54 | O01 a O07, O15, O16, C01 a C07, S42, S45, S46, L16, L17 |
 | RN57 a RN59 | O08 a O13, O17 a O23, S43, S47, S48 |
 | RN101, RN102 | W08 a W12, S44, S58, M07 |
+| RN36, RN44 a RN49 | Z01 a Z07, S62 a S67, L20, M08 |
+| RN60 a RN67 | Z08, Z09, S67, S70, S71, L21 |
+| RN70 a RN76 | Z01 a Z03, Y01 a Y07, U13, S61, S63 a S65, S68, S69, S74, L20 |
+| RN28 a RN31, RN94, RN115 | Z10 a Z15, Y04, S72, S73, L22 |
+| RF65 | S71 |
+| RF75, RF76 | S74, L22 |

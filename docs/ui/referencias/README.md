@@ -338,3 +338,21 @@ Os campos de `gamesNew.png` sem o campo Grupo: no lugar dele, o nome "Vôlei de 
 
 - O perfil de `person.png`, com a Ana: avatar de 96, "Ana".
 - Abaixo do nome, a linha **Telefone** com "(86) 99999-8888" e dois botões de contorno lado a lado: **Ligar** e **WhatsApp**.
+
+## Fatia 5. Conclusão, multas e rateio
+
+Detalhe de cada tela em `docs/ui/telas.md`, seção 8. Textos em `docs/copy.md`, seção 9. Para desenhar sem consultar os outros documentos, a mesma especificação está em `fatia-5/telas-fatia-5.md`, com os textos finais e o exemplo completo do rateio (R$ 250,00, 12 vagas, R$ 20,84 por vaga, R$ 229,24 a receber).
+
+| Arquivo | Tela | Status |
+|---------|------|--------|
+| `game-aguardando.png` | Detalhe depois do fim, visto pela admin, com **Concluir jogo** no pé | Obrigatório |
+| `gameComplete.png` | Concluir jogo, com uma falta marcada e o resumo do rateio | Obrigatório |
+| `gameComplete-vagas.png` | Concluir jogo com o aviso de vagas sem ninguém | Opcional: aviso em linha (`design-system.md`, 7.14) |
+| `gameComplete-confirmar.png` | Confirmação da conclusão | Opcional: segue as confirmações da fatia 4, em tom normal |
+| `gameSplit-recebedor.png` | Rateio visto pela recebedora | Obrigatório |
+| `gameSplit-isentar.png` | Sheet de isentar a multa | Opcional: segue `game-participante.png` |
+| `gameSplit.png` | Rateio visto por um participante | Obrigatório |
+| `game-concluido.png` | Detalhe do jogo concluído, com Sua participação e o card do rateio | Obrigatório |
+| `game-trocarRecebedor.png` | Sheet de trocar recebedor, depois da conclusão | Obrigatório |
+| `charges.png` | Cobranças, com valores a pagar e a receber | Obrigatório |
+| `charges-vazio.png` | Cobranças sem nenhum valor | Opcional: estado vazio (`design-system.md`, 7.16) |
