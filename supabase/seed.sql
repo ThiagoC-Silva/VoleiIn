@@ -265,5 +265,49 @@ begin
     (select g from public.games g where g.id = '00000000-0000-0000-0000-000000000208'),
     v_ana, null, '{}', 'manual', false
   );
+
+  -- Fatia 5, etapa B (research R4 de specs/007-conclusao-etapa-b). Quinta com
+  -- multas: anteontem, Ana e Carla na lista e Bruno com cancelamento fora do
+  -- prazo. Ana conclui com a Carla faltosa (as 2 vagas ociosas mantêm a multa
+  -- do Bruno) e isenta a multa do Bruno pela waive_penalty.
+  insert into public.games (
+    id, group_id, created_by, receiver_id, invite_code, location_name, maps_url,
+    cancellation_deadline, starts_at, ends_at, total_cents, slot_limit, status
+  )
+  values (
+    '00000000-0000-0000-0000-000000000210', v_quinta, v_ana, v_ana, 'JogoMultas01',
+    'Ginásio Verdão', null,
+    (v_today - 2 + time '18:00') at time zone 'America/Fortaleza',
+    (v_today - 2 + time '20:00') at time zone 'America/Fortaleza',
+    (v_today - 2 + time '22:00') at time zone 'America/Fortaleza',
+    4000, 4, 'open'
+  );
+
+  insert into public.game_admins (game_id, user_id)
+  values ('00000000-0000-0000-0000-000000000210', v_ana);
+
+  insert into public.game_participants (game_id, user_id, joined_at)
+  values
+    ('00000000-0000-0000-0000-000000000210', v_ana, now() - interval '4 days'),
+    ('00000000-0000-0000-0000-000000000210', v_carla, now() - interval '3 days');
+  insert into public.game_participants (
+    game_id, user_id, joined_at, status, left_at, late_cancellation
+  )
+  values (
+    '00000000-0000-0000-0000-000000000210', v_bruno, now() - interval '3 days', 'cancelled',
+    (v_today - 2 + time '18:30') at time zone 'America/Fortaleza', true
+  );
+
+  perform private.complete_game_core(
+    (select g from public.games g where g.id = '00000000-0000-0000-0000-000000000210'),
+    v_ana, null, array[v_carla], 'manual', false
+  );
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_ana)::text, true);
+  perform public.waive_penalty(
+    (select c.id from public.charges c
+     where c.game_id = '00000000-0000-0000-0000-000000000210' and c.payer_id = v_bruno)
+  );
+  perform set_config('request.jwt.claims', '', true);
 end;
 $seed$;

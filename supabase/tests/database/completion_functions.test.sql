@@ -1,6 +1,7 @@
--- Conclusão manual e automática (fatia 5, etapa A).
--- Cenários T11 a T15 (seção 3), F03 e F04 (seção 6) e Z01 a Z07 (seção 13.1) de
--- docs/testes-referencia.md. Contratos: docs/contratos-api.md, seções 5 e 7.
+-- Conclusão manual e automática e isenção (fatia 5). Etapa A: T11 a T15
+-- (seção 3), F03 e F04 (seção 6) e Z01 a Z07 (seção 13.1). Etapa B: T16 (seção
+-- 3), Z08 e Z09 (seção 13.2) de docs/testes-referencia.md. Contratos:
+-- docs/contratos-api.md, seções 5 e 7.
 --
 -- Base da seção 13, inserida aqui sem depender do seed: o Quinta, com Ana admin
 -- e os outros membros; Diego sem grupo. Os jogos e as linhas de grupo do seed
@@ -11,7 +12,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(40);
+select plan(49);
 
 -- Personagens (docs/setup.md, seção 8), mais o Edu e o Fábio, que só existem
 -- nos testes, e dez pessoas para completar as listas (P01 a P10).
@@ -585,6 +586,139 @@ select is(
   'Z06c: share_cents, total_cents e os valores não mudam (RN36)'
 );
 rollback to savepoint z06;
+
+-- =========================================================================
+-- Etapa B: T16 (seção 3), Z08 e Z09 (seção 13.2)
+-- =========================================================================
+
+-- T16. Prazo mudou de 18h para 19h depois de um cancelamento às 18h30, já
+-- classificado como fora do prazo: continua fora do prazo na conclusão (RN35).
+savepoint t16;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000630', 10000, 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000630', '00000000-0000-0000-0000-00000000000c', 30);
+update public.games set cancellation_deadline = cancellation_deadline + interval '1 hour'
+where id = '00000000-0000-0000-0000-000000000630';
+select pg_temp.fill('00000000-0000-0000-0000-000000000630', 4);
+select pg_temp.ana_calls('complete_game', 't16', '00000000-0000-0000-0000-000000000630');
+select results_eq(
+  $$ select p.late_cancellation, p.late_cancellation_exempt, c.kind::text
+     from public.game_participants p join public.charges c on c.participant_id = p.id
+     where p.game_id = '00000000-0000-0000-0000-000000000630'
+       and p.user_id = '00000000-0000-0000-0000-00000000000c' $$,
+  $$ values (true, false, 'late_cancellation_penalty') $$,
+  'T16: o cancelamento continua fora do prazo, com a multa mantida'
+);
+rollback to savepoint t16;
+
+-- Z08. Jogo concluído do F09: multas Pendentes do Edu (saiu às 20h30) e do P01
+-- (marcado pela Ana). Carla na lista, sem ser admin.
+savepoint z08;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000631', 10000, 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000631', 10);
+select pg_temp.left_after_start('00000000-0000-0000-0000-000000000631', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.ana_calls(
+  'complete_game', 'z08c', '00000000-0000-0000-0000-000000000631', null,
+  array['00000000-0000-0000-0000-00000000000e'::uuid, pg_temp.p(1)]
+);
+select set_config(
+  't.z08_edu',
+  (select id::text from public.charges
+   where game_id = '00000000-0000-0000-0000-000000000631'
+     and payer_id = '00000000-0000-0000-0000-00000000000e'),
+  true
+);
+select set_config(
+  't.z08_p01',
+  (select id::text from public.charges
+   where game_id = '00000000-0000-0000-0000-000000000631' and payer_id = pg_temp.p(1)),
+  true
+);
+delete from public.notifications;
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select set_config(
+  't.z08', public.waive_penalty(current_setting('t.z08_edu')::uuid)::text, true
+);
+reset role;
+select is(
+  pg_temp.saved('z08'),
+  jsonb_build_object('charge_id', current_setting('t.z08_edu'), 'status', 'waived'),
+  'Z08a: devolve charge_id e status waived'
+);
+select results_eq(
+  format(
+    $q$ select status::text, waive_reason::text, waived_by, waived_at = now()
+        from public.charges where id = %L $q$,
+    current_setting('t.z08_edu')
+  ),
+  $$ values ('waived', 'manual_waiver', '00000000-0000-0000-0000-00000000000a'::uuid, true) $$,
+  'Z08b: waived, manual_waiver, waived_by Ana, waived_at = now()'
+);
+select results_eq(
+  format(
+    $q$ select from_status::text, to_status::text, actor_id from public.charge_events
+        where charge_id = %L order by from_status nulls first $q$,
+    current_setting('t.z08_edu')
+  ),
+  $$ values (null::text, 'pending', '00000000-0000-0000-0000-00000000000a'::uuid),
+            ('pending', 'waived', '00000000-0000-0000-0000-00000000000a'::uuid) $$,
+  'Z08c: um charge_events de pending para waived, com actor_id = Ana'
+);
+select results_eq(
+  $$ select type::text, user_id, data from public.notifications $$,
+  format(
+    $q$ values ('penalty_waived', '00000000-0000-0000-0000-00000000000e'::uuid,
+          private.game_notification_data('00000000-0000-0000-0000-000000000631')
+          || jsonb_build_object('charge_id', %L, 'reason', 'manual_waiver')) $q$,
+    current_setting('t.z08_edu')
+  ),
+  'Z08d: notifica penalty_waived ao Edu, com reason manual_waiver'
+);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000c');
+set local role authenticated;
+select throws_ok(
+  format('select public.waive_penalty(%L)', current_setting('t.z08_p01')),
+  'P0001', 'NOT_GAME_ADMIN', 'Z08e: Carla isenta a multa do P01: NOT_GAME_ADMIN'
+);
+reset role;
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  $$ select public.waive_penalty('00000000-0000-0000-0000-0000000006ff') $$,
+  'P0001', 'NOT_FOUND', 'Z08f: uuid qualquer: NOT_FOUND'
+);
+reset role;
+rollback to savepoint z08;
+
+-- Z09. Jogo base do I01, com os papéis da research R5 de
+-- specs/007-conclusao-etapa-b: Carla (18h10), Edu (18h30) e P01 (19h20)
+-- cancelam; 8 no início. Ana, recebedora e admin, conclui.
+savepoint z09;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000632', 10000, 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000632', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000632', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000632', pg_temp.p(1), 80);
+select pg_temp.fill('00000000-0000-0000-0000-000000000632', 8);
+select pg_temp.ana_calls('complete_game', 'z09', '00000000-0000-0000-0000-000000000632');
+select set_eq(
+  $$ select user_id, late_cancellation_exempt from public.game_participants
+     where game_id = '00000000-0000-0000-0000-000000000632' and status = 'cancelled' $$,
+  format(
+    $q$ values ('00000000-0000-0000-0000-00000000000c'::uuid, true),
+               ('00000000-0000-0000-0000-00000000000e'::uuid, false),
+               (%L::uuid, false) $q$,
+    pg_temp.p(1)
+  ),
+  'Z09a: late_cancellation_exempt true na Carla e false nas mantidas'
+);
+select results_eq(
+  $$ select user_id, data from public.notifications where type = 'penalty_waived' $$,
+  $$ values ('00000000-0000-0000-0000-00000000000c'::uuid,
+       private.game_notification_data('00000000-0000-0000-0000-000000000632')
+       || jsonb_build_object('charge_id', null, 'reason', 'automatic')) $$,
+  'Z09b: penalty_waived só à Carla, com charge_id nulo e reason automatic'
+);
+rollback to savepoint z09;
 
 -- Z07. O agendamento.
 select results_eq(

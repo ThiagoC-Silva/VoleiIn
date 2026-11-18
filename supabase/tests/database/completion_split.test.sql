@@ -1,7 +1,8 @@
--- Rateio (fatia 5, etapa A). Cenários R01 a R07, R09 e R10 de
--- docs/testes-referencia.md, seção 4, com as notas de "Em todos". R08 (isenção
--- manual depois da conclusão) é da etapa B (seção 13, "Cenários por etapa").
--- Contrato: complete_game (docs/contratos-api.md, seção 5).
+-- Rateio, isenção automática, faltas e multas (fatia 5). Etapa A: R01 a R07,
+-- R09 e R10 (seção 4). Etapa B: R08 (seção 4), I01 a I12 (seção 5) e F01, F02
+-- e F05 a F14 (seção 6) de docs/testes-referencia.md, com as notas de "Em
+-- todos". F03 e F04 ficam em completion_functions.test.sql (etapa A).
+-- Contratos: complete_game e waive_penalty (docs/contratos-api.md, seção 5).
 --
 -- Base da seção 13, como em completion_functions.test.sql.
 
@@ -9,7 +10,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(58);
+select plan(127);
 
 -- Personagens (docs/setup.md, seção 8), mais o Edu e o Fábio, que só existem
 -- nos testes, e dez pessoas para completar as listas (P01 a P10).
@@ -263,6 +264,118 @@ begin
 end;
 $fn$;
 
+-- Etapa B ----------------------------------------------------------------------
+
+-- Histórico de limite do cenário (research R3 de specs/006-conclusao-etapa-a):
+-- cada valor de p_limits vale a partir de p_minutes depois do prazo (negativo,
+-- antes dele). O último vira o limite final do jogo.
+create function pg_temp.limits(p_game uuid, p_limits integer[], p_minutes integer[])
+returns void
+language plpgsql
+as $fn$
+declare
+  v_deadline timestamptz;
+begin
+  update public.games set slot_limit = p_limits[cardinality(p_limits)]
+  where id = p_game
+  returning cancellation_deadline into v_deadline;
+  delete from public.game_limit_history where game_id = p_game;
+  for i in 1 .. cardinality(p_limits) loop
+    insert into public.game_limit_history (game_id, slot_limit, effective_from)
+    values (p_game, p_limits[i], v_deadline + make_interval(mins => p_minutes[i]));
+  end loop;
+end;
+$fn$;
+
+-- Cancelamento fora do prazo anulado pela volta à lista, p_back minutos depois
+-- do prazo (RN56). A volta em si é uma passagem nova (pg_temp.join).
+create function pg_temp.voided_cancel(p_game uuid, p_user uuid, p_minutes integer, p_back integer)
+returns void
+language sql
+as $fn$
+  insert into public.game_participants (
+    game_id, user_id, joined_at, status, left_at, late_cancellation, cancellation_voided_at
+  )
+  select p_game, p_user, g.cancellation_deadline - interval '1 day', 'cancelled',
+         g.cancellation_deadline + make_interval(mins => p_minutes), true,
+         g.cancellation_deadline + make_interval(mins => p_back)
+  from public.games g where g.id = p_game;
+$fn$;
+
+-- Cancelamento no prazo, p_minutes antes do prazo.
+create function pg_temp.on_time_cancel(p_game uuid, p_user uuid, p_minutes integer)
+returns void
+language sql
+as $fn$
+  insert into public.game_participants (game_id, user_id, joined_at, status, left_at, late_cancellation)
+  select p_game, p_user, g.cancellation_deadline - interval '1 day', 'cancelled',
+         g.cancellation_deadline - make_interval(mins => p_minutes), false
+  from public.games g where g.id = p_game;
+$fn$;
+
+-- Remoção por um admin, p_minutes depois do prazo (RN58).
+create function pg_temp.removed(p_game uuid, p_user uuid, p_minutes integer)
+returns void
+language sql
+as $fn$
+  insert into public.game_participants (game_id, user_id, joined_at, status, left_at, removal_reason)
+  select p_game, p_user, g.cancellation_deadline - interval '1 day', 'removed',
+         g.cancellation_deadline + make_interval(mins => p_minutes), 'by_admin'
+  from public.games g where g.id = p_game;
+$fn$;
+
+-- O valor da pessoa no jogo, ativo ou não (no máximo um por pessoa nestes cenários).
+create function pg_temp.charge_of(p_game uuid, p_user uuid)
+returns uuid
+language sql
+as $fn$
+  select id from public.charges where game_id = p_game and payer_id = p_user;
+$fn$;
+
+-- A pessoa chama waive_penalty e guarda o retorno em t.<p_name>.
+create function pg_temp.waive_as(p_user uuid, p_charge uuid, p_name text)
+returns void
+language plpgsql
+as $fn$
+begin
+  perform pg_temp.login_as(p_user);
+  set local role authenticated;
+  perform set_config('t.' || p_name, public.waive_penalty(p_charge)::text, true);
+  reset role;
+end;
+$fn$;
+
+-- Confere um cenário da seção 5: quem paga multa (igual à parte), quem fica
+-- isento e o penalties_exempted do retorno. Três asserções.
+create function pg_temp.check_exempt(
+  p_label text, p_game uuid, p_name text, p_kept uuid[], p_exempt uuid[]
+)
+returns setof text
+language plpgsql
+as $fn$
+begin
+  return next is(
+    (select coalesce(array_agg(c.payer_id order by c.payer_id), '{}')
+     from public.charges c join public.games g on g.id = c.game_id
+     where c.game_id = p_game and c.kind = 'late_cancellation_penalty'
+       and c.amount_cents = g.share_cents),
+    (select coalesce(array_agg(u order by u), '{}') from unnest(p_kept) u),
+    p_label || 'a: pagam multa de cancelamento, igual à parte'
+  );
+  return next is(
+    (select coalesce(array_agg(p.user_id order by p.user_id), '{}')
+     from public.game_participants p
+     where p.game_id = p_game and p.late_cancellation_exempt),
+    (select coalesce(array_agg(u order by u), '{}') from unnest(p_exempt) u),
+    p_label || 'b: isentos, com late_cancellation_exempt'
+  );
+  return next is(
+    (pg_temp.saved(p_name) ->> 'penalties_exempted')::integer, cardinality(p_exempt),
+    p_label || 'c: penalties_exempted ' || cardinality(p_exempt)
+  );
+end;
+$fn$;
+
 -- R01. Exemplo do regras-negocio.md: 10 na lista, Carla e P09 com multa de
 -- cancelamento mantida (2 vagas ociosas).
 savepoint r01;
@@ -350,6 +463,447 @@ select pg_temp.check_split(
   'R09', '00000000-0000-0000-0000-000000000709', 'r09', 178956971, 11, 1968526681, 178956966
 );
 rollback to savepoint r09;
+
+-- =========================================================================
+-- Etapa B: R08, isenção automática (seção 5) e faltas e multas (seção 6)
+-- =========================================================================
+
+-- R08. R01 com a multa do P09 isentada depois da conclusão.
+savepoint r08;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000708', 25000, 12);
+select pg_temp.fill('00000000-0000-0000-0000-000000000708', 10);
+update public.game_participants set status = 'cancelled', left_at = now() - interval '230 minutes',
+  late_cancellation = true
+where game_id = '00000000-0000-0000-0000-000000000708'
+  and user_id = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.fill('00000000-0000-0000-0000-000000000708', 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000708', pg_temp.p(9), 30);
+select pg_temp.ana_calls('complete_game', 'r08', '00000000-0000-0000-0000-000000000708');
+select pg_temp.waive_as(
+  '00000000-0000-0000-0000-00000000000a',
+  pg_temp.charge_of('00000000-0000-0000-0000-000000000708', pg_temp.p(9)), 'r08w'
+);
+select results_eq(
+  $$ select count(*)::integer, (count(*) filter (where status <> 'waived'))::integer,
+            sum(amount_cents)::bigint, (sum(amount_cents) filter (where status <> 'waived'))::bigint
+     from public.charges where game_id = '00000000-0000-0000-0000-000000000708' $$,
+  $$ values (11, 10, 22924::bigint, 20840::bigint) $$,
+  'R08a: 11 valores (10 ativos), soma 22.924 (20.840 ativos)'
+);
+select is(
+  (select g.total_cents - sum(c.amount_cents) from public.games g
+   join public.charges c on c.game_id = g.id and c.status <> 'waived'
+   where g.id = '00000000-0000-0000-0000-000000000708' group by g.total_cents)::bigint,
+  4160::bigint, 'R08b: 4.160 por conta da recebedora'
+);
+rollback to savepoint r08;
+
+-- Seção 5. Limite 10, total R$ 100,00 (parte 1.000). Ana é a recebedora, e os
+-- papéis da tabela passam a Carla ("Ana"), Edu ("Bruno"), P01 ("Davi") e P02
+-- ("Carla"), research R5 de specs/007-conclusao-etapa-b. Os minutos são contados
+-- a partir do prazo (18h): 10 é 18h10, 60 é 19h.
+
+-- I01. Carla (18h10), Edu (18h30) e P01 (19h20) cancelam. 8 no início.
+savepoint i01;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000721', 10000, 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000721', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000721', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000721', pg_temp.p(1), 80);
+select pg_temp.fill('00000000-0000-0000-0000-000000000721', 8);
+select pg_temp.ana_calls('complete_game', 'i01', '00000000-0000-0000-0000-000000000721');
+select pg_temp.check_exempt(
+  'I01', '00000000-0000-0000-0000-000000000721', 'i01',
+  array['00000000-0000-0000-0000-00000000000e'::uuid, pg_temp.p(1)],
+  array['00000000-0000-0000-0000-00000000000c'::uuid]
+);
+rollback to savepoint i01;
+
+-- I02. Lista cheia no início. Carla, Edu e P01 cancelaram.
+savepoint i02;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000722', 10000, 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000722', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000722', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000722', pg_temp.p(1), 80);
+select pg_temp.fill('00000000-0000-0000-0000-000000000722', 10);
+select pg_temp.ana_calls('complete_game', 'i02', '00000000-0000-0000-0000-000000000722');
+select pg_temp.check_exempt(
+  'I02', '00000000-0000-0000-0000-000000000722', 'i02', '{}',
+  array['00000000-0000-0000-0000-00000000000c'::uuid, '00000000-0000-0000-0000-00000000000e', pg_temp.p(1)]
+);
+rollback to savepoint i02;
+
+-- I03. 5 no início. Carla e Edu cancelaram.
+savepoint i03;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000723', 10000, 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000723', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000723', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.fill('00000000-0000-0000-0000-000000000723', 5);
+select pg_temp.ana_calls('complete_game', 'i03', '00000000-0000-0000-0000-000000000723');
+select pg_temp.check_exempt(
+  'I03', '00000000-0000-0000-0000-000000000723', 'i03',
+  array['00000000-0000-0000-0000-00000000000c'::uuid, '00000000-0000-0000-0000-00000000000e'], '{}'
+);
+rollback to savepoint i03;
+
+-- I04. Limite subiu de 10 para 12 às 19h. 10 no início. Carla e Edu cancelaram
+-- antes. Total R$ 120,00: a isenção usa L = 10, e a parte, o limite final 12.
+savepoint i04;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000724', 12000, 10);
+select pg_temp.limits('00000000-0000-0000-0000-000000000724', array[10, 12], array[-1440, 60]);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000724', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000724', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.fill('00000000-0000-0000-0000-000000000724', 10);
+select pg_temp.ana_calls('complete_game', 'i04', '00000000-0000-0000-0000-000000000724');
+select pg_temp.check_exempt(
+  'I04', '00000000-0000-0000-0000-000000000724', 'i04', '{}',
+  array['00000000-0000-0000-0000-00000000000c'::uuid, '00000000-0000-0000-0000-00000000000e']
+);
+select pg_temp.check_split('I04', '00000000-0000-0000-0000-000000000724', 'i04', 1000, 9, 9000, 3000);
+rollback to savepoint i04;
+
+-- I05. Limite caiu de 10 para 8 às 19h. 8 no início. Carla e Edu cancelaram antes.
+savepoint i05;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000725', 10000, 10);
+select pg_temp.limits('00000000-0000-0000-0000-000000000725', array[10, 8], array[-1440, 60]);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000725', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000725', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.fill('00000000-0000-0000-0000-000000000725', 8);
+select pg_temp.ana_calls('complete_game', 'i05', '00000000-0000-0000-0000-000000000725');
+select pg_temp.check_exempt(
+  'I05', '00000000-0000-0000-0000-000000000725', 'i05', '{}',
+  array['00000000-0000-0000-0000-00000000000c'::uuid, '00000000-0000-0000-0000-00000000000e']
+);
+select pg_temp.check_split('I05', '00000000-0000-0000-0000-000000000725', 'i05', 1250, 7, 8750, 1250);
+rollback to savepoint i05;
+
+-- I06. Limite caiu de 12 para 10 às 17h, antes do prazo. 9 no início. Carla cancelou.
+savepoint i06;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000726', 10000, 12);
+select pg_temp.limits('00000000-0000-0000-0000-000000000726', array[12, 10], array[-1440, -60]);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000726', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000726', 9);
+select pg_temp.ana_calls('complete_game', 'i06', '00000000-0000-0000-0000-000000000726');
+select pg_temp.check_exempt(
+  'I06', '00000000-0000-0000-0000-000000000726', 'i06',
+  array['00000000-0000-0000-0000-00000000000c'::uuid], '{}'
+);
+rollback to savepoint i06;
+
+-- I07. Limite foi de 10 para 8 e voltou a 10, tudo depois do prazo. 8 no início.
+savepoint i07;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000727', 10000, 10);
+select pg_temp.limits('00000000-0000-0000-0000-000000000727', array[10, 8, 10], array[-1440, 30, 90]);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000727', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000727', 8);
+select pg_temp.ana_calls('complete_game', 'i07', '00000000-0000-0000-0000-000000000727');
+select pg_temp.check_exempt(
+  'I07', '00000000-0000-0000-0000-000000000727', 'i07', '{}',
+  array['00000000-0000-0000-0000-00000000000c'::uuid]
+);
+rollback to savepoint i07;
+
+-- I08. Carla cancela às 18h10. Edu cancela às 18h30 e volta às 19h (anulado,
+-- RN56). 9 no início.
+savepoint i08;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000728', 10000, 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000728', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.voided_cancel('00000000-0000-0000-0000-000000000728', '00000000-0000-0000-0000-00000000000e', 30, 60);
+select pg_temp.join('00000000-0000-0000-0000-000000000728', '00000000-0000-0000-0000-00000000000e');
+select pg_temp.fill('00000000-0000-0000-0000-000000000728', 9);
+select pg_temp.ana_calls('complete_game', 'i08', '00000000-0000-0000-0000-000000000728');
+select pg_temp.check_exempt(
+  'I08', '00000000-0000-0000-0000-000000000728', 'i08',
+  array['00000000-0000-0000-0000-00000000000c'::uuid], '{}'
+);
+rollback to savepoint i08;
+
+-- I09. Carla cancela às 19h. Edu cancela às 18h30, volta às 18h50 e cancela de
+-- novo às 19h30. 9 no início: só a passagem mais recente do Edu conta.
+savepoint i09;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000729', 10000, 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000729', '00000000-0000-0000-0000-00000000000c', 60);
+select pg_temp.voided_cancel('00000000-0000-0000-0000-000000000729', '00000000-0000-0000-0000-00000000000e', 30, 50);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000729', '00000000-0000-0000-0000-00000000000e', 90);
+select pg_temp.fill('00000000-0000-0000-0000-000000000729', 9);
+select pg_temp.ana_calls('complete_game', 'i09', '00000000-0000-0000-0000-000000000729');
+select pg_temp.check_exempt(
+  'I09', '00000000-0000-0000-0000-000000000729', 'i09',
+  array['00000000-0000-0000-0000-00000000000e'::uuid],
+  array['00000000-0000-0000-0000-00000000000c'::uuid]
+);
+rollback to savepoint i09;
+
+-- I10. 9 ativos e o Bruno, que saiu após o início (não libera a vaga). Carla cancelou.
+savepoint i10;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000730', 10000, 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000730', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000730', 10);
+select pg_temp.left_after_start('00000000-0000-0000-0000-000000000730', '00000000-0000-0000-0000-00000000000b', 30);
+select pg_temp.ana_calls(
+  'complete_game', 'i10', '00000000-0000-0000-0000-000000000730', null,
+  array['00000000-0000-0000-0000-00000000000b'::uuid]
+);
+select pg_temp.check_exempt(
+  'I10', '00000000-0000-0000-0000-000000000730', 'i10', '{}',
+  array['00000000-0000-0000-0000-00000000000c'::uuid]
+);
+rollback to savepoint i10;
+
+-- I11. P01 é removido por um admin às 19h. 9 no início. Carla cancelou.
+savepoint i11;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000731', 10000, 10);
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000731', '00000000-0000-0000-0000-00000000000c', 10);
+select pg_temp.removed('00000000-0000-0000-0000-000000000731', pg_temp.p(1), 60);
+select pg_temp.fill('00000000-0000-0000-0000-000000000731', 9);
+select pg_temp.ana_calls('complete_game', 'i11', '00000000-0000-0000-0000-000000000731');
+select pg_temp.check_exempt(
+  'I11', '00000000-0000-0000-0000-000000000731', 'i11',
+  array['00000000-0000-0000-0000-00000000000c'::uuid], '{}'
+);
+select is(
+  (select count(*)::integer from public.charges
+   where game_id = '00000000-0000-0000-0000-000000000731' and payer_id = pg_temp.p(1)),
+  0, 'I11d: o removido não tem multa nem valor (RN58)'
+);
+rollback to savepoint i11;
+
+-- I12. Cancelamento só dentro do prazo. 9 no início.
+savepoint i12;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000732', 10000, 10);
+select pg_temp.on_time_cancel('00000000-0000-0000-0000-000000000732', '00000000-0000-0000-0000-00000000000c', 30);
+select pg_temp.fill('00000000-0000-0000-0000-000000000732', 9);
+select pg_temp.ana_calls('complete_game', 'i12', '00000000-0000-0000-0000-000000000732');
+select pg_temp.check_exempt('I12', '00000000-0000-0000-0000-000000000732', 'i12', '{}', '{}');
+rollback to savepoint i12;
+
+-- Seção 6. Limite 10, total R$ 100,00 (parte 1.000), lista cheia, recebedora Ana.
+
+-- F01. Edu sai às 20h30 e fica na lista de faltosos.
+savepoint f01;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000741', 10000, 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000741', 10);
+select pg_temp.left_after_start('00000000-0000-0000-0000-000000000741', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.ana_calls(
+  'complete_game', 'f01', '00000000-0000-0000-0000-000000000741', null,
+  array['00000000-0000-0000-0000-00000000000e'::uuid]
+);
+select results_eq(
+  $$ select c.kind::text, c.amount_cents, p.absent, p.absence_source::text
+     from public.charges c join public.game_participants p on p.id = c.participant_id
+     where c.game_id = '00000000-0000-0000-0000-000000000741'
+       and c.payer_id = '00000000-0000-0000-0000-00000000000e' $$,
+  $$ values ('absence_penalty', 1000, true, 'left_after_start') $$,
+  'F01a: Edu com absence_penalty de 1.000'
+);
+select results_eq(
+  $$ select count(*)::integer, min(amount_cents), max(amount_cents) from public.charges
+     where game_id = '00000000-0000-0000-0000-000000000741' and kind = 'share' $$,
+  $$ values (8, 1000, 1000) $$,
+  'F01b: os outros 8 com share de 1.000'
+);
+rollback to savepoint f01;
+
+-- F02. Edu sai às 20h30, e Ana conclui sem ele na lista: a falta é desmarcada (RN47).
+savepoint f02;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000742', 10000, 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000742', 10);
+select pg_temp.left_after_start('00000000-0000-0000-0000-000000000742', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.ana_calls('complete_game', 'f02', '00000000-0000-0000-0000-000000000742');
+select results_eq(
+  $$ select c.kind::text, c.amount_cents, p.absent, p.absence_source::text
+     from public.charges c join public.game_participants p on p.id = c.participant_id
+     where c.game_id = '00000000-0000-0000-0000-000000000742'
+       and c.payer_id = '00000000-0000-0000-0000-00000000000e' $$,
+  $$ values ('share', 1000, false, null::text) $$,
+  'F02: falta desmarcada, Edu com share de 1.000'
+);
+rollback to savepoint f02;
+
+-- F05. Ana marca a Carla como faltosa.
+savepoint f05;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000745', 10000, 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000745', 10);
+select pg_temp.ana_calls(
+  'complete_game', 'f05', '00000000-0000-0000-0000-000000000745', null,
+  array['00000000-0000-0000-0000-00000000000c'::uuid]
+);
+select results_eq(
+  $$ select c.kind::text, c.amount_cents, p.absent, p.absence_source::text
+     from public.charges c join public.game_participants p on p.id = c.participant_id
+     where c.game_id = '00000000-0000-0000-0000-000000000745'
+       and c.payer_id = '00000000-0000-0000-0000-00000000000c' $$,
+  $$ values ('absence_penalty', 1000, true, 'marked_by_admin') $$,
+  'F05: Carla com absence_penalty, marked_by_admin'
+);
+rollback to savepoint f05;
+
+-- F06. Ana se marca como faltosa.
+savepoint f06;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000746', 10000, 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000746', 10);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  $$ select public.complete_game('00000000-0000-0000-0000-000000000746', null,
+       array['00000000-0000-0000-0000-00000000000a'::uuid]) $$,
+  'P0001', 'RECEIVER_CANNOT_BE_ABSENT', 'F06a: RECEIVER_CANNOT_BE_ABSENT'
+);
+reset role;
+select results_eq(
+  $$ select g.status::text, (select count(*)::integer from public.charges c where c.game_id = g.id),
+            (select count(*)::integer from public.game_participants p where p.game_id = g.id and p.absent)
+     from public.games g where g.id = '00000000-0000-0000-0000-000000000746' $$,
+  $$ values ('confirmed', 0, 0) $$,
+  'F06b: nada é gravado'
+);
+rollback to savepoint f06;
+
+-- F07. Ana, recebedora, tenta sair do jogo iniciado (RN29).
+savepoint f07;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000747', 10000, 10, now() + interval '1 hour');
+select pg_temp.fill('00000000-0000-0000-0000-000000000747', 10);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000747') $$,
+  'P0001', 'RECEIVER_LOCKED', 'F07: RECEIVER_LOCKED'
+);
+reset role;
+rollback to savepoint f07;
+
+-- F08. Ana marca o P10, que não está na lista.
+savepoint f08;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000748', 10000, 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000748', 10);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  format(
+    'select public.complete_game(%L, null, array[%L::uuid])',
+    '00000000-0000-0000-0000-000000000748', pg_temp.p(10)
+  ),
+  'P0001', 'ABSENT_NOT_PARTICIPANT', 'F08a: ABSENT_NOT_PARTICIPANT'
+);
+reset role;
+select results_eq(
+  $$ select g.status::text, (select count(*)::integer from public.charges c where c.game_id = g.id),
+            (select count(*)::integer from public.game_participants p where p.game_id = g.id and p.absent)
+     from public.games g where g.id = '00000000-0000-0000-0000-000000000748' $$,
+  $$ values ('confirmed', 0, 0) $$,
+  'F08b: nada é gravado'
+);
+rollback to savepoint f08;
+
+-- F09. Ana isenta a multa Pendente do Edu.
+savepoint f09;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000749', 10000, 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000749', 10);
+select pg_temp.left_after_start('00000000-0000-0000-0000-000000000749', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.ana_calls(
+  'complete_game', 'f09', '00000000-0000-0000-0000-000000000749', null,
+  array['00000000-0000-0000-0000-00000000000e'::uuid]
+);
+select pg_temp.waive_as(
+  '00000000-0000-0000-0000-00000000000a',
+  pg_temp.charge_of('00000000-0000-0000-0000-000000000749', '00000000-0000-0000-0000-00000000000e'), 'f09w'
+);
+select results_eq(
+  $$ select status::text, waive_reason::text from public.charges
+     where game_id = '00000000-0000-0000-0000-000000000749'
+       and payer_id = '00000000-0000-0000-0000-00000000000e' $$,
+  $$ values ('waived', 'manual_waiver') $$,
+  'F09a: waived, manual_waiver'
+);
+select is(
+  (select sum(amount_cents)::integer from public.charges
+   where game_id = '00000000-0000-0000-0000-000000000749' and status <> 'waived'),
+  8000, 'F09b: sai dos totais: 8.000 ativos'
+);
+rollback to savepoint f09;
+
+-- F10. Ana tenta isentar o share Pendente da Carla.
+savepoint f10;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000750', 10000, 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000750', 10);
+select pg_temp.ana_calls('complete_game', 'f10', '00000000-0000-0000-0000-000000000750');
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  format(
+    'select public.waive_penalty(%L)',
+    pg_temp.charge_of('00000000-0000-0000-0000-000000000750', '00000000-0000-0000-0000-00000000000c')
+  ),
+  'P0001', 'NOT_A_PENALTY', 'F10: NOT_A_PENALTY'
+);
+reset role;
+rollback to savepoint f10;
+
+-- F11. Ana tenta isentar a multa Paga do Edu.
+savepoint f11;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000751', 10000, 10);
+select pg_temp.fill('00000000-0000-0000-0000-000000000751', 10);
+select pg_temp.left_after_start('00000000-0000-0000-0000-000000000751', '00000000-0000-0000-0000-00000000000e', 30);
+select pg_temp.ana_calls(
+  'complete_game', 'f11', '00000000-0000-0000-0000-000000000751', null,
+  array['00000000-0000-0000-0000-00000000000e'::uuid]
+);
+update public.charges set status = 'paid', paid_at = now(), paid_via = 'manual'
+where game_id = '00000000-0000-0000-0000-000000000751'
+  and payer_id = '00000000-0000-0000-0000-00000000000e';
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  format(
+    'select public.waive_penalty(%L)',
+    pg_temp.charge_of('00000000-0000-0000-0000-000000000751', '00000000-0000-0000-0000-00000000000e')
+  ),
+  'P0001', 'CHARGE_NOT_PENDING', 'F11: CHARGE_NOT_PENDING'
+);
+reset role;
+rollback to savepoint f11;
+
+-- F12. Bruno, admin, cancela às 19h e tenta se remover (RN58). Jogo antes do início.
+savepoint f12;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000752', 10000, 10, now() + interval '3 hours');
+insert into public.game_admins (game_id, user_id)
+values ('00000000-0000-0000-0000-000000000752', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000752', '00000000-0000-0000-0000-00000000000b', 60);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select throws_ok(
+  $$ select public.remove_participant('00000000-0000-0000-0000-000000000752',
+       '00000000-0000-0000-0000-00000000000b') $$,
+  'P0001', 'CANNOT_REMOVE_SELF', 'F12: CANNOT_REMOVE_SELF'
+);
+reset role;
+rollback to savepoint f12;
+
+-- F13. Bruno, admin, cancela às 19h, com vaga ociosa no início: multa mantida.
+savepoint f13;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000753', 10000, 10);
+insert into public.game_admins (game_id, user_id)
+values ('00000000-0000-0000-0000-000000000753', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.late_cancel('00000000-0000-0000-0000-000000000753', '00000000-0000-0000-0000-00000000000b', 60);
+select pg_temp.fill('00000000-0000-0000-0000-000000000753', 9);
+select pg_temp.ana_calls('complete_game', 'f13', '00000000-0000-0000-0000-000000000753');
+select pg_temp.check_exempt(
+  'F13', '00000000-0000-0000-0000-000000000753', 'f13',
+  array['00000000-0000-0000-0000-00000000000b'::uuid], '{}'
+);
+rollback to savepoint f13;
+
+-- F14. P01 removido por outro admin às 19h: sem multa nem valor (RF59).
+savepoint f14;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000754', 10000, 10);
+select pg_temp.removed('00000000-0000-0000-0000-000000000754', pg_temp.p(1), 60);
+select pg_temp.fill('00000000-0000-0000-0000-000000000754', 9);
+select pg_temp.ana_calls('complete_game', 'f14', '00000000-0000-0000-0000-000000000754');
+select is(
+  (select count(*)::integer from public.charges
+   where game_id = '00000000-0000-0000-0000-000000000754' and payer_id = pg_temp.p(1)),
+  0, 'F14: o removido não tem multa nem valor'
+);
+rollback to savepoint f14;
 
 -- R10. Sobra mínima.
 select pg_temp.ended_game('00000000-0000-0000-0000-000000000710', 1000, 7);
