@@ -17,6 +17,8 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 
 **Fatia 4, em 18/11/2026:** etapas B (saídas, remoção e espera) e C (admins do jogo, cancelamento, saída do grupo com jogos e telefone visível) com testes automáticos verdes e L15 a L19 nas APIs 29 e 36, e as migrações das três etapas na produção (`setup.md`, 9.6 a 9.8). M07 conferido no celular em 18/11/2026: **Abrir no Maps** com o build da produção, e **Ligar** e **WhatsApp** com o build do Supabase local (`env/device.json`), porque a produção só tem uma conta e o próprio perfil não abre pela interface. Os 27 RFs da fatia estão concluídos.
 
+**Fatia 5, etapa A, em 18/11/2026:** conclusão manual e automática e rateio. Testes automáticos verdes e L20 nas APIs 29 e 36, com as 2 migrações na produção (`setup.md`, 9.9). Os RFs da etapa ficam *Em andamento* até a etapa C, que fecha a fatia: as faltas, as multas e as isenções (RF60 a RF63, RF69, RF70) entram na etapa B, e a troca de recebedor (RF33) e as Cobranças (RF75, RF76) na etapa C. O RF42 espera o M08 na produção.
+
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
 | RF01 | 2 | — | Auth; `profiles`, `profile_private` (`on_auth_user_confirmed`) | `/signup` | S01, S02, L08 | Concluído |
@@ -58,9 +60,9 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF37 | 4 | RN40 | `games.slot_limit`; `game_limit_history` | `/games/new` | J03, O01, O02, O20, O21 | Concluído |
 | RF38 | 4 | RN41, RN42 | `join_game` (limite) | `/games/:gameId` | J03, O01, O02, O20, O21 | Concluído |
 | RF39 | 4 | RN43 | `cancel_game`; evento `game_cancelled` | `/games/:gameId` | J14 a J16, C07, S54, L15 | Concluído |
-| RF40 | 5 | RN34, RN36, RN44, RN46, RN47, RN70 | — | — | — | Pendente |
-| RF41 | 5 | RN34, RN48, RN74 | — | — | — | Pendente |
-| RF42 | 5 | RN45, RN46, RN49 | — | — | — | Pendente |
+| RF40 | 5 | RN34, RN36, RN44, RN46, RN47, RN70 | `preview_complete_game`, `complete_game` | `/games/:gameId`, `/games/:gameId/complete` | T11, T12, Z01 a Z04, Z06, S62, S63, S66, L20 | Em andamento |
+| RF41 | 5 | RN34, RN48, RN74 | `preview_complete_game` (`owe`, valor por conta do recebedor) | `/games/:gameId/complete` | R04, R06, U13, S63 a S65, L20 | Em andamento |
+| RF42 | 5 | RN45, RN46, RN49 | `auto_complete_due_games` no `pg_cron`, a cada 5 min | — | T13 a T15, F03, F04, Z05, Z07, C08 | Falta M08 |
 | RF43 | 8 | RN55 | — | — | — | Pendente |
 | RF44 | 4 | — | `can_view_game`; RLS de `games` | `/games`, `/games/:gameId` | W01 a W04, W13, W14, S36, S37, S50 | Concluído |
 | RF45 | 4 | RN102 | `get_profile_contact` (chave Pix) | `/games/:gameId` | W08 a W11, S42, S44 | Concluído |
@@ -85,14 +87,14 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF64 | 5 | RN36, RN66, RN93 | — | — | — | Pendente |
 | RF65 | 5 | — | — | — | — | Pendente |
 | RF66 | 5 | RN67, RN70 | — | — | — | Pendente |
-| RF67 | 5 | RN04, RN71, RN75 | — | — | — | Pendente |
-| RF68 | 5 | RN72 | — | — | — | Pendente |
+| RF67 | 5 | RN04, RN71, RN75 | `games.share_cents`; `complete_game` | `/games/:gameId/complete`, `/games/:gameId/split` | R01 a R07, R09, R10, S63 | Em andamento |
+| RF68 | 5 | RN72 | `charges` (`share`) | `/games/:gameId/split` | R01 a R03, R05, R07, S68, L20 | Em andamento |
 | RF69 | 5 | RN72 | — | — | — | Pendente |
 | RF70 | 5 | RN72 | — | — | — | Pendente |
-| RF71 | 5 | RN32, RN72, RN73 | — | — | — | Pendente |
-| RF72 | 5 | RN73 | — | — | — | Pendente |
-| RF73 | 5 | RN76 | — | — | — | Pendente |
-| RF74 | 5 | RN76 | — | — | — | Pendente |
+| RF71 | 5 | RN32, RN72, RN73 | `charges.receiver_id`; sem valor para o recebedor | `/games/:gameId/split` | R01, R09, S68, S69, L20 | Em andamento |
+| RF72 | 5 | RN73 | `charges.status`; `charge_events` | `/games/:gameId`, `/games/:gameId/split` | R10, S61, S68, S69 | Em andamento |
+| RF73 | 5 | RN76 | RLS de `charges` (Y01 a Y03) | `/games/:gameId`, `/games/:gameId/split` | Y01 a Y03, S61, S68 | Em andamento |
+| RF74 | 5 | RN76 | RLS de `charges` (Y05 a Y07) | `/games/:gameId/split` | Y05 a Y07, S69, L20 | Em andamento |
 | RF75 | 5 | — | — | — | — | Pendente |
 | RF76 | 5 | — | — | — | — | Pendente |
 | RF77 | 6 | RN102 | — | — | — | Pendente |

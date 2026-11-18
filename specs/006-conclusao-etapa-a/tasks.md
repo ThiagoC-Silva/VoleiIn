@@ -32,4 +32,6 @@
 ## Sessão 4 — Validação
 
 - [ ] T013 L20 nas APIs 29 e 36; M08 com o responsável
-- [ ] T014 Ensaio e `supabase db push`; advisors
+- [x] T014 Ensaio e `supabase db push`; advisors
+
+**L20** verde nas APIs 36 e 29 em 18/11/2026, com `supabase db reset` antes de cada uma (o teste conclui o jogo `...0209`, e o jogo termina 10 min antes do reset). **Ensaio e `db push`** em 18/11/2026 (`setup.md`, 9.9). O **M08** fica com o responsável, na produção.
