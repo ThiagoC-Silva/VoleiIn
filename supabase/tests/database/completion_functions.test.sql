@@ -587,13 +587,6 @@ select is(
 );
 rollback to savepoint z06;
 
--- Z07. O agendamento.
-select results_eq(
-  $$ select schedule, command from cron.job where command like '%auto_complete_due_games%' $$,
-  $$ values ('*/5 * * * *'::text, 'select public.auto_complete_due_games()'::text) $$,
-  'Z07: uma tarefa do pg_cron chama auto_complete_due_games() a cada 5 minutos'
-);
-
 -- =========================================================================
 -- Etapa B: T16 (seção 3), Z08 e Z09 (seção 13.2)
 -- =========================================================================
@@ -726,6 +719,13 @@ select results_eq(
   'Z09b: penalty_waived só à Carla, com charge_id nulo e reason automatic'
 );
 rollback to savepoint z09;
+
+-- Z07. O agendamento.
+select results_eq(
+  $$ select schedule, command from cron.job where command like '%auto_complete_due_games%' $$,
+  $$ values ('*/5 * * * *'::text, 'select public.auto_complete_due_games()'::text) $$,
+  'Z07: uma tarefa do pg_cron chama auto_complete_due_games() a cada 5 minutos'
+);
 
 select * from finish();
 rollback;
