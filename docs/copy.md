@@ -33,7 +33,7 @@ Funções em `app/lib/core/format/` (`arquitetura-app.md`, seção 8). Os casos 
 
 - **Dias da semana abreviados**, sempre em minúsculas e sem ponto: `dom`, `seg`, `ter`, `qua`, `qui`, `sex`, `sáb`. A lista é fixa no código, sem depender do `intl`, que põe ponto depois da abreviação.
 - O espaço sem quebra impede que `R$` fique numa linha e o número em outra.
-- **Valor negativo** (o "por conta" do cenário R04, `testes-referencia.md`): o formato é decidido no catálogo da fatia 5.
+- **Valor negativo** (o "por conta" do cenário R04, `testes-referencia.md`): `formatCents` não aceita negativo. A tela troca a linha pela frase `splitReceiverExtra` com o valor absoluto (seção 9, decisão de 18/11/2026).
 
 ## 4. Textos que não são de interface
 
@@ -517,7 +517,7 @@ Os textos provisórios da seção 5.2 continuam no ARB: a aba Cobranças ainda o
 | `gameNeedsInvite` | Para entrar neste jogo, você precisa do convite dele. | Frase do pé para quem não é membro do grupo ou num jogo avulso |
 | `gameLeaveWaitlist` | Sair da lista de espera | Botão de texto ou de contorno |
 | `gameWaitlistNotice` | Você é o {position}º na espera. Quando abrir uma vaga, ela fica com quem entrar primeiro. | Aviso em linha de quem está na espera (RN53) |
-| `gameReceiverCannotLeave` | Você é o recebedor deste jogo e não pode sair da lista. Se não puder jogar, o jogo precisa ser cancelado por um admin. | Aviso em linha do recebedor (RN29). Muda na fatia 5, com a troca de recebedor |
+| `gameReceiverCannotLeave` | Você é o recebedor deste jogo e não pode sair da lista. Se não puder jogar, um admin precisa indicar outro recebedor antes. | Aviso em linha do recebedor (RN29). Texto da fatia 5, com a troca de recebedor |
 | `gameListLocked` | A lista está travada até a conclusão do jogo. | Aviso em linha depois do fim (RN57) |
 | `gameJoined` | Você entrou na lista. | `SnackBar` |
 | `gameJoinedWaitlist` | Você entrou na lista de espera. | `SnackBar` |
@@ -578,9 +578,9 @@ Os textos provisórios da seção 5.2 continuam no ARB: a aba Cobranças ainda o
 | `groupMemberRemovedWithGames` | Removemos {name} do grupo e de 1 jogo. / Removemos {name} do grupo e de {count} jogos. | `SnackBar` (plural) |
 | `groupLeaveBlockedTitle` | Você ainda não pode sair do grupo | Título da sheet de bloqueio |
 | `groupRemoveBlockedTitle` | Ainda não dá para remover {name} | Título da sheet de bloqueio na remoção |
-| `groupBlockedReceiverBody` | Você é o recebedor destes jogos, que ainda não foram concluídos. Para sair do grupo, os jogos precisam ser cancelados ou concluídos. | Frase da sheet, `MEMBER_IS_RECEIVER`. Muda na fatia 5 |
+| `groupBlockedReceiverBody` | Você é o recebedor destes jogos, que ainda não foram concluídos. Para sair do grupo, um admin de cada jogo precisa indicar outro recebedor, ou o jogo precisa ser cancelado ou concluído. | Frase da sheet, `MEMBER_IS_RECEIVER`. Texto da fatia 5 |
 | `groupBlockedOnlyAdminBody` | Você é o único admin destes jogos. Indique outro admin em Admins do jogo antes de sair. | Frase da sheet, `MEMBER_IS_ONLY_GAME_ADMIN` |
-| `groupRemoveBlockedReceiverBody` | {name} é o recebedor destes jogos, que ainda não foram concluídos. Para remover, os jogos precisam ser cancelados ou concluídos. | Frase da sheet na remoção. Muda na fatia 5 |
+| `groupRemoveBlockedReceiverBody` | {name} é o recebedor destes jogos, que ainda não foram concluídos. Para remover, um admin de cada jogo precisa indicar outro recebedor, ou o jogo precisa ser cancelado ou concluído. | Frase da sheet na remoção. Texto da fatia 5 |
 | `groupRemoveBlockedOnlyAdminBody` | {name} é o único admin destes jogos. Peça a {name} para indicar outro admin neles. | Frase da sheet na remoção (RN15: o admin do grupo não indica admin do jogo) |
 
 - A sheet usa `commonBack` no botão de contorno.
@@ -628,3 +628,126 @@ Códigos das funções de jogo e da RN16 (`contratos-api.md`, seção 2). O text
 - `MEMBER_IS_RECEIVER` e `MEMBER_IS_ONLY_GAME_ADMIN` normalmente abrem a sheet de bloqueio (`docs/ui/telas.md`, 7.8). O texto da tabela é a reserva, para quando a leitura dos jogos de `detail.game_ids` falhar.
 - `CANNOT_REMOVE_SELF` (fatia 3) também é devolvido por `remove_participant`. A tela do jogo nunca oferece remover a si mesmo (`docs/ui/telas.md`, 7.3), então o texto de grupo continua valendo.
 - O `ErrorCode` passa a guardar o `detail` do erro quando ele traz `game_ids`, para a sheet de bloqueio (E16).
+
+## 9. Fatia 5
+
+Decisões de 18/11/2026. Telas em `docs/ui/telas.md`, seção 8. Palavras do domínio: **concluir** (o jogo), **rateio**, **parte por vaga**, **valor a pagar**, **multa**, **falta**, **isentar**, **recebedor**, **por conta de** (o valor que o recebedor cobre, RN74). Os textos provisórios da seção 5.2 saem do ARB nesta fatia, com a aba Cobranças real.
+
+### 9.1 Detalhe do jogo
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `gameComplete` | Concluir jogo | Botão do pé, opção do menu do admin, título e botão principal da conclusão |
+| `gameCompleteHint` | Se ninguém concluir, o app conclui sozinho 1 hora depois do fim. | Frase acima do botão do pé (RN45) |
+| `gameSharePerSlot` | Parte por vaga | Rótulo do trio e do resumo |
+| `gameTotal` | Total | Rótulo do trio |
+| `gameAbsentBadge` | Faltou | Selo `bad` da lista do jogo concluído |
+| `gameChangeReceiver` | Trocar recebedor | Opção do menu do admin e título da sheet |
+| `splitCardTitle` | Rateio | Título do card do detalhe e da tela |
+| `historyTitle` | Sua participação | Título do card |
+| `historyCancelledOnTime` | Saiu {date} às {time}, no prazo | Linha do card |
+| `historyCancelledLate` | Saiu {date} às {time}, fora do prazo | Linha do card |
+| `historyVoided` | Não conta: você voltou às {time} | Linha de apoio (RN56) |
+| `historyExempt` | Multa isentada: sobraram vagas | Linha de apoio e linha do rateio (RN62) |
+| `historyLeftAfterStart` | Saiu às {time}, depois do início | Linha do card |
+| `historyRemovedByAdmin` | Removido por um admin em {date} | Linha do card |
+| `historyRemovedGroupLeft` | Saiu do grupo em {date} | Linha do card |
+| `historyMarkedAbsent` | Falta marcada na conclusão | Linha do card |
+| `historyAbsentLeft` | Falta pela saída depois do início | Linha do card |
+
+`{date}` usa `formatShortDate` e `{time}`, `formatTime`.
+
+### 9.2 Concluir jogo
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `completeTotalHint` | Só dá para mudar agora. Depois da conclusão, nada é recalculado. | Dica do campo de valor total (RN34, RN36) |
+| `completeAbsentTitle` | Quem faltou? | Título da seção de faltas |
+| `completeLeftAt` | Saiu às {time} | Linha de apoio de quem saiu depois do início |
+| `completeAbsentLabel` | Marcar falta de {name} | Rótulo de acessibilidade da caixa |
+| `completeReceiverNoAbsence` | O recebedor não leva falta. | Frase abaixo da lista (RF63) |
+| `completeSummaryTitle` | Rateio | Título do resumo |
+| `completeToReceive` | A receber | Linha do resumo |
+| `splitReceiverCovers` | Por conta de {name} | Rótulo do valor por conta do recebedor (RN74), no resumo e no rateio |
+| `splitReceiverExtra` | {name} recebe {amount} a mais que o total, pelo arredondamento. | No lugar do valor quando o por conta é negativo (R04) |
+| `completeExemptedCount` | 1 multa de cancelamento isentada: sobraram vagas. / {count} multas de cancelamento isentadas: sobraram vagas. | Linha do resumo (plural) |
+| `completeUncoveredWarning` | 1 vaga ficou sem ninguém. {amount} fica por conta de {name}. / {count} vagas ficaram sem ninguém. {amount} fica por conta de {name}. | Aviso em linha (RF41, plural) |
+| `completeConfirmTitle` | Concluir o jogo? | Título da confirmação |
+| `completeConfirmBody` | A conclusão é definitiva: depois dela, o valor total e as faltas não mudam, e cada pessoa passa a ter o valor a pagar. | Frase da confirmação (RN36) |
+| `completeConfirmAction` | Concluir | Botão da confirmação |
+| `gameCompleted` | Jogo concluído. | `SnackBar` |
+
+### 9.3 Rateio
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `splitYourValue` | Seu valor | Título do bloco |
+| `splitOwedTo` | Para {name} | Linha de apoio do valor (RN32) |
+| `splitNoCharge` | Você não tem valor a pagar neste jogo. | Bloco sem valor e card do detalhe |
+| `splitNoChargeReceiver` | Você é o recebedor. Fica por conta sua {amount}. | Motivo |
+| `splitNoChargeOnTime` | Você saiu no prazo, sem multa. | Motivo (RN60) |
+| `splitNoChargeExempt` | Sua multa foi isentada: sobraram vagas. | Motivo (RN62) |
+| `splitNoChargeRemoved` | Você saiu da lista sem multa. | Motivo (RN58, RN14) |
+| `splitReceived` | Recebido | Total do recebedor e dos admins |
+| `splitPending` | Pendente | Total do recebedor e dos admins |
+| `splitCharges` | Valores | Título da lista |
+| `splitWaived` | Isentos | Título da lista |
+| `splitNoChargeSection` | Sem valor a pagar | Título da lista |
+| `chargeKindShare` | Parte do jogo | Rótulo do `kind` |
+| `chargeKindAbsence` | Multa por falta | Rótulo do `kind` |
+| `chargeKindLateCancellation` | Multa por cancelamento | Rótulo do `kind` |
+| `chargeWaivedManual` | Isentado por um admin | Motivo do Isento (RN93) |
+| `chargeWaivedReceiverChange` | Anulado na troca de recebedor | Motivo do Isento (RN94) |
+| `waiveAction` | Isentar multa | Opção da sheet |
+| `waiveTitle` | Isentar a multa de {name}? | Título da confirmação |
+| `waiveBody` | O valor deixa de ser cobrado e não pode voltar. | Frase da confirmação |
+| `penaltyWaived` | Multa isentada. | `SnackBar` |
+| `chargeStatusPending` | Pendente | Selo `warn` (`design-system.md`, seção 4) |
+| `chargeStatusUnderReview` | Em análise | Selo `info` |
+| `chargeStatusPaid` | Pago | Selo `ok` |
+| `chargeStatusWaived` | Isento | Selo `neutral` |
+
+### 9.4 Trocar recebedor
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `receiverChangeBeforeBody` | O novo recebedor precisa estar na lista e ter uma chave Pix. Os valores do jogo serão devidos a ele. | Explicação antes da conclusão (RN30) |
+| `receiverChangeAfterBody` | Os valores já pagos continuam com o recebedor atual, e os pendentes passam ao novo. O valor do novo recebedor é anulado, e o recebedor atual passa a pagar a parte dele. O acerto do que já foi pago fica entre os dois, fora do app. | Explicação depois da conclusão (RN31) |
+| `receiverChangeEmpty` | Ninguém mais na lista pode ser o recebedor. | Sem candidatos |
+| `receiverChangeConfirmTitle` | Trocar o recebedor para {name}? | Título da confirmação |
+| `receiverChangeConfirmAction` | Trocar | Botão da confirmação |
+| `receiverChanged` | {name} agora é o recebedor. | `SnackBar` |
+
+### 9.5 Cobranças
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `chargesTitle` | Cobranças | Título da aba |
+| `chargesToPay` | A pagar | Atalho e título da seção |
+| `chargesToReceive` | A receber | Atalho e título da seção |
+| `chargesToPayGames` | em 1 jogo / em {count} jogos | Linha do atalho (plural) |
+| `chargesToReceivePeople` | de 1 pessoa / de {count} pessoas | Linha do atalho (plural) |
+| `chargesPeopleCount` | 1 pessoa / {count} pessoas | Linha de apoio da seção A receber (plural) |
+| `chargesNothingToPay` | Você não deve nada. | Seção vazia |
+| `chargesNothingToReceive` | Ninguém te deve. | Seção vazia |
+| `chargesEmptyTitle` | Tudo certo por aqui | Estado vazio da aba |
+| `chargesEmptyBody` | Quando um jogo for concluído, os valores aparecem aqui. | Estado vazio da aba |
+| `chargesTabBadgeLabel` | 1 valor a pagar / {count} valores a pagar | Rótulo de acessibilidade do contador da aba (plural) |
+
+### 9.6 Erros
+
+Códigos das funções da fatia 5 (`contratos-api.md`, seção 2). Entram também os dois que a seção 8.8 deixou para esta fatia.
+
+| Código | `ErrorCode` | Chave | Texto |
+|--------|-------------|-------|-------|
+| `GAME_CANCELLED` | `gameCancelled` | `errorGameCancelled` | Este jogo foi cancelado. |
+| `GAME_NOT_ENDED` | `gameNotEnded` | `errorGameNotEnded` | O jogo só pode ser concluído a partir do horário de fim. |
+| `ABSENT_NOT_PARTICIPANT` | `absentNotParticipant` | `errorAbsentNotParticipant` | A lista mudou. Confira as faltas de novo. |
+| `RECEIVER_CANNOT_BE_ABSENT` | `receiverCannotBeAbsent` | `errorReceiverCannotBeAbsent` | O recebedor não pode ser marcado como faltoso. |
+| `RECEIVER_MUST_BE_PARTICIPANT` | `receiverMustBeParticipant` | `errorReceiverMustBeParticipant` | O novo recebedor precisa estar na lista. |
+| `RECEIVER_UNCHANGED` | `receiverUnchanged` | `errorReceiverUnchanged` | Esta pessoa já é a recebedora do jogo. |
+| `RECEIVER_CHANGE_BLOCKED` | `receiverChangeBlocked` | `errorReceiverChangeBlocked` | Há valores Em análise. Decida-os antes de trocar o recebedor. |
+| `NOT_A_PENALTY` | `notAPenalty` | `errorNotAPenalty` | Só multas podem ser isentadas. |
+| `CHARGE_NOT_PENDING` | `chargeNotPending` | `errorChargeNotPending` | Este valor não está mais Pendente. |
+
+- Na fatia 5, `RECEIVER_CHANGE_BLOCKED` só acontece com dado inserido direto, porque Em análise chega na fatia 6. O texto já fica pronto.

@@ -809,3 +809,179 @@ Abaixo do nome, quando `get_profile_contact` devolve `phone` (o dono deixou vis�
 ### 7.10 Testes da fatia 4
 
 Os cenários estão em `testes-referencia.md`, seção 12.
+
+## 8. Fatia 5
+
+Decisões de 18/11/2026. A fatia 5 entrega a conclusão do jogo (manual e automática), o rateio, as faltas e multas, a isenção manual, a troca de recebedor, o histórico da pessoa no jogo e a aba Cobranças com os totais a pagar e a receber. Pagar e enviar comprovante ficam para a fatia 6, e os avisos, para a fatia 7: na fatia 5 todo valor nasce e fica Pendente, salvo o Isento. Os textos estão no `docs/copy.md`, seção 9, e as regras de quem lê o quê, na `rls-matriz.md` (fatia 5).
+
+**Nomes das rotas** (seção 1): `gameComplete` (`/games/:gameId/complete`), `gameSplit` (`/games/:gameId/split`) e `charges` (`/charges`). São também os nomes dos PNGs de referência, com os sufixos do briefing (`docs/ui/referencias/fatia-5/telas-fatia-5.md`).
+
+**Regras comuns:**
+
+- **O servidor calcula, o app mostra.** A parte por vaga, os valores, a isenção automática e o valor por conta do recebedor vêm de `preview_complete_game`, de `complete_game` e de `charges` (CLAUDE.md, "Nunca faça"). O app só soma `amount_cents` já gravados para os totais (`contratos-api.md`, seção 9), sempre em inteiros.
+- **Leitura:** o app lê `charges` direto, limitado pelo RLS (`rls-matriz.md`, fatia 5). Os nomes vêm de `profiles` (contexto do jogo, RN107) e o jogo, de `games`. As telas da fatia 5 releem ao abrir, ao voltar de outra tela e ao puxar para baixo. `charges` não entra no Realtime: o detalhe do jogo já relê quando o jogo muda para Concluído.
+- **Erros das funções** viram `SnackBar` com o texto do código (`docs/copy.md`, 9.6), e a tela relê. Depois de `GAME_NOT_OPEN` ou `NOT_GAME_ADMIN`, a tela de origem volta ao detalhe do jogo.
+- **Dinheiro** com `formatCents`. O valor por conta do recebedor pode ser negativo (R04, `testes-referencia.md`): nesse caso a linha troca o valor pela frase `splitReceiverExtra`, com o valor absoluto (decisão de 18/11/2026). `formatCents` continua só para valores ≥ 0.
+- **Rótulos do valor a pagar**, pelo `kind`: `share` → `chargeKindShare` ("Parte do jogo"), `absence_penalty` → `chargeKindAbsence` ("Multa por falta"), `late_cancellation_penalty` → `chargeKindLateCancellation` ("Multa por cancelamento"). O status usa o mapa do `design-system.md` (seção 4): Pendente `warn`, Em análise `info`, Pago `ok`, Isento `neutral`.
+
+### 8.1 Detalhe do jogo, conclusão e histórico (completa a seção 7.3)
+
+**Jogo depois do fim**, com status `open` ou `confirmed` (selo "Aguardando conclusão"):
+
+| Quem | Pé da tela |
+|------|------------|
+| Admin do jogo | Botão principal **Concluir jogo**, que abre `/games/:gameId/complete` (8.2), com a frase `gameCompleteHint` acima ("Se ninguém concluir, o app conclui sozinho 1 hora depois do fim.") |
+| Os demais | O aviso `gameListLocked` da fatia 4, sem mudança |
+
+**Jogo concluído:**
+
+1. **Topo colorido** em `split`, com a pílula **Concluído** e sem selo de tempo. O botão do Maps continua.
+2. **Trio de números:** **Vagas** ("10/12"), **Parte por vaga** (`share_cents`, em `split`) e **Total** (`total_cents`). O prazo sai.
+3. **Recebedor**, como na 7.3. A chave continua para quem tem valor não pago com o recebedor (RN102, W11).
+4. **Card do rateio** (linha tocável, `design-system.md`, 7.13): o título **Rateio**, o valor da própria pessoa com o rótulo e o selo do status, ou `splitNoCharge` quando ela não tem valor, e a seta. Abre `/games/:gameId/split` (8.3).
+5. **Lista de presença**, como na 7.3, com o selo `bad` **Faltou** nas passagens com `absent = true`, no lugar de "Saiu após o início". A lista de espera não aparece.
+6. **Pé da tela vazio.**
+
+**Card "Sua participação"** (RF65, decisão de 18/11/2026), entre o recebedor e a lista, em qualquer status do jogo. Aparece quando a pessoa tem alguma passagem que não seja a `active` atual, ou falta, ou valor a pagar. Para quem só está na lista, sem nada disso, ele não aparece. Uma linha por passagem da pessoa, por ordem de `joined_at`, com o texto pela situação:
+
+| Passagem | Linha |
+|----------|-------|
+| `cancelled`, `late_cancellation = false` | `historyCancelledOnTime`: "Saiu {data} às {hora}, no prazo" |
+| `cancelled`, `late_cancellation = true` | `historyCancelledLate`: "Saiu {data} às {hora}, fora do prazo" |
+| Com `cancellation_voided_at` | Acrescenta `historyVoided`: "Não conta: você voltou às {hora}" (RN56) |
+| Com `late_cancellation_exempt = true` | Acrescenta `historyExempt`: "Multa isentada: sobraram vagas" (RN62) |
+| `left_after_start` | `historyLeftAfterStart`: "Saiu às {hora}, depois do início" |
+| `removed`, `removal_reason = 'by_admin'` | `historyRemovedByAdmin`: "Removido por um admin em {data}" |
+| `removed`, `removal_reason = 'left_group'` | `historyRemovedGroupLeft`: "Saiu do grupo em {data}" |
+| `absent = true`, `absence_source = 'marked_by_admin'` | `historyMarkedAbsent`: "Falta marcada na conclusão" |
+| `absent = true`, `absence_source = 'left_after_start'` | `historyAbsentLeft`: "Falta pela saída depois do início" |
+
+No fim do card, com o jogo concluído, o valor a pagar da pessoa (rótulo, valor e selo) ou `splitNoCharge`.
+
+**Menu do admin**, com as opções da fatia 5:
+
+| Opção | Quando aparece | Abre |
+|-------|----------------|------|
+| **Editar jogo** | Como na 7.3 | 7.4 |
+| **Concluir jogo** | Depois do fim, jogo `open` ou `confirmed` | 8.2 |
+| **Trocar recebedor** | Jogo `open`, `confirmed` ou `completed` (RF33) | Sheet 8.4 |
+| **Admins do jogo** | Sempre | 7.5 |
+| **Cancelar jogo** | Como na 7.3 (nunca no concluído) | Confirmação |
+
+**Recebedor que não pode sair** (RN29): o aviso `gameReceiverCannotLeave` muda de texto (`docs/copy.md`, 8.3, texto da fatia 5). Ele diz que um admin precisa indicar outro recebedor antes.
+
+### 8.2 Concluir jogo (`/games/:gameId/complete`)
+
+**Objetivo:** concluir o jogo com o valor total e as faltas, vendo antes o rateio e o valor por conta do recebedor (RF40, RF41, RF60). Fora das abas, com a barra superior e o voltar. Só para admins do jogo, com o jogo `open` ou `confirmed`. Os outros, ou com o jogo em outro status, recebem o estado "não encontrado".
+
+**Conteúdo, de cima para baixo:**
+
+1. **Resumo do jogo:** a data curta, o horário e o local.
+2. **Valor total do espaço**, com o mesmo campo de dinheiro da 7.2, já preenchido com `total_cents`, e a dica `completeTotalHint`: só dá para mudar agora, porque depois da conclusão nada é recalculado (RN34, RN36). Vazio ou zero é erro no campo (`gameTotalRequired`), sem chamar o servidor.
+3. **Faltas** (RF60, etapa B): o título **Quem faltou?** e uma linha por passagem `active` ou `left_after_start`, por ordem de `joined_at`, **exceto o recebedor**, cada uma com uma caixa de seleção. Por padrão, todas desmarcadas, exceto as passagens `left_after_start` com `absent = true`, que já vêm marcadas, com a linha de apoio "Saiu às {hora}" (RN47). Desmarcar tira a falta. Abaixo da lista, a frase `completeReceiverNoAbsence`: o recebedor não leva falta (RF63).
+4. **Resumo do rateio**, pelo retorno de `preview_complete_game` com o total e as faltas da tela:
+   - **Parte por vaga** em `split`;
+   - **A receber**: `total_to_receive_cents`;
+   - **Por conta de {recebedor}**: `receiver_covered_cents`, ou a frase `splitReceiverExtra` quando negativo;
+   - com `penalties_exempted > 0` (etapa B), a linha `completeExemptedCount` ("2 multas de cancelamento isentadas: sobraram vagas");
+   - com `uncovered_slots > 0`, o aviso em linha (`design-system.md`, 7.14) em `owe`, com a frase `completeUncoveredWarning`: "{n} vagas ficaram sem ninguém. {valor} fica por conta de {recebedor}." (RF41, RN48).
+5. **Pé fixo:** o botão principal **Concluir jogo**.
+
+| Situação | O que acontece |
+|----------|----------------|
+| A tela abre | `preview_complete_game` com o total atual e as faltas de saída após o início |
+| A pessoa muda o total ou uma falta | Novo `preview_complete_game`, 400 ms depois da última mudança. Enquanto ele não volta, o resumo fica com o indicador de carregando no lugar dos números |
+| O *preview* falha (rede) | O resumo mostra o erro de carga com **Tentar de novo** |
+| Botão **Concluir jogo** | Habilitado só com o resumo carregado para os valores atuais da tela: o admin sempre vê o valor por conta do recebedor antes de confirmar (RF41) |
+| Tocar em **Concluir jogo** | Confirmação (`design-system.md`, 7.15, em tom normal, não destrutivo) com o título `completeConfirmTitle` e a frase `completeConfirmBody`: a conclusão é definitiva e cria os valores a pagar |
+| Confirmado | `complete_game` com os mesmos parâmetros do último *preview*. Sucesso: `SnackBar` "Jogo concluído", e a tela é trocada pelo Rateio (8.3). O voltar leva ao detalhe |
+| `GAME_NOT_OPEN` (alguém concluiu ou cancelou antes, ou a conclusão automática rodou) | `SnackBar` com o texto do código, e volta ao detalhe |
+| `GAME_NOT_ENDED` (relógio do aparelho adiantado) | `SnackBar`, e volta ao detalhe |
+| `ABSENT_NOT_PARTICIPANT` ou `RECEIVER_CANNOT_BE_ABSENT` (a lista mudou) | `SnackBar`, e a tela relê o jogo e refaz o *preview* |
+
+- `p_total_cents` vai nulo quando o total não mudou. `p_absent_user_ids` é sempre a lista completa das caixas marcadas (`contratos-api.md`, `complete_game`).
+- Na etapa A, a tela nasce sem a seção de faltas e manda `p_absent_user_ids` com as faltas de saída após o início, que a conclusão mantém (RN47). A etapa B acrescenta as caixas.
+
+### 8.3 Rateio do jogo (`/games/:gameId/split`)
+
+**Objetivo:** ver o rateio do jogo concluído (RF73, RF74) e, para os admins, isentar multas (RF64). Abre na aba Jogos, pelo card do detalhe, pela conclusão e pela aba Cobranças (8.5). Barra superior interna com voltar e o título **Rateio**. Com o jogo em outro status, ou sem poder ver o jogo, estado "não encontrado".
+
+**Conteúdo para todos:**
+
+1. **Cabeçalho:** a data curta e o local, e o trio **Total**, **Vagas** (o limite) e **Parte por vaga** (em `split`).
+2. **Seu valor:** o rótulo do `kind`, o valor em `number.md` e o selo do status. Embaixo, "Para {recebedor}", pelo `receiver_id` do valor (RN32). Quem não tem valor vê `splitNoCharge` com o motivo:
+
+| Situação da pessoa | Motivo |
+|--------------------|--------|
+| É o recebedor do jogo | `splitNoChargeReceiver`: "Você é o recebedor. Fica por conta sua {valor}", com o por conta, ou `splitReceiverExtra` |
+| Cancelou no prazo | `splitNoChargeOnTime` |
+| Multa isentada na conclusão | `splitNoChargeExempt` |
+| Removido por um admin ou saiu do grupo | `splitNoChargeRemoved` |
+| Valor Isento | O próprio valor aparece, com o selo **Isento** e o motivo `chargeWaivedManual` ou `chargeWaivedReceiverChange` |
+
+**Conteúdo a mais para o recebedor atual e os admins do jogo** (RN76):
+
+3. **Totais:** **Recebido** (soma dos `paid`, em `receive`), **Pendente** (soma dos `pending` e `under_review`, em `owe`) e **Por conta de {recebedor}** (total − soma dos não Isentos, RN74).
+4. **Valores:** uma linha por valor não Isento, por nome: avatar, nome, rótulo do `kind`, valor e selo. Quando o `receiver_id` do valor não é o recebedor atual (depois de uma troca, RN31), a linha de apoio "Para {nome}".
+5. **Isentos:** os valores Isentos, no fim, com o motivo.
+6. **Sem valor a pagar:** o recebedor, com o selo **Recebedor**, e quem teve a multa isentada na conclusão, com `historyExempt`.
+
+**Toque numa linha de valor:**
+
+| Quem toca | Em qual valor | O que abre |
+|-----------|---------------|------------|
+| Admin do jogo | Multa (`absence_penalty` ou `late_cancellation_penalty`) Pendente | Sheet com o nome como título e a opção **Isentar multa** (RN66) |
+| Os demais, ou outro valor | — | O perfil da pessoa (`gamePerson`) |
+
+| Situação | O que acontece |
+|----------|----------------|
+| **Isentar multa** | Confirmação com o título `waiveTitle` ("Isentar a multa de {nome}?") e a frase de que o valor deixa de ser cobrado. Ao confirmar, `waive_penalty`. `SnackBar` "Multa isentada", e a tela relê |
+| `CHARGE_NOT_PENDING` | `SnackBar`, e a tela relê |
+
+### 8.4 Trocar recebedor (sheet sobre o detalhe)
+
+**Objetivo:** indicar outro recebedor, antes ou depois da conclusão (RF33, RN30, RN31). Abre pelo menu do admin.
+
+**Conteúdo:**
+
+1. Título **Trocar recebedor**.
+2. A explicação, pelo status:
+   - antes da conclusão, `receiverChangeBeforeBody`: o novo recebedor precisa estar na lista e ter chave Pix, e os valores do jogo serão devidos a ele;
+   - depois da conclusão, `receiverChangeAfterBody`: os valores pagos continuam com o recebedor atual, os pendentes passam ao novo, o valor do novo recebedor é anulado, o recebedor atual passa a pagar a parte dele, e o acerto do que já foi pago fica entre os dois, fora do app (RN31).
+3. Uma linha por passagem `active` do jogo, exceto o recebedor atual, por ordem de `joined_at`. O app não sabe quem tem chave Pix (`profile_private` é fechada): quem não tem é recusado pelo servidor.
+4. Sem candidatos: a frase `receiverChangeEmpty`.
+
+| Situação | O que acontece |
+|----------|----------------|
+| Tocar num nome | Confirmação com o título `receiverChangeConfirmTitle` ("Trocar o recebedor para {nome}?"). Ao confirmar, `change_receiver`. `SnackBar` "{nome} agora é o recebedor", a sheet fecha e o detalhe relê |
+| `RECEIVER_NEEDS_PIX_KEY` | `SnackBar` com o texto do código. A sheet continua aberta |
+| `RECEIVER_CHANGE_BLOCKED` | `SnackBar`. A sheet fecha |
+| `RECEIVER_MUST_BE_PARTICIPANT`, `GAME_CANCELLED` | `SnackBar`, a sheet fecha e o detalhe relê |
+
+### 8.5 Cobranças (`/charges`)
+
+**Objetivo:** ver o total a pagar e o total a receber, somando todos os jogos, com o detalhe por jogo e por recebedor (RF75, RF76; decisão de 18/11/2026: uma linha por jogo). Troca o estado provisório da aba (seção 4.2). Barra superior de raiz com o título **Cobranças**.
+
+**Conteúdo:**
+
+1. **Atalhos dos totais** (`design-system.md`, 7.9): **A pagar**, em `owe`, com a soma dos valores `pending` e `under_review` em que a pessoa é o `payer_id`, e a linha "em {n} jogos"; **A receber**, em `receive`, com a soma dos valores `pending` e `under_review` em que ela é o `receiver_id`, e a linha "de {n} pessoas". Tocar num atalho rola até a seção dele.
+2. **A pagar:** uma linha por valor, pelo início do jogo, do mais antigo para o mais recente: a data curta e o local; embaixo, "Para {recebedor}" e, se for multa, o rótulo do `kind`; à direita, o valor e o selo do status.
+3. **A receber:** uma linha por jogo, na mesma ordem: a data curta e o local; embaixo, "{n} pessoas"; à direita, a soma do jogo.
+4. Tocar numa linha abre o Rateio do jogo (8.3), na aba Jogos. O valor a pagar com a chave Pix e o comprovante (`/charges/:chargeId`) chega na fatia 6.
+
+| Situação | O que acontece |
+|----------|----------------|
+| Nada a pagar | A seção mostra `chargesNothingToPay` |
+| Nada a receber | A seção mostra `chargesNothingToReceive` |
+| Nenhum dos dois | Estado vazio (`design-system.md`, 7.16) com o ícone `payments` e `chargesEmptyTitle`, sem as seções |
+| Falha de carga | Erro de carga com **Tentar de novo** |
+
+**Contador da aba** (seção 2.1): o número de valores `pending` em que a pessoa é o `payer_id`, relido junto com Meus jogos e com esta tela. Some com zero. O texto provisório de Cobranças sai do `app_pt.arb` (seção 4.2).
+
+### 8.6 Saída do grupo, recebedor (completa a seção 7.8)
+
+As frases `groupBlockedReceiverBody` e `groupRemoveBlockedReceiverBody` mudam (`docs/copy.md`, 8.6, texto da fatia 5): com a troca de recebedor, o caminho é um admin do jogo indicar outro recebedor, ou cancelar o jogo. O comportamento da sheet não muda.
+
+### 8.7 Testes da fatia 5
+
+Os cenários estão em `testes-referencia.md`, seção 13, além das seções 3 a 8.

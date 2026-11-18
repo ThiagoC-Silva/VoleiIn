@@ -338,6 +338,19 @@ O `p_data` de `emit_notification` em cada evento da fatia 4, no mesmo formato da
 - **Retorno:** `{ charge_id, status }`.
 - **Origem:** RF64, RN66, RN93, RF104.
 
+### Dados das notificações de conclusão (decisão de 18/11/2026)
+
+O `p_data` de `emit_notification` nos eventos da fatia 5, no mesmo formato da fatia 4. `amount_cents` e `kind` vão junto para a fatia 7 montar o texto sem ler `charges`.
+
+| Tipo | Para quem | `p_data` |
+|------|-----------|----------|
+| `game_completed` | Passagens `active` e `left_after_start` e o recebedor, exceto o admin que concluiu. Na automática, sem exceção | `{ "game_id", "group_name", "location_name", "starts_at", "completion_mode" }` |
+| `charge_created` | O pagador de cada valor criado, na conclusão ou na troca de recebedor (RN31, item 5) | `{ "game_id", "group_name", "location_name", "starts_at", "charge_id", "kind", "amount_cents" }` |
+| `penalty_waived` | Quem teve a multa isentada: na conclusão, cada passagem com `late_cancellation_exempt = true` (sem `charge_id`); em `waive_penalty`, o pagador | `{ "game_id", "group_name", "location_name", "starts_at", "charge_id" \| null, "reason": "automatic" \| "manual_waiver" }` |
+| `receiver_changed` | O antigo e o novo recebedor e cada pagador com valor `pending` no jogo depois da troca, exceto o admin que trocou | `{ "game_id", "group_name", "location_name", "starts_at", "old_receiver_id", "new_receiver_id" }` |
+
+- Um mesmo usuário pode receber `game_completed` e `charge_created` na mesma conclusão. A fatia 7 decide se junta os dois no aviso.
+
 ## 6. Pagamentos e conta (fatia 6)
 
 ### `mark_charge_paid(p_charge_id uuid)`
