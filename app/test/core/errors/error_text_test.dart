@@ -125,4 +125,19 @@ void main() {
       expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
     }
   });
+
+  test('E15 (fatia 5, etapa A): textos dos erros da conclusão '
+      '(docs/copy.md, 9.6)', () {
+    const texts = {
+      ErrorCode.gameNotEnded:
+          'O jogo só pode ser concluído a partir do horário de fim.',
+      ErrorCode.absentNotParticipant:
+          'A lista mudou. Confira as faltas de novo.',
+      ErrorCode.receiverCannotBeAbsent:
+          'O recebedor não pode ser marcado como faltoso.',
+    };
+    for (final entry in texts.entries) {
+      expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
+    }
+  });
 }

@@ -145,6 +145,9 @@ const Map<String, ErrorCode> _serverCodes = {
   'LAST_GAME_ADMIN': ErrorCode.lastGameAdmin,
   'MEMBER_IS_RECEIVER': ErrorCode.memberIsReceiver,
   'MEMBER_IS_ONLY_GAME_ADMIN': ErrorCode.memberIsOnlyGameAdmin,
+  'GAME_NOT_ENDED': ErrorCode.gameNotEnded,
+  'ABSENT_NOT_PARTICIPANT': ErrorCode.absentNotParticipant,
+  'RECEIVER_CANNOT_BE_ABSENT': ErrorCode.receiverCannotBeAbsent,
 };
 
 /// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).

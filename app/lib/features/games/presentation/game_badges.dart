@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/badge.dart';
+import '../domain/charge_models.dart';
 import '../domain/game_models.dart';
+import 'split_text.dart';
 
 // Pílulas e selos do jogo (docs/ui/design-system.md, seção 4; docs/ui/telas.md,
 // seção 7). O status sempre tem texto, nunca só a cor.
@@ -111,4 +113,27 @@ Widget? gameSituationBadge(
     );
   }
   return null;
+}
+
+/// Selo do status do valor a pagar (design-system.md, seção 4): Pendente
+/// `warn`, Em análise `info`, Pago `ok`, Isento `neutral`.
+class ChargeStatusBadge extends StatelessWidget {
+  const ChargeStatusBadge({required this.status, super.key});
+
+  final ChargeStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = VoleiColors.of(context);
+    return VoleiBadge(
+      label: chargeStatusLabel(AppLocalizations.of(context), status),
+      tone: switch (status) {
+        ChargeStatus.pending => colors.warn,
+        ChargeStatus.underReview => colors.info,
+        ChargeStatus.paid => colors.ok,
+        ChargeStatus.waived => colors.neutral,
+      },
+      dot: status != ChargeStatus.waived,
+    );
+  }
 }

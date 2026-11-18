@@ -17,6 +17,7 @@ import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/badge.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/confirm_sheet.dart';
+import '../../../shared/widgets/icon_square.dart';
 import '../../../shared/widgets/inline_notice.dart';
 import '../../../shared/widgets/list_card.dart';
 import '../../../shared/widgets/sheet_option.dart';
@@ -26,6 +27,8 @@ import '../../auth/domain/pix_key.dart';
 import '../domain/game_models.dart';
 import 'game_badges.dart';
 import 'game_controllers.dart';
+import 'game_trio.dart';
+import 'split_text.dart';
 import 'games_providers.dart';
 
 /// Detalhe do jogo (RF37, RF45 a RF47, RF49, RF55; docs/ui/telas.md, 7.3;
@@ -124,6 +127,10 @@ class _GameBody extends ConsumerWidget {
                       _Trio(game: game),
                       const SizedBox(height: 16),
                       _ReceiverCard(game: game),
+                      if (game.status == GameStatus.completed) ...[
+                        const SizedBox(height: 16),
+                        _SplitCard(game: game),
+                      ],
                       const SizedBox(height: 24),
                       _ParticipantList(game: game, now: now),
                       // A espera só antes do início e com alguém nela.
@@ -160,6 +167,27 @@ class _GameBody extends ConsumerWidget {
     final busy = ref.watch(gameActionsControllerProvider).isLoading;
 
     if (!now.isBefore(game.endsAt)) {
+      // Depois do fim, o admin conclui (telas.md, 8.1).
+      if (canComplete(game, now)) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.gameCompleteHint,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            PrimaryButton(
+              label: l10n.gameComplete,
+              onPressed: () => _openComplete(context, game.id),
+            ),
+          ],
+        );
+      }
       return InlineNotice(
         icon: Symbols.lock,
         color: theme.colorScheme.surfaceContainerHigh,
@@ -333,7 +361,8 @@ Future<void> _leave(
 }
 
 /// Topo colorido (design-system.md, 7.8): `game` com o jogo Aberto, `wait`
-/// com o Confirmado e `surfaceHigh` com o Cancelado.
+/// com o Confirmado, `split` com o Concluído (telas.md, 8.1) e `surfaceHigh`
+/// com o Cancelado.
 class _Hero extends ConsumerWidget {
   const _Hero({required this.game, required this.now});
 
@@ -345,11 +374,12 @@ class _Hero extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colors = VoleiColors.of(context);
-    final cancelled = !game.status.isActive;
+    final cancelled = game.status == GameStatus.cancelled;
     final background = switch (game.status) {
       GameStatus.open => colors.game,
       GameStatus.confirmed => colors.wait,
-      _ => theme.colorScheme.surfaceContainerHigh,
+      GameStatus.completed => colors.split,
+      GameStatus.cancelled => theme.colorScheme.surfaceContainerHigh,
     };
     final foreground = cancelled ? theme.colorScheme.onSurface : colors.onBlock;
     final buttonBackground = cancelled
@@ -414,6 +444,7 @@ class _Hero extends ConsumerWidget {
                 _AdminMenu(
                   game: game,
                   canEdit: canEdit,
+                  canComplete: canComplete(game, now),
                   background: buttonBackground,
                   foreground: buttonForeground,
                 ),
@@ -529,7 +560,17 @@ class _CircleButton extends StatelessWidget {
 }
 
 /// O que o admin escolheu no menu.
-enum _AdminAction { edit, admins, cancel }
+enum _AdminAction { edit, complete, admins, cancel }
+
+/// Concluir jogo, para o admin, depois do fim, com o jogo Aberto ou
+/// Confirmado (telas.md, 8.1). O relógio do aparelho só decide o que
+/// aparece: o servidor confere (`GAME_NOT_ENDED`).
+bool canComplete(GameDetail game, DateTime now) =>
+    game.isAdmin && game.status.isActive && !now.isBefore(game.endsAt);
+
+void _openComplete(BuildContext context, String gameId) {
+  context.pushNamed(Routes.gameComplete, pathParameters: {'gameId': gameId});
+}
 
 /// O botão `more_vert` do admin, com as opções que valem no momento
 /// (telas.md, 7.3): Editar jogo antes do início; Admins do jogo sempre;
@@ -539,12 +580,14 @@ class _AdminMenu extends ConsumerWidget {
   const _AdminMenu({
     required this.game,
     required this.canEdit,
+    required this.canComplete,
     required this.background,
     required this.foreground,
   });
 
   final GameDetail game;
   final bool canEdit;
+  final bool canComplete;
   final Color background;
   final Color foreground;
 
@@ -602,6 +645,7 @@ class _AdminMenu extends ConsumerWidget {
           Routes.gameEdit,
           pathParameters: {'gameId': game.id},
         ),
+        _AdminAction.complete => _openComplete(context, game.id),
         _AdminAction.admins => context.pushNamed(
           Routes.gameAdmins,
           pathParameters: {'gameId': game.id},
@@ -610,6 +654,8 @@ class _AdminMenu extends ConsumerWidget {
       },
       itemBuilder: (context) => [
         if (canEdit) item(_AdminAction.edit, Symbols.edit, l10n.gameEdit),
+        if (canComplete)
+          item(_AdminAction.complete, Symbols.task_alt, l10n.gameComplete),
         item(_AdminAction.admins, Symbols.shield_person, l10n.gameAdmins),
         if (game.status.isActive)
           item(
@@ -786,12 +832,50 @@ class _Trio extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final colors = VoleiColors.of(context);
     final free = game.slotLimit - game.occupiedSlots;
+    final share = game.shareCents;
+    // Concluído: vagas, parte por vaga final e total; o prazo sai (8.1).
+    if (game.status == GameStatus.completed && share != null) {
+      return IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: GameTrioCard(
+                label: l10n.gameTrioSlots,
+                value: l10n.gameSlotsCount(
+                  '${game.occupiedSlots}',
+                  '${game.slotLimit}',
+                ),
+                caption: l10n.gameTrioAtStart,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GameTrioCard(
+                label: l10n.gameSharePerSlot,
+                value: formatCents(share),
+                caption: l10n.gameTrioFinal,
+                color: colors.split,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GameTrioCard(
+                label: l10n.gameTotal,
+                value: formatCents(game.totalCents),
+                caption: l10n.gameTrioVenue,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: _TrioCard(
+            child: GameTrioCard(
               label: l10n.gameTrioSlots,
               value: l10n.gameSlotsCount(
                 '${game.occupiedSlots}',
@@ -804,7 +888,7 @@ class _Trio extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: _TrioCard(
+            child: GameTrioCard(
               label: l10n.gameTrioPerPerson,
               value: formatCents(
                 estimatedShareCents(game.totalCents, game.slotLimit),
@@ -815,67 +899,11 @@ class _Trio extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: _TrioCard(
+            child: GameTrioCard(
               label: l10n.gameTrioDeadline,
               value: formatTime(game.cancellationDeadline),
               caption: formatShortDate(game.cancellationDeadline),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TrioCard extends StatelessWidget {
-  const _TrioCard({
-    required this.label,
-    required this.value,
-    required this.caption,
-    this.color,
-  });
-
-  final String label;
-  final String value;
-  final String caption;
-
-  /// Cor de significado, com o texto navy dos blocos.
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = VoleiColors.of(context);
-    final text = color == null ? theme.colorScheme.onSurface : colors.onBlock;
-    final soft = color == null
-        ? theme.colorScheme.onSurfaceVariant
-        : colors.onBlock;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: color ?? theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: theme.textTheme.bodySmall?.copyWith(color: soft)),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: theme.textTheme.displaySmall?.copyWith(
-                fontSize: 26,
-                color: text,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            caption,
-            style: theme.textTheme.bodySmall?.copyWith(color: soft),
           ),
         ],
       ),
@@ -1068,7 +1096,16 @@ class _ParticipantList extends ConsumerWidget {
                         ),
                       if (game.isAdminUser(person.userId))
                         VoleiBadge(label: l10n.gameAdmin, tone: colors.neutral),
-                      if (person.status == ParticipantStatus.leftAfterStart)
+                      // No concluído, Faltou no lugar de Saiu após o início
+                      // (telas.md, 8.1).
+                      if (game.status == GameStatus.completed && person.absent)
+                        VoleiBadge(
+                          label: l10n.gameAbsentBadge,
+                          tone: colors.bad,
+                          dot: true,
+                        )
+                      else if (person.status ==
+                          ParticipantStatus.leftAfterStart)
                         VoleiBadge(
                           label: l10n.gameLeftAfterStartBadge,
                           tone: colors.bad,
@@ -1229,6 +1266,87 @@ class _WaitlistSection extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Card do Rateio no jogo concluído (telas.md, 8.1; design-system.md, 7.13):
+/// o próprio valor com o rótulo e o selo, ou `splitNoCharge`, e a seta.
+class _SplitCard extends StatelessWidget {
+  const _SplitCard({required this.game});
+
+  final GameDetail game;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = VoleiColors.of(context);
+    final charge = game.myCharge;
+    final soft = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    return Material(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(22),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.pushNamed(
+          Routes.gameSplit,
+          pathParameters: {'gameId': game.id},
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              IconSquare(
+                icon: Symbols.pie_chart,
+                background: colors.split,
+                foreground: colors.onBlock,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.splitCardTitle,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (charge == null)
+                      Text(l10n.splitNoCharge, style: soft)
+                    else ...[
+                      Text(chargeKindLabel(l10n, charge.kind), style: soft),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            formatCents(charge.amountCents),
+                            style: theme.textTheme.displaySmall?.copyWith(
+                              fontSize: 22,
+                            ),
+                          ),
+                          ChargeStatusBadge(status: charge.status),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Symbols.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

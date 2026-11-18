@@ -1,4 +1,5 @@
 import 'package:voleiin/features/auth/domain/pix_key.dart';
+import 'package:voleiin/features/games/domain/charge_models.dart';
 import 'package:voleiin/features/games/domain/game_models.dart';
 
 import 'groups_fixtures.dart';
@@ -147,3 +148,100 @@ GameSummary summary({
 
 const quintaOption = GameGroupOption(id: quintaId, name: quintaName);
 const areiaOption = GameGroupOption(id: areiaId, name: 'Areia do Rio');
+
+// Fatia 5 (docs/testes-referencia.md, seção 13; PNGs de
+// docs/ui/referencias/fatia-5/). O jogo terminou no domingo, 15/11/2026, às
+// 22:00 em Fortaleza: o relógio do harness (16/11, 12:00) está depois do fim.
+
+const finishedId = '00000000-0000-0000-0000-000000000208';
+const daviId = '00000000-0000-0000-0000-0000000000d1';
+const eduId = '00000000-0000-0000-0000-0000000000e1';
+const fabioId = '00000000-0000-0000-0000-0000000000f1';
+
+/// Domingo, 15/11/2026, 20:00 em Fortaleza.
+final finishedStart = DateTime.utc(2026, 11, 15, 23);
+
+/// Domingo, 15/11/2026, 22:00 em Fortaleza.
+final finishedEnd = DateTime.utc(2026, 11, 16, 1);
+
+/// As outras sete pessoas da lista do R01, com IDs de teste.
+const _r01Others = [
+  ('Gabi', '00000000-0000-0000-0000-0000000000a2'),
+  ('Hugo', '00000000-0000-0000-0000-0000000000a3'),
+  ('Iara', '00000000-0000-0000-0000-0000000000a4'),
+  ('João', '00000000-0000-0000-0000-0000000000a5'),
+  ('Kátia', '00000000-0000-0000-0000-0000000000a6'),
+  ('Lara', '00000000-0000-0000-0000-0000000000a7'),
+];
+
+/// A lista do R01 no fim: Ana, Bruno, Edu (faltou), Fábio e mais seis, dez de
+/// doze vagas.
+List<GameParticipant> r01Participants({bool eduAbsent = true}) => [
+  participant(anaId, 'Ana'),
+  participant(brunoId, 'Brunão', minute: 1),
+  participant(eduId, 'Edu', minute: 2).copyWith(absent: eduAbsent),
+  participant(fabioId, 'Fábio', minute: 3),
+  for (var i = 0; i < _r01Others.length; i++)
+    participant(_r01Others[i].$2, _r01Others[i].$1, minute: 4 + i),
+];
+
+GameCharge charge(
+  String payerId,
+  String payerName, {
+  ChargeKind kind = ChargeKind.share,
+  int amountCents = 2084,
+  ChargeStatus status = ChargeStatus.pending,
+  String receiverId = anaId,
+  String receiverName = 'Ana',
+  ChargeWaiveReason? waiveReason,
+}) => GameCharge(
+  id: 'charge-$payerId',
+  payerId: payerId,
+  payerName: payerName,
+  receiverId: receiverId,
+  receiverName: receiverName,
+  kind: kind,
+  amountCents: amountCents,
+  status: status,
+  waiveReason: waiveReason,
+);
+
+/// O jogo do R01: Quadra do Sesc, R$ 250,00, 12 vagas, depois do fim. Por
+/// padrão, Aberto e visto pela Ana.
+GameDetail finishedGame({
+  String viewerId = anaId,
+  GameStatus status = GameStatus.open,
+  int? shareCents,
+  GameCharge? myCharge,
+  List<GameParticipant>? participants,
+  List<String> adminIds = const [anaId],
+}) => game1(
+  viewerId: viewerId,
+  id: finishedId,
+  startsAt: finishedStart,
+  endsAt: finishedEnd,
+  cancellationDeadline: DateTime.utc(2026, 11, 15, 21),
+  totalCents: 25000,
+  status: status,
+  participants: participants ?? r01Participants(),
+  adminIds: adminIds,
+).copyWith(shareCents: shareCents, myCharge: myCharge);
+
+/// O R01 concluído: parte de R$ 20,84.
+GameDetail completedGame({String viewerId = anaId, GameCharge? myCharge}) =>
+    finishedGame(
+      viewerId: viewerId,
+      status: GameStatus.completed,
+      shareCents: 2084,
+      myCharge: myCharge,
+    );
+
+/// O *preview* do R01: R$ 20,84, R$ 229,24 a receber, R$ 20,76 por conta da
+/// Ana, uma multa isentada.
+const r01Preview = CompletionPreview(
+  shareCents: 2084,
+  totalToReceiveCents: 22924,
+  receiverCoveredCents: 2076,
+  uncoveredSlots: 0,
+  penaltiesExempted: 1,
+);

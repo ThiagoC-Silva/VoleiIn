@@ -751,5 +751,124 @@
   },
   "personPhone": "Telefone",
   "personCall": "Ligar",
-  "personWhatsapp": "WhatsApp"
+  "personWhatsapp": "WhatsApp",
+  "gameComplete": "Concluir jogo",
+  "gameCompleteHint": "Se ninguém concluir, o app conclui sozinho 1 hora depois do fim.",
+  "gameSharePerSlot": "Parte por vaga",
+  "gameTotal": "Total",
+  "gameTrioAtStart": "no início",
+  "gameTrioFinal": "final",
+  "gameTrioVenue": "do espaço",
+  "gameAbsentBadge": "Faltou",
+  "splitCardTitle": "Rateio",
+  "historyExempt": "Multa isentada: sobraram vagas",
+  "completeTotalHint": "Só dá para mudar agora. Depois da conclusão, nada é recalculado.",
+  "completeSummaryTitle": "Rateio",
+  "completeToReceive": "A receber",
+  "completeShareFormula": "{total} ÷ {slots} vagas",
+  "@completeShareFormula": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      },
+      "slots": {
+        "type": "String"
+      }
+    }
+  },
+  "splitReceiverCovers": "Por conta de {name}",
+  "@splitReceiverCovers": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "splitReceiverExtra": "{name} recebe {amount} a mais que o total, pelo arredondamento.",
+  "@splitReceiverExtra": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "completeExemptedCount": "{count, plural, =1{1 multa de cancelamento isentada: sobraram vagas.} other{{count} multas de cancelamento isentadas: sobraram vagas.}}",
+  "@completeExemptedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "completeUncoveredWarning": "{count, plural, =1{1 vaga ficou sem ninguém. {amount} fica por conta de {name}.} other{{count} vagas ficaram sem ninguém. {amount} fica por conta de {name}.}}",
+  "@completeUncoveredWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "completeConfirmTitle": "Concluir o jogo?",
+  "completeConfirmBody": "A conclusão é definitiva: depois dela, o valor total e as faltas não mudam, e cada pessoa passa a ter o valor a pagar.",
+  "completeConfirmAction": "Concluir",
+  "gameCompleted": "Jogo concluído.",
+  "splitYourValue": "Seu valor",
+  "splitOwedTo": "Para {name}",
+  "@splitOwedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "splitNoCharge": "Você não tem valor a pagar neste jogo.",
+  "splitNoChargeReceiver": "Você é o recebedor. Fica por conta sua {amount}.",
+  "@splitNoChargeReceiver": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "splitNoChargeOnTime": "Você saiu no prazo, sem multa.",
+  "splitNoChargeExempt": "Sua multa foi isentada: sobraram vagas.",
+  "splitNoChargeRemoved": "Você saiu da lista sem multa.",
+  "splitReceived": "Recebido",
+  "splitPending": "Pendente",
+  "splitCharges": "Valores",
+  "splitWaived": "Isentos",
+  "splitNoChargeSection": "Sem valor a pagar",
+  "splitTrioLimit": "limite",
+  "splitShareFormula": "{total} ÷ {slots}",
+  "@splitShareFormula": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      },
+      "slots": {
+        "type": "String"
+      }
+    }
+  },
+  "chargeKindShare": "Parte do jogo",
+  "chargeKindAbsence": "Multa por falta",
+  "chargeKindLateCancellation": "Multa por cancelamento",
+  "chargeWaivedManual": "Isentado por um admin",
+  "chargeWaivedReceiverChange": "Anulado na troca de recebedor",
+  "chargeStatusPending": "Pendente",
+  "chargeStatusUnderReview": "Em análise",
+  "chargeStatusPaid": "Pago",
+  "chargeStatusWaived": "Isento",
+  "errorGameNotEnded": "O jogo só pode ser concluído a partir do horário de fim.",
+  "errorAbsentNotParticipant": "A lista mudou. Confira as faltas de novo.",
+  "errorReceiverCannotBeAbsent": "O recebedor não pode ser marcado como faltoso."
 }
