@@ -15,6 +15,8 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 
 **Fatia 4, etapa A, em 17/11/2026:** criar, ver e editar o jogo, entrar na lista e na espera. Testes automáticos verdes e L15 (sem o cancelamento) nas APIs 29 e 36, com as 4 migrações na produção. M06 conferido no celular, com o build da produção, em 17/11/2026, no Wi-Fi em vez do 4G (`specs/003-jogo-etapa-a/tasks.md`). Os RFs da etapa ficam *Em andamento* até a etapa C, que fecha a fatia com a saída, a espera, o cancelamento e os efeitos da saída do grupo (RF22, RF102).
 
+**Fatia 4, em 18/11/2026:** etapas B (saídas, remoção e espera) e C (admins do jogo, cancelamento, saída do grupo com jogos e telefone visível) com testes automáticos verdes e L15 a L19 nas APIs 29 e 36, e as migrações das três etapas na produção (`setup.md`, 9.6 a 9.8). M07 conferido no celular em 18/11/2026: **Abrir no Maps** com o build da produção, e **Ligar** e **WhatsApp** com o build do Supabase local (`env/device.json`), porque a produção só tem uma conta e o próprio perfil não abre pela interface. Os 27 RFs da fatia estão concluídos.
+
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
 | RF01 | 2 | — | Auth; `profiles`, `profile_private` (`on_auth_user_confirmed`) | `/signup` | S01, S02, L08 | Concluído |
@@ -38,40 +40,40 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF19 | 3 | RN107 | `group_members`; leitura de `profiles` por `private.shares_context` | `/groups/:groupId/members`, `/people/:userId` | K02, K07, S29, S30, S34, L12 | Concluído |
 | RF20 | 3 | RN14 | `remove_group_member` | `/groups/:groupId/members` | G27 a G29, S31 | Concluído |
 | RF21 | 3 | RN14 | `leave_group` | `/groups/:groupId` | G23, G26, K03, S26, L12 | Concluído |
-| RF22 | 4 | RN14, RN16, RN65 | — | — | — | Pendente |
+| RF22 | 4 | RN14, RN16, RN65 | `leave_group`, `remove_group_member` (retirada das listas e de `game_admins`) | `/groups/:groupId`, `/groups/:groupId/members` | H01 a H03, H07, H08, H10, C16, S56, L19 | Concluído |
 | RF23 | 3 | RN10 | `set_group_role` | `/groups/:groupId/members` | G19, G21, G22, S29, S31, L14 | Concluído |
 | RF24 | 3 | RN13 | `set_group_role`, `leave_group`; invariante de admin da fatia 1 | `/groups/:groupId`, `/groups/:groupId/members` | G20, G24, G25, S26, S31 | Concluído |
 | RF25 | 3 | — | `group_members`; leitura de `groups` pelo membro | `/groups` | K01, S18, S19 | Concluído |
-| RF26 | 4 | RN06, RN15, RN20, RN21, RN23 | `games`; `create_game` | `/games/new`, `/groups/:groupId` | J01, J02, J05 a J08, S39 a S41, L15 | Em andamento |
-| RF27 | 4 | RN20 | `create_game` (sem rascunho) | `/games/new` | J01, J02, J05 a J08, S39 a S41, L15 | Em andamento |
-| RF28 | 4 | RN23 | `games.location_name`, `maps_url` | `/games/new`, `/games/:gameId` | J01, J02, J05 a J08, S39 a S41, L15 | Em andamento |
-| RF29 | 4 | RN05, RN24 | `games.total_cents`; estimativa no app (RN05) | `/games/new` | J07, U09, U11, S41 | Em andamento |
-| RF30 | 4 | RN23 | `games.starts_at`, `ends_at`, `cancellation_deadline` | `/games/new` | J01, J02, J05 a J08, S39 a S41, L15 | Em andamento |
-| RF31 | 4 | RN21, RN28 | `game_admins` (criador) | `/games/new` | J01, J04, S38 | Em andamento |
-| RF32 | 4 | RN22, RN28 | `games.receiver_id` | `/games/new` | J01, J04, S38 | Em andamento |
+| RF26 | 4 | RN06, RN15, RN20, RN21, RN23 | `games`; `create_game` | `/games/new`, `/groups/:groupId` | J01, J02, J05 a J08, S39 a S41, L15 | Concluído |
+| RF27 | 4 | RN20 | `create_game` (sem rascunho) | `/games/new` | J01, J02, J05 a J08, S39 a S41, L15 | Concluído |
+| RF28 | 4 | RN23 | `games.location_name`, `maps_url` | `/games/new`, `/games/:gameId` | J01, J02, J05 a J08, S39 a S41, L15 | Concluído |
+| RF29 | 4 | RN05, RN24 | `games.total_cents`; estimativa no app (RN05) | `/games/new` | J07, U09, U11, S41 | Concluído |
+| RF30 | 4 | RN23 | `games.starts_at`, `ends_at`, `cancellation_deadline` | `/games/new` | J01, J02, J05 a J08, S39 a S41, L15 | Concluído |
+| RF31 | 4 | RN21, RN28 | `game_admins` (criador) | `/games/new` | J01, J04, S38 | Concluído |
+| RF32 | 4 | RN22, RN28 | `games.receiver_id` | `/games/new` | J01, J04, S38 | Concluído |
 | RF33 | 5 | RN29, RN30, RN31, RN94, RN115 | — | — | — | Pendente |
-| RF34 | 4 | RN15, RN25, RN27 | — | — | — | Pendente |
-| RF35 | 4 | RN16, RN25, RN26 | — | — | — | Pendente |
-| RF36 | 4 | RN33, RN34, RN35 | `update_game` | `/games/:gameId/edit` | J09 a J13, S53 | Em andamento |
-| RF37 | 4 | RN40 | `games.slot_limit`; `game_limit_history` | `/games/new` | J03, O01, O02, O20, O21 | Em andamento |
-| RF38 | 4 | RN41, RN42 | `join_game` (limite) | `/games/:gameId` | J03, O01, O02, O20, O21 | Em andamento |
-| RF39 | 4 | RN43 | — | — | — | Pendente |
+| RF34 | 4 | RN15, RN25, RN27 | `add_game_admin`, `remove_game_admin`; `game_admins` | `/games/:gameId/admins` | J17 a J21, S54, L18 | Concluído |
+| RF35 | 4 | RN16, RN25, RN26 | `remove_game_admin` (último admin) | `/games/:gameId/admins` | J17 a J21, S54, L18 | Concluído |
+| RF36 | 4 | RN33, RN34, RN35 | `update_game` | `/games/:gameId/edit` | J09 a J13, S53 | Concluído |
+| RF37 | 4 | RN40 | `games.slot_limit`; `game_limit_history` | `/games/new` | J03, O01, O02, O20, O21 | Concluído |
+| RF38 | 4 | RN41, RN42 | `join_game` (limite) | `/games/:gameId` | J03, O01, O02, O20, O21 | Concluído |
+| RF39 | 4 | RN43 | `cancel_game`; evento `game_cancelled` | `/games/:gameId` | J14 a J16, C07, S54, L15 | Concluído |
 | RF40 | 5 | RN34, RN36, RN44, RN46, RN47, RN70 | — | — | — | Pendente |
 | RF41 | 5 | RN34, RN48, RN74 | — | — | — | Pendente |
 | RF42 | 5 | RN45, RN46, RN49 | — | — | — | Pendente |
 | RF43 | 8 | RN55 | — | — | — | Pendente |
-| RF44 | 4 | — | `can_view_game`; RLS de `games` | `/games`, `/games/:gameId` | W01 a W04, W13, W14, S36, S37, S50 | Em andamento |
-| RF45 | 4 | RN102 | `get_profile_contact` (chave Pix) | `/games/:gameId` | W08 a W11, S42, S44 | Em andamento |
-| RF46 | 4 | RN52, RN107 | RLS de `game_participants`, `game_waitlist`; Realtime | `/games/:gameId` | W01 a W04, W13, W14, S36, S37, S50 | Em andamento |
-| RF47 | 4 | RN50 | `join_game`; `game_participants` | `/games/:gameId` | O01 a O07, T03 a T05, S42 | Em andamento |
+| RF44 | 4 | — | `can_view_game`; RLS de `games` | `/games`, `/games/:gameId` | W01 a W04, W13, W14, S36, S37, S50 | Concluído |
+| RF45 | 4 | RN102 | `get_profile_contact` (chave Pix) | `/games/:gameId` | W08 a W11, S42, S44 | Concluído |
+| RF46 | 4 | RN52, RN107 | RLS de `game_participants`, `game_waitlist`; Realtime | `/games/:gameId` | W01 a W04, W13, W14, S36, S37, S50 | Concluído |
+| RF47 | 4 | RN50 | `join_game`; `game_participants` | `/games/:gameId` | O01 a O07, T03 a T05, S42 | Concluído |
 | RF48 | 8 | RN50, RN107 | — | — | — | Pendente |
-| RF49 | 4 | RN51, RN54 | `join_waitlist`, `leave_waitlist`; `game_waitlist` | `/games/:gameId` | O03, O04, O15, O16, T05, C03, S45, L16 | Em andamento |
-| RF50 | 4 | RN02, RN29, RN56, RN57 | `leave_game`; `game_participants` | `/games/:gameId` | O08 a O14, T01, T02, T06 a T10, C06, S43, S44, S47, L16, L17 | Em andamento |
-| RF51 | 4 | RN53 | `join_game` com trava por jogo (RN53) | `/games/:gameId` | C01, C02, C04, C05 | Em andamento |
-| RF52 | 4 | RN42, RN53, RN59 | `set_slot_limit` | `/games/:gameId/edit` | O20 a O23, C05, S53 | Em andamento |
-| RF53 | 4 | RN33, RN41, RN59 | `set_slot_limit` (redução) | `/games/:gameId/edit` | O20 a O23, C05, S53 | Em andamento |
-| RF54 | 4 | RN29, RN58 | `remove_participant`; `game_participants` | `/games/:gameId` | O17 a O19 | Em andamento |
-| RF55 | 4 | RN02, RN03, RN51 | `join_game` (prazo e início, RN03) | `/games/:gameId` | O01 a O07, T03 a T05, S42 | Em andamento |
+| RF49 | 4 | RN51, RN54 | `join_waitlist`, `leave_waitlist`; `game_waitlist` | `/games/:gameId` | O03, O04, O15, O16, T05, C03, S45, L16 | Concluído |
+| RF50 | 4 | RN02, RN29, RN56, RN57 | `leave_game`; `game_participants` | `/games/:gameId` | O08 a O14, T01, T02, T06 a T10, C06, S43, S44, S47, L16, L17 | Concluído |
+| RF51 | 4 | RN53 | `join_game` com trava por jogo (RN53) | `/games/:gameId` | C01, C02, C04, C05 | Concluído |
+| RF52 | 4 | RN42, RN53, RN59 | `set_slot_limit` | `/games/:gameId/edit` | O20 a O23, C05, S53 | Concluído |
+| RF53 | 4 | RN33, RN41, RN59 | `set_slot_limit` (redução) | `/games/:gameId/edit` | O20 a O23, C05, S53 | Concluído |
+| RF54 | 4 | RN29, RN58 | `remove_participant`; `game_participants` | `/games/:gameId` | O17 a O19 | Concluído |
+| RF55 | 4 | RN02, RN03, RN51 | `join_game` (prazo e início, RN03) | `/games/:gameId` | O01 a O07, T03 a T05, S42 | Concluído |
 | RF56 | 5 | RN02, RN03, RN35, RN57, RN60 | — | — | — | Pendente |
 | RF57 | 5 | RN03, RN56, RN61 | — | — | — | Pendente |
 | RF58 | 5 | RN62 | — | — | — | Pendente |
@@ -117,8 +119,8 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF98 | 7 | RN110 | — | — | — | Pendente |
 | RF99 | 7 | RN110 | — | — | — | Pendente |
 | RF100 | 7 | RN52 | — | — | — | Pendente |
-| RF101 | 4 | RN101, RN107 | — | — | — | Pendente |
-| RF102 | 4 | RN16 | — | — | — | Pendente |
+| RF101 | 4 | RN101, RN107 | `get_profile_contact` (telefone) | `/people/:userId`, `/games/:gameId/people/:userId` | W12, U12, S58, M07 | Concluído |
+| RF102 | 4 | RN16 | `leave_group`, `remove_group_member` (`MEMBER_IS_RECEIVER`, `MEMBER_IS_ONLY_GAME_ADMIN`, `detail.game_ids`) | `/groups/:groupId`, `/groups/:groupId/members` | H04 a H07, H09, E16, S56, S57, L19 | Concluído |
 | RF103 | 3 | RN13, RN17 | `archive_group` | `/groups/:groupId/edit` | G30 a G33, K04, S33, L13 | Concluído |
 | RF104 | 7 | RN17, RN58, RN66, RN80 | — | — | — | Pendente |
 | RF105 | 2 | — | `terms_acceptances`; `current_terms_versions()` | `/terms`, `/terms/:document` | P10 a P14, S09, S10, L08 | Concluído |
