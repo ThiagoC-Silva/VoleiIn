@@ -4,7 +4,8 @@
 -- Fatia 1: as quatro contas do login técnico. Fatia 2: perfis completos e o
 -- aceite dos termos. Fatia 3: os grupos Vôlei de Quinta e Vôlei de Domingo.
 -- Fatia 4: os sete jogos (Aberto, Confirmado, em andamento, Cancelado, prazo
--- vencido, o da Carla e o avulso).
+-- vencido, o da Carla e o avulso). Fatia 5, etapa A: o jogo concluído, com os
+-- valores, e o jogo aguardando conclusão.
 -- Cada fatia acrescenta os seus cenários (jogos, valores, comprovantes...).
 --
 -- IDs fixos e legíveis, para testes e anotações poderem citá-los:
@@ -226,5 +227,42 @@ begin
 
   insert into public.game_waitlist (game_id, user_id, joined_at)
   values ('00000000-0000-0000-0000-000000000202', v_bruno, now() - interval '12 hours');
+
+  -- Fatia 5, etapa A (research R8 de specs/006-conclusao-etapa-a). Quinta
+  -- concluído: ontem, concluído pela Ana com a mesma função do app. Quinta
+  -- aguardando conclusão: terminou 10 min antes do reset; a conclusão automática
+  -- o conclui 50 min depois.
+  insert into public.games (
+    id, group_id, created_by, receiver_id, invite_code, location_name, maps_url,
+    cancellation_deadline, starts_at, ends_at, total_cents, slot_limit, status
+  )
+  values
+    ('00000000-0000-0000-0000-000000000208', v_quinta, v_ana, v_ana, 'JogoConclu01',
+     'Quadra do Sesc', null,
+     (v_today - 1 + time '18:00') at time zone 'America/Fortaleza',
+     (v_today - 1 + time '20:00') at time zone 'America/Fortaleza',
+     (v_today - 1 + time '22:00') at time zone 'America/Fortaleza',
+     6000, 6, 'open'),
+    ('00000000-0000-0000-0000-000000000209', v_quinta, v_ana, v_ana, 'JogoAguard01',
+     'Ginásio Verdão', null,
+     now() - interval '250 minutes', now() - interval '130 minutes', now() - interval '10 minutes',
+     9000, 6, 'open');
+
+  insert into public.game_admins (game_id, user_id)
+  values ('00000000-0000-0000-0000-000000000208', v_ana), ('00000000-0000-0000-0000-000000000209', v_ana);
+
+  insert into public.game_participants (game_id, user_id, joined_at)
+  values
+    ('00000000-0000-0000-0000-000000000208', v_ana, now() - interval '3 days'),
+    ('00000000-0000-0000-0000-000000000208', v_bruno, now() - interval '2 days'),
+    ('00000000-0000-0000-0000-000000000208', v_carla, now() - interval '2 days'),
+    ('00000000-0000-0000-0000-000000000209', v_ana, now() - interval '2 days'),
+    ('00000000-0000-0000-0000-000000000209', v_bruno, now() - interval '1 day'),
+    ('00000000-0000-0000-0000-000000000209', v_carla, now() - interval '1 day');
+
+  perform private.complete_game_core(
+    (select g from public.games g where g.id = '00000000-0000-0000-0000-000000000208'),
+    v_ana, null, '{}', 'manual', false
+  );
 end;
 $seed$;

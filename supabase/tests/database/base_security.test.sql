@@ -45,7 +45,7 @@ select set_eq(
 );
 
 -- B03. Políticas de public. Lista esperada: as seis da fatia 2, as seis da
--- fatia 3 e as cinco da fatia 4 (docs/rls-matriz.md).
+-- fatia 3, as cinco da fatia 4 e as três da fatia 5, etapa A (docs/rls-matriz.md).
 select set_eq(
   $$ select tablename || '.' || policyname from pg_policies where schemaname = 'public' $$,
   array[
@@ -65,13 +65,16 @@ select set_eq(
     'game_admins.game_admins_select_viewer',
     'game_participants.game_participants_select_viewer',
     'game_waitlist.game_waitlist_select_viewer',
-    'game_limit_history.game_limit_history_select_admin'
+    'game_limit_history.game_limit_history_select_admin',
+    'charges.charges_select_party',
+    'charge_events.charge_events_select_party',
+    'receiver_changes.receiver_changes_select_admin'
   ],
-  'B03: as políticas de public são exatamente as da lista esperada (fatia 4, etapa A)'
+  'B03: as políticas de public são exatamente as da lista esperada (fatia 5, etapa A)'
 );
 
 -- B04. Privilégios de tabela e de coluna de anon e authenticated em public.
--- Lista esperada: a da fatia 2, a da fatia 3 e a da fatia 4. anon continua sem nenhum.
+-- Lista esperada: a da fatia 2, a da fatia 3, a da fatia 4 e a da fatia 5. anon continua sem nenhum.
 select set_eq(
   $$ select a.grantee::regrole::text || ' ' || c.relname || ' ' || a.privilege_type
      from pg_class c
@@ -90,9 +93,12 @@ select set_eq(
     'authenticated game_admins SELECT',
     'authenticated game_participants SELECT',
     'authenticated game_waitlist SELECT',
-    'authenticated game_limit_history SELECT'
+    'authenticated game_limit_history SELECT',
+    'authenticated charges SELECT',
+    'authenticated charge_events SELECT',
+    'authenticated receiver_changes SELECT'
   ],
-  'B04a: privilégios de tabela iguais à lista esperada (fatia 4, etapa A)'
+  'B04a: privilégios de tabela iguais à lista esperada (fatia 5, etapa A)'
 );
 
 select set_eq(
@@ -115,13 +121,14 @@ select set_eq(
     'authenticated terms_acceptances.document INSERT',
     'authenticated terms_acceptances.version INSERT'
   ],
-  'B04b: privilégios de coluna iguais à lista esperada (fatia 4, sem coluna nova)'
+  'B04b: privilégios de coluna iguais à lista esperada (fatia 5, sem coluna nova)'
 );
 
 -- B06. Funções de public que anon ou authenticated podem executar, fora as de
 -- extensões. Lista esperada: current_terms_versions() (fatia 2), as dez
--- funções de grupo (fatia 3) e as sete da etapa A, as três da etapa B e as três da etapa C da fatia 4, só para
--- authenticated. Este é o teste que cobra o `revoke execute ... from public, anon`
+-- funções de grupo (fatia 3), as sete da etapa A, as três da etapa B e as três
+-- da etapa C da fatia 4 e as duas da etapa A da fatia 5, só para authenticated.
+-- auto_complete_due_games() é interna e fica fora (Y07). Este é o teste que cobra o `revoke execute ... from public, anon`
 -- de toda função nova (docs/arquitetura-app.md, 14.3).
 select set_eq(
   $$ select p.oid::regprocedure::text
@@ -154,9 +161,11 @@ select set_eq(
     'add_game_admin(uuid,uuid)',
     'remove_game_admin(uuid,uuid)',
     'get_profile_contact(uuid)',
-    'get_game_groups(uuid[])'
+    'get_game_groups(uuid[])',
+    'preview_complete_game(uuid,integer,uuid[])',
+    'complete_game(uuid,integer,uuid[])'
   ],
-  'B06a: authenticated executa só as funções da lista esperada (fatia 4, etapa C)'
+  'B06a: authenticated executa só as funções da lista esperada (fatia 5, etapa A)'
 );
 
 select is_empty(
