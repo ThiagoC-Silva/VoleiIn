@@ -1,6 +1,6 @@
--- RLS da conclusão (fatia 5, etapa A). Cenários Y01 a Y03 e Y05 a Y07 de
--- docs/testes-referencia.md, seção 13.4 (RN76, RN32). Y04 (troca de recebedor)
--- é da etapa C. Políticas: docs/rls-matriz.md, fatia 5.
+-- RLS da conclusão (fatia 5). Cenários Y01 a Y03 e Y05 a Y07 (etapa A) e Y04
+-- (etapa C) de docs/testes-referencia.md, seção 13.4 (RN76, RN32). Políticas:
+-- docs/rls-matriz.md, fatia 5.
 --
 -- Base da seção 13.4, inserida direto, como postgres.
 
@@ -8,7 +8,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(29);
+select plan(33);
 
 -- Personagens (docs/setup.md, seção 8), mais o Edu e o Fábio, que só existem
 -- nos testes, e dez pessoas para completar as listas (P01 a P10).
@@ -378,6 +378,94 @@ select is(
     'select array_agg(game_id) from public.receiver_changes'),
   '{}'::uuid[],
   'Y03c: Bruno não vê nenhuma'
+);
+
+-- Y04. Base do V02 depois da troca Ana → Carla, inserida direto, com o Edu
+-- como único admin (a Ana deixou de ser admin). Bruno Pago à Ana; o share da
+-- Carla Isento, ainda devido à Ana; Davi, Edu e o share novo da Ana devidos à
+-- Carla.
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000802', 10000, 5);
+select pg_temp.join('00000000-0000-0000-0000-000000000802', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.join('00000000-0000-0000-0000-000000000802', '00000000-0000-0000-0000-00000000000c');
+select pg_temp.join('00000000-0000-0000-0000-000000000802', pg_temp.p(1));
+select pg_temp.join('00000000-0000-0000-0000-000000000802', '00000000-0000-0000-0000-00000000000e');
+update public.game_participants set absent = true, absence_source = 'marked_by_admin'
+where game_id = '00000000-0000-0000-0000-000000000802'
+  and user_id = '00000000-0000-0000-0000-00000000000e';
+insert into public.game_admins (game_id, user_id, added_by)
+values (
+  '00000000-0000-0000-0000-000000000802', '00000000-0000-0000-0000-00000000000e',
+  '00000000-0000-0000-0000-00000000000a'
+);
+delete from public.game_admins
+where game_id = '00000000-0000-0000-0000-000000000802'
+  and user_id = '00000000-0000-0000-0000-00000000000a';
+update public.games
+set status = 'completed', share_cents = 2000, completed_at = now(), completion_mode = 'manual',
+    completed_by = '00000000-0000-0000-0000-00000000000a',
+    receiver_id = '00000000-0000-0000-0000-00000000000c'
+where id = '00000000-0000-0000-0000-000000000802';
+insert into public.charges (
+  id, game_id, participant_id, payer_id, receiver_id, kind, amount_cents, status,
+  paid_at, paid_via, waived_at, waive_reason, waived_by
+)
+select v.id, p.game_id, p.id, p.user_id, v.receiver, v.kind, 2000, v.status,
+       case when v.status = 'paid' then now() end,
+       case when v.status = 'paid' then 'manual'::public.payment_method end,
+       case when v.status = 'waived' then now() end,
+       case when v.status = 'waived' then 'receiver_change'::public.charge_waive_reason end,
+       case when v.status = 'waived' then '00000000-0000-0000-0000-00000000000e'::uuid end
+from (
+  values
+    ('00000000-0000-0000-0000-000000000911'::uuid, '00000000-0000-0000-0000-00000000000b'::uuid,
+     '00000000-0000-0000-0000-00000000000a'::uuid, 'share'::public.charge_kind,
+     'paid'::public.charge_status),
+    ('00000000-0000-0000-0000-000000000912', '00000000-0000-0000-0000-00000000000c',
+     '00000000-0000-0000-0000-00000000000a', 'share', 'waived'),
+    ('00000000-0000-0000-0000-000000000913', '00000000-0000-0000-0000-000000000501',
+     '00000000-0000-0000-0000-00000000000c', 'share', 'pending'),
+    ('00000000-0000-0000-0000-000000000914', '00000000-0000-0000-0000-00000000000e',
+     '00000000-0000-0000-0000-00000000000c', 'absence_penalty', 'pending'),
+    ('00000000-0000-0000-0000-000000000915', '00000000-0000-0000-0000-00000000000a',
+     '00000000-0000-0000-0000-00000000000c', 'share', 'pending')
+) v (id, payer, receiver, kind, status)
+join public.game_participants p
+  on p.game_id = '00000000-0000-0000-0000-000000000802' and p.user_id = v.payer;
+insert into public.receiver_changes (game_id, old_receiver_id, new_receiver_id, changed_by, after_completion)
+values (
+  '00000000-0000-0000-0000-000000000802', '00000000-0000-0000-0000-00000000000a',
+  '00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000e', true
+);
+
+select is(
+  pg_temp.visible('00000000-0000-0000-0000-00000000000a',
+    $$ select array_agg(id order by id) from public.charges
+       where game_id = '00000000-0000-0000-0000-000000000802' $$),
+  array['00000000-0000-0000-0000-000000000911', '00000000-0000-0000-0000-000000000912',
+        '00000000-0000-0000-0000-000000000915']::uuid[],
+  'Y04a: Ana vê o Pago do Bruno e o Isento da Carla (devidos a ela) e o próprio share, sem os do Davi e do Edu'
+);
+select is(
+  pg_temp.visible('00000000-0000-0000-0000-00000000000c',
+    $$ select array_agg(id order by id) from public.charges
+       where game_id = '00000000-0000-0000-0000-000000000802' $$),
+  array['00000000-0000-0000-0000-000000000911', '00000000-0000-0000-0000-000000000912',
+        '00000000-0000-0000-0000-000000000913', '00000000-0000-0000-0000-000000000914',
+        '00000000-0000-0000-0000-000000000915']::uuid[],
+  'Y04b: Carla, nova recebedora, vê todos'
+);
+select is(
+  pg_temp.visible('00000000-0000-0000-0000-000000000501',
+    $$ select array_agg(id order by id) from public.charges
+       where game_id = '00000000-0000-0000-0000-000000000802' $$),
+  array['00000000-0000-0000-0000-000000000913']::uuid[],
+  'Y04c: Davi vê só o próprio'
+);
+select is(
+  pg_temp.visible('00000000-0000-0000-0000-00000000000c',
+    'select array_agg(game_id) from public.receiver_changes'),
+  '{}'::uuid[],
+  'Y04d: Carla, sem ser admin, não lê receiver_changes'
 );
 
 -- Y05. Escrita direta e audit_log.

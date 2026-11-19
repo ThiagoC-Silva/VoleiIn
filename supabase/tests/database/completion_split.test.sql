@@ -1,8 +1,9 @@
 -- Rateio, isenção automática, faltas e multas (fatia 5). Etapa A: R01 a R07,
 -- R09 e R10 (seção 4). Etapa B: R08 (seção 4), I01 a I12 (seção 5) e F01, F02
--- e F05 a F14 (seção 6) de docs/testes-referencia.md, com as notas de "Em
--- todos". F03 e F04 ficam em completion_functions.test.sql (etapa A).
--- Contratos: complete_game e waive_penalty (docs/contratos-api.md, seção 5).
+-- e F05 a F14 (seção 6). Etapa C: V01 a V11 (seção 7) de
+-- docs/testes-referencia.md, com as notas de "Em todos". F03 e F04 ficam em
+-- completion_functions.test.sql (etapa A). Contratos: complete_game,
+-- waive_penalty e change_receiver (docs/contratos-api.md, seção 5).
 --
 -- Base da seção 13, como em completion_functions.test.sql.
 
@@ -10,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(127);
+select plan(169);
 
 -- Personagens (docs/setup.md, seção 8), mais o Edu e o Fábio, que só existem
 -- nos testes, e dez pessoas para completar as listas (P01 a P10).
@@ -904,6 +905,331 @@ select is(
   0, 'F14: o removido não tem multa nem valor'
 );
 rollback to savepoint f14;
+
+-- =========================================================================
+-- Etapa C: troca de recebedor após a conclusão (seção 7)
+-- =========================================================================
+
+-- Pessoas da seção 7: A (Ana), B (Bruno), C (Carla), D (P01, "Davi"), E (Edu)
+-- e Z (Fábio, "Zeca").
+create function pg_temp.u(p_who text)
+returns uuid
+language sql
+as $fn$
+  select case p_who
+    when 'A' then '00000000-0000-0000-0000-00000000000a'::uuid
+    when 'B' then '00000000-0000-0000-0000-00000000000b'::uuid
+    when 'C' then '00000000-0000-0000-0000-00000000000c'::uuid
+    when 'D' then '00000000-0000-0000-0000-000000000501'::uuid
+    when 'E' then '00000000-0000-0000-0000-00000000000e'::uuid
+    when 'Z' then '00000000-0000-0000-0000-00000000000f'::uuid
+  end;
+$fn$;
+
+-- Base da seção 7 (research R6 de specs/008-conclusao-etapa-c): jogo concluído,
+-- R$ 100,00, limite 5 (parte 2.000), recebedora Ana. Bruno Pago, Carla e Davi
+-- Pendentes, Edu com multa por falta Pendente (com p_edu_left, ele saiu após o
+-- início). Todos têm chave Pix.
+create function pg_temp.v_base(p_game uuid, p_edu_left boolean default false)
+returns void
+language plpgsql
+as $fn$
+begin
+  update public.profile_private set pix_key_type = 'email', pix_key = 'edu@voleiin.test'
+  where user_id = pg_temp.u('E');
+  update public.profile_private set pix_key_type = 'email', pix_key = 'p01@voleiin.test'
+  where user_id = pg_temp.u('D');
+  perform pg_temp.ended_game(p_game, 10000, 5);
+  perform pg_temp.join(p_game, pg_temp.u('B'));
+  perform pg_temp.join(p_game, pg_temp.u('C'));
+  perform pg_temp.join(p_game, pg_temp.u('D'));
+  perform pg_temp.join(p_game, pg_temp.u('E'));
+  if p_edu_left then
+    perform pg_temp.left_after_start(p_game, pg_temp.u('E'), 30);
+  end if;
+  perform pg_temp.ana_calls('complete_game', 'v_base', p_game, null, array[pg_temp.u('E')]);
+  update public.charges set status = 'paid', paid_at = now(), paid_via = 'manual'
+  where game_id = p_game and payer_id = pg_temp.u('B');
+  delete from public.notifications;
+end;
+$fn$;
+
+-- A pessoa chama change_receiver e guarda o retorno em t.<p_name>.
+create function pg_temp.change_as(p_user uuid, p_game uuid, p_new uuid, p_name text)
+returns void
+language plpgsql
+as $fn$
+begin
+  perform pg_temp.login_as(p_user);
+  set local role authenticated;
+  perform set_config('t.' || p_name, public.change_receiver(p_game, p_new)::text, true);
+  reset role;
+end;
+$fn$;
+
+-- Ana troca o recebedor. Antes da última troca de um cenário, apaga as
+-- notificações, para conferir só as dela.
+create function pg_temp.ana_changes(p_game uuid, p_new text, p_last boolean default true)
+returns void
+language plpgsql
+as $fn$
+begin
+  if p_last then
+    delete from public.notifications;
+  end if;
+  perform pg_temp.change_as(pg_temp.u('A'), p_game, pg_temp.u(p_new), 'v');
+end;
+$fn$;
+
+-- Retrato do jogo e dos valores, para conferir que nada mudou.
+create function pg_temp.v_snapshot(p_game uuid)
+returns text
+language sql
+as $fn$
+  select md5(concat_ws('|',
+    (select t::text from public.games t where t.id = p_game),
+    (select string_agg(t::text, ',' order by t.id) from public.charges t where t.game_id = p_game),
+    (select string_agg(t::text, ',' order by t.id) from public.charge_events t),
+    (select string_agg(t::text, ',' order by t.id) from public.receiver_changes t),
+    (select string_agg(t::text, ',' order by t.id) from public.notifications t)
+  ));
+$fn$;
+
+-- Confere um cenário da seção 7: os valores (pagador, tipo, status e a quem é
+-- devido), o Pendente a receber do recebedor final, o Pago à Ana e as notas de
+-- "Em todos". p_last_old é o recebedor antes da última troca. Sete asserções.
+create function pg_temp.check_change(
+  p_label text, p_game uuid, p_receiver text, p_last_old text, p_changes integer,
+  p_expected text, p_pending integer
+)
+returns setof text
+language plpgsql
+as $fn$
+begin
+  return next set_eq(
+    format(
+      $q$ select payer_id, kind::text, status::text, receiver_id from public.charges
+          where game_id = %L $q$,
+      p_game
+    ),
+    p_expected,
+    p_label || 'a: valores, status e recebedor de cada um'
+  );
+  return next is(
+    (select coalesce(sum(amount_cents), 0)::integer from public.charges
+     where game_id = p_game and status = 'pending' and receiver_id = pg_temp.u(p_receiver)),
+    p_pending,
+    p_label || 'b: Pendente a receber ' || p_pending
+  );
+  return next is(
+    (select coalesce(sum(amount_cents), 0)::integer from public.charges
+     where game_id = p_game and status = 'paid' and receiver_id = pg_temp.u('A')),
+    2000,
+    p_label || 'c: Pago 2.000, ainda devido à Ana'
+  );
+  return next is(
+    (select count(*)::integer from public.charges where game_id = p_game and payer_id = receiver_id)
+    + (select count(*)::integer from (
+         select payer_id from public.charges
+         where game_id = p_game and status <> 'waived'
+         group by payer_id having count(*) > 1
+       ) d),
+    0,
+    p_label || 'd: nenhum valor com pagador igual ao recebedor, e no máximo um não Isento por pessoa'
+  );
+  return next results_eq(
+    format($q$ select share_cents, total_cents from public.games where id = %L $q$, p_game),
+    $q$ values (2000, 10000) $q$,
+    p_label || 'e: share_cents e total_cents não mudam (RN36)'
+  );
+  return next results_eq(
+    format(
+      $q$ select g.receiver_id,
+                 (select count(*)::integer from public.receiver_changes r
+                  where r.game_id = g.id and r.after_completion),
+                 (select count(*)::integer from public.audit_log a
+                  where a.entity_id = g.id and a.event = 'receiver_changed')
+          from public.games g where g.id = %L $q$,
+      p_game
+    ),
+    format($q$ values (%L::uuid, %s, %s) $q$, pg_temp.u(p_receiver), p_changes, p_changes),
+    p_label || 'f: recebedor gravado, com a troca em receiver_changes e em audit_log'
+  );
+  return next set_eq(
+    $q$ select user_id from public.notifications where type = 'receiver_changed' $q$,
+    format(
+      $q$ select u from unnest(array[%L::uuid, %L::uuid]) u
+          union
+          select payer_id from public.charges where game_id = %L and status = 'pending'
+          except
+          select %L::uuid $q$,
+      pg_temp.u(p_last_old), pg_temp.u(p_receiver), p_game, pg_temp.u('A')
+    ),
+    p_label || 'g: receiver_changed ao antigo e ao novo recebedor e a quem tem valor Pendente, exceto a Ana (RN115)'
+  );
+end;
+$fn$;
+
+-- V01. Ana → Carla, com o valor do Davi Em análise.
+savepoint v01;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000761');
+update public.charges set status = 'under_review'
+where game_id = '00000000-0000-0000-0000-000000000761' and payer_id = pg_temp.u('D');
+select set_config('t.v01', pg_temp.v_snapshot('00000000-0000-0000-0000-000000000761'), true);
+select pg_temp.login_as(pg_temp.u('A'));
+set local role authenticated;
+select throws_ok(
+  $$ select public.change_receiver('00000000-0000-0000-0000-000000000761', pg_temp.u('C')) $$,
+  'P0001', 'RECEIVER_CHANGE_BLOCKED', 'V01a: RECEIVER_CHANGE_BLOCKED'
+);
+reset role;
+select is(
+  pg_temp.v_snapshot('00000000-0000-0000-0000-000000000761'), current_setting('t.v01'),
+  'V01b: nada muda'
+);
+rollback to savepoint v01;
+
+-- V02. Ana → Carla.
+savepoint v02;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000762');
+select pg_temp.ana_changes('00000000-0000-0000-0000-000000000762', 'C');
+select pg_temp.check_change(
+  'V02', '00000000-0000-0000-0000-000000000762', 'C', 'A', 1,
+  $$ values (pg_temp.u('B'), 'share', 'paid', pg_temp.u('A')),
+            (pg_temp.u('C'), 'share', 'waived', pg_temp.u('A')),
+            (pg_temp.u('D'), 'share', 'pending', pg_temp.u('C')),
+            (pg_temp.u('E'), 'absence_penalty', 'pending', pg_temp.u('C')),
+            (pg_temp.u('A'), 'share', 'pending', pg_temp.u('C')) $$,
+  6000
+);
+rollback to savepoint v02;
+
+-- V03. Ana → Bruno, que já pagou à Ana.
+savepoint v03;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000763');
+select pg_temp.ana_changes('00000000-0000-0000-0000-000000000763', 'B');
+select pg_temp.check_change(
+  'V03', '00000000-0000-0000-0000-000000000763', 'B', 'A', 1,
+  $$ values (pg_temp.u('B'), 'share', 'paid', pg_temp.u('A')),
+            (pg_temp.u('C'), 'share', 'pending', pg_temp.u('B')),
+            (pg_temp.u('D'), 'share', 'pending', pg_temp.u('B')),
+            (pg_temp.u('E'), 'absence_penalty', 'pending', pg_temp.u('B')),
+            (pg_temp.u('A'), 'share', 'pending', pg_temp.u('B')) $$,
+  8000
+);
+rollback to savepoint v03;
+
+-- V04. Ana → Bruno → Ana: o Bruno não ganha novo valor, porque já tem um Pago.
+savepoint v04;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000764');
+select pg_temp.ana_changes('00000000-0000-0000-0000-000000000764', 'B', false);
+select pg_temp.ana_changes('00000000-0000-0000-0000-000000000764', 'A');
+select pg_temp.check_change(
+  'V04', '00000000-0000-0000-0000-000000000764', 'A', 'B', 2,
+  $$ values (pg_temp.u('B'), 'share', 'paid', pg_temp.u('A')),
+            (pg_temp.u('C'), 'share', 'pending', pg_temp.u('A')),
+            (pg_temp.u('D'), 'share', 'pending', pg_temp.u('A')),
+            (pg_temp.u('E'), 'absence_penalty', 'pending', pg_temp.u('A')),
+            (pg_temp.u('A'), 'share', 'waived', pg_temp.u('B')) $$,
+  6000
+);
+rollback to savepoint v04;
+
+-- V05. Ana → Carla → Davi: a Carla, com valor Isento, ganha novo share.
+savepoint v05;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000765');
+select pg_temp.ana_changes('00000000-0000-0000-0000-000000000765', 'C', false);
+select pg_temp.ana_changes('00000000-0000-0000-0000-000000000765', 'D');
+select pg_temp.check_change(
+  'V05', '00000000-0000-0000-0000-000000000765', 'D', 'C', 2,
+  $$ values (pg_temp.u('B'), 'share', 'paid', pg_temp.u('A')),
+            (pg_temp.u('C'), 'share', 'waived', pg_temp.u('A')),
+            (pg_temp.u('C'), 'share', 'pending', pg_temp.u('D')),
+            (pg_temp.u('D'), 'share', 'waived', pg_temp.u('C')),
+            (pg_temp.u('E'), 'absence_penalty', 'pending', pg_temp.u('D')),
+            (pg_temp.u('A'), 'share', 'pending', pg_temp.u('D')) $$,
+  6000
+);
+rollback to savepoint v05;
+
+-- V06. Ana → Edu, faltoso e ainda na lista: a multa dele fica Isenta.
+savepoint v06;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000766');
+select pg_temp.ana_changes('00000000-0000-0000-0000-000000000766', 'E');
+select pg_temp.check_change(
+  'V06', '00000000-0000-0000-0000-000000000766', 'E', 'A', 1,
+  $$ values (pg_temp.u('B'), 'share', 'paid', pg_temp.u('A')),
+            (pg_temp.u('C'), 'share', 'pending', pg_temp.u('E')),
+            (pg_temp.u('D'), 'share', 'pending', pg_temp.u('E')),
+            (pg_temp.u('E'), 'absence_penalty', 'waived', pg_temp.u('A')),
+            (pg_temp.u('A'), 'share', 'pending', pg_temp.u('E')) $$,
+  6000
+);
+rollback to savepoint v06;
+
+-- V07. Ana → Edu, que saiu após o início.
+savepoint v07;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000767', true);
+select pg_temp.login_as(pg_temp.u('A'));
+set local role authenticated;
+select throws_ok(
+  $$ select public.change_receiver('00000000-0000-0000-0000-000000000767', pg_temp.u('E')) $$,
+  'P0001', 'RECEIVER_MUST_BE_PARTICIPANT', 'V07: Edu saiu após o início: RECEIVER_MUST_BE_PARTICIPANT'
+);
+reset role;
+rollback to savepoint v07;
+
+-- V08. Ana → Zeca (Fábio), fora da lista.
+savepoint v08;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000768');
+select pg_temp.login_as(pg_temp.u('A'));
+set local role authenticated;
+select throws_ok(
+  $$ select public.change_receiver('00000000-0000-0000-0000-000000000768', pg_temp.u('Z')) $$,
+  'P0001', 'RECEIVER_MUST_BE_PARTICIPANT', 'V08: Zeca fora da lista: RECEIVER_MUST_BE_PARTICIPANT'
+);
+reset role;
+rollback to savepoint v08;
+
+-- V09. Ana → Carla, sem chave Pix.
+savepoint v09;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000769');
+update public.profile_private set pix_key_type = null, pix_key = null where user_id = pg_temp.u('C');
+select pg_temp.login_as(pg_temp.u('A'));
+set local role authenticated;
+select throws_ok(
+  $$ select public.change_receiver('00000000-0000-0000-0000-000000000769', pg_temp.u('C')) $$,
+  'P0001', 'RECEIVER_NEEDS_PIX_KEY', 'V09: Carla sem chave Pix: RECEIVER_NEEDS_PIX_KEY'
+);
+reset role;
+rollback to savepoint v09;
+
+-- V10. Ana → Ana.
+savepoint v10;
+select pg_temp.v_base('00000000-0000-0000-0000-000000000770');
+select pg_temp.login_as(pg_temp.u('A'));
+set local role authenticated;
+select throws_ok(
+  $$ select public.change_receiver('00000000-0000-0000-0000-000000000770', pg_temp.u('A')) $$,
+  'P0001', 'RECEIVER_UNCHANGED', 'V10: RECEIVER_UNCHANGED'
+);
+reset role;
+rollback to savepoint v10;
+
+-- V11. Em jogo cancelado, com a Carla na lista.
+savepoint v11;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000771', 10000, 5, now() + interval '3 hours');
+select pg_temp.join('00000000-0000-0000-0000-000000000771', pg_temp.u('C'));
+update public.games set status = 'cancelled', cancelled_at = now()
+where id = '00000000-0000-0000-0000-000000000771';
+select pg_temp.login_as(pg_temp.u('A'));
+set local role authenticated;
+select throws_ok(
+  $$ select public.change_receiver('00000000-0000-0000-0000-000000000771', pg_temp.u('C')) $$,
+  'P0001', 'GAME_CANCELLED', 'V11: GAME_CANCELLED'
+);
+reset role;
+rollback to savepoint v11;
 
 -- R10. Sobra mínima.
 select pg_temp.ended_game('00000000-0000-0000-0000-000000000710', 1000, 7);
