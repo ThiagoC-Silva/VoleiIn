@@ -46,6 +46,7 @@ on conflict do nothing;
 -- Valores do jogo concluído do seed (fatia 5) saem antes das passagens.
 delete from public.charge_events;
 delete from public.charges;
+delete from public.receiver_changes;
 delete from public.game_waitlist;
 delete from public.game_participants;
 delete from public.game_admins;

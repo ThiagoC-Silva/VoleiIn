@@ -4,7 +4,7 @@
 
 ## Summary
 
-Uma migração, `create_change_receiver`, com `public.change_receiver` (research R1 a R5). As políticas da etapa A não mudam: o Y04 confere o recorte do antigo recebedor. O seed não muda (R7). No app (sessão 3): troca de recebedor no detalhe e a aba Cobranças (`docs/ui/telas.md`, seção 8).
+Uma migração, `create_change_receiver`, com `public.change_receiver` (research R1 a R5). As políticas da etapa A não mudam: o Y04 confere o recorte do antigo recebedor. O seed ganha o jogo "Quinta com troca" (R7). No app (sessão 3): troca de recebedor no detalhe e a aba Cobranças (`docs/ui/telas.md`, seção 8).
 
 ## Technical Context
 

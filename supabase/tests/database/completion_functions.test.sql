@@ -948,12 +948,12 @@ select results_eq(
   'Z15c: Ana ganha um share de 2.000 devido à Carla, ligado à passagem dela, com o charge_events da criação'
 );
 select set_eq(
-  $$ select type::text, user_id, data - 'charge_id' from public.notifications $$,
-  $$ select 'receiver_changed', u,
+  $$ select type::text as type, user_id, data - 'charge_id' as data from public.notifications $$,
+  $$ select 'receiver_changed' as type, u as user_id,
             private.game_notification_data('00000000-0000-0000-0000-000000000645')
             || jsonb_build_object(
                  'old_receiver_id', '00000000-0000-0000-0000-00000000000a',
-                 'new_receiver_id', '00000000-0000-0000-0000-00000000000c')
+                 'new_receiver_id', '00000000-0000-0000-0000-00000000000c') as data
      from unnest(array['00000000-0000-0000-0000-00000000000c'::uuid,
                        '00000000-0000-0000-0000-000000000501',
                        '00000000-0000-0000-0000-00000000000e']) u

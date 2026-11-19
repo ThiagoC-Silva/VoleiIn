@@ -38,7 +38,8 @@ Cada pessoa vê o total que deve e o que tem a receber, somando todos os jogos, 
 | FR-002 | As saídas da fatia 4 seguem o recebedor gravado depois da troca, sem mudança nelas | 1 | Z11, Z12 |
 | FR-003 | O RLS da etapa A dá ao antigo recebedor só os valores devidos a ele e o próprio, sem mudança nas políticas | 2 | Y04 |
 | FR-004 | Lista do B06 com `change_receiver(uuid, uuid)` | Todas | B06 |
-| FR-005 | Telas, textos e erros da etapa (sessão 3) | 1, 2, 3 | S72 a S76, E15, L22 |
+| FR-005 | Seed com uma troca de recebedor depois da conclusão (`docs/setup.md`, seção 8; research R7) | 2, 3 | Sessão 3 |
+| FR-006 | Telas, textos e erros da etapa (sessão 3) | 1, 2, 3 | S72 a S76, E15, L22 |
 
 ## Success Criteria *(mandatory)*
 

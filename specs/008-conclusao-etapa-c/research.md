@@ -30,4 +30,8 @@
 
 ## R7. Seed
 
-**Decisão:** o seed não muda. O L22 prepara o próprio jogo (seção 13.6), e a aba Cobranças já tem, no seed, valores Pendentes a pagar e a receber ("Quinta concluído" e "Quinta com multas").
+**Decisão:** um jogo novo, "Quinta com troca" (`...0211`), de três dias antes, R$ 60,00 e 3 vagas, com Ana, Bruno e Carla na lista, como pede a linha 5 da tabela de dados do `setup.md` (seção 8, "Etapa C: troca de recebedor"). A Ana conclui pela `complete_game_core` e troca o recebedor para a Carla pela `change_receiver`: fica o `share` Isento da Carla, o do Bruno Pendente para a Carla e um `share` Pendente da Ana para a Carla. Na aba Cobranças, a Ana passa a ter um valor a pagar, e a Carla, valores a receber. O L22 continua preparando o próprio jogo (seção 13.6).
+
+## R8. O que o antigo recebedor vê depois da troca (Y04)
+
+**Decisão:** o valor Isento do novo recebedor continua devido ao antigo (`receiver_id`), porque a constraint `payer_id <> receiver_id` impede passá-lo ao próprio pagador e a RN31 só move os Pendentes. Pela política `charges_select_party` (`docs/rls-matriz.md`, fatia 5: "quem é o `receiver_id` de um valor o lê"), o antigo recebedor também o vê. O Y04 do `testes-referencia.md` lista o que a Ana vê (o Pago do Bruno e o próprio `share`) e o que não vê (Davi e Edu), sem citar o Isento da Carla; o teste confere os quatro e também o Isento, e o texto do Y04 ganhou essa linha, sem mudar nada do que já estava escrito.

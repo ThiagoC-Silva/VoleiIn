@@ -309,5 +309,40 @@ begin
      where c.game_id = '00000000-0000-0000-0000-000000000210' and c.payer_id = v_bruno)
   );
   perform set_config('request.jwt.claims', '', true);
+
+  -- Fatia 5, etapa C (research R7 de specs/008-conclusao-etapa-c). Quinta com
+  -- troca: três dias antes, Ana, Bruno e Carla na lista. Ana conclui e passa o
+  -- recebimento para a Carla pela change_receiver: o share da Carla fica Isento,
+  -- o do Bruno passa à Carla e a Ana ganha um share Pendente para a Carla.
+  insert into public.games (
+    id, group_id, created_by, receiver_id, invite_code, location_name, maps_url,
+    cancellation_deadline, starts_at, ends_at, total_cents, slot_limit, status
+  )
+  values (
+    '00000000-0000-0000-0000-000000000211', v_quinta, v_ana, v_ana, 'JogoTroca001',
+    'Quadra da Lagoa', null,
+    (v_today - 3 + time '18:00') at time zone 'America/Fortaleza',
+    (v_today - 3 + time '20:00') at time zone 'America/Fortaleza',
+    (v_today - 3 + time '22:00') at time zone 'America/Fortaleza',
+    6000, 3, 'confirmed'
+  );
+
+  insert into public.game_admins (game_id, user_id)
+  values ('00000000-0000-0000-0000-000000000211', v_ana);
+
+  insert into public.game_participants (game_id, user_id, joined_at)
+  values
+    ('00000000-0000-0000-0000-000000000211', v_ana, now() - interval '5 days'),
+    ('00000000-0000-0000-0000-000000000211', v_bruno, now() - interval '4 days'),
+    ('00000000-0000-0000-0000-000000000211', v_carla, now() - interval '4 days');
+
+  perform private.complete_game_core(
+    (select g from public.games g where g.id = '00000000-0000-0000-0000-000000000211'),
+    v_ana, null, '{}', 'manual', false
+  );
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_ana)::text, true);
+  perform public.change_receiver('00000000-0000-0000-0000-000000000211', v_carla);
+  perform set_config('request.jwt.claims', '', true);
 end;
 $seed$;
