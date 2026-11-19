@@ -19,6 +19,8 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 
 **Fatia 5, etapa A, em 18/11/2026:** conclusão manual e automática e rateio. Testes automáticos verdes e L20 nas APIs 29 e 36, com as 2 migrações na produção (`setup.md`, 9.9). Os RFs da etapa ficam *Em andamento* até a etapa C, que fecha a fatia: as faltas, as multas e as isenções (RF60 a RF63, RF69, RF70) entram na etapa B, e a troca de recebedor (RF33) e as Cobranças (RF75, RF76) na etapa C. O RF42 espera o M08 na produção.
 
+**Fatia 5, etapa B, em 18/11/2026:** faltas, multas e isenções, automática e manual, e o histórico da pessoa no jogo. Testes automáticos verdes e L21 nas APIs 29 e 36, com a migração `create_waive_penalty` na produção (`setup.md`, 9.10). Os RFs da etapa (RF56 a RF65, RF69, RF70) ficam *Em andamento* até a etapa C, que fecha a fatia.
+
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
 | RF01 | 2 | — | Auth; `profiles`, `profile_private` (`on_auth_user_confirmed`) | `/signup` | S01, S02, L08 | Concluído |
@@ -76,23 +78,23 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF53 | 4 | RN33, RN41, RN59 | `set_slot_limit` (redução) | `/games/:gameId/edit` | O20 a O23, C05, S53 | Concluído |
 | RF54 | 4 | RN29, RN58 | `remove_participant`; `game_participants` | `/games/:gameId` | O17 a O19 | Concluído |
 | RF55 | 4 | RN02, RN03, RN51 | `join_game` (prazo e início, RN03) | `/games/:gameId` | O01 a O07, T03 a T05, S42 | Concluído |
-| RF56 | 5 | RN02, RN03, RN35, RN57, RN60 | — | — | — | Pendente |
-| RF57 | 5 | RN03, RN56, RN61 | — | — | — | Pendente |
-| RF58 | 5 | RN62 | — | — | — | Pendente |
-| RF59 | 5 | RN58, RN65 | — | — | — | Pendente |
-| RF60 | 5 | RN47, RN63 | — | — | — | Pendente |
-| RF61 | 5 | RN63 | — | — | — | Pendente |
-| RF62 | 5 | RN64 | — | — | — | Pendente |
-| RF63 | 5 | RN65 | — | — | — | Pendente |
-| RF64 | 5 | RN36, RN66, RN93 | — | — | — | Pendente |
-| RF65 | 5 | — | — | — | — | Pendente |
+| RF56 | 5 | RN02, RN03, RN35, RN57, RN60 | `game_participants.left_at` e `late_cancellation`; `complete_game` sem valor | `/games/:gameId`, `/games/:gameId/split` | T16, S68, S71 | Em andamento |
+| RF57 | 5 | RN03, RN56, RN61 | `charges` (`late_cancellation_penalty`); `complete_game` | `/games/:gameId`, `/games/:gameId/split` | I01 a I12, F13, S71 | Em andamento |
+| RF58 | 5 | RN62 | `game_participants.late_cancellation_exempt`; `game_limit_history`; `complete_game` | `/games/:gameId/complete`, `/games/:gameId/split` | I01 a I12, Z09, S67, S68, S69 | Em andamento |
+| RF59 | 5 | RN58, RN65 | `removal_reason`; `complete_game` sem valor | `/games/:gameId/split` | F12, F14 | Em andamento |
+| RF60 | 5 | RN47, RN63 | `p_absent_user_ids`; `absence_source` | `/games/:gameId/complete` | F01, F02, F05, F08, S67, L21 | Em andamento |
+| RF61 | 5 | RN63 | `charges` (`absence_penalty`) | `/games/:gameId`, `/games/:gameId/split` | F01, F05, S71, L21 | Em andamento |
+| RF62 | 5 | RN64 | `amount_cents` = `share_cents` | `/games/:gameId/split` | F01, F05 | Em andamento |
+| RF63 | 5 | RN65 | `RECEIVER_CANNOT_BE_ABSENT`; `RECEIVER_LOCKED` | `/games/:gameId/complete` | F06, F07, S67 | Em andamento |
+| RF64 | 5 | RN36, RN66, RN93 | `waive_penalty`; `charge_events` | `/games/:gameId/split` | F09 a F11, R08, Z08, C09, S70, L21 | Em andamento |
+| RF65 | 5 | — | `game_participants` (as passagens de quem lê) | `/games/:gameId` (Sua participação) | S71 | Em andamento |
 | RF66 | 5 | RN67, RN70 | — | — | — | Pendente |
 | RF67 | 5 | RN04, RN71, RN75 | `games.share_cents`; `complete_game` | `/games/:gameId/complete`, `/games/:gameId/split` | R01 a R07, R09, R10, S63 | Em andamento |
 | RF68 | 5 | RN72 | `charges` (`share`) | `/games/:gameId/split` | R01 a R03, R05, R07, S68, L20 | Em andamento |
-| RF69 | 5 | RN72 | — | — | — | Pendente |
-| RF70 | 5 | RN72 | — | — | — | Pendente |
+| RF69 | 5 | RN72 | `charges` (`absence_penalty`, `late_cancellation_penalty`) | `/games/:gameId/split` | F01, F05, I01 a I12, S69 | Em andamento |
+| RF70 | 5 | RN72 | Sem valor com `late_cancellation_exempt` | `/games/:gameId/split` | I01 a I12, Z09, S68 | Em andamento |
 | RF71 | 5 | RN32, RN72, RN73 | `charges.receiver_id`; sem valor para o recebedor | `/games/:gameId/split` | R01, R09, S68, S69, L20 | Em andamento |
-| RF72 | 5 | RN73 | `charges.status`; `charge_events` | `/games/:gameId`, `/games/:gameId/split` | R10, S61, S68, S69 | Em andamento |
+| RF72 | 5 | RN73 | `charges.status`; `charge_events` | `/games/:gameId`, `/games/:gameId/split` | R10, F09, S61, S68 a S70, L21 | Em andamento |
 | RF73 | 5 | RN76 | RLS de `charges` (Y01 a Y03) | `/games/:gameId`, `/games/:gameId/split` | Y01 a Y03, S61, S68 | Em andamento |
 | RF74 | 5 | RN76 | RLS de `charges` (Y05 a Y07) | `/games/:gameId/split` | Y05 a Y07, S69, L20 | Em andamento |
 | RF75 | 5 | — | — | — | — | Pendente |
