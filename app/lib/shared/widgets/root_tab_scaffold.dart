@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'state_views.dart';
-
 /// Tela-raiz de aba: barra superior de raiz com o título
 /// (docs/ui/design-system.md, 7.7) e o corpo da aba.
 ///
@@ -25,27 +23,5 @@ class RootTabScaffold extends StatelessWidget {
       ),
       body: body,
     );
-  }
-}
-
-/// Estado vazio provisório das abas que ainda não têm tela
-/// (docs/ui/telas.md, 4.2). Sai quando a aba ganha a tela real.
-class PlaceholderTab extends StatelessWidget {
-  const PlaceholderTab({
-    required this.icon,
-    required this.title,
-    required this.body,
-    this.footer,
-    super.key,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-  final Widget? footer;
-
-  @override
-  Widget build(BuildContext context) {
-    return EmptyState(icon: icon, title: title, body: body, action: footer);
   }
 }

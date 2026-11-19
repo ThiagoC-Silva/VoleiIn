@@ -97,6 +97,16 @@ class GameActionsController extends SubmitController {
     () => _games.removeGameAdmin(gameId: gameId, userId: userId),
   );
 
+  /// `change_receiver` (RF33). As cobranças mudam junto, depois da conclusão.
+  Future<AppException?> changeReceiver(String gameId, String userId) async {
+    final error = await _run(
+      gameId,
+      () => _games.changeReceiver(gameId: gameId, newReceiverId: userId),
+    );
+    if (ref.mounted) ref.invalidate(myChargesProvider);
+    return error;
+  }
+
   Future<AppException?> remove(String gameId, String userId) => _run(
     gameId,
     () => _games.removeParticipant(gameId: gameId, userId: userId),

@@ -8,11 +8,6 @@
   "navGroups": "Grupos",
   "navCharges": "Cobranças",
   "navProfile": "Perfil",
-  "placeholderTitle": "Em construção",
-  "@placeholderTitle": {
-    "description": "Provisório: sai quando a aba ganha a tela real"
-  },
-  "placeholderBody": "Esta parte do app chega nas próximas versões.",
   "authLoginSubtitle": "Entre para ver seus jogos.",
   "authEmailLabel": "E-mail",
   "authPasswordLabel": "Senha",

@@ -39,11 +39,12 @@ Future<bool> confirmDestructive(
 );
 
 /// Confirmação em tom normal, com o botão principal amarelo e o "Voltar"
-/// (design-system.md, 7.15). Verdadeiro ao confirmar.
+/// (design-system.md, 7.15). Sem [body], só o título, como a da troca de
+/// recebedor (telas.md, 8.4). Verdadeiro ao confirmar.
 Future<bool> confirmAction(
   BuildContext context, {
   required String title,
-  required String body,
+  String? body,
   required String confirmLabel,
 }) => _confirm(
   context,
@@ -56,7 +57,7 @@ Future<bool> confirmAction(
 Future<bool> _confirm(
   BuildContext context, {
   required String title,
-  required String body,
+  required String? body,
   required String confirmLabel,
   required bool destructive,
 }) async {
@@ -67,8 +68,10 @@ Future<bool> _confirm(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(title, style: theme.textTheme.headlineMedium),
-        const SizedBox(height: 12),
-        Text(body, style: theme.textTheme.bodyMedium),
+        if (body != null) ...[
+          const SizedBox(height: 12),
+          Text(body, style: theme.textTheme.bodyMedium),
+        ],
         const SizedBox(height: 24),
         PrimaryButton(
           label: confirmLabel,

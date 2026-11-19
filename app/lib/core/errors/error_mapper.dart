@@ -151,6 +151,11 @@ const Map<String, ErrorCode> _serverCodes = {
   // Isenção manual, etapa B da fatia 5.
   'NOT_A_PENALTY': ErrorCode.notAPenalty,
   'CHARGE_NOT_PENDING': ErrorCode.chargeNotPending,
+  // Troca de recebedor, etapa C da fatia 5.
+  'GAME_CANCELLED': ErrorCode.gameCancelled,
+  'RECEIVER_MUST_BE_PARTICIPANT': ErrorCode.receiverMustBeParticipant,
+  'RECEIVER_UNCHANGED': ErrorCode.receiverUnchanged,
+  'RECEIVER_CHANGE_BLOCKED': ErrorCode.receiverChangeBlocked,
 };
 
 /// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).

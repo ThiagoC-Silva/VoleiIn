@@ -21,9 +21,17 @@
 
 ## Sessão 3 — App
 
-- [ ] T009 Testes antes: S72 a S76, E15, L22
-- [ ] T010 Troca de recebedor e aba Cobranças (`docs/ui/telas.md`, seção 8)
-- [ ] T011 `dart format`, `dart analyze` e `flutter test` verdes
+- [x] T009 Testes antes: S72 a S76, E15, L22
+- [x] T010 Troca de recebedor e aba Cobranças (`docs/ui/telas.md`, seção 8)
+- [x] T011 `dart format`, `dart analyze` e `flutter test` verdes
+
+**Sessão 3 concluída em 19/11/2026** no *branch* `fatia-5/app-c`: `dart analyze` e `flutter test` (552 testes) verdes. Testes antes no *commit* `de3918c`, com a saída da falha (22 testes vermelhos). Depois dele, só ajustes de forma no `charges_screen_test.dart`, sem resultado esperado alterado: os valores passaram a vir do `formatCents` (o espaço depois do `R$` é sem quebra), o teste rola até a seção A receber, que fica abaixo da dobra, e saiu a conferência de que o texto provisório sumiu, porque a chave saiu do ARB. Os testes novos estão em `app/test/features/games/presentation/game_receiver_test.dart`, `app/test/features/splits/presentation/charges_screen_test.dart` e nos testes de erro (E15).
+
+- **Troca de recebedor:** a sheet fica em `receiver_change_sheet.dart`, aberta pela opção **Trocar recebedor** do menu do admin, que aparece com o jogo Aberto, Confirmado ou Concluído. A confirmação tem só o título, como no briefing, e o `confirmAction` ganhou o corpo opcional.
+- **Cobranças:** `fetchMyCharges` lê os valores `pending` e `under_review` em que a pessoa é o pagador ou o recebedor; o `ChargesOverview` (`charge_models.dart`) agrupa e soma, só com inteiros. "de {n} pessoas" conta as pessoas diferentes em todos os jogos. As linhas abrem o Rateio pela aba Jogos.
+- **Contador da aba:** a barra inferior lê o mesmo `myChargesProvider`, que relê ao tocar na aba e junto com Meus jogos. O TalkBack lê `chargesTabBadgeLabel` junto com o nome da aba.
+- **Textos da fatia 5:** `gameReceiverCannotLeave`, `groupBlockedReceiverBody` e `groupRemoveBlockedReceiverBody` (`docs/copy.md`, 8.3 e 8.6). As chaves provisórias `placeholderTitle` e `placeholderBody` e o `PlaceholderTab` saíram, porque Cobranças era a última aba vazia (`docs/ui/telas.md`, 4.2).
+- **L22:** em `integration_test/receiver_flow_test.dart`. Como o L20 e o L21, usa o jogo do seed "Quinta aguardando conclusão" (`...0209`): a Ana o conclui pela API antes de abrir o app, se o `pg_cron` ainda não o concluiu. Rode logo depois de um `supabase db reset`, sem o L20 e o L21. Na API 36, a primeira rodada falhou depois da troca, que já tinha sido gravada, sem a causa guardada; as três seguintes, cada uma depois de um `db reset`, passaram. A rodada das APIs 29 e 36 é a T012.
 
 ## Sessão 4 — Validação
 

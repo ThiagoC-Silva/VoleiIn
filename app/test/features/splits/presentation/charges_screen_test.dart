@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:voleiin/core/errors/error_code.dart';
+import 'package:voleiin/core/format/money.dart';
 import 'package:voleiin/features/games/domain/charge_models.dart';
 import 'package:voleiin/shared/widgets/bottom_nav.dart';
 
@@ -112,7 +113,7 @@ void main() {
       await openCharges(tester);
 
       expect(find.text(l10nPt.chargesTitle), findsWidgets);
-      expect(find.text('R\$ 35,84'), findsOneWidget);
+      expect(find.text(formatCents(3584)), findsOneWidget);
       expect(find.text('em 2 jogos'), findsOneWidget);
 
       final first = find.text('qui, 19/11 · Quadra do Sesc');
@@ -125,8 +126,13 @@ void main() {
       );
       expect(find.text('Para Ana'), findsOneWidget);
       expect(find.text('Para Carlinha · Multa por falta'), findsOneWidget);
-      expect(find.text('R\$ 20,84'), findsOneWidget);
-      expect(find.text('R\$ 15,00'), findsOneWidget);
+      expect(find.text(formatCents(2084)), findsOneWidget);
+      expect(find.text(formatCents(1500)), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(l10nPt.chargesNothingToReceive),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text(l10nPt.chargesNothingToReceive), findsOneWidget);
 
       // O contador da aba: os 2 valores Pendentes.
@@ -142,7 +148,7 @@ void main() {
       h.myCharges(anaLines());
       await openCharges(tester);
 
-      expect(find.text('R\$ 229,24'), findsNWidgets(2));
+      expect(find.text(formatCents(22924)), findsNWidgets(2));
       expect(find.text('de 11 pessoas'), findsOneWidget);
       expect(find.text('qui, 19/11 · Quadra do Sesc'), findsOneWidget);
       expect(find.text('11 pessoas'), findsOneWidget);
@@ -174,7 +180,6 @@ void main() {
       expect(find.text(l10nPt.chargesEmptyBody), findsOneWidget);
       expect(find.text(l10nPt.chargesToPay), findsNothing);
       expect(find.text(l10nPt.chargesToReceive), findsNothing);
-      expect(find.text(l10nPt.placeholderTitle), findsNothing);
     });
 
     testWidgets('falha de carga: Tentar de novo relê', (tester) async {
