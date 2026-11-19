@@ -29,5 +29,7 @@
 
 ## Sessão 4 — Validação
 
-- [ ] T012 L21 nas APIs 29 e 36
-- [ ] T013 Ensaio e `supabase db push`; advisors
+- [x] T012 L21 nas APIs 29 e 36
+- [x] T013 Ensaio e `supabase db push`; advisors
+
+**Sessão 4 concluída em 18/11/2026** no *branch* `fatia-5/validacao-b`: L21 verde nas APIs 36 e 29, com `supabase db reset` antes de cada uma. Ensaio, `db push` da `20261118130000` e advisors em `setup.md`, 9.10. `rastreabilidade.md` com os RFs da etapa, *Em andamento* até a etapa C.

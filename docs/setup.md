@@ -243,7 +243,7 @@ Diego continua sem grupo: a solicitação pendente não é contexto (RN107), e e
 | Jogo da Carla | `00000000-0000-0000-0000-000000000206` | `JogoCarla001` | Dia +5, 19h às 21h, prazo às 17h | Arena Delta; R$ 80,00; 8 | Carla e Ana | Carla é a recebedora e a única admin (L19) |
 | Avulso da Ana | `00000000-0000-0000-0000-000000000207` | `JogoAvulso01` | Dia +6, 18h às 20h, prazo às 16h | Praia do Coqueiro; R$ 40,00; 4 | Ana | Sem grupo |
 | Quinta concluído (fatia 5) | `00000000-0000-0000-0000-000000000208` | `JogoConclu01` | Dia −1, 20h às 22h, prazo às 18h | Quadra do Sesc; R$ 60,00; 6 | Ana, Bruno e Carla | Concluído pela Ana no seed, com `complete_game_core`: parte de R$ 10,00, um `share` Pendente para o Bruno e outro para a Carla, R$ 40,00 por conta da Ana |
-| Quinta aguardando conclusão (fatia 5) | `00000000-0000-0000-0000-000000000209` | `JogoAguard01` | Terminou 10 min antes do `db reset`; início 2 h antes do fim, prazo 2 h antes do início | Ginásio Verdão; R$ 90,00; 3 | Ana, Bruno e Carla | Status Confirmado (lista cheia), depois do fim. É o jogo do L20: R$ 30,00 por vaga e R$ 60,00 a receber (decisão de 18/11/2026) |
+| Quinta aguardando conclusão (fatia 5) | `00000000-0000-0000-0000-000000000209` | `JogoAguard01` | Terminou 10 min antes do `db reset`; início 2 h antes do fim, prazo 2 h antes do início | Ginásio Verdão; R$ 90,00; 3 | Ana, Bruno e Carla | Status Confirmado (lista cheia), depois do fim. É o jogo do L20: R$ 30,00 por vaga e R$ 60,00 a receber (decisão de 18/11/2026). O L21 usa o mesmo jogo: cada um roda logo depois de um `db reset` |
 | Quinta com multas (fatia 5, etapa B) | `00000000-0000-0000-0000-000000000210` | `JogoMultas01` | Dia −2, 20h às 22h, prazo às 18h | Ginásio Verdão; R$ 40,00; 4 | Ana e Carla | Bruno cancelou fora do prazo, às 18h30. Concluído pela Ana no seed com a Carla faltosa: parte de R$ 10,00, `absence_penalty` Pendente da Carla e `late_cancellation_penalty` do Bruno, mantida pelas vagas ociosas e isentada pela Ana com `waive_penalty` (research R4 de `specs/007-conclusao-etapa-b`) |
 
 - Em todos, quem está primeiro na lista é o admin e o recebedor, e o `game_limit_history` tem a linha do limite inicial.
@@ -381,6 +381,14 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 - O jogo de teste "Teste M06" estava Aberto, com fim em 21/11/2026 às 01:00 UTC. A migração não o tocou. Se ninguém o concluir, o `pg_cron` o conclui até 1 h 05 min depois do fim.
 - `supabase db push --dry-run` listou as mesmas 2, sem seed nem roles, e o `supabase db push` as aplicou.
 - Conferência: 31 migrações, o job ativo, nenhuma tabela sem RLS e nenhum valor a pagar. Advisors de segurança: o INFO de RLS sem política em 6 tabelas (eram 9; `charges`, `charge_events` e `receiver_changes` ganharam política), o WARN `authenticated_security_definer_function_executable` em 25 funções (`preview_complete_game` e `complete_game` entram por desenho; `auto_complete_due_games` não aparece no aviso, porque só o `pg_cron` a chama) e os mesmos WARN de Auth.
+
+### 9.10 Migração da etapa B da fatia 5 (18/11/2026)
+
+**Feita em 18/11/2026**, pelo agente. A produção tinha as 31 migrações até a etapa A da fatia 5, com os mesmos dados da seção 9.9.
+
+- Ensaio da seção 9.2: cópia nova em `~/voleiin-dumps`, banco local na versão `20261118120100`, sem seed, com a carga de `data-local.sql` (o dump sem os blocos `COPY` vazios, como na seção 9.6). A migração `20261118130000` (`create_waive_penalty`) aplicou sem erro, os 710 testes pgTAP passaram, e as contagens ficaram iguais antes e depois (1 conta, 1 perfil, 1 grupo, 1 membro, 1 jogo, 1 passagem, 1 admin, 1 linha de histórico de limite, 2 aceites, nenhum valor) e nenhuma tabela sem RLS.
+- `supabase db push --dry-run` listou só essa migração, sem seed nem roles, e o `supabase db push` a aplicou.
+- Conferência: 32 migrações, nenhuma tabela sem RLS, nenhum valor a pagar, `waive_penalty` executável por `authenticated` e não por `anon`. O "Teste M06" continua Aberto, à espera do M08. Advisors de segurança: o INFO de RLS sem política nas mesmas 6 tabelas, o WARN `authenticated_security_definer_function_executable` em 26 funções (`waive_penalty` entra por desenho) e os mesmos WARN de Auth.
 
 ## 10. Domínio, e-mail e convites
 
