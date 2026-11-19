@@ -704,7 +704,8 @@ Decisões de 18/11/2026. Telas em `docs/ui/telas.md`, seção 8. Palavras do dom
 | `chargeKindLateCancellation` | Multa por cancelamento | Rótulo do `kind` |
 | `chargeWaivedManual` | Isentado por um admin | Motivo do Isento (RN93) |
 | `chargeWaivedReceiverChange` | Anulado na troca de recebedor | Motivo do Isento (RN94) |
-| `waiveAction` | Isentar multa | Opção da sheet |
+| `waiveAction` | Isentar multa | Opção da sheet e botão da confirmação |
+| `waiveActionHint` | O valor deixa de ser cobrado | Linha de apoio da opção (decisão de 18/11/2026, sessão 3 da etapa B, pelo PNG) |
 | `waiveTitle` | Isentar a multa de {name}? | Título da confirmação |
 | `waiveBody` | O valor deixa de ser cobrado e não pode voltar. | Frase da confirmação |
 | `penaltyWaived` | Multa isentada. | `SnackBar` |

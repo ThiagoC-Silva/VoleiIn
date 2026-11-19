@@ -148,6 +148,9 @@ const Map<String, ErrorCode> _serverCodes = {
   'GAME_NOT_ENDED': ErrorCode.gameNotEnded,
   'ABSENT_NOT_PARTICIPANT': ErrorCode.absentNotParticipant,
   'RECEIVER_CANNOT_BE_ABSENT': ErrorCode.receiverCannotBeAbsent,
+  // Isenção manual, etapa B da fatia 5.
+  'NOT_A_PENALTY': ErrorCode.notAPenalty,
+  'CHARGE_NOT_PENDING': ErrorCode.chargeNotPending,
 };
 
 /// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).

@@ -82,7 +82,7 @@ class GamesRepository {
       _db
           .from('game_participants')
           .select(
-            'user_id, status, joined_at, absent, '
+            'user_id, status, joined_at, left_at, absent, '
             'profiles(display_name, photo_path)',
           )
           .eq('game_id', gameId)
@@ -98,6 +98,12 @@ class GamesRepository {
       _db.from('game_admins').select('user_id').eq('game_id', gameId),
       _groupNames([gameId]),
       _db.rpc('get_profile_contact', params: {'p_user_id': receiverId}),
+      // Todas as passagens de quem lê, para "Sua participação" (8.1).
+      _db
+          .from('game_participants')
+          .select(_passageColumns)
+          .eq('game_id', gameId)
+          .eq('user_id', uid),
       if (groupId != null)
         _db
             .from('group_members')
@@ -137,6 +143,7 @@ class GamesRepository {
             photoPath: _photoPath(row),
             status: ParticipantStatus.parse(row['status'] as String),
             joinedAt: _instant(row['joined_at']),
+            leftAt: _instantOrNull(row['left_at']),
             absent: row['absent'] as bool? ?? false,
           ),
       ],
@@ -152,10 +159,12 @@ class GamesRepository {
       adminIds: [
         for (final row in results[2] as List) row['user_id'] as String,
       ],
-      isGroupMember: results.length > 5 && results[5] != null,
+      isGroupMember: results.length > 6 && results[6] != null,
       viewerId: uid,
       shareCents: game['share_cents'] as int?,
       myCharge: _myCharge([for (final row in myCharges) _charge(row)]),
+      myPassages: [for (final row in results[5] as List) _passage(row)]
+        ..sort((a, b) => a.joinedAt.compareTo(b.joinedAt)),
     );
   });
 
@@ -380,32 +389,45 @@ class GamesRepository {
         _db.from('charges').select(_chargeColumns).eq('game_id', gameId),
         _db
             .from('game_participants')
-            .select(
-              'user_id, status, joined_at, late_cancellation, '
-              'late_cancellation_exempt, absent, '
-              'profiles(display_name, photo_path)',
-            )
+            .select(_passageColumns)
             .eq('game_id', gameId),
       ]);
       return GameSplit(
         game: game,
         charges: [for (final row in results[0]) _charge(row)],
-        passages: [
-          for (final row in results[1])
-            GamePassage(
-              userId: row['user_id'] as String,
-              displayName: _displayName(row),
-              photoPath: _photoPath(row),
-              status: ParticipantStatus.parse(row['status'] as String),
-              joinedAt: _instant(row['joined_at']),
-              lateCancellation: row['late_cancellation'] as bool? ?? false,
-              lateCancellationExempt:
-                  row['late_cancellation_exempt'] as bool? ?? false,
-              absent: row['absent'] as bool? ?? false,
-            ),
-        ],
+        passages: [for (final row in results[1]) _passage(row)],
       );
     });
+  }
+
+  /// `waive_penalty`: isenta uma multa Pendente (RF64; contratos-api.md,
+  /// seção 5).
+  Future<void> waivePenalty(String chargeId) => guard(() async {
+    await _db.rpc('waive_penalty', params: {'p_charge_id': chargeId});
+  });
+
+  static const _passageColumns =
+      'user_id, status, joined_at, left_at, late_cancellation, '
+      'cancellation_voided_at, late_cancellation_exempt, removal_reason, '
+      'absent, absence_source, profiles(display_name, photo_path)';
+
+  static GamePassage _passage(Map row) {
+    final removal = row['removal_reason'] as String?;
+    final source = row['absence_source'] as String?;
+    return GamePassage(
+      userId: row['user_id'] as String,
+      displayName: _displayName(row),
+      photoPath: _photoPath(row),
+      status: ParticipantStatus.parse(row['status'] as String),
+      joinedAt: _instant(row['joined_at']),
+      leftAt: _instantOrNull(row['left_at']),
+      lateCancellation: row['late_cancellation'] as bool? ?? false,
+      cancellationVoidedAt: _instantOrNull(row['cancellation_voided_at']),
+      lateCancellationExempt: row['late_cancellation_exempt'] as bool? ?? false,
+      removalReason: removal == null ? null : RemovalReason.parse(removal),
+      absent: row['absent'] as bool? ?? false,
+      absenceSource: source == null ? null : AbsenceSource.parse(source),
+    );
   }
 
   static const _chargeColumns =
@@ -533,6 +555,9 @@ class GamesRepository {
 
   static DateTime _instant(Object? value) =>
       DateTime.parse(value as String).toUtc();
+
+  static DateTime? _instantOrNull(Object? value) =>
+      value == null ? null : _instant(value);
 }
 
 final _uuid = RegExp(

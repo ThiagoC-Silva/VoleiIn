@@ -107,6 +107,10 @@ abstract class GameParticipant with _$GameParticipant {
     required ParticipantStatus status,
     required DateTime joinedAt,
 
+    /// Instante da saída, no `left_after_start` ("Saiu às 20:30" na
+    /// conclusão, telas.md, 8.2). Nulo na passagem `active`.
+    DateTime? leftAt,
+
     /// Falta registrada (saída após o início ou marcada na conclusão).
     @Default(false) bool absent,
   }) = _GameParticipant;
@@ -162,6 +166,10 @@ abstract class GameDetail with _$GameDetail {
 
     /// O valor a pagar de quem lê, no jogo concluído, ou nulo.
     GameCharge? myCharge,
+
+    /// Todas as passagens de quem lê, em qualquer status, para o card "Sua
+    /// participação" (RF65; telas.md, 8.1).
+    @Default(<GamePassage>[]) List<GamePassage> myPassages,
   }) = _GameDetail;
 
   int get occupiedSlots => participants.where((p) => p.status.takesSlot).length;

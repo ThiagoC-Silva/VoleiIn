@@ -17,9 +17,15 @@
 
 ## Sessão 3 — App
 
-- [ ] T009 Testes antes: S67, S69 (Isentos), S70, S71, S75, S76, E15, L21
-- [ ] T010 Faltas na conclusão, isenção manual e histórico da pessoa no jogo (`docs/ui/telas.md`, seção 8)
-- [ ] T011 `dart format`, `dart analyze` e `flutter test` verdes
+- [x] T009 Testes antes: S67, S69 (Isentos), S70, S71, S75, S76, E15, L21
+- [x] T010 Faltas na conclusão, isenção manual e histórico da pessoa no jogo (`docs/ui/telas.md`, seção 8)
+- [x] T011 `dart format`, `dart analyze` e `flutter test` verdes
+
+**Sessão 3 concluída em 18/11/2026** no *branch* `fatia-5/app-b`: `dart analyze` e `flutter test` (525 testes) verdes. Testes antes, num *commit* só deles, com a saída da falha (14 testes vermelhos; S69 Isentos já passava com o Rateio da etapa A). Os testes novos estão em `app/test/features/games/presentation/game_penalties_test.dart` e nos testes de erro (E15).
+
+- **Sua participação (responsável):** o card aparece com outra passagem, falta ou multa. Quem só jogou e tem a parte não o vê, como no S71 e no PNG. A `telas.md` (8.1) dizia "valor a pagar" e foi corrigida.
+- **Sheet de isentar:** pelo `gameSplit-isentar.png`, o cabeçalho tem o avatar e "{rótulo} · {valor} · {status}", e a opção ganhou a linha de apoio `waiveActionHint` ("O valor deixa de ser cobrado"), nova no `copy.md` (9.3). O `SheetOption` ganhou o parâmetro `subtitle`.
+- **L21:** usa o jogo do seed "Quinta aguardando conclusão" (`...0209`), como o L20, em `integration_test/penalties_flow_test.dart`. Os dois concluem o mesmo jogo: cada um roda logo depois de um `supabase db reset`. Rodou uma vez na API 36, verde; a rodada das APIs 29 e 36 é a T012.
 
 ## Sessão 4 — Validação
 

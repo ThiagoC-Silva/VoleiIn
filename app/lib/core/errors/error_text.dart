@@ -61,6 +61,8 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.gameNotEnded => l10n.errorGameNotEnded,
     ErrorCode.absentNotParticipant => l10n.errorAbsentNotParticipant,
     ErrorCode.receiverCannotBeAbsent => l10n.errorReceiverCannotBeAbsent,
+    ErrorCode.notAPenalty => l10n.errorNotAPenalty,
+    ErrorCode.chargeNotPending => l10n.errorChargeNotPending,
   };
 }
 

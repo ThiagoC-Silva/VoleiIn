@@ -13,6 +13,7 @@ class SheetOption extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.color,
+    this.subtitle,
     super.key,
   });
 
@@ -20,6 +21,9 @@ class SheetOption extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final Color? color;
+
+  /// Linha de apoio, abaixo do rótulo (gameSplit-isentar.png).
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -34,12 +38,24 @@ class SheetOption extends StatelessWidget {
             IconSquare(icon: icon, foreground: color),
             const SizedBox(width: 16),
             Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: color,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: color,
+                    ),
+                  ),
+                  if (subtitle case final note?)
+                    Text(
+                      note,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
               ),
             ),
           ],

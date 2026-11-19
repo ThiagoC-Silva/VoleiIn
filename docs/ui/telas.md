@@ -842,7 +842,7 @@ Decisões de 18/11/2026. A fatia 5 entrega a conclusão do jogo (manual e autom�
 5. **Lista de presença**, como na 7.3, com o selo `bad` **Faltou** nas passagens com `absent = true`, no lugar de "Saiu após o início". A lista de espera não aparece.
 6. **Pé da tela vazio.**
 
-**Card "Sua participação"** (RF65, decisão de 18/11/2026), entre o recebedor e a lista, em qualquer status do jogo. Aparece quando a pessoa tem alguma passagem que não seja a `active` atual, ou falta, ou valor a pagar. Para quem só está na lista, sem nada disso, ele não aparece. Uma linha por passagem da pessoa, por ordem de `joined_at`, com o texto pela situação:
+**Card "Sua participação"** (RF65, decisão de 18/11/2026), entre o recebedor e o card do Rateio, em qualquer status do jogo. Aparece quando a pessoa tem alguma passagem que não seja a `active` atual, ou falta, ou multa. Para quem só está na lista, ainda que com a parte do jogo, ele não aparece: o card do Rateio já mostra a parte (S71; decisão do responsável de 18/11/2026, sessão 3 da etapa B). Uma linha por passagem da pessoa, por ordem de `joined_at`, com o texto pela situação:
 
 | Passagem | Linha |
 |----------|-------|
@@ -930,7 +930,7 @@ No fim do card, com o jogo concluído, o valor a pagar da pessoa (rótulo, valor
 
 | Quem toca | Em qual valor | O que abre |
 |-----------|---------------|------------|
-| Admin do jogo | Multa (`absence_penalty` ou `late_cancellation_penalty`) Pendente | Sheet com o nome como título e a opção **Isentar multa** (RN66) |
+| Admin do jogo | Multa (`absence_penalty` ou `late_cancellation_penalty`) Pendente | Sheet com o avatar, o nome como título e "{rótulo} · {valor} · {status}" embaixo, e a opção **Isentar multa**, com a linha `waiveActionHint` (RN66; gameSplit-isentar.png) |
 | Os demais, ou outro valor | — | O perfil da pessoa (`gamePerson`) |
 
 | Situação | O que acontece |
