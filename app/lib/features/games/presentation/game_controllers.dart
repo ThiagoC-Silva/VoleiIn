@@ -145,6 +145,19 @@ class GameCompletionController extends SubmitController {
     }
     return error;
   }
+
+  /// `waive_penalty` (RF64). O Rateio relê depois, pela própria tela; o
+  /// detalhe relê o valor de quem lê.
+  Future<AppException?> waive({
+    required String gameId,
+    required String chargeId,
+  }) async {
+    final error = await submit(
+      () => ref.read(gamesRepositoryProvider).waivePenalty(chargeId),
+    );
+    if (ref.mounted) ref.invalidate(gameDetailProvider(gameId));
+    return error;
+  }
 }
 
 final gameCompletionControllerProvider =

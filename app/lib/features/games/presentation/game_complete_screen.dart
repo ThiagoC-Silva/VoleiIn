@@ -17,9 +17,11 @@ import '../../../core/theme/app_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/confirm_sheet.dart';
+import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/form_fields.dart';
 import '../../../shared/widgets/inline_notice.dart';
 import '../../../shared/widgets/inner_app_bar.dart';
+import '../../../shared/widgets/list_card.dart';
 import '../../../shared/widgets/snack.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/games_repository.dart';
@@ -32,8 +34,8 @@ import 'split_text.dart';
 /// Concluir jogo (RF40, RF41; docs/ui/telas.md, 8.2; gameComplete.png,
 /// gameComplete-vagas.png e gameComplete-confirmar.png). Fora das abas. O
 /// resumo é sempre o do servidor (`preview_complete_game`): o app não calcula
-/// nada. Na etapa A, sem a seção de faltas: vão as faltas de saída após o
-/// início, que a conclusão mantém (RN47).
+/// nada. As faltas (RF60, etapa B) são caixas de seleção, com as saídas
+/// depois do início já marcadas (RN47) e sem o recebedor (RF63).
 class GameCompleteScreen extends ConsumerWidget {
   const GameCompleteScreen({required this.gameId, super.key});
 
@@ -93,19 +95,44 @@ class _CompleteFormState extends ConsumerState<_CompleteForm> {
   Object? _previewError;
   bool _loading = true;
 
+  /// As caixas marcadas. Começam com as faltas de saída após o início (RN47).
+  late Set<String> _absent = {
+    for (final person in _candidates(widget.game))
+      if (person.status == ParticipantStatus.leftAfterStart && person.absent)
+        person.userId,
+  };
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _runPreview());
   }
 
-  /// O jogo relido (Realtime, ou depois de uma falta recusada): refaz o
-  /// *preview* com a lista nova.
+  /// O jogo relido (Realtime, ou depois de uma falta recusada): as marcas de
+  /// quem saiu da lista caem, quem saiu depois do início entra marcado, e o
+  /// *preview* é refeito com a lista nova.
   @override
   void didUpdateWidget(_CompleteForm old) {
     super.didUpdateWidget(old);
-    if (old.game != widget.game) _runPreview();
+    if (old.game == widget.game) return;
+    final before = {for (final p in _candidates(old.game)) p.userId};
+    _absent = {
+      for (final person in _candidates(widget.game))
+        if (_absent.contains(person.userId) ||
+            (!before.contains(person.userId) &&
+                person.status == ParticipantStatus.leftAfterStart &&
+                person.absent))
+          person.userId,
+    };
+    _runPreview();
   }
+
+  /// As passagens que podem levar falta: `active` e `left_after_start`, por
+  /// ordem de `joined_at`, sem o recebedor (telas.md, 8.2; RF63).
+  static List<GameParticipant> _candidates(GameDetail game) => [
+    for (final person in game.participants)
+      if (person.status.takesSlot && person.userId != game.receiverId) person,
+  ]..sort((a, b) => a.joinedAt.compareTo(b.joinedAt));
 
   @override
   void dispose() {
@@ -119,13 +146,11 @@ class _CompleteFormState extends ConsumerState<_CompleteForm> {
     return cents == null || cents <= 0 ? null : cents;
   }
 
-  /// As faltas de saída após o início, menos o recebedor (RN47, RF63).
+  /// A lista completa das caixas marcadas, na ordem da lista
+  /// (contratos-api.md, `complete_game`).
   List<String> get _absentUserIds => [
-    for (final person in widget.game.participants)
-      if (person.status == ParticipantStatus.leftAfterStart &&
-          person.absent &&
-          person.userId != widget.game.receiverId)
-        person.userId,
+    for (final person in _candidates(widget.game))
+      if (_absent.contains(person.userId)) person.userId,
   ];
 
   /// Nulo quando o total não mudou (contratos-api.md, `complete_game`).
@@ -149,7 +174,18 @@ class _CompleteFormState extends ConsumerState<_CompleteForm> {
         _sameIds(params.absentUserIds, last.absentUserIds);
   }
 
-  void _onTotalChanged(String _) {
+  void _onTotalChanged(String _) => _scheduleRefresh();
+
+  void _toggleAbsent(String userId) {
+    setState(() {
+      if (!_absent.remove(userId)) _absent.add(userId);
+    });
+    _scheduleRefresh();
+  }
+
+  /// Um novo *preview* 400 ms depois da última mudança, com o carregando no
+  /// lugar dos números enquanto isso.
+  void _scheduleRefresh() {
     _timer?.cancel();
     _request++;
     setState(() {
@@ -301,6 +337,27 @@ class _CompleteFormState extends ConsumerState<_CompleteForm> {
                 Text(l10n.completeTotalHint, style: soft),
                 const SizedBox(height: 24),
                 Text(
+                  l10n.completeAbsentTitle,
+                  style: theme.textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                if (_candidates(game).isNotEmpty)
+                  ListCard(
+                    children: [
+                      for (final person in _candidates(game))
+                        _AbsentRow(
+                          key: Key('absent-${person.userId}'),
+                          person: person,
+                          checked: _absent.contains(person.userId),
+                          enabled: !busy,
+                          onToggle: () => _toggleAbsent(person.userId),
+                        ),
+                    ],
+                  ),
+                const SizedBox(height: 8),
+                Text(l10n.completeReceiverNoAbsence, style: soft),
+                const SizedBox(height: 24),
+                Text(
                   l10n.completeSummaryTitle,
                   style: theme.textTheme.titleLarge,
                 ),
@@ -326,6 +383,93 @@ class _CompleteFormState extends ConsumerState<_CompleteForm> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Linha de falta (gameComplete.png): avatar, nome, "Saiu às {hora}" para
+/// quem saiu depois do início, e a caixa à direita. A linha inteira marca e
+/// desmarca, e o TalkBack lê `completeAbsentLabel`.
+class _AbsentRow extends ConsumerWidget {
+  const _AbsentRow({
+    required this.person,
+    required this.checked,
+    required this.enabled,
+    required this.onToggle,
+    super.key,
+  });
+
+  final GameParticipant person;
+  final bool checked;
+  final bool enabled;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final path = person.photoPath;
+    final url = path == null
+        ? null
+        : ref.watch(gameAvatarUrlProvider(path)).value;
+    final leftAt = person.status == ParticipantStatus.leftAfterStart
+        ? person.leftAt
+        : null;
+    final note = leftAt == null
+        ? null
+        : l10n.completeLeftAt(formatTime(leftAt));
+    final tap = enabled ? onToggle : null;
+
+    return Semantics(
+      label: l10n.completeAbsentLabel(person.displayName),
+      value: note,
+      checked: checked,
+      enabled: enabled,
+      onTap: tap,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: tap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 64),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+            child: Row(
+              children: [
+                VoleiAvatar(
+                  id: person.userId,
+                  name: person.displayName,
+                  imageUrl: url,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        person.displayName,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (note != null)
+                        Text(
+                          note,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Checkbox(
+                  value: checked,
+                  onChanged: enabled ? (_) => onToggle() : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

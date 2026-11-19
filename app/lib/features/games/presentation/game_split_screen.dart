@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/errors/error_code.dart';
 import '../../../core/format/date_time.dart';
 import '../../../core/format/money.dart';
 import '../../../core/router/routes.dart';
@@ -10,13 +11,17 @@ import '../../../core/theme/app_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/badge.dart';
+import '../../../shared/widgets/confirm_sheet.dart';
 import '../../../shared/widgets/inner_app_bar.dart';
 import '../../../shared/widgets/list_card.dart';
+import '../../../shared/widgets/sheet_option.dart';
+import '../../../shared/widgets/snack.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/games_repository.dart';
 import '../domain/charge_models.dart';
 import '../domain/game_models.dart';
 import 'game_badges.dart';
+import 'game_controllers.dart';
 import 'game_trio.dart';
 import 'games_providers.dart';
 import 'split_text.dart';
@@ -31,8 +36,9 @@ final gameSplitProvider = FutureProvider.autoDispose.family<GameSplit, String>(
 /// gameSplit-recebedor.png). Na aba Jogos, com a barra inferior. Todos veem o
 /// cabeçalho e o próprio valor; o recebedor e os admins do jogo veem também os
 /// totais e todos os valores (RN76). Os totais só somam `amount_cents` já
-/// gravados, em inteiros (contratos-api.md, seção 9). Isentar multa é da
-/// etapa B: aqui, o toque numa linha abre o perfil.
+/// gravados, em inteiros (contratos-api.md, seção 9). O admin do jogo toca
+/// numa multa Pendente para isentá-la (RF64; gameSplit-isentar.png); os
+/// outros toques abrem o perfil.
 class GameSplitScreen extends ConsumerWidget {
   const GameSplitScreen({required this.gameId, super.key});
 
@@ -42,6 +48,8 @@ class GameSplitScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final split = ref.watch(gameSplitProvider(gameId));
+    // Mantém o controller vivo durante a isenção.
+    ref.watch(gameCompletionControllerProvider);
     Future<void> reload() => ref.refresh(gameSplitProvider(gameId).future);
 
     return Scaffold(
@@ -176,6 +184,7 @@ class _SplitBody extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _TotalBlock(
+                      key: const Key('splitPendingTotal'),
                       label: l10n.splitPending,
                       cents: _sum(active, {
                         ChargeStatus.pending,
@@ -409,6 +418,7 @@ class _TotalBlock extends StatelessWidget {
     required this.label,
     required this.cents,
     required this.color,
+    super.key,
   });
 
   final String label;
@@ -524,8 +534,17 @@ class _ChargeRow extends ConsumerWidget {
         ? null
         : ref.watch(gameAvatarUrlProvider(path)).value;
 
+    // Multa Pendente, para o admin do jogo: a sheet de isentar (RN66).
+    final waivable =
+        game.isAdmin &&
+        charge.kind.isPenalty &&
+        charge.status == ChargeStatus.pending;
     return InkWell(
-      onTap: isYou ? null : () => _openPerson(context, game.id, charge.payerId),
+      onTap: waivable
+          ? () => _waive(context, ref, game, charge)
+          : isYou
+          ? null
+          : () => _openPerson(context, game.id, charge.payerId),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 72),
         child: Padding(
@@ -588,6 +607,82 @@ class _ChargeRow extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// Sheet com o nome e **Isentar multa**, a confirmação e `waive_penalty`
+/// (telas.md, 8.3). Depois, com sucesso ou erro, a tela relê.
+Future<void> _waive(
+  BuildContext context,
+  WidgetRef ref,
+  GameDetail game,
+  GameCharge charge,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final chosen = await showVoleiSheet<bool>(context, (context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            VoleiAvatar(id: charge.payerId, name: charge.payerName, size: 56),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(charge.payerName, style: theme.textTheme.headlineMedium),
+                  Text(
+                    [
+                      chargeKindLabel(l10n, charge.kind),
+                      formatCents(charge.amountCents),
+                      chargeStatusLabel(l10n, charge.status),
+                    ].join(' · '),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SheetOptions(
+          options: [
+            SheetOption(
+              icon: Symbols.money_off,
+              label: l10n.waiveAction,
+              subtitle: l10n.waiveActionHint,
+              onTap: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        ),
+      ],
+    );
+  });
+  if (chosen != true || !context.mounted) return;
+  final confirmed = await confirmAction(
+    context,
+    title: l10n.waiveTitle(charge.payerName),
+    body: l10n.waiveBody,
+    confirmLabel: l10n.waiveAction,
+  );
+  if (!confirmed || !context.mounted) return;
+  final error = await ref
+      .read(gameCompletionControllerProvider.notifier)
+      .waive(gameId: game.id, chargeId: charge.id);
+  if (!context.mounted) return;
+  ref.invalidate(gameSplitProvider(game.id));
+  if (error == null) {
+    showSnack(context, l10n.penaltyWaived);
+    return;
+  }
+  showErrorSnack(context, error);
+  // Deixou de ser admin: volta ao detalhe (telas.md, seção 8).
+  if (error.code == ErrorCode.notGameAdmin) {
+    context.goNamed(Routes.game, pathParameters: {'gameId': game.id});
   }
 }
 

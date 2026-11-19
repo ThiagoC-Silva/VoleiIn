@@ -24,6 +24,7 @@ import '../../../shared/widgets/sheet_option.dart';
 import '../../../shared/widgets/snack.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/pix_key.dart';
+import '../domain/charge_models.dart';
 import '../domain/game_models.dart';
 import 'game_badges.dart';
 import 'game_controllers.dart';
@@ -127,6 +128,10 @@ class _GameBody extends ConsumerWidget {
                       _Trio(game: game),
                       const SizedBox(height: 16),
                       _ReceiverCard(game: game),
+                      if (_HistoryCard.shows(game)) ...[
+                        const SizedBox(height: 16),
+                        _HistoryCard(game: game),
+                      ],
                       if (game.status == GameStatus.completed) ...[
                         const SizedBox(height: 16),
                         _SplitCard(game: game),
@@ -1346,6 +1351,224 @@ class _SplitCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Card "Sua participação" (RF65; telas.md, 8.1; game-concluido.png): uma
+/// linha por passagem de quem lê, por ordem de `joined_at`, e, com o jogo
+/// concluído, o valor a pagar ou `splitNoCharge`. Aparece com outra passagem,
+/// falta ou multa; quem só jogou e tem a parte não o vê (decisão de
+/// 18/11/2026, S71).
+class _HistoryCard extends StatelessWidget {
+  const _HistoryCard({required this.game});
+
+  final GameDetail game;
+
+  static bool shows(GameDetail game) =>
+      game.myPassages.any((p) => _Entry.of(p) != null) ||
+      (game.myCharge?.kind.isPenalty ?? false);
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final entries = [
+      for (final passage in game.myPassages) ?_Entry.of(passage),
+    ];
+    final completed = game.status == GameStatus.completed;
+    final rows = <Widget>[
+      for (final entry in entries) _HistoryRow(entry: entry),
+      if (completed) _HistoryChargeRow(charge: game.myCharge),
+    ];
+
+    return Container(
+      key: const Key('historyCard'),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.historyTitle, style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0)
+              Divider(color: theme.colorScheme.outlineVariant, height: 1),
+            rows[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// O que aconteceu numa passagem: o ícone, a linha e as linhas de apoio.
+class _Entry {
+  const _Entry(this.icon, this.text, this.notes);
+
+  final IconData icon;
+  final String Function(AppLocalizations l10n) text;
+  final List<String Function(AppLocalizations l10n)> notes;
+
+  /// Nulo para a passagem `active` sem falta: ela não vira linha.
+  static _Entry? of(GamePassage passage) {
+    final left = passage.leftAt;
+    String date() => left == null ? '' : formatShortDate(left);
+    String time() => left == null ? '' : formatTime(left);
+    String Function(AppLocalizations) absence() =>
+        passage.absenceSource == AbsenceSource.leftAfterStart
+        ? (l10n) => l10n.historyAbsentLeft
+        : (l10n) => l10n.historyMarkedAbsent;
+
+    switch (passage.status) {
+      case ParticipantStatus.cancelled:
+        final voided = passage.cancellationVoidedAt;
+        return _Entry(
+          Symbols.logout,
+          passage.lateCancellation
+              ? (l10n) => l10n.historyCancelledLate(date(), time())
+              : (l10n) => l10n.historyCancelledOnTime(date(), time()),
+          [
+            if (voided != null)
+              (l10n) => l10n.historyVoided(formatTime(voided)),
+            if (passage.lateCancellationExempt) (l10n) => l10n.historyExempt,
+          ],
+        );
+      case ParticipantStatus.leftAfterStart:
+        return _Entry(
+          Symbols.directions_run,
+          (l10n) => l10n.historyLeftAfterStart(time()),
+          [if (passage.absent) absence()],
+        );
+      case ParticipantStatus.removed:
+        return switch (passage.removalReason) {
+          RemovalReason.byAdmin => _Entry(
+            Symbols.person_remove,
+            (l10n) => l10n.historyRemovedByAdmin(date()),
+            const [],
+          ),
+          RemovalReason.leftGroup => _Entry(
+            Symbols.group_remove,
+            (l10n) => l10n.historyRemovedGroupLeft(date()),
+            const [],
+          ),
+          _ => null,
+        };
+      case ParticipantStatus.active:
+        return passage.absent
+            ? _Entry(Symbols.event_busy, absence(), const [])
+            : null;
+    }
+  }
+}
+
+class _HistoryRow extends StatelessWidget {
+  const _HistoryRow({required this.entry});
+
+  final _Entry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          IconSquare(icon: entry.icon),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(entry.text(l10n), style: theme.textTheme.bodyLarge),
+                for (final note in entry.notes)
+                  Text(
+                    note(l10n),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A linha do valor no fim do card: rótulo, "Para {recebedor}", valor e
+/// selo, ou `splitNoCharge`.
+class _HistoryChargeRow extends StatelessWidget {
+  const _HistoryChargeRow({required this.charge});
+
+  final GameCharge? charge;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = VoleiColors.of(context);
+    final value = charge;
+    final soft = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    if (value == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Text(l10n.splitNoCharge, style: soft),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          IconSquare(
+            icon: Symbols.receipt_long,
+            background: value.status == ChargeStatus.waived ? null : colors.owe,
+            foreground: value.status == ChargeStatus.waived
+                ? null
+                : colors.onBlock,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  chargeKindLabel(l10n, value.kind),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(l10n.splitOwedTo(value.receiverName), style: soft),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatCents(value.amountCents),
+                    style: theme.textTheme.displaySmall?.copyWith(fontSize: 24),
+                  ),
+                  const SizedBox(height: 4),
+                  ChargeStatusBadge(status: value.status),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
