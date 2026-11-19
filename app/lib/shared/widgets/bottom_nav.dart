@@ -8,6 +8,7 @@ class NavDestinationData {
     required this.icon,
     required this.label,
     this.badgeCount = 0,
+    this.badgeLabel,
   });
 
   final IconData icon;
@@ -15,6 +16,9 @@ class NavDestinationData {
 
   /// Contador vermelho de Cobranças. Zero não mostra nada.
   final int badgeCount;
+
+  /// O que o TalkBack lê no lugar do número (`chargesTabBadgeLabel`).
+  final String? badgeLabel;
 }
 
 /// Navegação inferior (docs/ui/design-system.md, 7.6).
@@ -93,7 +97,7 @@ class _NavItem extends StatelessWidget {
 
     if (data.badgeCount > 0) {
       icon = Badge(
-        label: Text(data.badgeCount.toString()),
+        label: ExcludeSemantics(child: Text(data.badgeCount.toString())),
         backgroundColor: VoleiColors.of(context).bad.dot,
         child: icon,
       );
@@ -102,7 +106,9 @@ class _NavItem extends StatelessWidget {
     return Semantics(
       selected: selected,
       button: true,
-      label: data.label,
+      label: data.badgeCount > 0 && data.badgeLabel != null
+          ? '${data.label}, ${data.badgeLabel}'
+          : data.label,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(28),

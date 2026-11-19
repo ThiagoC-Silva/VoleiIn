@@ -32,6 +32,10 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final games = ref.watch(myGamesProvider);
+    // O contador de Cobranças relê junto com Meus jogos (telas.md, 8.5).
+    ref.listen(myGamesProvider, (_, next) {
+      if (next.isLoading) ref.invalidate(myChargesProvider);
+    });
     Future<void> refresh() => ref.refresh(myGamesProvider.future);
 
     return RootTabScaffold(

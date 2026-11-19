@@ -29,6 +29,7 @@ import '../domain/game_models.dart';
 import 'game_badges.dart';
 import 'game_controllers.dart';
 import 'game_trio.dart';
+import 'receiver_change_sheet.dart';
 import 'split_text.dart';
 import 'games_providers.dart';
 
@@ -565,7 +566,7 @@ class _CircleButton extends StatelessWidget {
 }
 
 /// O que o admin escolheu no menu.
-enum _AdminAction { edit, complete, admins, cancel }
+enum _AdminAction { edit, complete, changeReceiver, admins, cancel }
 
 /// Concluir jogo, para o admin, depois do fim, com o jogo Aberto ou
 /// Confirmado (telas.md, 8.1). O relógio do aparelho só decide o que
@@ -578,9 +579,10 @@ void _openComplete(BuildContext context, String gameId) {
 }
 
 /// O botão `more_vert` do admin, com as opções que valem no momento
-/// (telas.md, 7.3): Editar jogo antes do início; Admins do jogo sempre;
-/// Cancelar jogo com o jogo Aberto ou Confirmado, mesmo depois do início
-/// (RN43).
+/// (telas.md, 7.3 e 8.1): Editar jogo antes do início; Concluir jogo depois
+/// do fim; Trocar recebedor com o jogo Aberto, Confirmado ou Concluído
+/// (RF33); Admins do jogo sempre; Cancelar jogo com o jogo Aberto ou
+/// Confirmado, mesmo depois do início (RN43).
 class _AdminMenu extends ConsumerWidget {
   const _AdminMenu({
     required this.game,
@@ -651,6 +653,7 @@ class _AdminMenu extends ConsumerWidget {
           pathParameters: {'gameId': game.id},
         ),
         _AdminAction.complete => _openComplete(context, game.id),
+        _AdminAction.changeReceiver => showReceiverChangeSheet(context, game),
         _AdminAction.admins => context.pushNamed(
           Routes.gameAdmins,
           pathParameters: {'gameId': game.id},
@@ -661,6 +664,12 @@ class _AdminMenu extends ConsumerWidget {
         if (canEdit) item(_AdminAction.edit, Symbols.edit, l10n.gameEdit),
         if (canComplete)
           item(_AdminAction.complete, Symbols.task_alt, l10n.gameComplete),
+        if (game.status != GameStatus.cancelled)
+          item(
+            _AdminAction.changeReceiver,
+            Symbols.swap_horiz,
+            l10n.gameChangeReceiver,
+          ),
         item(_AdminAction.admins, Symbols.shield_person, l10n.gameAdmins),
         if (game.status.isActive)
           item(
@@ -938,6 +947,7 @@ class _ReceiverCard extends ConsumerWidget {
         : game.receiverName;
 
     return Container(
+      key: const Key('receiverCard'),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,

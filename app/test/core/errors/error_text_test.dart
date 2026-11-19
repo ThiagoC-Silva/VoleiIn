@@ -151,4 +151,19 @@ void main() {
       expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
     }
   });
+
+  test('E15 (fatia 5, etapa C): textos dos erros da troca de recebedor '
+      '(docs/copy.md, 9.6)', () {
+    const texts = {
+      ErrorCode.gameCancelled: 'Este jogo foi cancelado.',
+      ErrorCode.receiverMustBeParticipant:
+          'O novo recebedor precisa estar na lista.',
+      ErrorCode.receiverUnchanged: 'Esta pessoa já é a recebedora do jogo.',
+      ErrorCode.receiverChangeBlocked:
+          'Há valores Em análise. Decida-os antes de trocar o recebedor.',
+    };
+    for (final entry in texts.entries) {
+      expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
+    }
+  });
 }

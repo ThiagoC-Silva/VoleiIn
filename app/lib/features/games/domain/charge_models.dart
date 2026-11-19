@@ -189,3 +189,123 @@ class GameSplit {
   final List<GameCharge> charges;
   final List<GamePassage> passages;
 }
+
+/// Um valor `pending` ou `under_review` em que quem lê é o pagador ou o
+/// recebedor, com o jogo, para a aba Cobranças (RF75, RF76;
+/// docs/ui/telas.md, 8.5).
+class ChargeLine {
+  const ChargeLine({
+    required this.id,
+    required this.gameId,
+    required this.startsAt,
+    required this.locationName,
+    required this.payerId,
+    required this.receiverId,
+    required this.receiverName,
+    this.receiverPhotoPath,
+    required this.kind,
+    required this.amountCents,
+    required this.status,
+  });
+
+  final String id;
+  final String gameId;
+  final DateTime startsAt;
+  final String locationName;
+  final String payerId;
+  final String receiverId;
+
+  /// `coalesce(nickname, name)` (RN100).
+  final String receiverName;
+  final String? receiverPhotoPath;
+  final ChargeKind kind;
+  final int amountCents;
+  final ChargeStatus status;
+}
+
+/// O que quem lê tem a receber num jogo: uma linha por jogo (decisão de
+/// 18/11/2026; telas.md, 8.5).
+class GameToReceive {
+  const GameToReceive({
+    required this.gameId,
+    required this.startsAt,
+    required this.locationName,
+    required this.payerIds,
+    required this.amountCents,
+  });
+
+  final String gameId;
+  final DateTime startsAt;
+  final String locationName;
+  final Set<String> payerIds;
+  final int amountCents;
+}
+
+/// A aba Cobranças: os valores a pagar e a receber de quem lê, somando todos
+/// os jogos. O app só soma `amount_cents` já gravados, em inteiros
+/// (contratos-api.md, seção 9).
+class ChargesOverview {
+  ChargesOverview({required this.viewerId, required List<ChargeLine> lines})
+    : toPay = [
+        for (final line in lines)
+          if (line.payerId == viewerId) line,
+      ]..sort(_byGame),
+      toReceive = _receivable(viewerId, lines);
+
+  final String viewerId;
+
+  /// Os valores em que quem lê é o pagador, do jogo mais antigo para o mais
+  /// recente.
+  final List<ChargeLine> toPay;
+
+  /// Os jogos em que quem lê é o recebedor de algum valor, na mesma ordem.
+  final List<GameToReceive> toReceive;
+
+  int get toPayCents => toPay.fold(0, (sum, line) => sum + line.amountCents);
+
+  int get toPayGames => {for (final line in toPay) line.gameId}.length;
+
+  int get toReceiveCents =>
+      toReceive.fold(0, (sum, game) => sum + game.amountCents);
+
+  /// Pessoas diferentes que devem a quem lê, em todos os jogos.
+  int get toReceivePeople =>
+      {for (final game in toReceive) ...game.payerIds}.length;
+
+  /// O contador da aba: os valores Pendentes a pagar (telas.md, 8.5).
+  int get pendingToPayCount =>
+      toPay.where((line) => line.status == ChargeStatus.pending).length;
+
+  bool get isEmpty => toPay.isEmpty && toReceive.isEmpty;
+
+  static int _byGame(ChargeLine a, ChargeLine b) {
+    final byStart = a.startsAt.compareTo(b.startsAt);
+    return byStart != 0 ? byStart : a.gameId.compareTo(b.gameId);
+  }
+
+  static List<GameToReceive> _receivable(
+    String viewerId,
+    List<ChargeLine> lines,
+  ) {
+    final byGame = <String, List<ChargeLine>>{};
+    for (final line in lines) {
+      if (line.receiverId == viewerId) {
+        byGame.putIfAbsent(line.gameId, () => []).add(line);
+      }
+    }
+    final games = [
+      for (final entry in byGame.entries)
+        GameToReceive(
+          gameId: entry.key,
+          startsAt: entry.value.first.startsAt,
+          locationName: entry.value.first.locationName,
+          payerIds: {for (final line in entry.value) line.payerId},
+          amountCents: entry.value.fold(0, (sum, l) => sum + l.amountCents),
+        ),
+    ];
+    return games..sort((a, b) {
+      final byStart = a.startsAt.compareTo(b.startsAt);
+      return byStart != 0 ? byStart : a.gameId.compareTo(b.gameId);
+    });
+  }
+}

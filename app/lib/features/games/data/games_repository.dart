@@ -406,6 +406,60 @@ class GamesRepository {
     await _db.rpc('waive_penalty', params: {'p_charge_id': chargeId});
   });
 
+  /// `change_receiver`: indica outro recebedor, antes ou depois da conclusão
+  /// (RF33; contratos-api.md, seção 5).
+  Future<void> changeReceiver({
+    required String gameId,
+    required String newReceiverId,
+  }) => guard(() async {
+    await _db.rpc(
+      'change_receiver',
+      params: {'p_game_id': gameId, 'p_new_receiver_id': newReceiverId},
+    );
+  });
+
+  /// Os valores `pending` e `under_review` em que quem lê é o pagador ou o
+  /// recebedor, com o jogo, para a aba Cobranças (RF75, RF76; telas.md, 8.5).
+  /// O filtro pelo pagador e pelo recebedor usa os índices `(payer_id,
+  /// status)` e `(receiver_id, status)`: o admin do jogo lê pelo RLS os
+  /// valores dos outros, que não entram aqui (rls-matriz.md, fatia 5).
+  Future<ChargesOverview> fetchMyCharges() => guard(() async {
+    final uid = _uid;
+    final rows = await _db
+        .from('charges')
+        .select(
+          'id, game_id, payer_id, receiver_id, kind, amount_cents, status, '
+          'game:games!charges_game_id_fkey(location_name, starts_at), '
+          'receiver:profiles!charges_receiver_id_fkey(display_name, photo_path)',
+        )
+        .or('payer_id.eq.$uid,receiver_id.eq.$uid')
+        .inFilter('status', [
+          ChargeStatus.pending.value,
+          ChargeStatus.underReview.value,
+        ]);
+    return ChargesOverview(
+      viewerId: uid,
+      lines: [
+        for (final row in rows)
+          ChargeLine(
+            id: row['id'] as String,
+            gameId: row['game_id'] as String,
+            startsAt: _instant((row['game'] as Map)['starts_at']),
+            locationName: (row['game'] as Map)['location_name'] as String,
+            payerId: row['payer_id'] as String,
+            receiverId: row['receiver_id'] as String,
+            receiverName:
+                (row['receiver'] as Map?)?['display_name'] as String? ?? '',
+            receiverPhotoPath:
+                (row['receiver'] as Map?)?['photo_path'] as String?,
+            kind: ChargeKind.parse(row['kind'] as String),
+            amountCents: row['amount_cents'] as int,
+            status: ChargeStatus.parse(row['status'] as String),
+          ),
+      ],
+    );
+  });
+
   static const _passageColumns =
       'user_id, status, joined_at, left_at, late_cancellation, '
       'cancellation_voided_at, late_cancellation_exempt, removal_reason, '

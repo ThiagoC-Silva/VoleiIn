@@ -63,6 +63,10 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.receiverCannotBeAbsent => l10n.errorReceiverCannotBeAbsent,
     ErrorCode.notAPenalty => l10n.errorNotAPenalty,
     ErrorCode.chargeNotPending => l10n.errorChargeNotPending,
+    ErrorCode.gameCancelled => l10n.errorGameCancelled,
+    ErrorCode.receiverMustBeParticipant => l10n.errorReceiverMustBeParticipant,
+    ErrorCode.receiverUnchanged => l10n.errorReceiverUnchanged,
+    ErrorCode.receiverChangeBlocked => l10n.errorReceiverChangeBlocked,
   };
 }
 

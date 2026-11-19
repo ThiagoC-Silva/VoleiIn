@@ -56,7 +56,7 @@ Não entram no ARB e podem ficar no código, em inglês:
 
 ### 5.2 Abas vazias (provisório)
 
-Saem do ARB quando a aba ganha a tela real (`docs/ui/telas.md`, seção 4.2).
+Saem do ARB quando a aba ganha a tela real (`docs/ui/telas.md`, seção 4.2). Saíram na etapa C da fatia 5, quando Cobranças, a última aba vazia, ganhou a tela real.
 
 | Chave | Texto | Onde |
 |-------|-------|------|

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/games_repository.dart';
+import '../domain/charge_models.dart';
 import '../domain/game_models.dart';
 
 // Leituras das telas de jogo (docs/ui/telas.md, seção 7). Meus jogos e os
@@ -16,6 +17,12 @@ final groupGamesProvider = FutureProvider.autoDispose
       (ref, groupId) =>
           ref.watch(gamesRepositoryProvider).fetchGroupGames(groupId),
     );
+
+/// A aba Cobranças e o contador dela (telas.md, 8.5). A barra inferior a
+/// mantém viva; ela relê ao tocar na aba e junto com Meus jogos.
+final myChargesProvider = FutureProvider.autoDispose<ChargesOverview>(
+  (ref) => ref.watch(gamesRepositoryProvider).fetchMyCharges(),
+);
 
 /// O detalhe do jogo, relido a cada evento do Realtime em `games`,
 /// `game_participants` e `game_waitlist` (telas.md, 7.3).
