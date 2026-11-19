@@ -406,6 +406,17 @@ class GamesRepository {
     await _db.rpc('waive_penalty', params: {'p_charge_id': chargeId});
   });
 
+  /// `change_receiver`: indica outro recebedor, antes ou depois da conclusão
+  /// (RF33; contratos-api.md, seção 5).
+  Future<void> changeReceiver({
+    required String gameId,
+    required String newReceiverId,
+  }) => throw UnimplementedError();
+
+  /// Os valores `pending` e `under_review` em que quem lê é o pagador ou o
+  /// recebedor, com o jogo, para a aba Cobranças (RF75, RF76; telas.md, 8.5).
+  Future<ChargesOverview> fetchMyCharges() => throw UnimplementedError();
+
   static const _passageColumns =
       'user_id, status, joined_at, left_at, late_cancellation, '
       'cancellation_voided_at, late_cancellation_exempt, removal_reason, '

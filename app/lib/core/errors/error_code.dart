@@ -82,6 +82,12 @@ enum ErrorCode {
   // Isenção manual, etapa B da fatia 5: os códigos de waive_penalty.
   notAPenalty,
   chargeNotPending,
+
+  // Troca de recebedor, etapa C da fatia 5: os códigos de change_receiver.
+  gameCancelled,
+  receiverMustBeParticipant,
+  receiverUnchanged,
+  receiverChangeBlocked,
 }
 
 /// Único tipo de exceção que sai da camada `data`.

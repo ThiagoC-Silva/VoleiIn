@@ -591,7 +591,7 @@
       }
     }
   },
-  "gameReceiverCannotLeave": "Você é o recebedor deste jogo e não pode sair da lista. Se não puder jogar, o jogo precisa ser cancelado por um admin.",
+  "gameReceiverCannotLeave": "Você é o recebedor deste jogo e não pode sair da lista. Se não puder jogar, um admin precisa indicar outro recebedor antes.",
   "gameListLocked": "A lista está travada até a conclusão do jogo.",
   "gameJoined": "Você entrou na lista.",
   "gameJoinedWaitlist": "Você entrou na lista de espera.",
@@ -731,9 +731,9 @@
       }
     }
   },
-  "groupBlockedReceiverBody": "Você é o recebedor destes jogos, que ainda não foram concluídos. Para sair do grupo, os jogos precisam ser cancelados ou concluídos.",
+  "groupBlockedReceiverBody": "Você é o recebedor destes jogos, que ainda não foram concluídos. Para sair do grupo, um admin de cada jogo precisa indicar outro recebedor, ou o jogo precisa ser cancelado ou concluído.",
   "groupBlockedOnlyAdminBody": "Você é o único admin destes jogos. Indique outro admin em Admins do jogo antes de sair.",
-  "groupRemoveBlockedReceiverBody": "{name} é o recebedor destes jogos, que ainda não foram concluídos. Para remover, os jogos precisam ser cancelados ou concluídos.",
+  "groupRemoveBlockedReceiverBody": "{name} é o recebedor destes jogos, que ainda não foram concluídos. Para remover, um admin de cada jogo precisa indicar outro recebedor, ou o jogo precisa ser cancelado ou concluído.",
   "@groupRemoveBlockedReceiverBody": {
     "placeholders": {
       "name": {
@@ -959,5 +959,69 @@
   "waiveBody": "O valor deixa de ser cobrado e não pode voltar.",
   "penaltyWaived": "Multa isentada.",
   "errorNotAPenalty": "Só multas podem ser isentadas.",
-  "errorChargeNotPending": "Este valor não está mais Pendente."
+  "errorChargeNotPending": "Este valor não está mais Pendente.",
+  "gameChangeReceiver": "Trocar recebedor",
+  "receiverChangeBeforeBody": "O novo recebedor precisa estar na lista e ter uma chave Pix. Os valores do jogo serão devidos a ele.",
+  "receiverChangeAfterBody": "Os valores já pagos continuam com o recebedor atual, e os pendentes passam ao novo. O valor do novo recebedor é anulado, e o recebedor atual passa a pagar a parte dele. O acerto do que já foi pago fica entre os dois, fora do app.",
+  "receiverChangeEmpty": "Ninguém mais na lista pode ser o recebedor.",
+  "receiverChangeConfirmTitle": "Trocar o recebedor para {name}?",
+  "@receiverChangeConfirmTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "receiverChangeConfirmAction": "Trocar",
+  "receiverChanged": "{name} agora é o recebedor.",
+  "@receiverChanged": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chargesTitle": "Cobranças",
+  "chargesToPay": "A pagar",
+  "chargesToReceive": "A receber",
+  "chargesToPayGames": "{count, plural, =1{em 1 jogo} other{em {count} jogos}}",
+  "@chargesToPayGames": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chargesToReceivePeople": "{count, plural, =1{de 1 pessoa} other{de {count} pessoas}}",
+  "@chargesToReceivePeople": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chargesPeopleCount": "{count, plural, =1{1 pessoa} other{{count} pessoas}}",
+  "@chargesPeopleCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chargesNothingToPay": "Você não deve nada.",
+  "chargesNothingToReceive": "Ninguém te deve.",
+  "chargesEmptyTitle": "Tudo certo por aqui",
+  "chargesEmptyBody": "Quando um jogo for concluído, os valores aparecem aqui.",
+  "chargesTabBadgeLabel": "{count, plural, =1{1 valor a pagar} other{{count} valores a pagar}}",
+  "@chargesTabBadgeLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorGameCancelled": "Este jogo foi cancelado.",
+  "errorReceiverMustBeParticipant": "O novo recebedor precisa estar na lista.",
+  "errorReceiverUnchanged": "Esta pessoa já é a recebedora do jogo.",
+  "errorReceiverChangeBlocked": "Há valores Em análise. Decida-os antes de trocar o recebedor."
 }

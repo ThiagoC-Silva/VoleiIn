@@ -300,4 +300,19 @@ void main() {
       expect(toAppException(exception).code, entry.value);
     });
   }
+
+  // Fatia 5, etapa C: change_receiver (docs/copy.md, 9.6).
+  const receiverCodes = {
+    'GAME_CANCELLED': ErrorCode.gameCancelled,
+    'RECEIVER_MUST_BE_PARTICIPANT': ErrorCode.receiverMustBeParticipant,
+    'RECEIVER_UNCHANGED': ErrorCode.receiverUnchanged,
+    'RECEIVER_CHANGE_BLOCKED': ErrorCode.receiverChangeBlocked,
+  };
+  for (final entry in receiverCodes.entries) {
+    test('E15 (fatia 5, etapa C): P0001 com ${entry.key} vira '
+        '${entry.value.name}', () {
+      final exception = PostgrestException(message: entry.key, code: 'P0001');
+      expect(toAppException(exception).code, entry.value);
+    });
+  }
 }

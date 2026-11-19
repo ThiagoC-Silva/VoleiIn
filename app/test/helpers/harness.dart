@@ -24,6 +24,7 @@ import 'package:voleiin/features/auth/domain/profile.dart';
 import 'package:voleiin/features/auth/domain/profile_private.dart';
 import 'package:voleiin/features/auth/domain/terms.dart';
 import 'package:voleiin/features/games/data/games_repository.dart';
+import 'package:voleiin/features/games/domain/charge_models.dart';
 import 'package:voleiin/features/games/domain/game_models.dart';
 import 'package:voleiin/features/groups/data/groups_repository.dart';
 import 'package:voleiin/features/groups/domain/group_models.dart';
@@ -115,6 +116,7 @@ class TestHarness {
     when(() => profiles.fetchContactPhone(any())).thenAnswer((_) async => null);
 
     myGames(const []);
+    myCharges(const []);
     when(() => games.hasPixKey()).thenAnswer((_) async => true);
     when(() => games.fetchMyGroupOptions()).thenAnswer((_) async => const []);
     when(() => games.fetchGroupGames(any())).thenAnswer((_) async => const []);
@@ -270,6 +272,14 @@ class TestHarness {
   /// Meus jogos (docs/ui/telas.md, 7.1).
   void myGames(List<GameSummary> list) {
     when(() => games.fetchMyGames()).thenAnswer((_) async => list);
+  }
+
+  /// A aba Cobranças e o contador dela (telas.md, 8.5): os valores a pagar e
+  /// a receber de quem está logado. Cada leitura chama [lines] de novo.
+  void myCharges(List<ChargeLine> lines, {String viewerId = anaId}) {
+    when(() => games.fetchMyCharges()).thenAnswer(
+      (_) async => ChargesOverview(viewerId: viewerId, lines: lines),
+    );
   }
 
   /// Os jogos do grupo `open` e `confirmed` (telas.md, 7.6).
