@@ -408,6 +408,11 @@ class GamesRepository {
     });
   }
 
+  /// `waive_penalty`: isenta uma multa Pendente (RF64; contratos-api.md,
+  /// seção 5).
+  Future<void> waivePenalty(String chargeId) =>
+      throw UnimplementedError('etapa B da fatia 5');
+
   static const _chargeColumns =
       'id, payer_id, receiver_id, kind, amount_cents, status, waive_reason, '
       'payer:profiles!charges_payer_id_fkey(display_name, photo_path), '

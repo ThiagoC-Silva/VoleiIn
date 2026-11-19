@@ -78,6 +78,10 @@ enum ErrorCode {
   gameNotEnded,
   absentNotParticipant,
   receiverCannotBeAbsent,
+
+  // Isenção manual, etapa B da fatia 5: os códigos de waive_penalty.
+  notAPenalty,
+  chargeNotPending,
 }
 
 /// Único tipo de exceção que sai da camada `data`.

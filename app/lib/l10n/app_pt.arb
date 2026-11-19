@@ -870,5 +870,94 @@
   "chargeStatusWaived": "Isento",
   "errorGameNotEnded": "O jogo só pode ser concluído a partir do horário de fim.",
   "errorAbsentNotParticipant": "A lista mudou. Confira as faltas de novo.",
-  "errorReceiverCannotBeAbsent": "O recebedor não pode ser marcado como faltoso."
+  "errorReceiverCannotBeAbsent": "O recebedor não pode ser marcado como faltoso.",
+  "historyTitle": "Sua participação",
+  "historyCancelledOnTime": "Saiu {date} às {time}, no prazo",
+  "@historyCancelledOnTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "historyCancelledLate": "Saiu {date} às {time}, fora do prazo",
+  "@historyCancelledLate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "historyVoided": "Não conta: você voltou às {time}",
+  "@historyVoided": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "historyLeftAfterStart": "Saiu às {time}, depois do início",
+  "@historyLeftAfterStart": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "historyRemovedByAdmin": "Removido por um admin em {date}",
+  "@historyRemovedByAdmin": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "historyRemovedGroupLeft": "Saiu do grupo em {date}",
+  "@historyRemovedGroupLeft": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "historyMarkedAbsent": "Falta marcada na conclusão",
+  "historyAbsentLeft": "Falta pela saída depois do início",
+  "completeAbsentTitle": "Quem faltou?",
+  "completeLeftAt": "Saiu às {time}",
+  "@completeLeftAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "completeAbsentLabel": "Marcar falta de {name}",
+  "@completeAbsentLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "completeReceiverNoAbsence": "O recebedor não leva falta.",
+  "waiveAction": "Isentar multa",
+  "waiveActionHint": "O valor deixa de ser cobrado",
+  "waiveTitle": "Isentar a multa de {name}?",
+  "@waiveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "waiveBody": "O valor deixa de ser cobrado e não pode voltar.",
+  "penaltyWaived": "Multa isentada.",
+  "errorNotAPenalty": "Só multas podem ser isentadas.",
+  "errorChargeNotPending": "Este valor não está mais Pendente."
 }

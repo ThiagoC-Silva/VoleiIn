@@ -287,4 +287,17 @@ void main() {
       expect(toAppException(exception).code, entry.value);
     });
   }
+
+  // Fatia 5, etapa B: waive_penalty (docs/copy.md, 9.6).
+  const waiverCodes = {
+    'NOT_A_PENALTY': ErrorCode.notAPenalty,
+    'CHARGE_NOT_PENDING': ErrorCode.chargeNotPending,
+  };
+  for (final entry in waiverCodes.entries) {
+    test('E15 (fatia 5, etapa B): P0001 com ${entry.key} vira '
+        '${entry.value.name}', () {
+      final exception = PostgrestException(message: entry.key, code: 'P0001');
+      expect(toAppException(exception).code, entry.value);
+    });
+  }
 }

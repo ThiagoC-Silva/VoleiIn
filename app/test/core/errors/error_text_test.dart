@@ -140,4 +140,15 @@ void main() {
       expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
     }
   });
+
+  test('E15 (fatia 5, etapa B): textos dos erros da isenção '
+      '(docs/copy.md, 9.6)', () {
+    const texts = {
+      ErrorCode.notAPenalty: 'Só multas podem ser isentadas.',
+      ErrorCode.chargeNotPending: 'Este valor não está mais Pendente.',
+    };
+    for (final entry in texts.entries) {
+      expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
+    }
+  });
 }

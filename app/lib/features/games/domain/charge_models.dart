@@ -107,8 +107,37 @@ class CompletionPreview {
   final int penaltiesExempted;
 }
 
+/// Enum `removal_reason` do banco (docs/modelo-dados.md, seção 3).
+enum RemovalReason {
+  byAdmin('by_admin'),
+  leftGroup('left_group'),
+  accountDeleted('account_deleted');
+
+  const RemovalReason(this.value);
+
+  /// Valor do banco.
+  final String value;
+
+  static RemovalReason parse(String value) =>
+      values.firstWhere((reason) => reason.value == value);
+}
+
+/// Enum `absence_source` do banco.
+enum AbsenceSource {
+  leftAfterStart('left_after_start'),
+  markedByAdmin('marked_by_admin');
+
+  const AbsenceSource(this.value);
+
+  /// Valor do banco.
+  final String value;
+
+  static AbsenceSource parse(String value) =>
+      values.firstWhere((source) => source.value == value);
+}
+
 /// Uma passagem da pessoa pela lista, em qualquer status, para os motivos do
-/// Rateio (docs/ui/telas.md, 8.3).
+/// Rateio (docs/ui/telas.md, 8.3) e o card "Sua participação" (8.1).
 class GamePassage {
   const GamePassage({
     required this.userId,
@@ -116,9 +145,13 @@ class GamePassage {
     this.photoPath,
     required this.status,
     required this.joinedAt,
+    this.leftAt,
     this.lateCancellation = false,
+    this.cancellationVoidedAt,
     this.lateCancellationExempt = false,
+    this.removalReason,
     this.absent = false,
+    this.absenceSource,
   });
 
   final String userId;
@@ -126,11 +159,19 @@ class GamePassage {
   final String? photoPath;
   final ParticipantStatus status;
   final DateTime joinedAt;
+
+  /// Cancelamento, saída ou remoção.
+  final DateTime? leftAt;
   final bool lateCancellation;
+
+  /// A pessoa voltou antes do início: o cancelamento não conta (RN56).
+  final DateTime? cancellationVoidedAt;
 
   /// Multa isentada na conclusão (RN62).
   final bool lateCancellationExempt;
+  final RemovalReason? removalReason;
   final bool absent;
+  final AbsenceSource? absenceSource;
 }
 
 /// O Rateio do jogo concluído (docs/ui/telas.md, 8.3).
