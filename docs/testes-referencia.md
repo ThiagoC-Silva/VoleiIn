@@ -936,7 +936,7 @@ pgTAP, em `supabase/tests/database/completion_security.test.sql`.
 | Y01 | Base | Ana, Edu, Bruno, Carla, Fábio e Diego leem `charges` | Ana e Edu veem os três valores. Bruno e Carla, só o próprio. Fábio e Diego, nenhum |
 | Y02 | Base, com os `charge_events` da conclusão | Os mesmos leem `charge_events` | O mesmo recorte do Y01 |
 | Y03 | Base, com uma linha em `receiver_changes` | Ana, Edu e Bruno leem `receiver_changes` | Ana e Edu veem a linha. Bruno, nenhuma |
-| Y04 | Base do V02, com Edu como único admin (Ana deixou de ser admin), depois da troca Ana → Carla | Ana, Carla e Davi leem `charges` | Ana vê o valor Pago de Bruno (devido a ela) e o próprio `share` novo, e não vê os de Davi e Edu. Carla, nova recebedora, vê todos. Davi, só o próprio. Carla não lê `receiver_changes` |
+| Y04 | Base do V02, com Edu como único admin (Ana deixou de ser admin), depois da troca Ana → Carla | Ana, Carla e Davi leem `charges` | Ana vê o valor Pago de Bruno (devido a ela) e o próprio `share` novo, e não vê os de Davi e Edu. Vê também o valor Isento de Carla, que continua devido a ela (research R8 de `specs/008-conclusao-etapa-c`). Carla, nova recebedora, vê todos. Davi, só o próprio. Carla não lê `receiver_changes` |
 | Y05 | Ana logada | `insert`, `update` e `delete` em `charges`, `charge_events` e `receiver_changes`; `select` em `audit_log` | `42501` em todos |
 | Y06 | `role anon` | `select` nas três tabelas | `42501` em todas |
 | Y07 | Ana logada | Chama `auto_complete_due_games()` | `42501` |

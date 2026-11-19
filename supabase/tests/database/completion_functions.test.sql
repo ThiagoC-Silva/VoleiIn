@@ -1,7 +1,7 @@
 -- Conclusão manual e automática e isenção (fatia 5). Etapa A: T11 a T15
 -- (seção 3), F03 e F04 (seção 6) e Z01 a Z07 (seção 13.1). Etapa B: T16 (seção
--- 3), Z08 e Z09 (seção 13.2) de docs/testes-referencia.md. Contratos:
--- docs/contratos-api.md, seções 5 e 7.
+-- 3), Z08 e Z09 (seção 13.2). Etapa C: Z10 a Z15 (seção 13.2) de
+-- docs/testes-referencia.md. Contratos: docs/contratos-api.md, seções 5 e 7.
 --
 -- Base da seção 13, inserida aqui sem depender do seed: o Quinta, com Ana admin
 -- e os outros membros; Diego sem grupo. Os jogos e as linhas de grupo do seed
@@ -12,7 +12,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(49);
+select plan(72);
 
 -- Personagens (docs/setup.md, seção 8), mais o Edu e o Fábio, que só existem
 -- nos testes, e dez pessoas para completar as listas (P01 a P10).
@@ -719,6 +719,272 @@ select results_eq(
   'Z09b: penalty_waived só à Carla, com charge_id nulo e reason automatic'
 );
 rollback to savepoint z09;
+
+-- =========================================================================
+-- Etapa C: Z10 a Z15 (seção 13.2)
+-- =========================================================================
+
+-- A pessoa chama change_receiver e guarda o retorno em t.<p_name>.
+create function pg_temp.change_as(p_user uuid, p_game uuid, p_new uuid, p_name text)
+returns void
+language plpgsql
+as $fn$
+begin
+  perform pg_temp.login_as(p_user);
+  set local role authenticated;
+  perform set_config('t.' || p_name, public.change_receiver(p_game, p_new)::text, true);
+  reset role;
+end;
+$fn$;
+
+-- Z10. Jogo base antes do início, com Carla na lista: Ana passa o recebimento.
+savepoint z10;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000641', 9000, 10, now() + interval '3 hours');
+select pg_temp.join('00000000-0000-0000-0000-000000000641', '00000000-0000-0000-0000-00000000000c');
+select pg_temp.change_as(
+  '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000641',
+  '00000000-0000-0000-0000-00000000000c', 'z10'
+);
+select is(
+  pg_temp.saved('z10'),
+  jsonb_build_object(
+    'game_id', '00000000-0000-0000-0000-000000000641',
+    'receiver_id', '00000000-0000-0000-0000-00000000000c',
+    'charges_transferred', 0, 'charge_created', false
+  ),
+  'Z10a: devolve o novo recebedor, 0 transferidos e charge_created falso'
+);
+select is(
+  (select receiver_id from public.games where id = '00000000-0000-0000-0000-000000000641'),
+  '00000000-0000-0000-0000-00000000000c'::uuid,
+  'Z10b: games.receiver_id = Carla'
+);
+select results_eq(
+  $$ select old_receiver_id, new_receiver_id, changed_by, after_completion, changed_at = now()
+     from public.receiver_changes where game_id = '00000000-0000-0000-0000-000000000641' $$,
+  $$ values ('00000000-0000-0000-0000-00000000000a'::uuid, '00000000-0000-0000-0000-00000000000c'::uuid,
+             '00000000-0000-0000-0000-00000000000a'::uuid, false, true) $$,
+  'Z10c: uma linha em receiver_changes com o antigo, o novo, o autor e o instante'
+);
+select is(
+  (select count(*)::integer from public.charges where game_id = '00000000-0000-0000-0000-000000000641'),
+  0, 'Z10d: nenhum valor'
+);
+select results_eq(
+  $$ select type::text, user_id, data from public.notifications $$,
+  $$ values ('receiver_changed', '00000000-0000-0000-0000-00000000000c'::uuid,
+       private.game_notification_data('00000000-0000-0000-0000-000000000641')
+       || jsonb_build_object(
+            'old_receiver_id', '00000000-0000-0000-0000-00000000000a',
+            'new_receiver_id', '00000000-0000-0000-0000-00000000000c')) $$,
+  'Z10e: notifica receiver_changed só à Carla (Ana trocou)'
+);
+select results_eq(
+  $$ select event, actor_id, entity_type, entity_id from public.audit_log $$,
+  $$ values ('receiver_changed', '00000000-0000-0000-0000-00000000000a'::uuid, 'game',
+             '00000000-0000-0000-0000-000000000641'::uuid) $$,
+  'Z10f: audit_log com receiver_changed'
+);
+
+-- Z11. Depois do Z10: Ana sai da lista; Carla, agora recebedora, não (RN29).
+savepoint z11;
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select lives_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000641') $$,
+  'Z11a: Ana sai da lista'
+);
+reset role;
+select is(
+  (select status::text from public.game_participants
+   where game_id = '00000000-0000-0000-0000-000000000641'
+     and user_id = '00000000-0000-0000-0000-00000000000a'),
+  'cancelled', 'Z11b: a passagem da Ana fica cancelled'
+);
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000c');
+set local role authenticated;
+select throws_ok(
+  $$ select public.leave_game('00000000-0000-0000-0000-000000000641') $$,
+  'P0001', 'RECEIVER_LOCKED', 'Z11c: Carla tenta sair: RECEIVER_LOCKED'
+);
+reset role;
+rollback to savepoint z11;
+
+-- Z12. Depois do Z10, com Carla também admin do jogo: Ana sai do Quinta. O
+-- Bruno vira admin do grupo para a Ana não ser a última (research R6).
+savepoint z12;
+insert into public.game_admins (game_id, user_id, added_by)
+values (
+  '00000000-0000-0000-0000-000000000641', '00000000-0000-0000-0000-00000000000c',
+  '00000000-0000-0000-0000-00000000000a'
+);
+update public.group_members set role = 'admin'
+where group_id = '00000000-0000-0000-0000-000000000301'
+  and user_id = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select lives_ok(
+  $$ select public.leave_group('00000000-0000-0000-0000-000000000301') $$,
+  'Z12a: o jogo não bloqueia a saída da Ana como recebedora (RN16)'
+);
+reset role;
+select results_eq(
+  $$ select status::text, removal_reason::text from public.game_participants
+     where game_id = '00000000-0000-0000-0000-000000000641'
+       and user_id = '00000000-0000-0000-0000-00000000000a' $$,
+  $$ values ('removed', 'left_group') $$,
+  'Z12b: a saída segue a seção 12.3: a passagem da Ana fica removed por left_group'
+);
+select results_eq(
+  $$ select user_id from public.game_admins where game_id = '00000000-0000-0000-0000-000000000641' $$,
+  $$ values ('00000000-0000-0000-0000-00000000000c'::uuid) $$,
+  'Z12c: Ana deixa de ser admin do jogo, e a Carla continua'
+);
+rollback to savepoint z12;
+rollback to savepoint z10;
+
+-- Z13. Jogo base antes do início: Bruno não é admin; Edu não tem chave Pix.
+savepoint z13;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000643', 9000, 10, now() + interval '3 hours');
+select pg_temp.join('00000000-0000-0000-0000-000000000643', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.join('00000000-0000-0000-0000-000000000643', '00000000-0000-0000-0000-00000000000c');
+select pg_temp.join('00000000-0000-0000-0000-000000000643', '00000000-0000-0000-0000-00000000000e');
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select throws_ok(
+  $$ select public.change_receiver('00000000-0000-0000-0000-000000000643',
+       '00000000-0000-0000-0000-00000000000c') $$,
+  'P0001', 'NOT_GAME_ADMIN', 'Z13a: Bruno troca: NOT_GAME_ADMIN'
+);
+reset role;
+select pg_temp.login_as('00000000-0000-0000-0000-00000000000a');
+set local role authenticated;
+select throws_ok(
+  $$ select public.change_receiver('00000000-0000-0000-0000-000000000643',
+       '00000000-0000-0000-0000-00000000000e') $$,
+  'P0001', 'RECEIVER_NEEDS_PIX_KEY', 'Z13b: Ana troca para o Edu, sem chave Pix: RECEIVER_NEEDS_PIX_KEY'
+);
+reset role;
+rollback to savepoint z13;
+
+-- Z14. Troca antes da conclusão (jogo depois do fim) e depois a conclusão: os
+-- valores são devidos à Carla, e a Ana paga a parte dela (seção 7).
+savepoint z14;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000644', 9000, 3);
+select pg_temp.join('00000000-0000-0000-0000-000000000644', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.join('00000000-0000-0000-0000-000000000644', '00000000-0000-0000-0000-00000000000c');
+select pg_temp.change_as(
+  '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000644',
+  '00000000-0000-0000-0000-00000000000c', 'z14c'
+);
+select pg_temp.ana_calls('complete_game', 'z14', '00000000-0000-0000-0000-000000000644');
+select set_eq(
+  $$ select payer_id, receiver_id, kind::text, amount_cents, status::text from public.charges
+     where game_id = '00000000-0000-0000-0000-000000000644' $$,
+  $$ values ('00000000-0000-0000-0000-00000000000a'::uuid, '00000000-0000-0000-0000-00000000000c'::uuid,
+             'share', 3000, 'pending'),
+            ('00000000-0000-0000-0000-00000000000b'::uuid, '00000000-0000-0000-0000-00000000000c'::uuid,
+             'share', 3000, 'pending') $$,
+  'Z14a: Ana e Bruno devem a parte à Carla; a Carla não tem valor'
+);
+select is(
+  (pg_temp.saved('z14') ->> 'total_to_receive_cents')::integer, 6000,
+  'Z14b: a Carla recebe R$ 60,00'
+);
+rollback to savepoint z14;
+
+-- Z15. Base do V02 (seção 7): R$ 100,00, limite 5; Bruno Pago, Carla e P01
+-- ("Davi") Pendentes, Edu com multa por falta. Ana troca para a Carla.
+savepoint z15;
+select pg_temp.ended_game('00000000-0000-0000-0000-000000000645', 10000, 5);
+select pg_temp.join('00000000-0000-0000-0000-000000000645', '00000000-0000-0000-0000-00000000000b');
+select pg_temp.join('00000000-0000-0000-0000-000000000645', '00000000-0000-0000-0000-00000000000c');
+select pg_temp.join('00000000-0000-0000-0000-000000000645', pg_temp.p(1));
+select pg_temp.join('00000000-0000-0000-0000-000000000645', '00000000-0000-0000-0000-00000000000e');
+select pg_temp.ana_calls(
+  'complete_game', 'z15c', '00000000-0000-0000-0000-000000000645', null,
+  array['00000000-0000-0000-0000-00000000000e'::uuid]
+);
+update public.charges set status = 'paid', paid_at = now(), paid_via = 'manual'
+where game_id = '00000000-0000-0000-0000-000000000645'
+  and payer_id = '00000000-0000-0000-0000-00000000000b';
+delete from public.notifications;
+delete from public.audit_log;
+select pg_temp.change_as(
+  '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000645',
+  '00000000-0000-0000-0000-00000000000c', 'z15'
+);
+select is(
+  pg_temp.saved('z15'),
+  jsonb_build_object(
+    'game_id', '00000000-0000-0000-0000-000000000645',
+    'receiver_id', '00000000-0000-0000-0000-00000000000c',
+    'charges_transferred', 2, 'charge_created', true
+  ),
+  'Z15a: devolve charges_transferred 2 e charge_created verdadeiro'
+);
+select results_eq(
+  $$ select c.status::text, c.waive_reason::text, c.waived_by, c.waived_at = now(),
+            e.from_status::text, e.to_status::text, e.actor_id, e.note
+     from public.charges c
+     join public.charge_events e on e.charge_id = c.id and e.from_status is not null
+     where c.game_id = '00000000-0000-0000-0000-000000000645'
+       and c.payer_id = '00000000-0000-0000-0000-00000000000c' $$,
+  $$ values ('waived', 'receiver_change', '00000000-0000-0000-0000-00000000000a'::uuid, true,
+             'pending', 'waived', '00000000-0000-0000-0000-00000000000a'::uuid, 'receiver_change') $$,
+  'Z15b: o valor da Carla fica Isento por receiver_change, com o charge_events de pending para waived'
+);
+select results_eq(
+  $$ select c.kind::text, c.amount_cents, c.status::text, c.receiver_id, p.user_id, p.status::text,
+            e.from_status::text, e.to_status::text, e.actor_id
+     from public.charges c
+     join public.game_participants p on p.id = c.participant_id
+     join public.charge_events e on e.charge_id = c.id
+     where c.game_id = '00000000-0000-0000-0000-000000000645'
+       and c.payer_id = '00000000-0000-0000-0000-00000000000a' $$,
+  $$ values ('share', 2000, 'pending', '00000000-0000-0000-0000-00000000000c'::uuid,
+             '00000000-0000-0000-0000-00000000000a'::uuid, 'active',
+             null::text, 'pending', '00000000-0000-0000-0000-00000000000a'::uuid) $$,
+  'Z15c: Ana ganha um share de 2.000 devido à Carla, ligado à passagem dela, com o charge_events da criação'
+);
+select set_eq(
+  $$ select type::text as type, user_id, data - 'charge_id' as data from public.notifications $$,
+  $$ select 'receiver_changed' as type, u as user_id,
+            private.game_notification_data('00000000-0000-0000-0000-000000000645')
+            || jsonb_build_object(
+                 'old_receiver_id', '00000000-0000-0000-0000-00000000000a',
+                 'new_receiver_id', '00000000-0000-0000-0000-00000000000c') as data
+     from unnest(array['00000000-0000-0000-0000-00000000000c'::uuid,
+                       '00000000-0000-0000-0000-000000000501',
+                       '00000000-0000-0000-0000-00000000000e']) u
+     union all
+     select 'charge_created', '00000000-0000-0000-0000-00000000000a'::uuid,
+            private.game_notification_data('00000000-0000-0000-0000-000000000645')
+            || jsonb_build_object('kind', 'share', 'amount_cents', 2000) $$,
+  'Z15d: receiver_changed a Carla, Davi e Edu e charge_created à Ana'
+);
+select is(
+  (select data ->> 'charge_id' from public.notifications where type = 'charge_created'),
+  (select id::text from public.charges
+   where game_id = '00000000-0000-0000-0000-000000000645'
+     and payer_id = '00000000-0000-0000-0000-00000000000a'),
+  'Z15e: o charge_created traz o id do novo share'
+);
+select results_eq(
+  $$ select r.after_completion, a.event, a.actor_id, a.data
+     from public.receiver_changes r
+     cross join public.audit_log a
+     where r.game_id = '00000000-0000-0000-0000-000000000645' $$,
+  $$ values (true, 'receiver_changed', '00000000-0000-0000-0000-00000000000a'::uuid,
+             '{"after_completion": true, "charges_transferred": 2, "charge_created": true}'::jsonb) $$,
+  'Z15f: receiver_changes com after_completion e audit_log com receiver_changed'
+);
+select results_eq(
+  $$ select share_cents, total_cents from public.games where id = '00000000-0000-0000-0000-000000000645' $$,
+  $$ values (2000, 10000) $$,
+  'Z15g: share_cents e total_cents não mudam (RN36)'
+);
+rollback to savepoint z15;
 
 -- Z07. O agendamento.
 select results_eq(
