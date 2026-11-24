@@ -149,6 +149,7 @@ O app lê com `String.fromEnvironment` e para logo na abertura com uma mensagem 
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` | `supabase/.env`, lido pelo `config.toml` com `env()` | Painel do Supabase, Auth → Google | Login com Google |
 | `ANTHROPIC_API_KEY` | `supabase/functions/.env` | `supabase secrets set` | `process-receipt` (fatia 6) |
 | `RECEIPT_MODEL` | `supabase/functions/.env` | `supabase secrets set` | Modelo da Claude API, trocável sem novo deploy (`stacks.md`, 6.2) |
+| `INTERNAL_FUNCTION_KEY` | `supabase/functions/.env` e o Vault local, com um valor só do local, gravado pelo `seed.sql` | `supabase secrets set` e o Vault da produção, com o mesmo valor, gerado na hora | `storage-cleanup`, chamada pelo `pg_cron` (fatia 6) |
 | `FCM_SERVICE_ACCOUNT` | `supabase/functions/.env` | `supabase secrets set` | `send-push` (fatia 7) |
 | SMTP do Resend | Não se aplica (Mailpit) | Painel, Auth → SMTP: host `smtp.resend.com`, usuário `resend`, senha = chave da API do Resend | E-mails de autenticação |
 
@@ -202,6 +203,16 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 **No `config.toml`,** além do `client_id` e do `secret`, o `[auth.external.google]` leva `skip_nonce_check = true`: o app troca o ID token por sessão (`signInWithIdToken`) sem enviar *nonce*. O `supabase start` exige a variável do segredo mesmo sem ninguém entrar com Google; no CI ela recebe um valor qualquer (research R11 de `specs/001-conta-e-perfil`).
 
 Sem o SHA-1 cadastrado, o seletor de contas abre, a conta é escolhida e o login falha. O `adb logcat` mostra `UNREGISTERED_ON_API_CONSOLE`. Depois de uma falha, o Google Play Services guarda o veredito por alguns minutos: espere uns dez minutos antes de concluir que o cadastro não pegou.
+
+### 6.3 Claude API (fatia 6)
+
+Feito pelo responsável na Claude Console (`platform.claude.com`), antes da sessão 2 da etapa B. A chave nunca passa pela conversa com o agente.
+
+1. Criar a conta, se ainda não houver, e colocar um crédito pequeno (US$ 5), com a recarga automática **desligada**.
+2. Criar o workspace `voleiin`.
+3. Configurar no workspace a notificação por e-mail em **US$ 4** (`comprovantes-ia.md`, seção 10), sem limite de gasto em US$ 5.
+4. Criar a chave `voleiin-local` e gravá-la em `supabase/functions/.env`, em `ANTHROPIC_API_KEY`. Criar a chave `voleiin-prod` só na sessão 4 da etapa B e gravá-la com `! supabase secrets set ANTHROPIC_API_KEY=... --project-ref zmokpmovphikmobynssy`.
+5. `RECEIPT_MODEL` fica para o agente, depois da medição (`comprovantes-ia.md`, seção 9).
 
 ## 7. Firebase (fatia 7)
 
@@ -264,7 +275,7 @@ Diego continua sem grupo: a solicitação pendente não é contexto (RN107), e e
 | 3 | Dois grupos com admin e membros e uma solicitação pendente (tabela acima) |
 | 4 | Sete jogos: Aberto, Confirmado (com espera), em andamento, Cancelado, com o prazo vencido, um com a Carla como recebedora e um avulso; passagens canceladas no prazo e fora dele (tabela acima) |
 | 5 | Etapa A: um jogo Concluído com valores e um aguardando conclusão (tabela acima). Etapa B: uma multa Pendente e um valor Isento, no Quinta com multas (tabela acima). Etapa C: troca de recebedor, no Quinta com troca (tabela acima) |
-| 6 | Valores Pendentes, Em análise, Pagos e Isentos; comprovantes nos três status |
+| 6 | Etapa A: um valor Pago marcado pela Ana. Etapa B: um jogo do Quinta com valores Em análise e Pago por comprovante, e comprovantes nos três status. O `seed.sql` não envia arquivos: os decididos ficam com o arquivo já apagado, e o Em análise, com um caminho sem arquivo (a tela mostra o erro de abrir). Os fluxos enviam os próprios arquivos. Etapa C: nada (cada fluxo cria a conta que exclui) |
 | 7 | Notificações lidas e não lidas, preferências desligadas |
 
 Jogos com horário relativo usam `now()` (por exemplo, `now() + interval '2 days'`), para o seed continuar válido em qualquer data.

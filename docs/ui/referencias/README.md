@@ -356,3 +356,20 @@ Detalhe de cada tela em `docs/ui/telas.md`, seção 8. Textos em `docs/copy.md`,
 | `game-trocarRecebedor.png` | Sheet de trocar recebedor, depois da conclusão | Obrigatório |
 | `charges.png` | Cobranças, com valores a pagar e a receber | Obrigatório |
 | `charges-vazio.png` | Cobranças sem nenhum valor | Opcional: estado vazio (`design-system.md`, 7.16) |
+
+## Fatia 6. Pagamentos, comprovantes e exclusão de conta
+
+Detalhe de cada tela em `docs/ui/telas.md`, seção 9. Textos em `docs/copy.md`, seção 10. Para desenhar sem consultar os outros documentos, a mesma especificação está em `fatia-6/telas-fatia-6.md`, com os textos finais e os exemplos. A fatia roda em três etapas, e a sessão 3 de cada uma só precisa dos PNGs dela.
+
+| Arquivo | Tela | Etapa | Status |
+|---------|------|-------|--------|
+| `charge.png` | Valor a pagar Pendente, com a chave Pix | A e B | Obrigatório |
+| `charge-pago.png` | Valor a pagar Pago | A | Opcional: o mesmo desenho, em `receive` |
+| `gameSplit-marcarPago.png` | Sheet da pessoa no Rateio | A | Opcional: segue `gameSplit-isentar.png` |
+| `charge-analise.png` | Valor a pagar Em análise | B | Opcional: o mesmo desenho, em `split`, com aviso em linha |
+| `charge-enviar1.png`, `charge-enviar2.png` e `charge-enviar4.png` | Enviar comprovante: escolher, conferir e resultado | B | Obrigatório |
+| `charge-enviar3.png` | Enviar comprovante: lendo | B | Opcional |
+| `receipt.png` e `receipt-pagador.png` | Comprovante, visto pelo recebedor e pelo pagador | B | Obrigatório |
+| `receipt-recusar.png` | Sheet de recusar | B | Opcional |
+| `charges-conferir.png` | Cobranças com Para conferir | B | Obrigatório |
+| `profileDelete.png` e `profileDelete-bloqueada.png` | Excluir conta, e com os bloqueios | C | Obrigatório |

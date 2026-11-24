@@ -15,5 +15,5 @@ O Supabase expõe pela API toda função e tabela do esquema `public`. Por padr�
 
 ## Consequências
 - Toda função nova do app precisa de `grant execute ... to authenticated`, ou o app recebe erro de permissão. O teste de RLS confere a lista de funções executáveis.
-- A forma como as Edge Functions chamam as funções internas é decidida na fatia 6.
+- A forma como as Edge Functions chamam as funções internas é decidida na fatia 6. Decidida em 24/11/2026, no ADR 0019.
 - Lição herdada do v0, onde o mesmo arranjo funcionou.

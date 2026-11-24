@@ -45,7 +45,7 @@ Depois do login, o app abre na aba Jogos.
 | Editar jogo | `/games/:gameId/edit` | Fora das abas | 4 | RF36, RF52, RF53 |
 | Admins do jogo | `/games/:gameId/admins` | Aba Jogos | 4 | RF34, RF35 |
 | Concluir jogo (faltas, total, aviso do valor por conta do recebedor) | `/games/:gameId/complete` | Fora das abas | 5 | RF40, RF41, RF60 |
-| Rateio do jogo | `/games/:gameId/split` | Aba Jogos | 5 | RF64, RF73, RF74 |
+| Rateio do jogo | `/games/:gameId/split` | Aba Jogos | 5 e 6 | RF64, RF73, RF74, RF84, RF85 |
 | Trocar recebedor | — | Sheet sobre o detalhe | 5 | RF33 |
 | Convite do jogo (gerar e compartilhar o link) | — | Sheet sobre o detalhe | 8 | RF43 |
 | Compartilhar a lista em texto | — | Ação do detalhe | 7 | RF100 |
@@ -61,11 +61,11 @@ Depois do login, o app abre na aba Jogos.
 | Perfil de outra pessoa | `/people/:userId` | Na aba de origem | 3 e 4 | RF19, RF101 |
 | Sheet de bloqueio da saída do grupo | — | Sheet sobre o detalhe do grupo ou Integrantes | 4 | RF102 |
 | **Cobranças** | | | | |
-| Totais a pagar e a receber | `/charges` | Aba Cobranças | 1, 5 e 6 | RF75, RF76 |
+| Totais a pagar e a receber, e comprovantes para conferir | `/charges` | Aba Cobranças | 1, 5 e 6 | RF75, RF76, RF83 |
 | Valor a pagar (chave Pix, copiar, comprovantes enviados) | `/charges/:chargeId` | Aba Cobranças | 6 | RF65, RF77, RF78, RF86 |
 | Enviar comprovante | — | Sheet sobre o valor a pagar | 6 | RF78 a RF83 |
-| Análise de comprovante | `/receipts/:receiptId` | Aba Cobranças | 6 | RF83 |
-| Marcar como pago e reverter | — | Ações na lista do recebedor | 6 | RF84, RF85 |
+| Comprovante (o arquivo, o status e, para o recebedor, a conferência e a decisão) | `/receipts/:receiptId` | Aba Cobranças | 6 | RF83, RF86, RF87 |
+| Marcar como pago e reverter | — | Sheet sobre a linha do Rateio | 6 | RF84, RF85 |
 | **Perfil** | | | | |
 | Meu perfil | `/profile` | Aba Perfil | 1 e 2 | RF07, RF08 a RF12 |
 | Editar perfil (nome, apelido, foto, telefone) | `/profile/edit` | Fora das abas | 2 | RF08 a RF10, RF12 |
@@ -985,3 +985,153 @@ As frases `groupBlockedReceiverBody` e `groupRemoveBlockedReceiverBody` mudam (`
 ### 8.7 Testes da fatia 5
 
 Os cenários estão em `testes-referencia.md`, seção 13, além das seções 3 a 8.
+
+## 9. Fatia 6
+
+Decisões de 24/11/2026. A fatia 6 entrega o valor a pagar com a chave Pix, o envio e a leitura do comprovante, a análise do recebedor, a marcação manual de pagamento com a reversão, e a exclusão de conta. Os avisos ficam para a fatia 7. Os textos estão no `docs/copy.md`, seção 10; quem lê o quê, na `rls-matriz.md` (fatia 6); e a leitura, no `docs/comprovantes-ia.md`.
+
+**Nomes das rotas** (seção 1): `charge` (`/charges/:chargeId`), `receipt` (`/receipts/:receiptId`) e `profileDelete` (`/profile/delete`). São também os nomes dos PNGs, com os sufixos do briefing (`docs/ui/referencias/fatia-6/telas-fatia-6.md`).
+
+**Regras comuns:**
+
+- **O servidor decide, o app mostra.** O status do valor e do comprovante, o resultado da leitura e cada linha da conferência vêm do servidor. O app não compara valor, nome nem data.
+- **Leitura:** o app lê `charges` e `receipts` direto, limitado pelo RLS. As telas releem ao abrir, ao voltar e ao puxar para baixo. Não há Realtime.
+- **Chave Pix e nome do recebedor** vêm do `receiver_id` **do valor** (RN32), por `get_profile_contact` e `profiles`, e não do recebedor atual do jogo.
+- **Erros das funções** viram `SnackBar` com o texto do código (`docs/copy.md`, 10.7), e a tela relê.
+- **Conta excluída** aparece com o nome que o servidor gravou ("Usuário removido") e as iniciais. O app não a trata de outro jeito.
+- **Por etapa** (`testes-referencia.md`, seção 14): **A**, 9.1 sem **Para conferir**, 9.2 sem comprovantes e 9.5; **B**, o resto de 9.1, 9.2 e 9.5, 9.3 e 9.4; **C**, 9.6.
+
+### 9.1 Cobranças (completa a seção 8.5)
+
+- **Para conferir** (etapa B), entre os atalhos e **A pagar**: os valores `under_review` em que a pessoa é o `receiver_id`. Título **Para conferir · {n}**, e uma linha por valor, do envio mais antigo para o mais novo: avatar, nome de quem pagou, "{data curta} · {local}", o valor e o selo **Em análise**. Tocar abre o comprovante (9.4). Sem nenhum, a seção não aparece.
+- **A pagar:** tocar na linha abre o valor a pagar (9.2), no lugar do Rateio.
+- **A receber:** sem mudança. Tocar abre o Rateio.
+- O contador da aba continua sendo o de valores `pending` a pagar.
+
+### 9.2 Valor a pagar (`/charges/:chargeId`)
+
+**Objetivo:** ver quanto e a quem pagar, copiar a chave e acompanhar os comprovantes (RF77, RF78, RF86). Na aba Cobranças, com a barra inferior. Só para o pagador. Os outros, inclusive o recebedor e os admins, recebem o estado "não encontrado".
+
+**Conteúdo, de cima para baixo:**
+
+1. **Topo colorido** (`design-system.md`, 7.8), com a barra de voltar: a pílula do grupo ou **Avulso**, a data curta e o local, o valor em `number.xl`, o rótulo do `kind` e o selo do status. A cor segue o status: `owe` Pendente, `split` Em análise, `receive` Pago e `surfaceHigh` Isento.
+2. **Pagar para** (Pendente e Em análise): o avatar e o nome do recebedor, a chave com o tipo ("CPF · 529.982.247-25") e o botão de texto **Copiar chave**. A dica `chargePayExact`: o valor exato é o que permite a conferência automática (RN88a).
+3. **Situação**, no lugar do bloco 2 quando o valor está Pago ou Isento, e junto dele quando está Em análise:
+
+| Status | Frase |
+|--------|-------|
+| `under_review` | Aviso em linha `chargeUnderReviewNotice`, com o nome do recebedor |
+| `paid`, `paid_via = manual` | `chargePaidManual`: "{nome} marcou como pago em {data}" |
+| `paid`, `paid_via = receipt` | `chargePaidReceipt`: "Pago por comprovante em {data}" |
+| `waived` | O motivo, como na 8.3 |
+
+4. **Comprovantes** (etapa B), se houver: uma linha por comprovante, do mais novo para o mais antigo: "Enviado {data curta} às {hora}", o selo do status (`design-system.md`, seção 4) e, embaixo, a observação do recebedor ou `receiptRejectedDuplicate`. Tocar abre o comprovante (9.4).
+5. **Pé fixo**, só com o valor Pendente (etapa B): o botão principal **Enviar comprovante**, que abre a sheet 9.3. O botão aparece mesmo antes de existir leitura disponível (RN86): sem leituras, o envio vai para análise.
+
+- O card **Rateio** do detalhe do jogo não muda. No Rateio (8.3), o bloco **Seu valor** ganha o botão de contorno **Pagar** quando o valor está Pendente, e vira uma linha tocável em qualquer status. Os dois abrem esta tela, na aba Cobranças.
+
+### 9.3 Enviar comprovante (sheet sobre o valor a pagar)
+
+**Objetivo:** escolher, conferir e enviar o arquivo, e ver o resultado (RF78 a RF83). Uma sheet só, com quatro passos.
+
+| Passo | Conteúdo |
+|-------|----------|
+| **1. Escolher** | Título **Enviar comprovante**, a frase `receiptSendBody` e duas opções: **Escolher imagem** (`image_picker`, da galeria, reduzida a 2.576 px) e **Escolher PDF** (`file_picker`, só `.pdf`). Com `auto_reads_used >= 3`, o aviso em linha `receiptNoMoreReads` |
+| **2. Conferir** | A miniatura da imagem, ou o ícone de PDF com o nome e o tamanho. O botão principal **Enviar** e o botão de texto **Escolher outro** |
+| **3. Lendo** | Indicador de carregando com `receiptReading`. A sheet **não fecha** ao tocar fora nem no voltar, e não há botão (RN86) |
+| **4. Resultado** | Um dos três abaixo |
+
+| Resultado | Conteúdo |
+|-----------|----------|
+| `approved` | Ícone em `receive`, `receiptApproved` e o botão principal **Pronto** |
+| `under_review` | Ícone de ampulheta em `info`, `receiptUnderReview` com o nome do recebedor e o botão principal **Pronto** |
+| `rejected` (`DUPLICATE_TRANSACTION`) | Ícone em `bad`, `receiptDuplicate`, o botão principal **Enviar outro**, que volta ao passo 1, e o de contorno **Fechar** |
+
+| Situação | O que acontece |
+|----------|----------------|
+| Arquivo fora do tipo ou acima de 10 MB | Erro na sheet (`errorReceiptTypeInvalid`, `errorReceiptTooLarge`), no passo 1, sem enviar |
+| Falha ao enviar o arquivo ao bucket | Erro `receiptUploadFailed` no passo 2, com **Tentar de novo** |
+| `RECEIPT_FILE_NOT_FOUND`, `RECEIPT_TYPE_INVALID`, `RECEIPT_TOO_LARGE` do servidor | Erro na sheet, no passo 1 |
+| `CHARGE_NOT_PENDING` | `SnackBar`, a sheet fecha e a tela relê |
+| Sem conexão ou sem resposta durante a leitura | `SnackBar` `receiptResultUnknown`, a sheet fecha e a tela relê: o servidor pode ter gravado |
+| Fechar no passo 1, 2 ou 4 | A tela relê |
+
+- O arquivo vai para `<chargeId>/<uuid>.<ext>` com `upsert: false`. Um novo envio usa um nome novo. O arquivo que sobrou sem registro é apagado pelo servidor em até dois dias.
+
+### 9.4 Comprovante (`/receipts/:receiptId`)
+
+**Objetivo:** abrir o comprovante e, para o recebedor, decidir (RF83, RF86, RF87). Na aba Cobranças. Só para o pagador e o recebedor **do comprovante**. Os outros recebem o estado "não encontrado".
+
+**Conteúdo:**
+
+1. Barra interna com o título **Comprovante**.
+2. **Cabeçalho:** para o recebedor, o avatar e o nome de quem pagou; para o pagador, "Para {recebedor}". Embaixo, a data curta do jogo e o local, o valor e o selo do status do comprovante.
+3. **Arquivo:** a imagem, pela URL assinada, que abre em tela cheia com zoom; ou o botão de contorno **Abrir PDF**, que abre a URL fora do app (`url_launcher`). Com o arquivo apagado, `receiptFileDeleted` com a data. URL assinada de 10 minutos, pedida ao abrir.
+4. **Conferência**, só para o recebedor, a partir de `validation` e dos campos `extracted_*`. Uma linha por item, com o esperado, o lido e o selo **Confere** (`ok`), **Não confere** (`bad`) ou **Não lido** (`neutral`):
+
+| Linha | Esperado | Lido |
+|-------|----------|------|
+| **Valor** | O valor a pagar | `extracted_amount_cents` |
+| **Quem recebeu** | O nome do recebedor no perfil | `extracted_recipient_name` e, se houver, `extracted_recipient_key` |
+| **Data e hora** | "A partir de {data e hora do início}" | `extracted_paid_at` |
+| **Código do Pix** | — | `transaction_id` |
+
+   Sem leitura (`skipped`), no lugar das linhas, a frase do motivo: `receiptSkippedLimit`, `receiptSkippedApi` ou `receiptSkippedFile`. A leitura é só ajuda: o recebedor confere o arquivo.
+5. **Decisão**, com o comprovante decidido: `receiptDecidedAuto`, `receiptDecidedApproved`, `receiptDecidedRejected` com a observação, ou `receiptRejectedDuplicate`, com a data.
+6. **Pé fixo**, só para o recebedor com o comprovante Em análise: o botão principal **Aprovar** e o destrutivo de contorno **Recusar**.
+
+| Situação | O que acontece |
+|----------|----------------|
+| **Aprovar** | Confirmação em tom normal: `receiptApproveTitle` e `receiptApproveBody` (não dá para desfazer, RN85). Ao confirmar, `review_receipt(true)`, `SnackBar` e volta |
+| **Recusar** | Sheet `receiptRejectTitle`, com o campo **Observação** (obrigatório, até 200, com contador) e o botão destrutivo sólido **Recusar**. Vazio ou só com espaços, erro `receiptNoteRequired` no campo. `review_receipt(false, texto)`, `SnackBar` e volta |
+| `RECEIPT_NOT_UNDER_REVIEW` | `SnackBar`, e a tela relê |
+| A URL assinada falha | No lugar do arquivo, `receiptFileError` com **Tentar de novo**. A decisão continua possível |
+
+### 9.5 Rateio, ações do recebedor (completa a seção 8.3)
+
+Tocar numa linha de valor abre uma sheet com o avatar, o nome e "{rótulo} · {valor} · {status}", e as opções que a pessoa tem naquele valor. Sem nenhuma opção, abre o perfil, como na 8.3. Com ao menos uma, a sheet termina com **Ver perfil**.
+
+| Opção | Quem | Em qual valor |
+|-------|------|---------------|
+| **Conferir comprovante** (etapa B) | `receiver_id` do valor | `under_review`. Abre 9.4 |
+| **Marcar como pago** | `receiver_id` do valor | `pending` |
+| **Reverter pagamento** | `receiver_id` do valor | `paid`, com `paid_via = manual` |
+| **Isentar multa** | Admin do jogo | Multa `pending` (8.3) |
+
+- **Devidos a você:** quem é o `receiver_id` de algum valor do jogo sem ser o recebedor atual nem admin (o antigo recebedor, RN31.2) vê, depois de **Seu valor**, esta seção com as linhas devidas a ele.
+- **Marcar como pago** e **Reverter pagamento** pedem confirmação em tom normal (`markPaidTitle`, `revertTitle`), chamam `mark_charge_paid` e `revert_charge`, mostram o `SnackBar` e releem.
+- `CHARGE_NOT_PENDING` e `CHARGE_NOT_REVERTIBLE`: `SnackBar`, e a tela relê.
+- O total **Pendente** da 8.3 continua somando `pending` e `under_review`.
+
+### 9.6 Excluir conta (`/profile/delete`)
+
+**Objetivo:** excluir a própria conta (RF13). Fora das abas. Aberta por uma linha nova em Meu perfil (5.7), **Excluir conta**, depois de **Sair**, em tom destrutivo.
+
+**Conteúdo:**
+
+1. Barra interna com o título **Excluir conta**.
+2. **O que acontece**, em duas listas curtas: `deleteLoses` (nome, apelido, foto, telefone, chave Pix e e-mail são apagados; sai dos grupos, das listas e das esperas) e `deleteKeeps` (jogos, valores e comprovantes continuam no histórico dos outros, com o nome "Usuário removido").
+3. A frase `deleteNoUndo`.
+4. **Pé fixo:** o botão destrutivo de contorno **Excluir minha conta**.
+
+| Situação | O que acontece |
+|----------|----------------|
+| **Excluir minha conta** | Confirmação destrutiva com `deleteConfirmTitle`, `deleteConfirmBody` e o botão **Excluir**. Ao confirmar, `delete_account` |
+| Aceita | Encerra a sessão do Supabase e a do Google e volta ao login, com o `SnackBar` `accountDeleted` |
+| `ACCOUNT_DELETE_BLOCKED` | A tela mostra, acima do texto, o bloco `deleteBlockedTitle` com uma linha por motivo, na ordem do servidor. Tocar na linha leva ao lugar de resolver |
+| Outro erro ou sem conexão | `SnackBar`. A conta continua |
+
+| Motivo | Texto | Leva a |
+|--------|-------|--------|
+| `pending_charges` | `deleteBlockedPendingCharges` | Cobranças |
+| `pending_receivables` | `deleteBlockedPendingReceivables` | Cobranças |
+| `last_group_admin` | `deleteBlockedLastGroupAdmin` | Grupos |
+| `game_sole_admin` | `deleteBlockedGameSoleAdmin` | Jogos |
+| `game_receiver` | `deleteBlockedGameReceiver` | Jogos |
+| `unfinished_game` | `deleteBlockedUnfinishedGame` | Jogos |
+
+- O app não antecipa os bloqueios: só o servidor sabe (CLAUDE.md, "Nunca faça").
+
+### 9.7 Testes da fatia 6
+
+Os cenários estão em `testes-referencia.md`, seção 14, além do C09 a C12 (seção 8) e do conjunto de exemplos de `docs/comprovantes-ia.md`, seção 7.

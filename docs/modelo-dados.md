@@ -390,13 +390,13 @@ Toda transição de status de um valor a pagar, com autor e momento (exigido pel
 | `to_status` | charge_status | not null |
 | `actor_id` | uuid | null = sistema |
 | `receipt_id` | uuid | null, FK `receipts(id)` |
-| `note` | text | null |
+| `note` | text | null. A observação do recebedor **não** é copiada para cá: os admins do jogo leem os eventos, e o comprovante é só do pagador e do recebedor (RF87) |
 | `created_at` | timestamptz | |
  
 Índice `(charge_id, created_at)`.
  
 #### `receipts` (comprovantes)
-A linha é criada pela Edge Function `process-receipt` ao fim da leitura, já com o status final da etapa automática. Durante a leitura, o bloqueio de novo envio é feito pelo app (RN86); no servidor, a função bloqueia a linha do `charge` (`for update`) e confere que ele continua `pending` antes de gravar.
+A linha é criada ao fim da leitura, já com o status final da etapa automática, pela função `record_receipt`, que a Edge Function `process-receipt` chama (ADR 0019). Durante a leitura, o bloqueio de novo envio é feito pelo app (RN86); no servidor, `record_receipt` bloqueia o jogo e a linha do `charge` (`for update`) e confere que ele continua `pending` antes de conferir e gravar.
  
 | Coluna | Tipo | Regras |
 |--------|------|--------|
@@ -413,9 +413,9 @@ A linha é criada pela Edge Function `process-receipt` ao fim da leitura, já co
 | `extracted_paid_at` | timestamptz | null; minuto lido no comprovante, interpretado em `America/Sao_Paulo` (RN88c) |
 | `extracted_recipient_name` | text | null |
 | `extracted_recipient_key` | text | null |
-| `transaction_id` | text | null, normalizado (`trim`, maiúsculas) |
-| `extraction` | jsonb | null; resposta bruta do modelo |
-| `validation` | jsonb | null; resultado de cada condição da RN88 |
+| `transaction_id` | text | null, normalizado (sem espaços, maiúsculas). Só o código do Pix no formato da RN88d; outro número fica nulo aqui e aparece só em `extraction` |
+| `extraction` | jsonb | null; resposta bruta do modelo, com `model`, `prompt_version` e `usage` (`docs/comprovantes-ia.md`, seção 8) |
+| `validation` | jsonb | not null na gravação por `record_receipt`: o resultado de cada condição da RN88 e o motivo de não ter lido (`docs/comprovantes-ia.md`, seção 5) |
 | `rejection_reason` | receipt_rejection_reason | null |
 | `receiver_note` | text | null |
 | `decided_by` | uuid | null (decisão automática) |
@@ -538,6 +538,7 @@ Toda escrita com regra passa por uma função do servidor (SQL `security definer
 | `review_receipt` | Aprova (valor `paid`) ou recusa com observação (valor `pending`); grava `decided_at` | RN82, RN83, RN91 |
 | `leave_group` / `remove_group_member` | Valida a RN16, retira das listas e da espera dos jogos do grupo não iniciados (sem multa), remove o papel de admin dos jogos do grupo `open`/`confirmed` e notifica o removido | RN14, RN16, RF104 |
 | `archive_group` | Valida que não há jogo `open`/`confirmed`, remove membros, cancela solicitações pendentes, invalida o convite, grava `archived_at` e notifica os membros | RN17, RF103 |
+| `record_receipt` | Só para `process-receipt`: bloqueia o valor, confere a RN88 e grava o comprovante | RN80, RN81, RN86, RN88, RN89 |
 | `delete_account` | Valida bloqueios, sai das listas futuras, cancela solicitações e anonimiza | RN103, RN104 |
 | `get_profile_contact(user_id)` | Devolve telefone e chave Pix só quando a RN101, a RN102 e a RN107 permitem | RN101, RN102, RN107 |
 | `get_game_groups(game_ids)` | Devolve o nome do grupo dos jogos que quem chama pode ver, sem abrir `groups` a quem não é membro (decisão de 16/11/2026) | RF44, RF45 |
@@ -558,7 +559,7 @@ Toda escrita com regra passa por uma função do servidor (SQL `security definer
 | `avatars` (privado) | `profiles/{user_id}/{uuid}.{ext}`, `groups/{group_id}/{uuid}.{ext}` | JPEG, PNG ou WebP; até 2 MB (RN106) | Escrita pelo dono do perfil ou admin do grupo; leitura por URL assinada para quem pode ver o perfil (RN107, inclusive o admin que decide uma solicitação) ou é membro do grupo |
 | `receipts` (privado) | `{charge_id}/{uuid}.{ext}` | Imagem ou PDF; até 10 MB (RN87) | Escrita pelo pagador, apenas para valor `pending`; leitura pelo pagador e pelo `receiver_id` do comprovante, por URL assinada de curta duração |
  
-Arquivos de foto substituídos, de grupos arquivados e de contas anonimizadas são apagados do bucket. Arquivos enviados ao bucket `receipts` sem linha correspondente em `receipts` após 24 horas são apagados pelo *job* diário de retenção.
+Arquivos de foto substituídos, de grupos arquivados e de contas anonimizadas são apagados do bucket. Arquivos enviados ao bucket `receipts` sem linha correspondente em `receipts` após 24 horas são apagados pelo *job* diário de retenção. A foto sem referência em `avatars` também espera 24 horas, para não apagar a que acabou de ser enviada e ainda não foi salva no perfil.
  
 ## 8. Resumo do RLS
  
@@ -587,4 +588,4 @@ Não alteram regra de negócio; podem ser revistas na implementação.
 2. **`auth.users` não é apagado** na exclusão de conta: é anonimizado e bloqueado, para preservar a chave estrangeira de `profiles`.
 3. **Código de convite com 12 caracteres base62**, cerca de 71 bits de aleatoriedade. Mantido em 15/11/2026, com a diferença entre maiúsculas e minúsculas: quem recebe o código costuma colá-lo, e o app não troca a caixa das letras ao digitar.
 4. **Lista de espera com `left_at`** em vez de exclusão da linha, para que a passagem pela espera conte como contexto compartilhado (RN107).
-5. **Proteção contra envios simultâneos de comprovante no servidor** por bloqueio da linha do valor a pagar, sem criar um status de comprovante a mais (a regra de negócio só bloqueia no app, RN86).
+5. **Proteção contra envios simultâneos de comprovante no servidor** por bloqueio do jogo e da linha do valor a pagar, sem criar um status de comprovante a mais (a regra de negócio só bloqueia no app, RN86).

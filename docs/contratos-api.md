@@ -104,7 +104,7 @@ A mensagem é a versão inicial. O texto final fica no catálogo de textos (`pla
 
 | Código | Regra | HTTP (Edge) | Mensagem |
 |--------|-------|-------------|----------|
-| `CHARGE_NOT_REVERTIBLE` | RN85 | — | Só um pagamento marcado manualmente pode ser revertido. |
+| `CHARGE_NOT_REVERTIBLE` | RN85, RN104 | — | Este pagamento não pode ser revertido. |
 | `RECEIPT_NOT_UNDER_REVIEW` | RN82, RN83 | — | Este comprovante já foi decidido. |
 | `RECEIPT_NOTE_REQUIRED` | RN83 | — | Escreva uma observação para recusar. |
 | `RECEIPT_FILE_NOT_FOUND` | RF78 | 422 | Não encontramos o arquivo enviado. Envie de novo. |
@@ -326,7 +326,7 @@ O `p_data` de `emit_notification` em cada evento da fatia 4, no mesmo formato da
   1. Recusa se houver valor `under_review` no jogo.
   2. O valor `pending` do novo recebedor, de qualquer tipo, passa para `waived` com motivo `receiver_change` (RN94).
   3. Os valores `pending` do jogo passam a ser devidos ao novo recebedor. Os `paid` não mudam.
-  4. Se o antigo recebedor **não tiver valor ativo** (diferente de `waived`) no jogo, ganha um `share` `pending` igual a `share_cents`, devido ao novo recebedor. Se tiver, nada é criado: ele já pagou a parte dele.
+  4. Se o antigo recebedor **não tiver valor ativo** (diferente de `waived`) no jogo, ganha um `share` `pending` igual a `share_cents`, devido ao novo recebedor. Se tiver, nada é criado: ele já pagou a parte dele. Se ele tiver excluído a conta, também nada é criado (RN104; a mudança entra na etapa C da fatia 6).
 - **Em ambos os casos:** grava `receiver_changes`, notifica o antigo e o novo recebedor e quem tem valor Pendente (`receiver_changed`) e, se houver novo valor, `charge_created`. Auditoria: `receiver_changed`.
 - **Retorno:** `{ game_id, receiver_id, charges_transferred, charge_created }`.
 - **Origem:** RF33, RF97, RN28, RN30, RN31, RN32, RN94, RN115.
@@ -353,6 +353,8 @@ O `p_data` de `emit_notification` nos eventos da fatia 5, no mesmo formato da fa
 
 ## 6. Pagamentos e conta (fatia 6)
 
+Decisões de 24/11/2026. Nas funções sobre um valor, quem não pode ver o valor (`private.can_view_charge`) recebe `NOT_FOUND`. As funções bloqueiam primeiro o jogo e depois o valor (seção 1), na mesma ordem de `waive_penalty` e `change_receiver`, e releem o status depois do bloqueio.
+
 ### `mark_charge_paid(p_charge_id uuid)`
 - **Quem:** o recebedor do valor (`charges.receiver_id`).
 - **Erros:** `NOT_FOUND`, `NOT_CHARGE_RECEIVER`, `CHARGE_NOT_PENDING`.
@@ -363,31 +365,48 @@ O `p_data` de `emit_notification` nos eventos da fatia 5, no mesmo formato da fa
 ### `revert_charge(p_charge_id uuid)`
 - **Quem:** o recebedor do valor.
 - **Erros:** `NOT_FOUND`, `NOT_CHARGE_RECEIVER`, `CHARGE_NOT_REVERTIBLE`.
-- **Efeitos:** volta para `pending`, se `paid_via = manual` e a marcação for do próprio recebedor. `charge_events` guarda quem e quando. Notifica o pagador (`charge_back_to_pending`).
+- **Efeitos:** volta para `pending`, com `paid_at` e `paid_via` nulos, se `paid_via = manual` e a marcação for do próprio recebedor. `charge_events` guarda quem e quando. Notifica o pagador (`charge_back_to_pending`).
+- **Conta excluída:** se o pagador excluiu a conta, devolve `CHARGE_NOT_REVERTIBLE` (RN104).
 - **Retorno:** `{ charge_id, status }`.
 - **Origem:** RF85, RN85, RF97.
 
 ### `review_receipt(p_receipt_id uuid, p_approve boolean, p_note text default null)`
 - **Quem:** o recebedor do comprovante (`receipts.receiver_id`).
-- **Erros:** `NOT_FOUND`, `NOT_CHARGE_RECEIVER`, `RECEIPT_NOT_UNDER_REVIEW`, `RECEIPT_NOTE_REQUIRED`.
+- **Erros:** `NOT_FOUND`, `NOT_CHARGE_RECEIVER`, `RECEIPT_NOT_UNDER_REVIEW`, `RECEIPT_NOTE_REQUIRED` (recusa sem observação ou só com espaços), `INVALID_INPUT` (observação com mais de 200 caracteres depois do `trim`). Os admins do jogo não veem o comprovante (RF87): recebem `NOT_FOUND`, e o pagador, `NOT_CHARGE_RECEIVER`.
 - **Efeitos:**
   - aprova: comprovante `approved`, valor `paid` com `paid_via = receipt`. Notifica `charge_paid`;
   - recusa: comprovante `rejected` com motivo `receiver_rejected`, valor volta para `pending`. Notifica `charge_back_to_pending`;
-  - em ambos: grava `decided_at`, `decided_by` e `receiver_note`.
+  - em ambos: grava `decided_at`, `decided_by` e `receiver_note` (nulo na aprovação sem observação) e um `charge_events` com o `receipt_id` e sem `note`.
 - **Retorno:** `{ receipt_id, status, charge_status }`.
 - **Origem:** RF83, RN82, RN83, RN90, RN91.
 
 ### `delete_account()`
 - **Quem:** a própria pessoa.
-- **Erros:** `ACCOUNT_DELETE_BLOCKED`, com `detail.reasons` contendo um ou mais de: `pending_charges`, `pending_receivables`, `last_group_admin`, `game_sole_admin`, `game_receiver`.
+- **Erros:** `ACCOUNT_DELETE_BLOCKED`, com `detail.reasons` contendo um ou mais de, sempre nesta ordem: `pending_charges`, `pending_receivables`, `last_group_admin`, `game_sole_admin`, `game_receiver`, `unfinished_game`. `unfinished_game` é a passagem num jogo `open` ou `confirmed` que pode gerar valor: `active` ou `left_after_start` com `starts_at <= now()`, ou `cancelled` com `late_cancellation` e sem `cancellation_voided_at` (RN103).
 - **Efeitos, em transação única:**
   1. retira das listas de presença e de espera dos jogos não iniciados, sem multa e com motivo `account_deleted`, recalcula o status e avisa a espera;
   2. retira dos grupos e dos papéis de admin dos jogos `open`/`confirmed`, e cancela as solicitações pendentes;
   3. apaga tokens e preferências;
-  4. anonimiza `profiles`, `profile_private` e `auth.users` e bloqueia o acesso. As fotos são apagadas por `storage-cleanup`.
+  4. anonimiza `profiles` (`name = 'Usuário removido'`, `nickname` e `photo_path` nulos, `deleted_at = now()`), `profile_private` (tudo nulo, `phone_visible = false`) e `auth.users` (e-mail `deleted-<uuid>@deleted.invalid`, sem senha, sem metadados e com `banned_until` sem fim), e apaga as identidades e as sessões do Auth. As fotos são apagadas por `storage-cleanup`.
+- **Bloqueios:** antes de validar, bloqueia, em ordem de `id`, os jogos `open` e `confirmed` em que a pessoa tem passagem, espera ou papel de admin (C17). Nos grupos, bloqueia as linhas de `groups` de que ela é membro.
+- **Token que sobra:** o *token* de acesso já emitido vale até expirar (1 h). `private.require_uid()` passa a recusar conta excluída (`NOT_AUTHENTICATED`), e as escritas diretas também (`rls-matriz.md`, fatia 6).
 - **Auditoria:** `account_deleted`, sem dados pessoais. O histórico continua associado ao perfil anônimo.
 - **Retorno:** `{ deleted: true }`. Em seguida, o app encerra a sessão.
 - **Origem:** RF13, RN65, RN103, RN104.
+
+### Dados das notificações de pagamento (decisão de 24/11/2026)
+
+O `p_data` de `emit_notification` nos eventos da fatia 6. Todos levam `{ "game_id", "group_name", "location_name", "starts_at", "charge_id", "amount_cents" }` e o que a tabela acrescenta.
+
+| Tipo | Para quem | Quando | Acrescenta |
+|------|-----------|--------|------------|
+| `charge_paid` | O pagador | `mark_charge_paid`, aprovação em `review_receipt` e aprovação automática | `"paid_via": "manual" \| "receipt"`, `"receipt_id"` \| null |
+| `charge_back_to_pending` | O pagador | `revert_charge` e recusa em `review_receipt` | `"reason": "reverted" \| "receipt_rejected"`, `"receipt_id"` \| null |
+| `receipt_needs_review` | O recebedor do valor | Comprovante em `under_review` | `"receipt_id"`, `"payer_id"` |
+| `payment_received` | O recebedor do valor | Só na aprovação automática | `"receipt_id"`, `"payer_id"` |
+
+- A observação do recebedor não vai na notificação: o pagador a lê no comprovante.
+- `delete_account` avisa a espera de cada jogo de que a pessoa saiu (`waitlist_slot_opened`, `reason` `slot_freed`), como a saída do grupo.
 
 ## 7. Funções internas
 
@@ -397,6 +416,9 @@ Sem permissão de execução para o app.
 |--------|-------------|-----|--------|
 | `emit_notification(p_type, p_user_id, p_data)` | Funções SQL e Edge Functions | Grava em `notifications` e devolve o `id` da linha. Até a fatia 7, com texto provisório (`title` = o tipo, `body` vazio). A partir dela, com o texto final e o disparo de `send-push` | RN110 |
 | `auto_complete_due_games()` | `pg_cron`, a cada 5 minutos | Conclui os jogos com `ends_at + 1h <= now()`, com a mesma lógica de `complete_game` (`completion_mode = automatic`) | RF42, RN45, RN46, RN49 |
+| `record_receipt(p_charge_id uuid, p_payer_id uuid, p_storage_path text, p_mime_type text, p_size_bytes integer, p_reading jsonb)` | Edge Function `process-receipt` | Bloqueia o jogo e o valor, confere a RN88 e grava o comprovante, os eventos e as notificações, numa transação. Fica em `public`, com `execute` só para `service_role` (ADR 0019). Erros: `NOT_FOUND`, `NOT_CHARGE_PAYER`, `CHARGE_NOT_PENDING`, `INVALID_INPUT` (caminho de outro valor ou já usado por um comprovante). `p_reading` em `docs/comprovantes-ia.md`, seção 4. Devolve o retorno de `process-receipt` | RF79 a RF83, RN80, RN81, RN86 a RN89 |
+| `list_storage_cleanup()` | Edge Function `storage-cleanup` | Lista os arquivos a apagar, por motivo (`receipt_expired`, `receipt_orphan`, `photo_orphan`). Em `public`, só para `service_role` | RF87, RN91, RN92 |
+| `mark_receipts_file_deleted(p_receipt_ids uuid[])` | Edge Function `storage-cleanup` | Grava `file_deleted_at` e `storage_path` nulo, só nos comprovantes decididos há mais de 30 dias. Em `public`, só para `service_role` | RN91 |
 | `send_game_reminders()` | `pg_cron`, a cada 5 minutos | Lembretes de prazo e de início (`reminder_cancellation_deadline`, `reminder_game_start`) e aviso de fim (`reminder_complete_game`), sem repetir | RF92 a RF94, RN111, RN112 |
 | `send_charge_reminders()` | `pg_cron`, às 9h e às 20h de `America/Fortaleza` | Uma cobrança por usuário com total Pendente (`charge_reminder`) | RF96, RN113 |
 
@@ -417,15 +439,16 @@ Sem permissão de execução para o app.
 
 - **Autenticação:** JWT do pagador.
 - **Corpo:** `{ "charge_id": "<uuid>", "storage_path": "<charge_id>/<uuid>.<ext>" }`. O arquivo é enviado antes ao bucket `receipts`.
-- **Erros:** `NOT_AUTHENTICATED`, `INVALID_INPUT` (caminho de outro valor), `NOT_FOUND`, `NOT_CHARGE_PAYER`, `CHARGE_NOT_PENDING` (409), `RECEIPT_FILE_NOT_FOUND`, `RECEIPT_TYPE_INVALID`, `RECEIPT_TOO_LARGE`.
-- **Fluxo:** segue o `stacks.md` (seção 6.1).
-  1. Com `auto_reads_used >= 3`, grava `under_review` com `auto_read = false`, sem chamar a API.
+- **Erros:** `NOT_AUTHENTICATED`, `NOT_FOUND`, `NOT_CHARGE_PAYER`, `CHARGE_NOT_PENDING` (409), `INVALID_INPUT` (corpo inválido, caminho de outro valor ou já usado por um comprovante), `RECEIPT_FILE_NOT_FOUND`, `RECEIPT_TYPE_INVALID` (tipo fora da RN87, ou conteúdo que não é do tipo declarado), `RECEIPT_TOO_LARGE`. Um erro não grava comprovante nem conta como leitura.
+- **Fluxo:** segue o `stacks.md` (seção 6.1) e o `docs/comprovantes-ia.md`. Os passos 3 a 6 são de `record_receipt` (seção 7).
+  1. Com `auto_reads_used >= 3`, ou com um arquivo que a API não lê (HEIC, PDF acima do limite de tokens), grava `under_review` com `auto_read = false`, sem chamar a API.
   2. Caso contrário, chama a API e extrai os campos.
   3. Bloqueia o valor a pagar e confere que ele continua `pending`. Se a API respondeu, mesmo com um comprovante ilegível, incrementa `auto_reads_used` sem passar de 3 e grava `auto_read = true`. Se a API falhou (erro, tempo esgotado ou sem resposta), não incrementa e grava `auto_read = false`.
   4. Se o ID estiver em uso, grava `rejected` com motivo `duplicate_transaction` (a violação do índice único leva ao mesmo resultado).
   5. Se todas as condições da RN88 passarem, grava `approved` e o valor vira `paid`.
   6. Em qualquer outro caso, inclusive falha da API, grava `under_review` e o valor vira `under_review`.
 - **Retorno (HTTP 200):** `{ "receipt_id", "result": "approved" | "under_review" | "rejected", "error_code": "DUPLICATE_TRANSACTION" | null, "charge_status", "auto_reads_used" }`. O ID repetido é um resultado registrado, por isso não usa a resposta de erro.
+- **Eventos:** `approved` grava um `charge_events` de `pending` para `paid`, e `under_review`, de `pending` para `under_review`, com `actor_id` do pagador e o `receipt_id`. `rejected` não muda o valor e não gera evento.
 - **Notifica:** `approved` gera `payment_received` para o recebedor e `charge_paid` para o pagador. `under_review` gera `receipt_needs_review`. `rejected` não notifica, porque o pagador vê o motivo na resposta.
 - **Tempo limite, tentativas e modelo:** definidos em `docs/comprovantes-ia.md`.
 - **Origem:** RF78 a RF83, RN32, RN80, RN81, RN86 a RN92, RF104.
@@ -441,12 +464,13 @@ Sem permissão de execução para o app.
 
 ### `storage-cleanup` (fatia 6)
 
-- **Autenticação:** chave interna, chamada por `pg_cron` uma vez por dia.
+- **Autenticação:** chave interna (`INTERNAL_FUNCTION_KEY`, `setup.md`, 5.2), no cabeçalho `x-internal-key`. Chamada por `pg_cron` uma vez por dia, às 4h de `America/Fortaleza`, via `pg_net`, com a chave lida do Vault.
 - **Erros:** `NOT_AUTHENTICATED`.
 - **Efeitos:** apaga os arquivos pela API do Storage, para que não fiquem órfãos:
   - comprovantes decididos há mais de 30 dias, gravando `file_deleted_at` e deixando `storage_path` nulo (RN91, RN92);
   - arquivos em `receipts` sem registro há mais de 24 horas;
-  - fotos em `avatars` que nenhum perfil ou grupo referencia (troca de foto, grupo arquivado, conta anonimizada).
+  - fotos em `avatars` que nenhum perfil ou grupo não arquivado referencia (troca de foto, grupo arquivado, conta anonimizada), enviadas há mais de 24 horas.
+- **Falha no meio:** o arquivo é apagado antes de `mark_receipts_file_deleted`. Se a gravação falhar, a próxima execução repete as duas sem erro: apagar um arquivo que não existe não falha.
 - **Retorno:** `{ "receipts_deleted", "orphans_deleted", "photos_deleted" }`.
 - **Origem:** RF87, RN91, RN92, `modelo-dados.md` (seção 7).
 
@@ -493,4 +517,10 @@ Sem permissão de execução para o app.
 | Na RN16, ser recebedor é conferido antes de ser o único admin | `leave_group`, `docs/ui/telas.md` (7.8) |
 | Quem não pode ver o grupo recebe `NOT_FOUND` ao criar jogo nele, e não `NOT_A_MEMBER` | `create_game`, seção 1 |
 | Todo membro vê e compartilha o código do grupo; só os admins o regeneram e desativam | RN11, `docs/ui/telas.md` (6.5) |
+| A exclusão de conta é bloqueada por jogo não concluído que pode gerar valor (`unfinished_game`) | RN103, `delete_account` |
+| Conta excluída nunca volta a dever | RN31, RN85, RN104, `revert_charge`, `change_receiver` |
+| Só o código do Pix (EndToEnd) vale como ID da transação | RN88, `docs/comprovantes-ia.md` |
+| Recebedor com um nome só confere pela chave | RN88 |
+| A conferência da RN88 roda no SQL, e as Edge Functions chamam funções de `public` abertas só a `service_role` | ADR 0019 |
+| A observação do recebedor tem até 200 caracteres e não vai para `charge_events` nem para a notificação | `review_receipt` |
 | O código de convite continua com 12 caracteres base62, com diferença entre maiúsculas e minúsculas | `modelo-dados.md` (seção 9), `docs/ui/telas.md` (6.3) |

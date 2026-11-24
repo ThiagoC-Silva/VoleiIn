@@ -117,13 +117,13 @@ Cada feature segue: `data` (repositórios e acesso ao Supabase), `domain` (model
  
 1. O app envia o arquivo para um bucket privado do Storage (RF78, RF87) e desabilita novo envio para o mesmo valor até receber o resultado (RN86).
 2. A Edge Function `process-receipt` é acionada com o caminho do arquivo.
-3. A função verifica o limite de **3 leituras automáticas por valor a pagar** (RN86). Dentro do limite, gera uma URL assinada de curta duração, envia o arquivo à Claude API e pede **JSON estruturado**: valor, data e hora, destinatário e ID da transação (RF79). A partir da 4ª tentativa, o envio vai direto para **Em análise**, sem chamar a API. Envios recusados por ID repetido contam como leitura. Uma falha da API não conta (RN86).
-4. A função aplica as regras **em código, não no modelo**:
+3. A função verifica o limite de **3 leituras automáticas por valor a pagar** (RN86). Dentro do limite, baixa o arquivo do bucket com a chave de serviço, confere o tipo e o tamanho, envia o conteúdo em base64 à Claude API e pede **JSON estruturado**: valor, data e hora, destinatário e ID da transação (RF79). A partir da 4ª tentativa, o envio vai direto para **Em análise**, sem chamar a API. Envios recusados por ID repetido contam como leitura. Uma falha da API não conta (RN86).
+4. As regras são aplicadas **em código, não no modelo**, na função SQL `record_receipt`, na mesma transação que bloqueia o valor (ADR 0019):
    - valor exato igual ao valor a pagar;
-   - destinatário compatível com o **recebedor gravado no próprio valor a pagar** (RN32), comparando com a chave Pix atual dele ou com o nome;
+   - destinatário compatível com o **recebedor gravado no próprio valor a pagar** (RN32), comparando com a chave Pix atual dele ou com o nome (RN88b);
    - data e hora iguais ou posteriores ao **início do jogo**, **comparadas no minuto**, lendo a hora do comprovante em `America/Sao_Paulo` (RN88c). Pagamentos feitos depois da partida e antes da conclusão são aprovados normalmente;
-   - ID da transação não utilizado em comprovante **Aprovado ou Em análise** de outro valor a pagar (RN89). Se aquele comprovante for recusado, o ID volta a ficar livre.
-5. Antes de gravar o resultado, a função bloqueia a linha do valor a pagar e confere que ele continua **Pendente**. Isso protege contra dois envios simultâneos, já que o bloqueio de novo envio é feito só no app.
+   - ID da transação no formato do código do Pix (RN88d) e não utilizado em comprovante **Aprovado ou Em análise** de outro valor a pagar (RN89). Se aquele comprovante for recusado, o ID volta a ficar livre.
+5. Antes de conferir e gravar, `record_receipt` bloqueia o jogo e a linha do valor a pagar e confere que ele continua **Pendente**. Isso protege contra dois envios simultâneos, já que o bloqueio de novo envio é feito só no app.
 6. Resultado:
    - tudo conferido: o valor a pagar vai para **Pago** (RF82) e o recebedor é notificado (RF104);
    - leitura falhou ou houve divergência: **Em análise**, com notificação ao recebedor (RF83);
@@ -135,6 +135,7 @@ Cada feature segue: `data` (repositórios e acesso ao Supabase), `domain` (model
 - Índice único parcial no ID da transação (comprovantes Aprovado ou Em análise, RN89), para impedir reaproveitamento mesmo em envios simultâneos.
 - Limite de tamanho (10 MB) e de tipos aceitos (imagem e PDF), validado no app e no servidor (RN87).
 - Modelo e versão configuráveis por variável de ambiente, para trocar sem novo deploy do app.
+- Prompt, JSON de saída, normalização, erros, tempo limite, custo e conjunto de exemplos: `docs/comprovantes-ia.md`.
 ## 7. Tarefas agendadas: `pg_cron` + Edge Functions
  
 **Por quê:** mantém tudo dentro do Supabase, sem infraestrutura extra. O `pg_cron` dispara no horário e chama funções SQL ou Edge Functions (via `pg_net`).
@@ -264,10 +265,10 @@ Resumo de quem vê o quê, implementado por RLS no banco, não apenas na interfa
 - O ID da transação continua guardado, para que a regra de comprovante repetido (RF81) siga valendo.
 ### 13.2 Anonimização na exclusão da conta (RF13)
  
-- A exclusão só é permitida sem valores a pagar ou a receber Pendentes ou Em análise, e se o usuário não for o último admin de um grupo nem o único admin ou o recebedor de um jogo Aberto ou Confirmado (RF13, RN103).
+- A exclusão só é permitida sem valores a pagar ou a receber Pendentes ou Em análise, e se o usuário não for o último admin de um grupo nem o único admin ou o recebedor de um jogo Aberto ou Confirmado, nem estiver num jogo ainda não concluído que possa lhe gerar valor (RF13, RN103).
 - **Anonimizados:** nome, apelido, foto, telefone, chave Pix e e-mail, tanto em `auth.users` quanto no perfil. Os arquivos de foto são apagados do Storage.
-- **Mantidos:** histórico de jogos, presenças, multas, valores e comprovantes, associados a um perfil anônimo (por exemplo, "Usuário removido").
-- Os tokens de push e as preferências de notificação são apagados.
+- **Mantidos:** histórico de jogos, presenças, multas, valores e comprovantes, associados a um perfil anônimo, com o nome `Usuário removido`. O nome e a chave do recebedor lidos num comprovante fazem parte do registro guardado (RN91) e entram na revisão jurídica (seção 14).
+- Os tokens de push, as preferências de notificação, as identidades de login e as sessões são apagados. O e-mail fica livre para uma conta nova, sem ligação com a antiga.
 - A operação roda em uma função do servidor, em transação única, e é registrada em log de auditoria sem dados pessoais.
 ### 13.3 Privacidade e consentimento
  
