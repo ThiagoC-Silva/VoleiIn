@@ -230,8 +230,8 @@ Deno.test('C16: uma entrada no jogo e a saída do grupo ao mesmo tempo', options
         // A entrada venceu, e a saída a retirou.
         assert(gamesLeft.includes(gameId), `repetition ${i}: the game is in games_left`);
       } else {
-        // A saída venceu.
-        assertEquals(join.error.message, 'NO_GAME_ACCESS', `repetition ${i}`);
+        // A saída venceu: sem passagem, ele não pode mais ver o jogo.
+        assertEquals(join.error.message, 'NOT_FOUND', `repetition ${i}`);
         assertEquals(gamesLeft, [], `repetition ${i}`);
       }
       const { count, error } = await owner.client

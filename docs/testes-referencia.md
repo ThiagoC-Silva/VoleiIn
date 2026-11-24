@@ -801,7 +801,7 @@ Deno test, em `supabase/functions/_tests/concurrency/games_test.ts`, com conexõ
 
 | ID | Dado | Quando | Então |
 |----|------|--------|-------|
-| C16 | Jogo Aberto do Quinta, sem o Bruno | Ao mesmo tempo, Bruno chama `join_game` e `leave_group(quinta)` | Bruno nunca fica com passagem `active` sem ser membro: ou a entrada vence e a saída o retira (o jogo vem em `games_left`), ou a saída vence e a entrada recebe `NO_GAME_ACCESS` |
+| C16 | Jogo Aberto do Quinta, sem o Bruno | Ao mesmo tempo, Bruno chama `join_game` e `leave_group(quinta)` | Bruno nunca fica com passagem `active` sem ser membro: ou a entrada vence e a saída o retira (o jogo vem em `games_left`), ou a saída vence e a entrada recebe `NOT_FOUND`, porque o Bruno, sem passagem, não pode mais ver o jogo (`contratos-api.md`, `join_game`) |
 
 ### 12.6 App
 
