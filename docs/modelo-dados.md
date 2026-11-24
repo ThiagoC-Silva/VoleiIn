@@ -534,7 +534,7 @@ Toda escrita com regra passa por uma função do servidor (SQL `security definer
 | `complete_game` | Conclusão manual e automática (abaixo) | RN44 a RN49, RN62, RN70 a RN75 |
 | `change_receiver` | Antes ou depois da conclusão, com as regras da RN31 | RN28 a RN31, RN94, RN115 |
 | `waive_penalty` | Isenção manual de multa `pending` (`waived`, `manual_waiver`); notifica | RN66, RN93 |
-| `mark_charge_paid` / `revert_charge` | Pagamento manual e reversão só do que foi manual | RN84, RN85 |
+| `mark_charge_paid` / `revert_charge` | Pagamento manual e reversão só do que foi manual, nunca de quem excluiu a conta nem do recebedor atual do jogo | RN84, RN85, RN104 |
 | `review_receipt` | Aprova (valor `paid`) ou recusa com observação (valor `pending`); grava `decided_at` | RN82, RN83, RN91 |
 | `leave_group` / `remove_group_member` | Valida a RN16, retira das listas e da espera dos jogos do grupo não iniciados (sem multa), remove o papel de admin dos jogos do grupo `open`/`confirmed` e notifica o removido | RN14, RN16, RF104 |
 | `archive_group` | Valida que não há jogo `open`/`confirmed`, remove membros, cancela solicitações pendentes, invalida o convite, grava `archived_at` e notifica os membros | RN17, RF103 |

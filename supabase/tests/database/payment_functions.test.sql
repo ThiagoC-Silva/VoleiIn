@@ -360,8 +360,8 @@ select is(
 select is(pg_temp.state(), current_setting('t.before')::jsonb, 'PG06f: nada muda');
 rollback to savepoint pg06_deleted;
 
--- PG07. O pagador virou o recebedor do jogo (RN85).
-savepoint pg07;
+-- PG07. O pagador virou o recebedor do jogo (RN85). É o último e fica fora de
+-- savepoint: o finish() precisa de um teste que não volte atrás.
 select pg_temp.call('00000000-0000-0000-0000-00000000000a', 'mark_charge_paid', '00000000-0000-0000-0000-000000000c02');
 select pg_temp.ana_passes_to('00000000-0000-0000-0000-00000000000b');
 select set_config('t.before', pg_temp.state()::text, true);
@@ -381,7 +381,6 @@ select results_eq(
   $$ values ('pending', '00000000-0000-0000-0000-00000000000a'::uuid) $$,
   'PG07d: o valor fica Pendente, devido à Ana'
 );
-rollback to savepoint pg07;
 
 select * from finish();
 rollback;
