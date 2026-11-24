@@ -47,6 +47,9 @@ class GameScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final game = ref.watch(gameDetailProvider(gameId));
+    // Mantém o controller vivo durante as ações, também sem o rodapé: no jogo
+    // concluído, a troca de recebedor precisa dele para reler o detalhe.
+    ref.watch(gameActionsControllerProvider);
     return Scaffold(
       body: switch (game) {
         AsyncValue(:final value?) => _GameBody(game: value),
