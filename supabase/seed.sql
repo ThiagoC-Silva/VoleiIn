@@ -344,5 +344,14 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_ana)::text, true);
   perform public.change_receiver('00000000-0000-0000-0000-000000000211', v_carla);
   perform set_config('request.jwt.claims', '', true);
+
+  -- Fatia 6, etapa A (research R6 de specs/009-pagamentos-etapa-a). Ana marca
+  -- como pago o share da Carla no Quinta concluído; o do Bruno fica Pendente.
+  perform set_config('request.jwt.claims', json_build_object('sub', v_ana)::text, true);
+  perform public.mark_charge_paid(
+    (select c.id from public.charges c
+     where c.game_id = '00000000-0000-0000-0000-000000000208' and c.payer_id = v_carla)
+  );
+  perform set_config('request.jwt.claims', '', true);
 end;
 $seed$;

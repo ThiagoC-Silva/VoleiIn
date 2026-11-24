@@ -1005,7 +1005,7 @@ Decisões de 24/11/2026. Base: `contratos-api.md` (seções 6 a 8), `docs/compro
 
 | Etapa | Escopo | Cenários |
 |-------|--------|----------|
-| **A** | Valor a pagar com a chave Pix, marcar como pago e reverter | PG01 a PG06, C09, S77 (sem comprovantes), S84, S85 (sem **Para conferir**), L23 |
+| **A** | Valor a pagar com a chave Pix, marcar como pago e reverter | PG01 a PG07, C09, S77 (sem comprovantes), S84, S85 (sem **Para conferir**), L23 |
 | **B** | Envio, leitura e análise de comprovantes | CP01 a CP24, RV01 a RV06, PR01 a PR10, NM01 a NM05, CF01 a CF26, RS01 a RS09, C10 a C12, C18, U14, S77 a S83, S85 (**Para conferir**), L24, L25, M09 |
 | **C** | Limpeza do Storage e exclusão de conta | SC01 a SC07, EX01 a EX12, RS10, C17, S86, S87, L26, M10 |
 
@@ -1023,6 +1023,7 @@ pgTAP, em `supabase/tests/database/payment_functions.test.sql`.
 | PG04 | Depois do PG01 | Ana chama `revert_charge` | `pending`, `paid_at` e `paid_via` nulos. Um `charge_events` de `paid` para `pending` com `actor_id` = Ana. Notifica `charge_back_to_pending` ao Fábio, com `reason` `reverted`. `auto_reads_used` não muda |
 | PG05 | Valor Pendente; valor pago por comprovante; depois do PG01, Edu e Fábio | Ana chama `revert_charge` nos dois primeiros; Edu e Fábio chamam no terceiro | `CHARGE_NOT_REVERTIBLE` nos dois; `NOT_CHARGE_RECEIVER` nos dois |
 | PG06 | Depois do PG01: Ana passa o recebimento para o Bruno (`change_receiver`); depois, outro caso em que o Fábio excluiu a conta | Bruno e Ana chamam `revert_charge` sobre o valor do Fábio; no outro caso, Ana chama | Bruno: `NOT_CHARGE_RECEIVER`. Ana: aceito, e o valor volta a Pendente devido à Ana (RN32). No outro caso, `CHARGE_NOT_REVERTIBLE` e nada muda (RN104) |
+| PG07 | Ana marca o valor do Bruno como pago e depois passa o recebimento para o Bruno (decisão de 24/11/2026) | Ana chama `revert_charge` sobre o valor do Bruno; depois, Ana volta o recebimento para ela e chama de novo | `CHARGE_NOT_REVERTIBLE`, e nada muda: o recebedor do jogo não volta a dever (RN85). Na volta, aceito, e o valor fica Pendente devido à Ana |
 
 ### 14.2 Conferência do comprovante (RN80, RN81, RN86, RN88, RN89)
 
@@ -1250,7 +1251,7 @@ Deno test, em `supabase/functions/_tests/concurrency/payments_test.ts`, 50 repet
 | RF65 | S71 |
 | RF75, RF76 | S74, L22, S85 |
 | RN80 a RN83, RN88, RN89 | CP01 a CP24, PR01 a PR10, C10 a C12, C18, S79 a S83, L24, L25, M09 |
-| RN84, RN85 | PG01 a PG06, C09, S84, L23 |
+| RN84, RN85 | PG01 a PG07, C09, S84, L23 |
 | RN86, RN87 | CP17 a CP20, PR03 a PR09, RS06 a RS08, S78, S79 |
 | RN90 | RS01 a RS04, S77, S81 |
 | RN91, RN92 | SC01 a SC06, S82 |

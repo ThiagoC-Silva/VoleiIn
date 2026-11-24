@@ -8,7 +8,8 @@ os grupos do seed (`docs/setup.md`, seção 8):
   banco (C13 e C15 na fatia 3, research R4 de `specs/002-grupos`; C01 a C07 e C16 na fatia 4 (etapas
   A a C), com as contas `conc-00` a `conc-26`, research R7 de `specs/003-jogo-etapa-a`; C08 na fatia
   5, que dispara `auto_complete_due_games` por uma conexão de `postgres`, com `SUPABASE_DB_URL` e,
-  sem ela, o banco local, research R6 de `specs/006-conclusao-etapa-a`).
+  sem ela, o banco local, research R6 de `specs/006-conclusao-etapa-a`; C09 na fatia 6, com a
+  isenção e a marcação de pagamento, research R7 de `specs/009-pagamentos-etapa-a`).
 
 ```bash
 # em supabase/functions/
