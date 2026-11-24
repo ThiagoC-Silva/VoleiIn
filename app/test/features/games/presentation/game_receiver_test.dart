@@ -209,6 +209,27 @@ void main() {
       expect(inSheet(find.text('Fábio')), findsOneWidget);
     });
 
+    // Sem rodapé no jogo concluído, nada observava o controller: ele era
+    // descartado durante a chamada e o detalhe não relia (bug achado no L22).
+    testWidgets('a troca relê o detalhe e Cobranças, sem o Realtime', (
+      tester,
+    ) async {
+      game(() => completedGame());
+      stubChange(() => Future.delayed(const Duration(milliseconds: 300)));
+      await openDetail(tester, finishedId);
+      await openSheet(tester);
+      await tapFinder(tester, inSheet(find.text('Fábio')));
+      final readsBefore = reads;
+      clearInteractions(h.games);
+      await tapText(tester, l10nPt.receiverChangeConfirmAction);
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10nPt.receiverChanged('Fábio')), findsOneWidget);
+      expect(reads, greaterThan(readsBefore));
+      verify(() => h.games.fetchMyCharges()).called(greaterThanOrEqualTo(1));
+    });
+
     testWidgets('RECEIVER_CHANGE_BLOCKED: SnackBar, e a sheet fecha', (
       tester,
     ) async {
