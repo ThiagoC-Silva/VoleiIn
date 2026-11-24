@@ -20,6 +20,7 @@ Esta é a versão da Fase 0, com os cenários de maior risco. Antes de cada fati
 | 10 | Conta e perfil: RLS da conta, chave Pix e RN105, fotos (RN106), validações, telas e fluxos | 2 | pgTAP, Deno test, `flutter_test` e `integration_test` |
 | 11 | Grupos: funções, RLS e contexto (RN107), fotos do grupo, prévia do convite, concorrência, telas e fluxos | 3 | pgTAP, Deno test, `flutter_test` e `integration_test` |
 | 12 | Jogo e lista: criar, editar, cancelar, admins, lista, espera e status, saída do grupo com jogos, RLS e visibilidade (RN102), concorrência, telas e fluxos | 4 | pgTAP, Deno test, `flutter_test` e `integration_test` |
+| 14 | Pagamentos, comprovantes e exclusão de conta: marcação manual, RN88, `process-receipt`, análise, RLS e Storage, limpeza, exclusão, concorrência, telas e fluxos | 6 | pgTAP, Deno test, `flutter_test` e `integration_test` |
 
 **Ficam para o ciclo de cada fatia:** a máquina de estados do jogo (RN40 a RN43 na seção 12; RN44 e RN45 na fatia 5) e do valor a pagar (RN80 a RN94), a exclusão de conta (RN103), o RLS de cada tabela e os comprovantes.
 
@@ -990,7 +991,219 @@ Deno test, em `supabase/functions/_tests/concurrency/completion_test.ts`, com co
 |----|----------------|
 | M08 | RN45: um jogo de teste na produção, sem conclusão manual, aparece **Concluído** em até 1 h 05 min depois do fim, com `completion_mode = automatic` (o `pg_cron` da produção está ativo) |
 
-## 14. Rastreabilidade
+## 14. Pagamentos, comprovantes e exclusão de conta (fatia 6)
+
+Decisões de 24/11/2026. Base: `contratos-api.md` (seções 6 a 8), `docs/comprovantes-ia.md`, `rls-matriz.md` (fatia 6), `docs/ui/telas.md` (seção 9) e `docs/copy.md` (seção 10). Os cenários C09 (com `mark_charge_paid`, como está escrito na seção 8) e C10 a C12 rodam junto destes.
+
+**Base dos cenários pgTAP**, inserida como `postgres` no começo de cada teste, sem depender do seed: a base da seção 13, com o nome da Ana trocado para **Ana Souza Lima** e a chave CPF `52998224725`. **Jogo concluído** do R01, inserido direto: início em 19/11/2026 às 20:00 (`America/Fortaleza`), parte de 2.084, Ana recebedora e admin, **Edu** também admin; **Fábio** com `share` Pendente de 2.084, devido à Ana; Bruno com `share` Pendente; Carla com `absence_penalty` Pendente; Diego fora do jogo. As datas fixas ficam no passado do relógio do teste.
+
+**Leitura boa:** `p_reading` da seção 4 do `comprovantes-ia.md`, com `outcome = read`, 2.084, `2026-11-19T22:15`, `ANA SOUZA LIMA`, chave nula e um ID válido e livre. `record_receipt` é chamada como `service_role`, com o Fábio como pagador, o caminho `<charge>/<uuid>.jpg`, `image/jpeg` e 200.000 bytes.
+
+"Notifica" é conferido em `notifications`, com o tipo, o `user_id` e o `data` da tabela "Dados das notificações de pagamento" (`contratos-api.md`, seção 6). B03, B04 e B06 passam às listas da fatia 6 da `rls-matriz.md`.
+
+**Cenários por etapa.** A fatia 6 roda em três etapas, cada uma com a sua especificação e as suas sessões 2 a 4 (`plano-implementacao.md`, fatia 6):
+
+| Etapa | Escopo | Cenários |
+|-------|--------|----------|
+| **A** | Valor a pagar com a chave Pix, marcar como pago e reverter | PG01 a PG06, C09, S77 (sem comprovantes), S84, S85 (sem **Para conferir**), L23 |
+| **B** | Envio, leitura e análise de comprovantes | CP01 a CP24, RV01 a RV06, PR01 a PR10, NM01 a NM05, CF01 a CF26, RS01 a RS09, C10 a C12, C18, U14, S77 a S83, S85 (**Para conferir**), L24, L25, M09 |
+| **C** | Limpeza do Storage e exclusão de conta | SC01 a SC07, EX01 a EX12, RS10, C17, S86, S87, L26, M10 |
+
+S88 e S89 crescem a cada etapa, com as telas dela. E15 também, com os códigos das funções que a etapa cria. E17 entra na etapa C.
+
+### 14.1 Marcar como pago e reverter (RN84, RN85)
+
+pgTAP, em `supabase/tests/database/payment_functions.test.sql`.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| PG01 | Valor do Fábio Pendente | Ana chama `mark_charge_paid` | `paid`, `paid_at = now()`, `paid_via = manual`. Um `charge_events` de `pending` para `paid` com `actor_id` = Ana. Notifica `charge_paid` ao Fábio, com `paid_via` `manual` e `receipt_id` nulo |
+| PG02 | Valor do Fábio Pendente | Edu (admin, não recebedor), Fábio, Bruno e Diego chamam; Ana chama com um `uuid` qualquer | `NOT_CHARGE_RECEIVER`, `NOT_CHARGE_RECEIVER`, `NOT_FOUND`, `NOT_FOUND`; `NOT_FOUND` |
+| PG03 | Valor `under_review`; valor `paid`; valor `waived` | Ana chama `mark_charge_paid` | `CHARGE_NOT_PENDING` nos três |
+| PG04 | Depois do PG01 | Ana chama `revert_charge` | `pending`, `paid_at` e `paid_via` nulos. Um `charge_events` de `paid` para `pending` com `actor_id` = Ana. Notifica `charge_back_to_pending` ao Fábio, com `reason` `reverted`. `auto_reads_used` não muda |
+| PG05 | Valor Pendente; valor pago por comprovante; depois do PG01, Edu e Fábio | Ana chama `revert_charge` nos dois primeiros; Edu e Fábio chamam no terceiro | `CHARGE_NOT_REVERTIBLE` nos dois; `NOT_CHARGE_RECEIVER` nos dois |
+| PG06 | Depois do PG01: Ana passa o recebimento para o Bruno (`change_receiver`); depois, outro caso em que o Fábio excluiu a conta | Bruno e Ana chamam `revert_charge` sobre o valor do Fábio; no outro caso, Ana chama | Bruno: `NOT_CHARGE_RECEIVER`. Ana: aceito, e o valor volta a Pendente devido à Ana (RN32). No outro caso, `CHARGE_NOT_REVERTIBLE` e nada muda (RN104) |
+
+### 14.2 Conferência do comprovante (RN80, RN81, RN86, RN88, RN89)
+
+pgTAP, em `supabase/tests/database/receipt_rules.test.sql`. Cada linha muda a leitura boa só no que diz.
+
+| ID | Leitura ou dado | Resultado |
+|----|-----------------|-----------|
+| CP01 | Leitura boa | `approved`, `decided_at = now()`, `decided_by` nulo, `auto_read` verdadeiro, `auto_reads_used` 1; valor `paid`, `paid_via = receipt`. Um `charge_events` com o `receipt_id`. Notifica `payment_received` à Ana e `charge_paid` ao Fábio. `validation` com as quatro chaves verdadeiras. `extracted_paid_at` = 20/11/2026 01:15 UTC |
+| CP02 | Nome nulo, chave `529.982.247-25` | `approved` |
+| CP03 | Nome `ANA S LIMA` | `approved` |
+| CP04 | Nome `Ana Sóuza Líma`, com acentos | `approved` |
+| CP05 | Nome `MARIANA LIMA`, chave nula | `under_review`, `recipient` falso (palavra inteira) |
+| CP06 | Perfil da Ana só com `Ana`; nome lido `ANA PAULA LIMA`, chave nula; o mesmo com a chave dela | `under_review`, `recipient` falso; `approved` |
+| CP07 | Nome `BRUNO COSTA`, chave do Bruno | `under_review`, `recipient` falso |
+| CP08 | Nome e chave nulos | `under_review`, `recipient` nulo |
+| CP09 | A Ana trocou a chave para o telefone `+5586999998888` depois da conclusão; nome nulo e chave lida `(86) 99999-8888`; o mesmo com a chave antiga | `approved`; `under_review`, `recipient` falso (chave atual) |
+| CP10 | Valor 2.083; 2.085; nulo | `under_review` nos três: `amount` falso, falso e nulo |
+| CP11 | `2026-11-19T20:00`, com início às 20:00; `2026-11-19T19:59` | `approved`; `under_review`, `paid_at` falso |
+| CP12 | Início do jogo às 20:00:40; `2026-11-19T20:00` | `approved` (minuto truncado) |
+| CP13 | `paid_at` 1 dia depois de `now()`; 3 min depois | `under_review`, `paid_at` falso; `approved` (os dois com o restante bom) |
+| CP14 | `paid_at` nulo; ID nulo | `under_review` nos dois, com a chave nula em `validation` |
+| CP15 | ID de um comprovante `approved` do Bruno; de um `under_review` do Bruno | `rejected`, `duplicate_transaction`, `decided_at = now()`, nos dois. O valor do Fábio continua `pending`, com `auto_reads_used` 1. Sem notificação e sem `charge_events`. Devolve `error_code` `DUPLICATE_TRANSACTION` |
+| CP16 | Depois do CP15, a Ana recusa o comprovante Em análise do Bruno; o Fábio envia de novo o mesmo ID | `approved` (RN89: o ID voltou a ficar livre) |
+| CP17 | `auto_reads_used` 3, `outcome` `skipped_limit` | `under_review`, `auto_read` falso, `auto_reads_used` continua 3, `validation.skipped` `read_limit`. Notifica `receipt_needs_review` à Ana |
+| CP18 | `outcome` `failed` | `under_review`, `auto_read` falso, `auto_reads_used` 0, `skipped` `api_failed` |
+| CP19 | `outcome` `skipped_file` | `under_review`, `auto_read` falso, `auto_reads_used` 0, `skipped` `file_not_supported` |
+| CP20 | Três recusas da Ana seguidas, com três leituras `read` ilegíveis | `auto_reads_used` 1, 2 e 3 |
+| CP21 | Valor já `paid`, `under_review` ou `waived` | `CHARGE_NOT_PENDING`. Nenhum comprovante, e `auto_reads_used` não muda |
+| CP22 | Caminho de outro valor; caminho já usado por um comprovante; pagador Bruno no valor do Fábio | `INVALID_INPUT`; `INVALID_INPUT`; `NOT_CHARGE_PAYER`. Nada é gravado |
+| CP23 | A Ana passou o recebimento para o Bruno antes do envio; nome lido `ANA SOUZA LIMA`; o mesmo com o nome do Bruno (`Bruno Costa`) | `under_review`, `recipient` falso, `receiver_id` = Bruno; `approved`, `receiver_id` = Bruno (RN32) |
+| CP24 | Ana logada (`authenticated`) | Chamar `record_receipt`: `42501` |
+
+**Análise do recebedor (RN82, RN83, RN90)**, no mesmo arquivo:
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| RV01 | Comprovante do Fábio Em análise | Ana aprova, sem observação | `approved`, `decided_by` = Ana, `decided_at = now()`, `receiver_note` nulo; valor `paid`, `paid_via = receipt`. Um `charge_events` com o `receipt_id` e `note` nulo. Notifica `charge_paid` ao Fábio, com `paid_via` `receipt` |
+| RV02 | O mesmo | Ana recusa com `'  O valor está errado.  '` | `rejected`, `receiver_rejected`, `receiver_note` = `O valor está errado.`; valor `pending`. `charge_events` com `note` nulo. Notifica `charge_back_to_pending`, com `reason` `receipt_rejected`, sem a observação |
+| RV03 | O mesmo | Ana recusa com observação nula, `'   '` e com 201 caracteres | `RECEIPT_NOTE_REQUIRED`, `RECEIPT_NOTE_REQUIRED`, `INVALID_INPUT`. Com 200, aceito |
+| RV04 | O mesmo | Fábio, Edu (admin do jogo), Bruno e Diego aprovam; Ana com um `uuid` qualquer | `NOT_CHARGE_RECEIVER`; `NOT_FOUND` nos demais |
+| RV05 | Depois do RV01; depois do RV02 | Ana aprova e recusa de novo | `RECEIPT_NOT_UNDER_REVIEW` nos quatro |
+| RV06 | Valor do Fábio Em análise | Ana chama `change_receiver(bruno)` e `mark_charge_paid`; Edu chama `waive_penalty` sobre a multa da Carla, Em análise | `RECEIVER_CHANGE_BLOCKED`; `CHARGE_NOT_PENDING`; `CHARGE_NOT_PENDING` |
+
+### 14.3 `process-receipt`
+
+Deno test, em `supabase/functions/process-receipt/`, com a Claude API simulada e o Supabase local. O conjunto CF01 a CF26 (`comprovantes-ia.md`, seção 7) roda inteiro aqui, cada um com o resultado escrito lá.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| PR01 | Arquivo CF01 enviado pelo pagador | Chama com o valor e o caminho | HTTP 200, `result` `approved`, `error_code` nulo, `charge_status` `paid`, `auto_reads_used` 1. A API recebeu um bloco de imagem em base64 e nenhum dado do valor, do recebedor ou do jogo |
+| PR02 | Sem token; token de conta excluída | Chama | 401 `NOT_AUTHENTICATED` |
+| PR03 | Outra pessoa do jogo, sem ver o valor; o recebedor; valor que não existe | Chama | 404 `NOT_FOUND`; 403 `NOT_CHARGE_PAYER`; 404 `NOT_FOUND` |
+| PR04 | Valor Pago | Chama | 409 `CHARGE_NOT_PENDING`, sem chamar a API |
+| PR05 | Caminho de outro valor; corpo sem `charge_id`; caminho sem arquivo | Chama | 422 `INVALID_INPUT`; 422 `INVALID_INPUT`; 422 `RECEIPT_FILE_NOT_FOUND` |
+| PR06 | Um texto gravado como `image/png` | Chama | 422 `RECEIPT_TYPE_INVALID`, sem chamar a API e sem comprovante |
+| PR07 | A API devolve 500; 429 e depois sucesso; não responde em 25 s | Chama | `under_review`, `auto_reads_used` 0; `approved`, com duas chamadas; `under_review`, em até 28 s |
+| PR08 | A API devolve `stop_reason` `refusal`; `max_tokens`; JSON fora do schema; um bloco de raciocínio antes do texto | Chama | `under_review` com `skipped` `api_failed` nos três primeiros; a leitura normal no quarto |
+| PR09 | `auto_reads_used` 3 | Chama | `under_review`, sem chamar a API |
+| PR10 | Um log capturado do PR01 | — | Sem nome, chave, valor, ID da transação nem caminho do arquivo |
+
+**Normalização**, teste unitário Deno, `normalize_test.ts`:
+
+| ID | Entrada | Resultado |
+|----|---------|-----------|
+| NM01 | `R$ 20,84`; `20,84`; `R$ 1.234,56`; `R$20,84` | 2084; 2084; 123456; 2084 |
+| NM02 | `20.84`; `R$ 20,8`; `R$ 0,00`; `-20,84`; `20,84 e 1,00`; vazio | Nulo em todos |
+| NM03 | `2026-11-19T22:15`; `2026-02-30T10:00`; `19/11/2026 22:15`; o primeiro com `payment_status` `scheduled` | O mesmo texto; nulo; nulo; nulo |
+| NM04 | ` e18236120 202611200115\ns0123456789 `; com 31 caracteres; com 33; `D1823...` com 32 | `E18236120202611200115S0123456789`; nulo; nulo; nulo |
+| NM05 | Chave `***.982.247-**`; `529.982.247-25`; `   ` | Nulo; `529.982.247-25`; nulo |
+
+### 14.4 Limpeza do Storage (RN91, RN92)
+
+Deno test, em `supabase/functions/storage-cleanup/`, com o Supabase local. As datas são gravadas direto.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| SC01 | Comprovante aprovado há 30 dias e 1 min; há 29 dias e 23 h | Roda | O primeiro: arquivo apagado, `storage_path` nulo e `file_deleted_at` preenchido, com os outros campos iguais. O segundo, intacto |
+| SC02 | Comprovante Em análise há 60 dias; recusado por ID repetido há 31 dias; recusado pela Ana há 31 dias | Roda | O primeiro, intacto (RN92). Os outros dois, apagados |
+| SC03 | Arquivo em `receipts` sem registro, de 25 h atrás; de 23 h | Roda | O primeiro, apagado. O segundo, intacto |
+| SC04 | Em `avatars`: a foto antiga da Ana, a atual da Ana, a de um grupo arquivado, a de uma conta excluída e uma sem uso de 1 h atrás (as outras, de 25 h) | Roda | Apaga a antiga, a do grupo e a da conta. Mantém a atual e a de 1 h |
+| SC05 | Roda duas vezes seguidas | Segunda vez | `receipts_deleted`, `orphans_deleted` e `photos_deleted` iguais a 0, sem erro |
+| SC06 | Sem `x-internal-key`; com uma chave errada; com o JWT da Ana | Chama | 401 `NOT_AUTHENTICATED` nos três, e nada é apagado |
+| SC07 | Banco após reset (pgTAP) | Lê `cron.job` | Uma tarefa diária de `storage-cleanup`, às `0 7 * * *` UTC (4h em `America/Fortaleza`) |
+
+### 14.5 RLS e Storage
+
+RS01 a RS05, RS09 e RS10 em pgTAP, em `supabase/tests/database/receipt_security.test.sql`. RS06 a RS08 em Deno, em `supabase/functions/_tests/receipts_test.ts`.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| RS01 | Comprovante do Fábio para a Ana | Fábio, Ana, Edu (admin), Bruno e Diego leem `receipts` | Fábio e Ana veem. Os outros, nenhum |
+| RS02 | Comprovante do Fábio recusado pela Ana; depois, Ana → Bruno | Ana e Bruno leem | Ana vê. Bruno, não |
+| RS03 | Depois do RS02, o Fábio envia outro comprovante | Ana e Bruno leem | Ana vê só o antigo. Bruno, só o novo |
+| RS04 | Comprovante recusado com observação | Edu lê `charge_events` do valor | Vê a transição, com `note` nulo |
+| RS05 | Ana e Fábio logados; `role anon` | `insert`, `update` e `delete` em `receipts`; `select` como `anon` | `42501` em todos |
+| RS06 | Valor do Fábio Pendente | Fábio envia um JPEG para `<charge>/<uuid>.jpg`; Ana e Bruno enviam; Fábio envia para o valor do Bruno, para `nao-e-uuid/x.jpg` e para `<charge>/sub/<uuid>.jpg` | Aceito; recusado pelo RLS em todos os outros |
+| RS07 | Valor do Fábio Pago | Fábio envia; Fábio tenta sobrescrever e apagar o arquivo antigo | Recusado nos três |
+| RS08 | Arquivo com registro | Fábio, Ana, Edu e Diego pedem a URL assinada; o mesmo com um arquivo sem registro | Fábio e Ana recebem. Edu e Diego, não. Sem registro, ninguém |
+| RS09 | Fábio e Ana logados | Chamam `record_receipt`, `list_storage_cleanup` e `mark_receipts_file_deleted` | `42501` em todos |
+| RS10 | Fábio com a conta excluída e o token ainda válido | `create_group`, `update` em `profiles` e em `profile_private`, `insert` em `terms_acceptances`, foto em `avatars` | `NOT_AUTHENTICATED` na função. As escritas não mudam nenhuma linha ou são recusadas |
+
+### 14.6 Exclusão de conta (RN65, RN103, RN104)
+
+pgTAP, em `supabase/tests/database/delete_account.test.sql`. O Fábio é membro do Quinta, sem papel de admin, com telefone, chave Pix, apelido, foto, um token e uma preferência, salvo quando o cenário diz.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| EX01 | Fábio sem valores em aberto; na lista de um jogo Confirmado (cheio) não iniciado, com o prazo vencido e a Carla na espera; na espera de outro; com uma solicitação pendente no Domingo | Chama `delete_account` | `{ "deleted": true }`. Passagem `removed` com `account_deleted`, sem falta e sem `late_cancellation`; o jogo volta a `open`, e a Carla recebe `waitlist_slot_opened`. Sai da espera e do grupo. Solicitação `cancelled`, com `decided_by` nulo. Um `account_deleted` em `audit_log`, com `data` sem nome, e-mail, telefone ou chave |
+| EX02 | Depois do EX01 | Lê `profiles`, `profile_private`, `auth.users`, `auth.identities`, `auth.sessions`, `device_tokens`, `notification_preferences` | `Usuário removido`, apelido e foto nulos, `deleted_at` preenchido; telefone e chave nulos, `phone_visible` falso; e-mail `deleted-<id>@deleted.invalid`, sem senha, sem metadados, banido; nenhuma identidade, sessão, token ou preferência |
+| EX03 | Fábio com um valor Pago e um comprovante aprovado | Chama `delete_account`; a Ana lê o rateio | Aceito. Valor, comprovante e eventos iguais. A Ana vê "Usuário removido" |
+| EX04 | Valor a pagar Pendente; Em análise; a receber Pendente; a receber Em análise | Chama, em cada caso | `ACCOUNT_DELETE_BLOCKED` com `pending_charges`, `pending_charges`, `pending_receivables`, `pending_receivables`. Nada muda |
+| EX05 | Fábio último admin de um grupo com outros membros; único membro de um grupo | Chama | `last_group_admin` nos dois |
+| EX06 | Fábio único admin de um jogo Aberto; recebedor de um jogo Confirmado; os dois em jogos cancelados e concluídos | Chama | `game_sole_admin`; `game_receiver`; aceito |
+| EX07 | Fábio na lista de um jogo em andamento; depois do fim, sem conclusão; `left_after_start` de um jogo não concluído | Chama | `unfinished_game` nos três |
+| EX08 | Fábio cancelou fora do prazo num jogo não iniciado; o mesmo, com o cancelamento anulado (voltou à lista); cancelou no prazo; foi removido pelo admin | Chama | `unfinished_game`; aceito nos três seguintes |
+| EX09 | EX07 (em andamento) depois que o jogo é concluído | Chama; a Ana marca o valor como pago; chama de novo | `pending_charges`; aceito |
+| EX10 | Um valor Pendente, único admin de um grupo e na lista de um jogo em andamento | Chama | `detail.reasons` = `["pending_charges", "last_group_admin", "unfinished_game"]`, nesta ordem |
+| EX11 | Ana, recebedora de um jogo concluído com todos os valores Pagos e sem outro bloqueio, excluiu a conta; Edu é admin do jogo | Edu chama `change_receiver(bruno)` | Aceito, `charge_created` falso, sem valor novo para a Ana (RN31.5, RN104) |
+| EX12 | Conta excluída com o e-mail `fabio@voleiin.test` | Cria uma conta nova com o mesmo e-mail | Perfil novo, sem grupos, jogos nem valores do antigo |
+
+### 14.7 Concorrência
+
+Deno test, em `supabase/functions/_tests/concurrency/payments_test.ts`, 50 repetições. Roda C09 (etapa A), C10 a C12 (etapa B) e:
+
+| ID | Etapa | Dado | Quando | Então |
+|----|-------|------|--------|-------|
+| C17 | C | Jogo Aberto antes do início, com Fábio na lista e com chave Pix | Ana troca o recebedor para o Fábio, e o Fábio exclui a conta | Ou a troca vence, e a exclusão recebe `ACCOUNT_DELETE_BLOCKED` com `game_receiver`; ou a exclusão vence, e a troca recebe `RECEIVER_MUST_BE_PARTICIPANT`. Nunca uma conta excluída como recebedora |
+| C18 | B | Comprovante Em análise | Ana aprova e recusa ao mesmo tempo | Uma vale. A outra recebe `RECEIPT_NOT_UNDER_REVIEW`. O valor segue a que venceu |
+
+- C10 a C12 chamam `record_receipt` direto, com a leitura pronta. No C11, as duas leituras são boas e têm IDs diferentes. No C12, `change_receiver` e `record_receipt` disputam o bloqueio do jogo: se a troca vence, o comprovante fica com o novo recebedor e é conferido contra ele; se o comprovante vence com `approved`, o valor fica Pago ao antigo; se vence com `under_review`, a troca recebe `RECEIVER_CHANGE_BLOCKED`.
+
+### 14.8 App
+
+**Formatação e modelos**, teste unitário em `app/test/`:
+
+| ID | Entrada | Função | Resultado |
+|----|---------|--------|-----------|
+| U14 | `validation` com as quatro verdadeiras; com `amount` falso e `paid_at` nulo; com `skipped` `api_failed` | Linhas da conferência (`docs/ui/telas.md`, 9.4) | Quatro **Confere**; **Não confere** no valor e **Não lido** na data; só a frase `receiptSkippedApi` |
+
+**Conversão de erros**, em `app/test/core/errors/`: o E15 cobre também os códigos da seção 10.7 do `docs/copy.md`, inclusive pela resposta de erro da Edge Function (`{ "error": { "code" } }`).
+
+| ID | Exceção recebida | `ErrorCode` |
+|----|------------------|-------------|
+| E17 | `PostgrestException` `P0001` `ACCOUNT_DELETE_BLOCKED`, com `details` `{"reasons":["pending_charges","unfinished_game"]}` | `accountDeleteBlocked`, com os dois motivos na ordem |
+
+**Telas**, testes de widget com os repositórios e o relógio trocados por dublês:
+
+| ID | Tela | Quando | Então |
+|----|------|--------|-------|
+| S77 | Valor a pagar | Fábio, Pendente, sem comprovante; tocar em **Copiar chave**; com um comprovante recusado pela Ana e um por ID repetido; Pago manual; Pago por comprovante; Em análise; Isento; aberto pela Ana | Topo com "R$ 20,84" e **Pendente**, "Para Ana", a chave "CPF · 529.982.247-25" e **Enviar comprovante**. `gamePixCopied`. Os dois comprovantes, do mais novo para o mais antigo, com **Recusado**, a observação e `receiptRejectedDuplicate`. `chargePaidManual`; `chargePaidReceipt`; o aviso `chargeUnderReviewNotice`, sem **Enviar comprovante**; `chargeWaivedManual`. Estado "não encontrado" |
+| S78 | Enviar comprovante | Escolher uma imagem; um PDF; um arquivo de 11 MB; um `.docx`; `auto_reads_used` 3 | A conferência com a miniatura, ou o nome e o tamanho do PDF; `errorReceiptTooLarge` e `errorReceiptTypeInvalid`, sem enviar; o aviso `receiptNoMoreReads` |
+| S79 | Enviar comprovante | Enviar; tocar fora e no voltar durante a leitura | `receiptReading`, a sheet não fecha, e o botão fica desabilitado. O arquivo vai para `<charge>/<uuid>.<ext>` e depois `process-receipt` é chamada uma vez |
+| S80 | Enviar comprovante | Resultado `approved`; `under_review`; `rejected`; `CHARGE_NOT_PENDING`; sem conexão no meio; `receiptUploadFailed` | `receiptApproved`; `receiptUnderReview` com "Ana"; `receiptDuplicate`, com **Enviar outro**; `SnackBar`, fecha e relê; o erro, fecha e relê; erro na sheet, com **Tentar de novo** |
+| S81 | Comprovante | Fábio, Em análise; recusado com observação; arquivo apagado; PDF | Selo, a imagem, sem botões e sem a conferência; a observação; `receiptFileDeleted` com a data; **Abrir PDF** |
+| S82 | Comprovante | Ana, Em análise com `amount` falso e `paid_at` nulo; com `skipped`; Aprovado automático | **Conferência** com o esperado e o lido de cada linha, **Não confere** e **Não lido**; a frase do motivo; `receiptDecidedAuto`, sem botões |
+| S83 | Comprovante | Ana toca em **Aprovar** e confirma; em **Recusar** sem observação, com 201 caracteres e com texto; `RECEIPT_NOT_UNDER_REVIEW` | `review_receipt(true)`, `receiptApprovedByYou`, e volta. Erro `receiptNoteRequired`; o campo para em 200; `review_receipt(false, texto)` e `receiptRejectedByYou`. `SnackBar`, e relê |
+| S84 | Rateio | Ana toca no valor Pendente do Fábio; na multa Pendente da Carla; num Pago manual; num Pago por comprovante; num Em análise; Edu (admin) toca na multa; Bruno, antigo recebedor sem ser admin, com um Pago manual devido a ele | **Marcar como pago**; **Marcar como pago** e **Isentar multa**; **Reverter pagamento**; o perfil, sem sheet; **Conferir comprovante**; só **Isentar multa**. A seção **Devidos a você**, com a linha e **Reverter pagamento**. As confirmações `markPaidTitle` e `revertTitle`, as chamadas e os `SnackBar` |
+| S85 | Cobranças | Ana com dois valores Em análise a receber; Fábio toca na linha de A pagar; sem nada a conferir | **Para conferir · 2**, do envio mais antigo para o mais novo, e a linha abre o comprovante. Abre `/charges/:chargeId`. Sem a seção |
+| S86 | Excluir conta | Abre; toca em **Excluir minha conta** e volta; confirma; sem conexão | Os avisos `deleteKeeps` e `deleteLoses`; a confirmação destrutiva; `delete_account`, encerra a sessão e o login mostra `accountDeleted`; o erro, e a conta continua |
+| S87 | Excluir conta | `ACCOUNT_DELETE_BLOCKED` com os seis motivos; tocar em cada um | `deleteBlockedTitle` e as seis linhas, na ordem. Pendências vão a Cobranças; grupo, a Grupos; jogo, a Jogos |
+| S88 | Todas as telas da seção 9 do `telas.md` e as sheets | Fonte do sistema em 150% | Nenhum *overflow* |
+| S89 | Valor a pagar, Enviar comprovante, Comprovante e Excluir conta | Leitura pelo TalkBack (`Semantics`) | Imagem do comprovante com `receiptImageLabel`; linhas da conferência lidas inteiras ("Valor, não confere. Esperado R$ 20,84, lido R$ 20,80"); botões e linhas com rótulo e área de 48 × 48 |
+
+**Fluxos**, testes de integração no emulador (API 29 e 36) contra o Supabase local, pelos `scripts/` (`setup.md`, 3.1). Cada fluxo prepara o próprio jogo concluído, como o L22 (total R$ 90,00, limite 3, Ana recebedora, Bruno e Carla com R$ 30,00 Pendente). A `process-receipt` local fala com um servidor simulado da Claude API, pela variável `ANTHROPIC_BASE_URL` do SDK, que só o `supabase functions serve` dos testes define: a função não tem caminho de leitura falsa. O seletor de arquivo do app é trocado por um dublê.
+
+| ID | Dado | Quando | Então |
+|----|------|--------|-------|
+| L23 | Ana logada, jogo `L23` | No Rateio, marca o Brunão como pago e depois reverte | **Recebido** "R$ 30,00" e volta a "R$ 0,00". O status da linha acompanha |
+| L24 | Bruno logado, jogo `L24` | Abre Cobranças, a linha do jogo, envia um comprovante com a leitura boa | Resultado aprovado, valor **Pago**, e a linha some de A pagar |
+| L25 | Bruno envia um comprovante ilegível no jogo `L25`; Ana entra | Ana abre **Para conferir**, recusa com observação; Bruno entra | Bruno vê **Pendente**, o comprovante **Recusado** e a observação |
+| L26 | Uma conta nova, criada pelo teste e membro do Quinta | Exclui a conta pelo Perfil | Volta ao login com `accountDeleted`. Entrar de novo dá `errorAuthInvalidCredentials` |
+
+**Conferência manual**, com o build da produção:
+
+| ID | O que conferir |
+|----|----------------|
+| M09 | Com a API real, ao menos três comprovantes reais do responsável, de bancos diferentes: o que foi lido, o resultado e o tempo (até 30 s, RNF04). Os arquivos não entram no repositório |
+| M10 | Uma conta de teste da produção, com login por Google, excluída pelo app: não entra mais na conta antiga, e entrar de novo com o mesmo Google cria uma conta nova e vazia |
+
+
+## 15. Rastreabilidade
 
 | Regra | Cenários |
 |-------|----------|
@@ -1035,4 +1248,10 @@ Deno test, em `supabase/functions/_tests/concurrency/completion_test.ts`, com co
 | RN70 a RN76 | Z01 a Z03, Y01 a Y07, U13, S61, S63 a S65, S68, S69, S74, L20 |
 | RN28 a RN31, RN94, RN115 | Z10 a Z15, Y04, S72, S73, L22 |
 | RF65 | S71 |
-| RF75, RF76 | S74, L22 |
+| RF75, RF76 | S74, L22, S85 |
+| RN80 a RN83, RN88, RN89 | CP01 a CP24, PR01 a PR10, C10 a C12, C18, S79 a S83, L24, L25, M09 |
+| RN84, RN85 | PG01 a PG06, C09, S84, L23 |
+| RN86, RN87 | CP17 a CP20, PR03 a PR09, RS06 a RS08, S78, S79 |
+| RN90 | RS01 a RS04, S77, S81 |
+| RN91, RN92 | SC01 a SC06, S82 |
+| RN103, RN104 | EX01 a EX12, C17, S86, S87, L26 |

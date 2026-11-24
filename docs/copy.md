@@ -758,3 +758,153 @@ Códigos das funções da fatia 5 (`contratos-api.md`, seção 2). Entram també
 | `CHARGE_NOT_PENDING` | `chargeNotPending` | `errorChargeNotPending` | Este valor não está mais Pendente. |
 
 - Na fatia 5, `RECEIVER_CHANGE_BLOCKED` só acontece com dado inserido direto, porque Em análise chega na fatia 6. O texto já fica pronto.
+
+## 10. Fatia 6
+
+Decisões de 24/11/2026. Telas em `docs/ui/telas.md`, seção 9. Palavras do domínio: **comprovante**, **conferir** (o recebedor olha o comprovante), **aprovar**, **recusar**, **marcar como pago**, **reverter**, **código do Pix** (o ID da transação). O app não diz "IA", "modelo" nem "leitura automática" como nome técnico: diz que **o app lê** o comprovante.
+
+### 10.1 Cobranças e valor a pagar
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `chargesToReview` | Para conferir · {count} | Título da seção (9.1) |
+| `chargeTitle` | Valor a pagar | Rótulo de acessibilidade da tela |
+| `chargePayTo` | Pagar para | Título do bloco |
+| `chargePayExact` | Pague o valor exato. Assim o app confere o comprovante sozinho. | Dica (RN88a) |
+| `chargePay` | Pagar | Botão do Rateio |
+| `chargeUnderReviewNotice` | {name} vai conferir o seu comprovante. | Aviso em linha |
+| `chargePaidManual` | {name} marcou como pago em {date}. | Situação |
+| `chargePaidReceipt` | Pago por comprovante em {date}. | Situação |
+| `chargeReceipts` | Comprovantes | Título da lista |
+| `receiptSentAt` | Enviado {date} às {time} | Linha do comprovante |
+| `receiptSend` | Enviar comprovante | Botão do pé e título da sheet |
+
+O bloco da chave usa `gamePixCopy` e `gamePixCopied` (seção 8.3). `{date}` usa `formatShortDate` e `{time}`, `formatTime`.
+
+### 10.2 Enviar comprovante
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `receiptSendBody` | Envie a imagem ou o PDF do Pix. O app lê o comprovante e, se tudo conferir, o valor fica Pago na hora. | Passo 1 |
+| `receiptPickImage` | Escolher imagem | Opção |
+| `receiptPickPdf` | Escolher PDF | Opção |
+| `receiptNoMoreReads` | O app já leu 3 comprovantes deste valor. O próximo vai direto para {name} conferir. | Aviso (RN86) |
+| `receiptPickOther` | Escolher outro | Botão de texto |
+| `receiptSendAction` | Enviar | Botão principal |
+| `receiptReading` | Lendo o comprovante. Leva até 30 segundos. | Passo 3 |
+| `receiptApproved` | Comprovante aprovado. O valor está Pago. | Resultado |
+| `receiptUnderReview` | O comprovante foi para {name} conferir. | Resultado |
+| `receiptDuplicate` | Este comprovante já foi usado em outro pagamento. | Resultado (RN89) |
+| `receiptSendOther` | Enviar outro | Botão principal |
+| `receiptDone` | Pronto | Botão principal |
+| `receiptClose` | Fechar | Botão de contorno |
+| `receiptUploadFailed` | Não deu para enviar o arquivo. Confira a internet e tente de novo. | Erro do passo 2 |
+| `receiptResultUnknown` | A conexão caiu antes da resposta. Confira o status do valor. | `SnackBar` |
+
+### 10.3 Comprovante
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `receiptTitle` | Comprovante | Título |
+| `receiptOpenPdf` | Abrir PDF | Botão de contorno |
+| `receiptImageLabel` | Imagem do comprovante. Toque para ampliar. | Rótulo de acessibilidade |
+| `receiptFileDeleted` | O arquivo foi apagado em {date}. | No lugar do arquivo (RN91) |
+| `receiptFileError` | Não deu para abrir o arquivo. | No lugar do arquivo |
+| `receiptCheckTitle` | Conferência | Título do bloco |
+| `receiptCheckHint` | O app leu o comprovante. Confira com o arquivo antes de decidir. | Frase do bloco |
+| `receiptCheckAmount` | Valor | Linha |
+| `receiptCheckRecipient` | Quem recebeu | Linha |
+| `receiptCheckDate` | Data e hora | Linha |
+| `receiptCheckCode` | Código do Pix | Linha |
+| `receiptExpected` | Esperado: {value} | Linha de apoio |
+| `receiptExpectedFrom` | A partir de {date} às {time} | Esperado da data |
+| `receiptRead` | Lido: {value} | Linha de apoio |
+| `receiptCheckOk` | Confere | Selo `ok` |
+| `receiptCheckFail` | Não confere | Selo `bad` |
+| `receiptCheckUnread` | Não lido | Selo `neutral` |
+| `receiptCheckSemantics` | {label}, {result}. {expected}. {read}. | Rótulo de acessibilidade da linha |
+| `receiptSkippedLimit` | O app não leu este comprovante: as 3 leituras deste valor já foram usadas. | Motivo |
+| `receiptSkippedApi` | O app não conseguiu ler este comprovante. | Motivo |
+| `receiptSkippedFile` | O app não lê este tipo de arquivo. | Motivo |
+| `receiptStatusUnderReview` | Em análise | Selo |
+| `receiptStatusApproved` | Aprovado | Selo |
+| `receiptStatusRejected` | Recusado | Selo |
+| `receiptDecidedAuto` | Aprovado pelo app em {date}. | Decisão |
+| `receiptDecidedApproved` | Aprovado por {name} em {date}. | Decisão |
+| `receiptDecidedRejected` | Recusado por {name} em {date}. | Decisão |
+| `receiptRejectedDuplicate` | Recusado: já foi usado em outro pagamento. | Decisão e linha da lista |
+| `receiptNoteQuoted` | "{note}" | Observação do recebedor |
+
+### 10.4 Aprovar e recusar
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `receiptApprove` | Aprovar | Botão principal e da confirmação |
+| `receiptReject` | Recusar | Botão e botão da sheet |
+| `receiptApproveTitle` | Aprovar o comprovante? | Confirmação |
+| `receiptApproveBody` | O valor de {amount} fica Pago e não pode voltar. | Confirmação (RN85) |
+| `receiptRejectTitle` | Recusar o comprovante | Título da sheet |
+| `receiptRejectBody` | O valor volta para Pendente, e {name} lê a sua observação. | Frase da sheet |
+| `receiptNoteLabel` | Observação | Campo |
+| `receiptNoteRequired` | Escreva o motivo da recusa. | Erro do campo |
+| `receiptApprovedByYou` | Comprovante aprovado. | `SnackBar` |
+| `receiptRejectedByYou` | Comprovante recusado. | `SnackBar` |
+
+### 10.5 Rateio
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `splitOwedToYou` | Devidos a você | Título da seção (9.5) |
+| `reviewReceiptAction` | Conferir comprovante | Opção |
+| `markPaidAction` | Marcar como pago | Opção e botão da confirmação |
+| `markPaidHint` | Sem comprovante, se você já recebeu | Linha de apoio |
+| `markPaidTitle` | {name} já pagou {amount}? | Confirmação |
+| `markPaidBody` | O valor fica Pago. Se precisar, você pode reverter. | Confirmação |
+| `markedPaid` | Marcado como pago. | `SnackBar` |
+| `revertAction` | Reverter pagamento | Opção e botão da confirmação |
+| `revertHint` | O valor volta para Pendente | Linha de apoio |
+| `revertTitle` | Reverter o pagamento de {name}? | Confirmação |
+| `revertBody` | O valor volta para Pendente, e {name} é avisado. | Confirmação |
+| `paymentReverted` | Pagamento revertido. | `SnackBar` |
+
+**Ver perfil** usa `groupMemberViewProfile`.
+
+### 10.6 Excluir conta
+
+| Chave | Texto | Onde |
+|-------|-------|------|
+| `deleteAccount` | Excluir conta | Linha do perfil e título |
+| `deleteLosesTitle` | O que é apagado | Título da lista |
+| `deleteLoses` | Seu nome, apelido, foto, telefone, chave Pix e e-mail. Você sai dos grupos, das listas e das esperas. | Lista |
+| `deleteKeepsTitle` | O que fica | Título da lista |
+| `deleteKeeps` | Os jogos, os valores e os comprovantes continuam no histórico dos outros, com o nome Usuário removido. | Lista |
+| `deleteNoUndo` | Não dá para desfazer. | Frase |
+| `deleteAction` | Excluir minha conta | Botão do pé |
+| `deleteConfirmTitle` | Excluir a sua conta? | Confirmação |
+| `deleteConfirmBody` | Seus dados são apagados agora e não podem voltar. | Confirmação |
+| `deleteConfirmAction` | Excluir | Botão destrutivo sólido |
+| `accountDeleted` | Conta excluída. | `SnackBar` no login |
+| `deleteBlockedTitle` | Antes de excluir, resolva: | Bloco de bloqueios |
+| `deleteBlockedPendingCharges` | Você tem valores a pagar. | Linha |
+| `deleteBlockedPendingReceivables` | Você tem valores a receber. | Linha |
+| `deleteBlockedLastGroupAdmin` | Você é o último admin de um grupo. Indique outro admin ou exclua o grupo. | Linha |
+| `deleteBlockedGameSoleAdmin` | Você é o único admin de um jogo. Indique outro admin. | Linha |
+| `deleteBlockedGameReceiver` | Você é o recebedor de um jogo. Indique outro recebedor. | Linha |
+| `deleteBlockedUnfinishedGame` | Você está num jogo que ainda não foi concluído. Espere a conclusão. | Linha (RN103) |
+
+`Usuário removido` é gravado pelo servidor no perfil (`contratos-api.md`, `delete_account`). Não entra no ARB como nome.
+
+### 10.7 Erros
+
+| Código | `ErrorCode` | Chave | Texto |
+|--------|-------------|-------|-------|
+| `NOT_CHARGE_PAYER` | `notChargePayer` | `errorNotChargePayer` | Este valor a pagar não é seu. |
+| `NOT_CHARGE_RECEIVER` | `notChargeReceiver` | `errorNotChargeReceiver` | Só o recebedor deste valor pode fazer isso. |
+| `CHARGE_NOT_REVERTIBLE` | `chargeNotRevertible` | `errorChargeNotRevertible` | Este pagamento não pode ser revertido. |
+| `RECEIPT_NOT_UNDER_REVIEW` | `receiptNotUnderReview` | `errorReceiptNotUnderReview` | Este comprovante já foi decidido. |
+| `RECEIPT_NOTE_REQUIRED` | `receiptNoteRequired` | `errorReceiptNoteRequired` | Escreva uma observação para recusar. |
+| `RECEIPT_FILE_NOT_FOUND` | `receiptFileNotFound` | `errorReceiptFileNotFound` | Não encontramos o arquivo enviado. Envie de novo. |
+| `RECEIPT_TYPE_INVALID` | `receiptTypeInvalid` | `errorReceiptTypeInvalid` | Envie uma imagem ou um PDF. |
+| `RECEIPT_TOO_LARGE` | `receiptTooLarge` | `errorReceiptTooLarge` | O arquivo passa de 10 MB. |
+| `DUPLICATE_TRANSACTION` | `duplicateTransaction` | `receiptDuplicate` | Este comprovante já foi usado em outro pagamento. |
+| `ACCOUNT_DELETE_BLOCKED` | `accountDeleteBlocked` | `errorAccountDeleteBlocked` | Resolva as pendências antes de excluir a conta. |

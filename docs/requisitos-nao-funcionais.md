@@ -59,7 +59,7 @@ Esta decisão dimensiona a operação. Ela não muda a premissa de arquitetura d
 | Carregar a lista de presença | Até 2 s | Do toque no jogo até a lista visível |
 | Ler o comprovante | Até 30 s | Do fim do envio do arquivo até o resultado na tela. O tempo de envio não conta, porque varia com o tamanho do arquivo e a conexão |
 
-O tratamento de leitura que passa do tempo limite será definido no documento de leitura de comprovantes (`plan-docs.md`, seção 4.4).
+A leitura que passa do tempo limite vai para Em análise (`comprovantes-ia.md`, seção 6).
 
 ## 5. Acessibilidade
 
@@ -114,20 +114,20 @@ O tratamento de leitura que passa do tempo limite será definido no documento de
 
 **E-mails:** o serviço padrão do Supabase só envia para a equipe do projeto, com limite de 2 mensagens por hora. Por isso, a confirmação de cadastro (RF02), a recuperação de senha (RF06) e a troca de e-mail (RF106) exigem um provedor SMTP próprio, que será o **Resend**, enviando pelo subdomínio verificado `mail.voleiin.com.br`. O plano grátis permite 3.000 e-mails por mês, 100 por dia e 3 domínios, o que cabe na escala da seção 3. O próximo plano custa US$ 20 por mês e não cabe na meta.
 
-**Estimativa da Claude API**, com cerca de 2.000 tokens de entrada e 300 de saída por leitura e sem considerar o raciocínio do modelo, que pode aumentar o custo:
+**Estimativa da Claude API**, refeita em 24/11/2026 com cerca de 4.500 tokens de entrada e 500 de saída por leitura, com o raciocínio em esforço baixo (`comprovantes-ia.md`, seção 9). A imagem de um *print* de celular ocupa sozinha cerca de 3.350 tokens:
 
 | Modelo | Por leitura | 88 leituras por mês (1 grupo) | 440 leituras por mês (5 grupos) |
 |--------|-------------|-------------------------------|---------------------------------|
-| Opus 5.5 | US$ 0,014 | US$ 1,23 | US$ 6,16 |
-| Sonnet 5.5 | US$ 0,007 | US$ 0,62 | US$ 3,08 |
-| Haiku 5.5 | US$ 0,00035 | US$ 0,03 | US$ 0,15 |
+| Opus 5.5 | US$ 0,028 | US$ 2,46 | US$ 12,32 |
+| Sonnet 5.5 | US$ 0,014 | US$ 1,23 | US$ 6,16 |
+| Haiku 5.5 | US$ 0,0007 | US$ 0,06 | US$ 0,31 |
 
-Os números assumem uma leitura por valor a pagar. Com as 3 leituras permitidas (RN86), o pior caso é o triplo. A escolha do modelo e a medição do custo real ficam no documento de leitura de comprovantes (`plan-docs.md`, seção 4.4).
+Os números assumem uma leitura por valor a pagar. Com as 3 leituras permitidas (RN86), o pior caso é o triplo. A escolha do modelo e a medição do custo real ficam no `comprovantes-ia.md`, seção 9.
 
 **Ao chegar perto da meta:**
 
 - A meta não é um limite rígido. **A leitura automática continua funcionando** mesmo que o gasto do mês passe de US$ 5.
-- O responsável recebe um alerta quando o gasto do mês com a Claude API chegar a **US$ 4**. O mecanismo do alerta será definido na fatia 6.
+- O responsável recebe um alerta quando o gasto do mês com a Claude API chegar a **US$ 4**. O mecanismo é a notificação de gasto do workspace na Claude Console (`comprovantes-ia.md`, seção 10).
 - A conta da Claude API não deve ter limite de gasto igual à meta: ao atingi-lo, as leituras falhariam e os comprovantes iriam para análise manual, o contrário desta decisão.
 
 ## 10. Privacidade

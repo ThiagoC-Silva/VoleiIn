@@ -26,6 +26,7 @@ Cada arquivo registra uma decisão que alguém poderia querer reabrir: o context
 | [0016](0016-created-at-nas-tabelas-de-juncao.md) | `created_at` segue a lista de colunas de cada tabela | Aceito |
 | [0017](0017-codigo-por-email.md) | Código de 6 dígitos por e-mail no lugar de link | Aceito |
 | [0018](0018-senha-do-cadastro-pendente.md) | A senha do cadastro é gravada de novo depois do código | Aceito |
+| [0019](0019-edge-functions-e-service-role.md) | Edge Functions chamam funções de `public` abertas só a `service_role` | Aceito |
 
 ## Modelo
 

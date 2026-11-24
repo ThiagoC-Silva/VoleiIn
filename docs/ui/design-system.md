@@ -222,7 +222,7 @@ O ativo tem fundo `#ECF4F7` e texto `#192853`. O inativo tem só contorno `surfa
 
 ### 7.8 Topo colorido (herói de jogo ou de valor a pagar)
 
-Bloco com cantos de baixo 32 e botões circulares navy sobre ele. Contém a pílula do grupo (ou "Avulso"), a data (14 / 700), o horário em `number.xl` e o local. A cor segue o significado: `game` para jogo Aberto, `wait` para Confirmado, `owe` para valor a pagar. O jogo Cancelado usa `surfaceHigh`, com texto `onSurface` e botões circulares em `surface` (fatia 4). O jogo Concluído usa `split` (fatia 5). O anel segmentado mostra as vagas, com um gomo por vaga.
+Bloco com cantos de baixo 32 e botões circulares navy sobre ele. Contém a pílula do grupo (ou "Avulso"), a data (14 / 700), o horário em `number.xl` e o local. A cor segue o significado: `game` para jogo Aberto, `wait` para Confirmado, `owe` para valor a pagar. O jogo Cancelado usa `surfaceHigh`, com texto `onSurface` e botões circulares em `surface` (fatia 4). O jogo Concluído usa `split` (fatia 5). O valor a pagar usa `owe` Pendente, `split` Em análise, `receive` Pago e `surfaceHigh` Isento, com o valor em `number.xl` no lugar do horário (fatia 6). O anel segmentado mostra as vagas, com um gomo por vaga.
 
 ### 7.9 Blocos de valor
 

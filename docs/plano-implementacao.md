@@ -167,7 +167,11 @@ Estas decisões organizam o trabalho e não mudam o comportamento do app.
 - **Banco:** políticas de `receipts`; Storage `receipts`.
 - **Funções:** Edge Function `process-receipt`, `review_receipt`, `mark_charge_paid`, `revert_charge`, `delete_account`; Edge Function `storage-cleanup`, agendada uma vez por dia.
 - **Telas:** pagar e copiar a chave Pix, enviar comprovante, meus comprovantes, análise do recebedor, excluir conta.
-- **Antes de começar:** escrever `docs/comprovantes-ia.md` (`plan-docs.md`, seção 4.4), com o modelo da Claude API e o custo medido. Definir o mecanismo do alerta de gasto em US$ 4 (RNF10).
+- **Etapas** (decisão de 24/11/2026):
+  - **A.** Valor a pagar com a chave Pix, marcar como pago e reverter.
+  - **B.** Envio, leitura e análise de comprovantes.
+  - **C.** Limpeza do Storage e exclusão de conta.
+- **Antes de começar:** `docs/comprovantes-ia.md` (`plan-docs.md`, seção 4.4) está escrito, com o alerta de gasto em US$ 4 (RNF10). O modelo e o custo são medidos na sessão 2 da etapa B, com a API real: antes dela, o responsável cria a chave (`setup.md`, 6.3).
 - **Prepara:** eventos `receipt_needs_review`, `payment_received`, `charge_paid` e `charge_back_to_pending`.
 - **Depende de:** fatia 5.
 - **Pronto quando:**

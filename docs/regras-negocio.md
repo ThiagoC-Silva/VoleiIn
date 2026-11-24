@@ -84,7 +84,7 @@
 |      | 2. Os valores **Pagos** continuam vinculados ao antigo recebedor. | |
 |      | 3. Os valores **Pendentes** passam a ser devidos ao novo recebedor. | |
 |      | 4. O valor a pagar do novo recebedor, se existir e estiver Pendente, passa para **Isento** (RN94). | |
-|      | 5. O antigo recebedor passa a ter um valor Pendente, igual à parte por vaga, com o novo recebedor. Ele ocupava uma vaga e, como recebedor, não tinha multa nem valor a pagar. Se ele já tiver um valor Pago nesse jogo, de uma troca anterior, nada é criado, para que ninguém pague duas vezes pela mesma vaga. | |
+|      | 5. O antigo recebedor passa a ter um valor Pendente, igual à parte por vaga, com o novo recebedor. Ele ocupava uma vaga e, como recebedor, não tinha multa nem valor a pagar. Se ele já tiver um valor Pago nesse jogo, de uma troca anterior, nada é criado, para que ninguém pague duas vezes pela mesma vaga. Se ele tiver excluído a conta, também nada é criado (RN104; decisão de 24/11/2026). | |
 |      | 6. O acerto entre os dois do que já foi recebido fica **fora do app**. | |
 | RN32 | Cada valor a pagar guarda o recebedor a quem é devido. A validação de comprovantes (RN88) usa esse recebedor, não o recebedor atual do jogo. | RF71, RF80 |
  
@@ -209,7 +209,7 @@ Status: **Pendente**, **Em análise**, **Pago** e **Isento**. O valor Isento fic
 | RN82 | Em análise → Pago | O recebedor aprova | RF83 |
 | RN83 | Em análise → Pendente | O recebedor recusa, com observação obrigatória | RF83 |
 | RN84 | Pendente → Pago | O recebedor marca como pago manualmente, sem comprovante | RF84 |
-| RN85 | Pago → Pendente | O recebedor reverte **apenas** um pagamento que ele mesmo marcou manualmente. O app registra quem e quando, e notifica. Pagamentos aprovados por comprovante não são revertidos. | RF85 |
+| RN85 | Pago → Pendente | O recebedor reverte **apenas** um pagamento que ele mesmo marcou manualmente. O app registra quem e quando, e notifica. Pagamentos aprovados por comprovante não são revertidos, nem o pagamento de quem já excluiu a conta (RN104; decisão de 24/11/2026). | RF85 |
 | RN93 | Pendente → Isento | Um admin do jogo isenta uma multa (RN66). O app registra quem e quando | RF64 |
 | RN94 | Pendente → Isento | Troca de recebedor após a conclusão: o valor do novo recebedor é anulado (RN31.4) | RF33 |
  
@@ -221,9 +221,9 @@ Status: **Pendente**, **Em análise**, **Pago** e **Isento**. O valor Isento fic
 | RN87 | Tipos aceitos: imagem e PDF, com tamanho máximo de **10 MB**, validados no app e no servidor. | RF78 |
 | RN88 | O comprovante é aprovado automaticamente somente se **todas** as condições abaixo forem verdadeiras. Se algum campo não puder ser lido, ele vai para Em análise. | RF80 |
 |      | a) o **valor** é exatamente igual ao valor a pagar; | |
-|      | b) o **destinatário** confere com o recebedor do valor (RN32): a chave Pix é igual à chave **atual** do recebedor, **ou** o nome normalizado (sem acentos, em maiúsculas) contém o primeiro e o último nome do recebedor; | |
-|      | c) a **data e hora** do pagamento são iguais ou posteriores ao **início do jogo**, **comparadas no minuto**: a hora do comprovante é lida no horário de Brasília (`America/Sao_Paulo`) e o início do jogo é truncado ao minuto. Assim, quem paga logo ao fim da partida, antes da conclusão, é aprovado automaticamente. Pagamentos anteriores ao início vão para Em análise; | |
-|      | d) o **ID da transação** não está em uso (RN89). | |
+|      | b) o **destinatário** confere com o recebedor do valor (RN32): a chave Pix é igual à chave **atual** do recebedor, **ou** o nome normalizado (sem acentos, em maiúsculas) contém o primeiro e o último nome do recebedor, comparados por **palavra inteira**. Recebedor com **um nome só** no perfil só confere pela chave (decisão de 24/11/2026). Chave escondida em parte no comprovante (`***.456.789-**`) não é lida como chave; | |
+|      | c) a **data e hora** do pagamento são iguais ou posteriores ao **início do jogo**, **comparadas no minuto**: a hora do comprovante é lida no horário de Brasília (`America/Sao_Paulo`) e o início do jogo é truncado ao minuto. Assim, quem paga logo ao fim da partida, antes da conclusão, é aprovado automaticamente. Pagamentos anteriores ao início vão para Em análise. Agendamento não é pagamento, e data posterior ao momento do envio não é data de pagamento: os dois vão para Em análise; | |
+|      | d) o **ID da transação** é o código do Pix (EndToEnd): 32 caracteres, `E`, 8 dígitos do banco, 12 dígitos de data e hora e 11 letras ou números. Ele não pode estar em uso (RN89). Outro número do comprovante (autenticação, número interno do banco) não vale como ID, e um código fora do formato conta como não lido (decisão de 24/11/2026). | |
 | RN89 | **ID repetido:** o envio é **recusado** se o ID já estiver em um comprovante **Aprovado ou Em análise** de outro valor a pagar, e o motivo é informado ao pagador. Se aquele comprovante for recusado, o ID volta a ficar livre. Unicidade garantida por restrição no banco. | RF81 |
 | RN90 | Os estados do comprovante são Em análise, Aprovado e Recusado. O participante vê o status e a observação do recebedor. | RF86 |
  
@@ -244,8 +244,9 @@ Status: **Pendente**, **Em análise**, **Pago** e **Isento**. O valor Isento fic
 | RN103 | **A exclusão de conta é bloqueada se o usuário:** | RF13 |
 |       | - tiver valor a pagar ou a receber Pendente ou Em análise; | |
 |       | - for o último admin de um grupo (se for o único membro, pode excluir o grupo antes, RN17); | |
-|       | - for o único admin ou o recebedor de um jogo Aberto ou Confirmado. | |
-| RN104 | **Efeitos da exclusão:** o usuário sai das listas de presença e de espera de jogos não iniciados (sem multa) e dos grupos, suas solicitações pendentes são canceladas e seus dados pessoais são anonimizados, como descrito no `stacks.md` (13.2). | RF13 |
+|       | - for o único admin ou o recebedor de um jogo Aberto ou Confirmado; | |
+|       | - estiver num jogo ainda não concluído que pode lhe gerar valor: na lista de um jogo já iniciado, com saída depois do início, ou com cancelamento fora do prazo não anulado (RN56), com o jogo Aberto ou Confirmado (decisão de 24/11/2026). | |
+| RN104 | **Efeitos da exclusão:** o usuário sai das listas de presença e de espera de jogos não iniciados (sem multa) e dos grupos, suas solicitações pendentes são canceladas e seus dados pessoais são anonimizados, como descrito no `stacks.md` (13.2). **Conta excluída nunca volta a dever:** nenhum valor a pagar é criado para ela, e nenhum valor dela volta para Pendente (RN31.5, RN85; decisão de 24/11/2026). | RF13 |
 | RN105 | **Chave Pix:** pode ser trocada a qualquer momento, mas **não pode ser removida** enquanto o usuário for recebedor de um jogo Aberto ou Confirmado ou tiver valor a receber Pendente ou Em análise. O pagador sempre vê a chave atual (RF77). | RF11, RF12 |
 | RN106 | **Fotos de perfil e de grupo:** JPEG, PNG ou WebP. O app redimensiona para no máximo 1024 px no maior lado antes do envio, e o servidor aceita até **2 MB**. | RF09, RF14, RF18 |
 | RN107 | **Visibilidade do perfil:** nome, apelido e foto de um usuário são visíveis a quem compartilha contexto com ele, ou seja, um grupo atual ou qualquer jogo, atual ou passado, na lista de presença ou de espera. A mesma definição vale para o telefone visível (RN101). **Exceções:** (1) quem tem o convite de um jogo e está logado vê, na prévia, o apelido ou nome e a foto dos participantes, mesmo sem contexto compartilhado; (2) o admin de um grupo vê o nome, o apelido e a foto de quem tem solicitação pendente nesse grupo, enquanto ela estiver pendente (decisão de 15/11/2026). O telefone segue só a regra geral. | RF17, RF19, RF46, RF48, RF101 |

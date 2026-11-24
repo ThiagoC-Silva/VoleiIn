@@ -69,10 +69,11 @@ app/integration_test/       # fluxos de ponta a ponta no emulador
 | `timezone` | Conversão para `America/Fortaleza` (RN01) |
 | `material_symbols_icons` | Ícones (`design-system.md`, seção 6) |
 | `google_sign_in` | Login com Google |
-| `image_picker` | Foto do perfil, da galeria ou da câmera, já reduzida a 1024 px no maior lado (fatia 2) |
+| `image_picker` | Foto do perfil, da galeria ou da câmera, já reduzida a 1024 px no maior lado (fatia 2), e a imagem do comprovante, até 2.576 px (fatia 6) |
 | `share_plus` | Compartilhar o código do grupo (fatia 3), o link do jogo (fatia 8) e a lista em texto (fatia 7) |
-| `url_launcher` | Abrir o link do Google Maps do jogo, o discador e o WhatsApp no perfil de outra pessoa (fatia 4, decisão de 16/11/2026). Mantido pelo time do Flutter, sem custo |
-| `file_picker`, `app_links`, `firebase_core`, `firebase_messaging`, `flutter_local_notifications` | Entram nas fatias que os usam (`stacks.md`, 3.1) |
+| `url_launcher` | Abrir o link do Google Maps do jogo, o discador e o WhatsApp no perfil de outra pessoa (fatia 4, decisão de 16/11/2026), e o PDF do comprovante (fatia 6). Mantido pelo time do Flutter, sem custo |
+| `file_picker` | Escolher o PDF do comprovante (fatia 6). A imagem vem do `image_picker`, reduzida a 2.576 px no maior lado |
+| `app_links`, `firebase_core`, `firebase_messaging`, `flutter_local_notifications` | Entram nas fatias que os usam (`stacks.md`, 3.1) |
 | `http` | Já vem com `supabase_flutter`; declarada porque a conversão de erros cita `ClientException` (seção 7) |
 | `mocktail` (dev) | Dublês nos testes |
 | `flutter_lints` (dev) | Regras do `dart analyze` |
@@ -339,7 +340,7 @@ testWidgets('S13: CPF com dígito errado mostra erro e não chama o servidor', (
   - `grant insert`/`update` **por coluna** nas escritas diretas da seção 9 do `contratos-api.md`;
   - `grant execute ... to authenticated` em cada função pública do app.
 - RLS ativado em toda tabela, e o teste da fatia 1 falha se alguma ficar sem (CLAUDE.md, "Nunca faça").
-- Como as Edge Functions chamam as funções internas (por exemplo, `emit_notification` a partir de `process-receipt`) fica decidido na fatia 6, sem expor a função ao app.
+- As Edge Functions chamam funções de `public` com `execute` só para `service_role`, e estas chamam as de `private` (ADR 0019, 24/11/2026).
 
 ### 14.3 Formato de uma função do app
 

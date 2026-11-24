@@ -41,6 +41,7 @@ Para o app ler ou escrever uma tabela, **duas camadas** precisam permitir:
 | Admin do jogo | `private.is_game_admin(game_id, user_id)` | 4 |
 | Pode ver o jogo | `private.can_view_game(game_id, user_id)` | 4 |
 | Participante, recebedor, pagador | Leitura das colunas da própria linha | 4 a 6 |
+| Conta não excluída | `private.is_active_account(user_id)` | 6 |
 
 A definição SQL de cada função entra nesta matriz na fatia indicada.
 
@@ -400,6 +401,77 @@ $$;
 **Realtime:** nada muda. `charges` fica fora da publicação: as telas da fatia 5 releem ao abrir (`docs/ui/telas.md`, seção 8), e o detalhe do jogo já recebe a mudança de status de `games`.
 
 **Casos negativos**, cada um com teste (`testes-referencia.md`, seção 13.4): outro pagador do mesmo jogo não lê o valor de ninguém além do próprio, nem os eventos dele; quem está na lista sem valor e sem ser admin ou recebedor não lê nenhum valor do jogo; quem não está no jogo não lê nada; o antigo recebedor, sem ser admin, não lê os valores Pendentes que passaram ao novo; quem não é admin do jogo não lê `receiver_changes`, nem sendo o recebedor; ninguém escreve direto nas três tabelas; `audit_log` continua fechada; `anon` não lê nada; o app não executa `auto_complete_due_games`.
+
+### Fatia 6
+
+Decisões de 24/11/2026. O comprovante, com o arquivo e os dados lidos, é só do **pagador** e do **recebedor gravado no comprovante** (RF87). Os admins do jogo e o recebedor atual do jogo, quando não é o do comprovante, não leem. Toda escrita em `charges`, `charge_events` e `receipts` continua nas funções. A conta excluída não escreve mais nada. Nas condições, `uid` é `(select auth.uid())` (seção 6).
+
+**Funções auxiliares**, no esquema `private`, com as mesmas propriedades e permissões das fatias anteriores:
+
+```sql
+-- Conta não excluída (RN104). Barra o token que sobra depois da exclusão.
+create function private.is_active_account(p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.profiles p where p.id = p_user_id and p.deleted_at is null
+  );
+$$;
+
+-- Pode enviar um arquivo de comprovante: o pagador de um valor Pendente (RN86).
+create function private.can_upload_receipt(p_charge_id uuid, p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.charges c
+    where c.id = p_charge_id and c.payer_id = p_user_id and c.status = 'pending'
+  ) and private.is_active_account(p_user_id);
+$$;
+
+-- Pode abrir o arquivo: quem pagou ou quem recebe, pelo registro do comprovante.
+create function private.can_read_receipt_file(p_path text, p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.receipts r
+    where r.storage_path = p_path and (r.payer_id = p_user_id or r.receiver_id = p_user_id)
+  );
+$$;
+```
+
+- **Índices de apoio:** `receipts` por `(charge_id, created_at)` e `(receiver_id, status)`, da fatia 1. A leitura do arquivo consulta `storage_path`: a etapa B cria um índice único parcial `(storage_path) where storage_path is not null`, que também impede o mesmo arquivo em dois comprovantes.
+- `private.require_uid()` passa a chamar `is_active_account` (`NOT_AUTHENTICATED`).
+
+**Privilégios de `authenticated`** acrescentados (lista esperada do B04). `anon` continua sem nenhum.
+
+| Tabela | Privilégio | Colunas | Etapa |
+|--------|------------|---------|-------|
+| `receipts` | `select` | Todas | B |
+
+**Políticas** acrescentadas ou alteradas (lista esperada do B03)
+
+| Tabela | Política | Operação | Condição | Etapa |
+|--------|----------|----------|----------|-------|
+| `receipts` | `receipts_select_party` | `select` | `payer_id = uid or receiver_id = uid` | B |
+| `profile_private` | `profile_private_update_own` | `update` | `using` e `with check`: `user_id = uid and private.is_active_account(uid)` | C |
+| `terms_acceptances` | `terms_acceptances_insert_own` | `insert` | A condição da fatia 2 **e** `private.is_active_account(uid)` | C |
+
+- `profiles_update_own` já exige `deleted_at is null` desde a fatia 2.
+- O antigo recebedor continua lendo os comprovantes enviados a ele, e o novo não os vê: `receipts.receiver_id` é o do envio (RN32).
+
+**Storage, bucket `receipts`.** Políticas em `storage.objects`, todas com `bucket_id = 'receipts'`. A pasta só é convertida para `uuid` quando tem o formato de um UUID.
+
+| Política | Operação | Condição além do bucket | Etapa |
+|----------|----------|-------------------------|-------|
+| `receipts_insert_payer` | `insert` | `private.can_upload_receipt(folder[1]::uuid, uid)`, com o nome no formato `{charge_id}/{uuid}.{ext}`, sem subpasta | B |
+| `receipts_select_party` | `select` | `private.can_read_receipt_file(name, uid)` | B |
+| `avatars_profile_insert_own` (alterada) | `insert` | A condição da fatia 2 **e** `private.is_active_account(uid)` | C |
+
+- Sem `update` e `delete`: o app não troca nem apaga comprovante. O arquivo só sai por `storage-cleanup`.
+- O arquivo enviado e ainda sem registro não é lido por ninguém pelo app. `process-receipt` o lê com a chave de serviço.
+
+**Funções** acrescentadas à lista do B06, com `execute` só para `authenticated`: `mark_charge_paid(uuid)` e `revert_charge(uuid)` (etapa A), `review_receipt(uuid, boolean, text)` (B) e `delete_account()` (C). **Só para `service_role`** (ADR 0019), conferidas no mesmo teste: `record_receipt(uuid, uuid, text, text, integer, jsonb)` (B), `list_storage_cleanup()` e `mark_receipts_file_deleted(uuid[])` (C).
+
+**Realtime:** nada muda. `charges` e `receipts` ficam fora da publicação. As telas releem (`docs/ui/telas.md`, seção 9).
+
+**Casos negativos**, cada um com teste (`testes-referencia.md`, seção 14.5): o admin do jogo, o recebedor atual que não é o do comprovante, outro pagador e quem está fora do jogo não leem o comprovante nem o arquivo; ninguém envia arquivo para valor de outro, para valor que não está Pendente ou fora do formato; ninguém sobrescreve nem apaga arquivo; ninguém escreve direto em `receipts`; o app não executa as funções de `service_role`; a conta excluída, com o token ainda válido, não chama função nem escreve; `anon` não lê nada.
 
 ## 6. Cuidados nas próximas fatias
 
