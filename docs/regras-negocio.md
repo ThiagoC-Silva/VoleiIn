@@ -209,7 +209,7 @@ Status: **Pendente**, **Em análise**, **Pago** e **Isento**. O valor Isento fic
 | RN82 | Em análise → Pago | O recebedor aprova | RF83 |
 | RN83 | Em análise → Pendente | O recebedor recusa, com observação obrigatória | RF83 |
 | RN84 | Pendente → Pago | O recebedor marca como pago manualmente, sem comprovante | RF84 |
-| RN85 | Pago → Pendente | O recebedor reverte **apenas** um pagamento que ele mesmo marcou manualmente. O app registra quem e quando, e notifica. Pagamentos aprovados por comprovante não são revertidos, nem o pagamento de quem já excluiu a conta (RN104; decisão de 24/11/2026). | RF85 |
+| RN85 | Pago → Pendente | O recebedor reverte **apenas** um pagamento que ele mesmo marcou manualmente. O app registra quem e quando, e notifica. Pagamentos aprovados por comprovante não são revertidos, nem o pagamento de quem já excluiu a conta (RN104; decisão de 24/11/2026), nem o de quem é o recebedor atual do jogo: o recebedor não volta a dever, e o acerto fica fora do app, como na RN31.6 (decisão de 24/11/2026). | RF85 |
 | RN93 | Pendente → Isento | Um admin do jogo isenta uma multa (RN66). O app registra quem e quando | RF64 |
 | RN94 | Pendente → Isento | Troca de recebedor após a conclusão: o valor do novo recebedor é anulado (RN31.4) | RF33 |
  

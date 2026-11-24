@@ -367,6 +367,7 @@ Decisões de 24/11/2026. Nas funções sobre um valor, quem não pode ver o valo
 - **Erros:** `NOT_FOUND`, `NOT_CHARGE_RECEIVER`, `CHARGE_NOT_REVERTIBLE`.
 - **Efeitos:** volta para `pending`, com `paid_at` e `paid_via` nulos, se `paid_via = manual` e a marcação for do próprio recebedor. `charge_events` guarda quem e quando. Notifica o pagador (`charge_back_to_pending`).
 - **Conta excluída:** se o pagador excluiu a conta, devolve `CHARGE_NOT_REVERTIBLE` (RN104).
+- **Pagador que virou o recebedor do jogo** (decisão de 24/11/2026): também `CHARGE_NOT_REVERTIBLE`, enquanto ele for o recebedor (RN85, PG07).
 - **Retorno:** `{ charge_id, status }`.
 - **Origem:** RF85, RN85, RF97.
 
