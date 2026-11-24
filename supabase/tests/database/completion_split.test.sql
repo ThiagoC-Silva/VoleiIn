@@ -60,6 +60,12 @@ delete from public.audit_log;
 update public.profile_private
 set pix_key_type = 'cpf', pix_key = '12345678909'
 where user_id = '00000000-0000-0000-0000-00000000000a';
+-- Bruno e Carla, que viram recebedores na etapa C. Como no seed, para passar
+-- também no banco do ensaio, que não tem seed (docs/setup.md, seção 9.2).
+update public.profile_private set pix_key_type = 'email', pix_key = 'bruno@voleiin.test'
+where user_id = '00000000-0000-0000-0000-00000000000b';
+update public.profile_private set pix_key_type = 'email', pix_key = 'carla@voleiin.test'
+where user_id = '00000000-0000-0000-0000-00000000000c';
 
 -- Base: o Quinta, com Ana admin e os outros membros. Diego sem grupo.
 insert into public.groups (id, name, invite_code, created_by)

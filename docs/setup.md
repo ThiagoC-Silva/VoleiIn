@@ -391,6 +391,16 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 - `supabase db push --dry-run` listou só essa migração, sem seed nem roles, e o `supabase db push` a aplicou.
 - Conferência: 32 migrações, nenhuma tabela sem RLS, nenhum valor a pagar, `waive_penalty` executável por `authenticated` e não por `anon`. O "Teste M06" continua Aberto, à espera do M08. Advisors de segurança: o INFO de RLS sem política nas mesmas 6 tabelas, o WARN `authenticated_security_definer_function_executable` em 26 funções (`waive_penalty` entra por desenho) e os mesmos WARN de Auth.
 
+### 9.11 Migração da etapa C da fatia 5 (24/11/2026)
+
+**Feita em 24/11/2026**, pelo agente. A produção tinha as 32 migrações até a etapa B da fatia 5, com 1 conta, 1 grupo e o "Teste M06".
+
+- Ensaio da seção 9.2: cópia nova em `~/voleiin-dumps`, banco local na versão `20261118130000`, sem seed, com a carga de `data-local.sql` (o dump sem os blocos `COPY` vazios, como na seção 9.6). A migração `20261119120000` (`create_change_receiver`) aplicou sem erro, e as contagens ficaram iguais antes e depois (1 conta, 1 perfil, 1 grupo, 1 membro, 1 jogo, 1 passagem, 1 admin, 1 linha de histórico de limite, 1 notificação, 1 linha de auditoria, 2 aceites, nenhum valor), sem nenhuma tabela sem RLS.
+- No ensaio, o pgTAP falhou na primeira vez com `RECEIVER_NEEDS_PIX_KEY`: os testes da etapa C usavam as chaves Pix do Bruno e da Carla do seed, que o banco do ensaio não tem. A base dos dois arquivos passou a gravar as chaves, sem resultado esperado alterado, e os 779 testes passaram no ensaio e no banco com seed.
+- `supabase db push --dry-run` listou só essa migração, sem seed nem roles, e o `supabase db push` a aplicou.
+- Conferência: 33 migrações, nenhuma tabela sem RLS, nenhum valor a pagar e nenhuma troca, `change_receiver` executável por `authenticated` e não por `anon`. Advisors de segurança: o INFO de RLS sem política nas mesmas 6 tabelas, o WARN `authenticated_security_definer_function_executable` em 27 funções (`change_receiver` entra por desenho) e os mesmos WARN de Auth.
+- **M08:** o "Teste M06" terminou em 21/11/2026 às 01:00 UTC e está Concluído desde as 02:00:00 UTC, com `completion_mode = automatic` e a parte de R$ 20,00. O agente conferiu no banco da produção, e não na tela do celular.
+
 ## 10. Domínio, e-mail e convites
 
 | Item | Valor | Observação |

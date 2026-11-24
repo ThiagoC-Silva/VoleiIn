@@ -35,5 +35,12 @@
 
 ## Sessão 4 — Validação
 
-- [ ] T012 L22 nas APIs 29 e 36
-- [ ] T013 Ensaio e `supabase db push`; advisors
+- [x] T012 L22 nas APIs 29 e 36
+- [x] T013 Ensaio e `supabase db push`; advisors
+
+**Sessão 4 concluída em 24/11/2026** no *branch* `fatia-5/validacao-c`.
+
+- **L22:** a primeira rodada na API 36 falhou como na sessão 3, desta vez com a causa: depois do `change_receiver`, o app não relia nada. `gameActionsControllerProvider` é `autoDispose`, e no jogo concluído, sem rodapé, ninguém o observava: ele era descartado durante a chamada, e as releituras eram puladas. Só o Realtime atualizava o detalhe, quando estava conectado. A tela do jogo passou a observá-lo, como o Rateio já fazia. Teste que reproduz o bug: "a troca relê o detalhe e Cobranças, sem o Realtime", em `game_receiver_test.dart`, vermelho antes da correção. `flutter test`: 553 verdes.
+- Depois da correção, com um `db reset` antes de cada rodada: 3 verdes na API 36 (uma quarta não chegou a começar, com `Connecting to the VM Service timed out`, `docs/setup.md`, seção 11) e 2 verdes na API 29.
+- **Ensaio e produção:** `docs/setup.md`, 9.11, com o M08.
+- **Em aberto:** o C16 (fatia 4) falhou em 1 de 2 rodadas completas do `deno test` e passou em 35 isoladas. Quando a saída do grupo vence a corrida, `join_game` devolve `NOT_FOUND`, como diz `contratos-api.md` (quem não pode ver o jogo), e o C16 espera `NO_GAME_ACCESS`. Os documentos divergem: a decisão é do responsável.
