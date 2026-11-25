@@ -345,10 +345,14 @@ void main() {
       verifyNever(() => h.games.waivePenalty(any()));
     });
 
-    testWidgets('Ana toca num share: o perfil, sem sheet', (tester) async {
-      h.game(() => completedGame());
+    testWidgets('Edu, admin que não recebe, toca num share: o perfil, sem '
+        'sheet', (tester) async {
+      h.signedIn(userId: eduId);
+      final game = completedGame(viewerId: eduId)
+          .copyWith(adminIds: [anaId, eduId]);
+      h.game(() => game);
       when(() => h.games.fetchSplit(finishedId))
-          .thenAnswer((_) async => r08Split());
+          .thenAnswer((_) async => r08Split(game: game));
       await h.pumpApp(tester, location: '/games');
       await h.push(tester, '/games/$finishedId/split');
 

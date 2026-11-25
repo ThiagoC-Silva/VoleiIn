@@ -315,4 +315,17 @@ void main() {
       expect(toAppException(exception).code, entry.value);
     });
   }
+
+  // Fatia 6, etapa A: mark_charge_paid e revert_charge (docs/copy.md, 10.7).
+  const paymentCodes = {
+    'NOT_CHARGE_RECEIVER': ErrorCode.notChargeReceiver,
+    'CHARGE_NOT_REVERTIBLE': ErrorCode.chargeNotRevertible,
+  };
+  for (final entry in paymentCodes.entries) {
+    test('E15 (fatia 6, etapa A): P0001 com ${entry.key} vira '
+        '${entry.value.name}', () {
+      final exception = PostgrestException(message: entry.key, code: 'P0001');
+      expect(toAppException(exception).code, entry.value);
+    });
+  }
 }

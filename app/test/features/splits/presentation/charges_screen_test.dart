@@ -156,19 +156,18 @@ void main() {
       expect(tabBadge(), findsNothing);
     });
 
-    testWidgets('tocar numa linha abre o Rateio do jogo, na aba Jogos', (
-      tester,
-    ) async {
-      signInBruno();
-      h.gameNotFound(saturdayGame);
+    testWidgets('A receber: tocar numa linha abre o Rateio do jogo, na aba '
+        'Jogos', (tester) async {
+      h.myCharges(anaLines());
+      h.gameNotFound(thursdayGame);
       when(
-        () => h.games.fetchSplit(saturdayGame),
+        () => h.games.fetchSplit(thursdayGame),
       ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
       await openCharges(tester);
 
-      await tester.tap(find.text('sáb, 21/11 · Ginásio Verdão'));
+      await tester.tap(find.text('qui, 19/11 · Quadra do Sesc'));
       await tester.pumpAndSettle();
-      expect(h.location, '/games/$saturdayGame/split');
+      expect(h.location, '/games/$thursdayGame/split');
     });
 
     testWidgets('sem nenhum valor: chargesEmptyTitle, sem as seções', (
@@ -210,6 +209,23 @@ void main() {
       );
       await tester.pumpAndSettle();
       verify(() => h.games.fetchMyCharges()).called(greaterThanOrEqualTo(1));
+    });
+  });
+
+  // Etapa A da fatia 6 (docs/testes-referencia.md, seção 14): sem **Para
+  // conferir**, que chega na etapa B.
+  group('S85: A pagar abre o valor a pagar', () {
+    testWidgets('tocar na linha abre /charges/:chargeId', (tester) async {
+      signInBruno();
+      when(
+        () => h.games.fetchCharge('c2'),
+      ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
+      await openCharges(tester);
+
+      await tester.tap(find.text('sáb, 21/11 · Ginásio Verdão'));
+      await tester.pumpAndSettle();
+      expect(h.location, '/charges/c2');
+      verify(() => h.games.fetchCharge('c2')).called(1);
     });
   });
 

@@ -23,7 +23,7 @@
 
 Precisa do `charge.png` em `docs/ui/referencias/fatia-6/`.
 
-- [ ] T009 Testes antes: S77 (sem comprovantes), S84, S85 (sem **Para conferir**), S88, S89, E15, L23
+- [ ] T009 Testes antes: S77 (sem comprovantes), S84 (sem **Conferir comprovante**), S85 (sem **Para conferir**), S88, S89, E15, L23
 - [ ] T010 Valor a pagar e ações no Rateio (`docs/ui/telas.md`, seção 9)
 - [ ] T011 `dart format`, `dart analyze` e `flutter test` verdes
 
