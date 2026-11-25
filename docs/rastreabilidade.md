@@ -101,15 +101,15 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF74 | 5 | RN76 | RLS de `charges` (Y05 a Y07) | `/games/:gameId/split` | Y05 a Y07, S69, L20 | Concluído |
 | RF75 | 5 | — | RLS de `charges` | `/charges` | S74 a S76, L22 | Concluído |
 | RF76 | 5 | — | RLS de `charges` | `/charges` | S74 a S76, Y04 | Concluído |
-| RF77 | 6 | RN102 | — | — | — | Pendente |
+| RF77 | 6 | RN102 | `charges`, `get_profile_contact` | `/charges/:chargeId` | S77, S85 | Em andamento |
 | RF78 | 6 | RN86, RN87 | — | — | — | Pendente |
 | RF79 | 6 | — | — | — | — | Pendente |
 | RF80 | 6 | RN32, RN88 | — | — | — | Pendente |
 | RF81 | 6 | RN89 | — | — | — | Pendente |
 | RF82 | 6 | RN80 | — | — | — | Pendente |
 | RF83 | 6 | RN81, RN82, RN83 | — | — | — | Pendente |
-| RF84 | 6 | RN84 | — | — | — | Pendente |
-| RF85 | 6 | RN85 | — | — | — | Pendente |
+| RF84 | 6 | RN84 | `mark_charge_paid` | `/games/:gameId/split` | PG01 a PG03, C09, S84, L23 | Em andamento |
+| RF85 | 6 | RN85 | `revert_charge` | `/games/:gameId/split` | PG04 a PG07, S84, L23 | Em andamento |
 | RF86 | 6 | RN90 | — | — | — | Pendente |
 | RF87 | 6 | RN91, RN92 | — | — | — | Pendente |
 | RF88 | 7 | RN110 | — | — | — | Pendente |

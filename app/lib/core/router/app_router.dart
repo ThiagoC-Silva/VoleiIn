@@ -34,6 +34,7 @@ import '../../features/groups/presentation/group_new_screen.dart';
 import '../../features/groups/presentation/group_requests_screen.dart';
 import '../../features/groups/presentation/group_screen.dart';
 import '../../features/groups/presentation/groups_screen.dart';
+import '../../features/payments/presentation/charge_screen.dart';
 import '../../features/splits/presentation/charges_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 import 'routes.dart';
@@ -271,6 +272,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: Routes.chargesPath,
                 name: Routes.charges,
                 builder: (context, state) => const ChargesScreen(),
+                routes: [
+                  GoRoute(
+                    path: Routes.chargePath,
+                    name: Routes.charge,
+                    builder: (context, state) => ChargeScreen(
+                      chargeId: state.pathParameters['chargeId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

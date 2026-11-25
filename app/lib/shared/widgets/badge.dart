@@ -9,6 +9,7 @@ class VoleiBadge extends StatelessWidget {
     required this.label,
     required this.tone,
     this.dot = false,
+    this.icon,
     super.key,
   });
 
@@ -23,6 +24,9 @@ class VoleiBadge extends StatelessWidget {
   /// de papel (`neutral`) ficam sem ponto, como nos PNGs.
   final bool dot;
 
+  /// O ícone no lugar do ponto (design-system.md, seção 4).
+  final IconData? icon;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -35,7 +39,10 @@ class VoleiBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (dot) ...[
+          if (icon != null) ...[
+            Icon(icon, size: 16, color: tone.text),
+            const SizedBox(width: 6),
+          ] else if (dot) ...[
             Container(
               width: 8,
               height: 8,

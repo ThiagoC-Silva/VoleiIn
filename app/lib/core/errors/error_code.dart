@@ -88,6 +88,11 @@ enum ErrorCode {
   receiverMustBeParticipant,
   receiverUnchanged,
   receiverChangeBlocked,
+
+  // Pagamento manual, etapa A da fatia 6 (docs/copy.md, 10.7): os códigos de
+  // mark_charge_paid e revert_charge. As etapas B e C acrescentam os seus.
+  notChargeReceiver,
+  chargeNotRevertible,
 }
 
 /// Único tipo de exceção que sai da camada `data`.

@@ -36,9 +36,10 @@ final gameSplitProvider = FutureProvider.autoDispose.family<GameSplit, String>(
 /// gameSplit-recebedor.png). Na aba Jogos, com a barra inferior. Todos veem o
 /// cabeçalho e o próprio valor; o recebedor e os admins do jogo veem também os
 /// totais e todos os valores (RN76). Os totais só somam `amount_cents` já
-/// gravados, em inteiros (contratos-api.md, seção 9). O admin do jogo toca
-/// numa multa Pendente para isentá-la (RF64; gameSplit-isentar.png); os
-/// outros toques abrem o perfil.
+/// gravados, em inteiros (contratos-api.md, seção 9). Tocar num valor abre o
+/// que a pessoa pode fazer com ele: o recebedor do valor marca como pago e
+/// reverte (RF84, RF85), e o admin do jogo isenta a multa (RF64; 9.5;
+/// gameSplit-marcarPago.png). Sem nada a fazer, abre o perfil.
 class GameSplitScreen extends ConsumerWidget {
   const GameSplitScreen({required this.gameId, super.key});
 
@@ -48,7 +49,7 @@ class GameSplitScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final split = ref.watch(gameSplitProvider(gameId));
-    // Mantém o controller vivo durante a isenção.
+    // Mantém o controller vivo durante a ação.
     ref.watch(gameCompletionControllerProvider);
     Future<void> reload() => ref.refresh(gameSplitProvider(gameId).future);
 
@@ -82,6 +83,11 @@ class _SplitBody extends StatelessWidget {
     final game = split.game;
     final seesAll = game.isReceiver || game.isAdmin;
     final mine = split.charges.where((c) => c.payerId == game.viewerId);
+    // O antigo recebedor que não é admin (RN31.2; telas.md, 9.5).
+    final owedToYou = seesAll
+        ? const <GameCharge>[]
+        : (split.charges.where((c) => c.receiverId == game.viewerId).toList()
+            ..sort(_byName));
     final active =
         split.charges.where((c) => c.status != ChargeStatus.waived).toList()
           ..sort(_byName);
@@ -168,6 +174,17 @@ class _SplitBody extends StatelessWidget {
             ]
           else
             _NoCharge(text: _noChargeReason(l10n, split, covered)),
+          if (owedToYou.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Text(l10n.splitOwedToYou, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 12),
+            ListCard(
+              children: [
+                for (final charge in owedToYou)
+                  _ChargeRow(game: game, charge: charge, showReceiver: false),
+              ],
+            ),
+          ],
           if (seesAll) ...[
             const SizedBox(height: 24),
             IntrinsicHeight(
@@ -176,6 +193,7 @@ class _SplitBody extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _TotalBlock(
+                      key: const Key('splitReceivedTotal'),
                       label: l10n.splitReceived,
                       cents: _sum(active, {ChargeStatus.paid}),
                       color: colors.receive,
@@ -310,7 +328,8 @@ void _openPerson(BuildContext context, String gameId, String userId) {
 }
 
 /// O próprio valor, no bloco grande (gameSplit.png): `owe` enquanto falta
-/// pagar, `receive` no Pago e neutro no Isento.
+/// pagar, `receive` no Pago e neutro no Isento. Tocar, ou **Pagar** no
+/// Pendente, abre o valor a pagar, na aba Cobranças (telas.md, 9.2).
 class _MyCharge extends StatelessWidget {
   const _MyCharge({required this.charge});
 
@@ -329,64 +348,77 @@ class _MyCharge extends StatelessWidget {
     };
     final text = waived ? theme.colorScheme.onSurface : colors.onBlock;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            chargeKindLabel(l10n, charge.kind),
-            style: theme.textTheme.titleMedium?.copyWith(color: text),
-          ),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              formatCents(charge.amountCents),
-              style: theme.textTheme.displayLarge?.copyWith(color: text),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // O selo sobre o navy, para ler no bloco colorido.
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: waived ? null : colors.onBlock,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: ChargeStatusBadge(status: charge.status),
-          ),
-          if (waived) ...[
-            const SizedBox(height: 8),
-            Text(
-              chargeWaivedLabel(l10n, charge.waiveReason),
-              style: theme.textTheme.bodyMedium?.copyWith(color: text),
-            ),
-          ],
-          const SizedBox(height: 16),
-          Divider(color: text.withValues(alpha: .2), height: 1),
-          const SizedBox(height: 12),
-          Row(
+    void open() =>
+        context.goNamed(Routes.charge, pathParameters: {'chargeId': charge.id});
+
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(28),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: open,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              VoleiAvatar(
-                id: charge.receiverId,
-                name: charge.receiverName,
-                size: 36,
+              Text(
+                chargeKindLabel(l10n, charge.kind),
+                style: theme.textTheme.titleMedium?.copyWith(color: text),
               ),
-              const SizedBox(width: 12),
-              Expanded(
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
                 child: Text(
-                  l10n.splitOwedTo(charge.receiverName),
-                  style: theme.textTheme.bodyLarge?.copyWith(color: text),
+                  formatCents(charge.amountCents),
+                  style: theme.textTheme.displayLarge?.copyWith(color: text),
                 ),
               ),
+              const SizedBox(height: 8),
+              ChargeStatusBadge(status: charge.status, onBlock: true),
+              if (waived) ...[
+                const SizedBox(height: 8),
+                Text(
+                  chargeWaivedLabel(l10n, charge.waiveReason),
+                  style: theme.textTheme.bodyMedium?.copyWith(color: text),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Divider(color: text.withValues(alpha: .2), height: 1),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  VoleiAvatar(
+                    id: charge.receiverId,
+                    name: charge.receiverName,
+                    size: 36,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      l10n.splitOwedTo(charge.receiverName),
+                      style: theme.textTheme.bodyLarge?.copyWith(color: text),
+                    ),
+                  ),
+                  ExcludeSemantics(
+                    child: Icon(Symbols.chevron_right, color: text),
+                  ),
+                ],
+              ),
+              if (charge.status == ChargeStatus.pending) ...[
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: text,
+                    side: BorderSide(color: text, width: 1.5),
+                  ),
+                  onPressed: open,
+                  child: Text(l10n.chargePay),
+                ),
+              ],
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -516,10 +548,17 @@ class _CoveredRow extends StatelessWidget {
 /// Linha de valor (telas-fatia-5.md): avatar, nome, rótulo do `kind`, valor
 /// e selo. "Para {nome}" quando o valor é de outro recebedor (RN31).
 class _ChargeRow extends ConsumerWidget {
-  const _ChargeRow({required this.game, required this.charge});
+  const _ChargeRow({
+    required this.game,
+    required this.charge,
+    this.showReceiver = true,
+  });
 
   final GameDetail game;
   final GameCharge charge;
+
+  /// "Para {nome}" quando o valor é de outro recebedor.
+  final bool showReceiver;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -534,14 +573,10 @@ class _ChargeRow extends ConsumerWidget {
         ? null
         : ref.watch(gameAvatarUrlProvider(path)).value;
 
-    // Multa Pendente, para o admin do jogo: a sheet de isentar (RN66).
-    final waivable =
-        game.isAdmin &&
-        charge.kind.isPenalty &&
-        charge.status == ChargeStatus.pending;
+    final actions = _chargeActions(game, charge);
     return InkWell(
-      onTap: waivable
-          ? () => _waive(context, ref, game, charge)
+      onTap: actions.isNotEmpty
+          ? () => _showActions(context, ref, game, charge, actions)
           : isYou
           ? null
           : () => _openPerson(context, game.id, charge.payerId),
@@ -571,7 +606,7 @@ class _ChargeRow extends ConsumerWidget {
                       ),
                     ),
                     Text(chargeKindLabel(l10n, charge.kind), style: soft),
-                    if (charge.receiverId != game.receiverId)
+                    if (showReceiver && charge.receiverId != game.receiverId)
                       Text(l10n.splitOwedTo(charge.receiverName), style: soft),
                     if (charge.status == ChargeStatus.waived)
                       Text(
@@ -610,23 +645,126 @@ class _ChargeRow extends ConsumerWidget {
   }
 }
 
-/// Sheet com o nome e **Isentar multa**, a confirmação e `waive_penalty`
-/// (telas.md, 8.3). Depois, com sucesso ou erro, a tela relê.
-Future<void> _waive(
+/// O que se faz com um valor no Rateio.
+enum _ChargeAction { markPaid, revert, waive, profile }
+
+/// As opções de quem lê neste valor (telas.md, 9.5). Só decide o que aparece:
+/// o servidor confere o papel e o estado.
+List<_ChargeAction> _chargeActions(GameDetail game, GameCharge charge) {
+  final isChargeReceiver = charge.receiverId == game.viewerId;
+  final pending = charge.status == ChargeStatus.pending;
+  final actions = [
+    if (isChargeReceiver && pending) _ChargeAction.markPaid,
+    if (isChargeReceiver &&
+        charge.status == ChargeStatus.paid &&
+        charge.paidVia == PaymentMethod.manual)
+      _ChargeAction.revert,
+    if (game.isAdmin && pending && charge.kind.isPenalty) _ChargeAction.waive,
+  ];
+  // Sem ação, o toque já abre o perfil; o próprio perfil não abre daqui.
+  if (actions.isNotEmpty && charge.payerId != game.viewerId) {
+    actions.add(_ChargeAction.profile);
+  }
+  return actions;
+}
+
+/// Sheet com o avatar, o nome e as opções; a confirmação, em tom normal; e a
+/// função do servidor. Depois, com sucesso ou erro, a tela relê.
+Future<void> _showActions(
   BuildContext context,
   WidgetRef ref,
   GameDetail game,
   GameCharge charge,
+  List<_ChargeAction> actions,
 ) async {
   final l10n = AppLocalizations.of(context);
-  final chosen = await showVoleiSheet<bool>(context, (context) {
+  final chosen = await showVoleiSheet<_ChargeAction>(
+    context,
+    (context) => _ChargeSheet(charge: charge, actions: actions),
+  );
+  if (chosen == null || !context.mounted) return;
+  if (chosen == _ChargeAction.profile) {
+    _openPerson(context, game.id, charge.payerId);
+    return;
+  }
+
+  final name = charge.payerName;
+  final confirmed = await switch (chosen) {
+    _ChargeAction.markPaid => confirmAction(
+      context,
+      title: l10n.markPaidTitle(name, formatCents(charge.amountCents)),
+      body: l10n.markPaidBody,
+      confirmLabel: l10n.markPaidAction,
+    ),
+    _ChargeAction.revert => confirmAction(
+      context,
+      title: l10n.revertTitle(name),
+      body: l10n.revertBody(name),
+      confirmLabel: l10n.revertAction,
+    ),
+    _ => confirmAction(
+      context,
+      title: l10n.waiveTitle(name),
+      body: l10n.waiveBody,
+      confirmLabel: l10n.waiveAction,
+    ),
+  };
+  if (!confirmed || !context.mounted) return;
+
+  final controller = ref.read(gameCompletionControllerProvider.notifier);
+  final error = await switch (chosen) {
+    _ChargeAction.markPaid => controller.markPaid(
+      gameId: game.id,
+      chargeId: charge.id,
+    ),
+    _ChargeAction.revert => controller.revert(
+      gameId: game.id,
+      chargeId: charge.id,
+    ),
+    _ => controller.waive(gameId: game.id, chargeId: charge.id),
+  };
+  if (!context.mounted) return;
+  ref.invalidate(gameSplitProvider(game.id));
+  if (error == null) {
+    showSnack(context, switch (chosen) {
+      _ChargeAction.markPaid => l10n.markedPaid,
+      _ChargeAction.revert => l10n.paymentReverted,
+      _ => l10n.penaltyWaived,
+    });
+    return;
+  }
+  showErrorSnack(context, error);
+  // Deixou de ser admin: volta ao detalhe (telas.md, seção 8).
+  if (error.code == ErrorCode.notGameAdmin) {
+    context.goNamed(Routes.game, pathParameters: {'gameId': game.id});
+  }
+}
+
+class _ChargeSheet extends ConsumerWidget {
+  const _ChargeSheet({required this.charge, required this.actions});
+
+  final GameCharge charge;
+  final List<_ChargeAction> actions;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final path = charge.payerPhotoPath;
+    final url = path == null
+        ? null
+        : ref.watch(gameAvatarUrlProvider(path)).value;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            VoleiAvatar(id: charge.payerId, name: charge.payerName, size: 56),
+            VoleiAvatar(
+              id: charge.payerId,
+              name: charge.payerName,
+              imageUrl: url,
+              size: 56,
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -651,38 +789,32 @@ Future<void> _waive(
         const SizedBox(height: 16),
         SheetOptions(
           options: [
-            SheetOption(
-              icon: Symbols.money_off,
-              label: l10n.waiveAction,
-              subtitle: l10n.waiveActionHint,
-              onTap: () => Navigator.of(context).pop(true),
-            ),
+            for (final action in actions)
+              SheetOption(
+                icon: switch (action) {
+                  _ChargeAction.markPaid => Symbols.paid,
+                  _ChargeAction.revert => Symbols.undo,
+                  _ChargeAction.waive => Symbols.money_off,
+                  _ChargeAction.profile => Symbols.person,
+                },
+                label: switch (action) {
+                  _ChargeAction.markPaid => l10n.markPaidAction,
+                  _ChargeAction.revert => l10n.revertAction,
+                  _ChargeAction.waive => l10n.waiveAction,
+                  _ChargeAction.profile => l10n.groupMemberViewProfile,
+                },
+                subtitle: switch (action) {
+                  _ChargeAction.markPaid => l10n.markPaidHint,
+                  _ChargeAction.revert => l10n.revertHint,
+                  _ChargeAction.waive => l10n.waiveActionHint,
+                  _ChargeAction.profile => null,
+                },
+                onTap: () => Navigator.of(context).pop(action),
+              ),
           ],
         ),
       ],
     );
-  });
-  if (chosen != true || !context.mounted) return;
-  final confirmed = await confirmAction(
-    context,
-    title: l10n.waiveTitle(charge.payerName),
-    body: l10n.waiveBody,
-    confirmLabel: l10n.waiveAction,
-  );
-  if (!confirmed || !context.mounted) return;
-  final error = await ref
-      .read(gameCompletionControllerProvider.notifier)
-      .waive(gameId: game.id, chargeId: charge.id);
-  if (!context.mounted) return;
-  ref.invalidate(gameSplitProvider(game.id));
-  if (error == null) {
-    showSnack(context, l10n.penaltyWaived);
-    return;
-  }
-  showErrorSnack(context, error);
-  // Deixou de ser admin: volta ao detalhe (telas.md, seção 8).
-  if (error.code == ErrorCode.notGameAdmin) {
-    context.goNamed(Routes.game, pathParameters: {'gameId': game.id});
   }
 }
 

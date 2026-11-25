@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/app_localizations.dart';
@@ -116,16 +117,22 @@ Widget? gameSituationBadge(
 }
 
 /// Selo do status do valor a pagar (design-system.md, seção 4): Pendente
-/// `warn`, Em análise `info`, Pago `ok`, Isento `neutral`.
+/// `warn`, Em análise `info`, Pago `ok`, Isento `neutral`. Com [onBlock], vai
+/// sobre o navy, para ler num bloco colorido (gameSplit.png, charge.png).
 class ChargeStatusBadge extends StatelessWidget {
-  const ChargeStatusBadge({required this.status, super.key});
+  const ChargeStatusBadge({
+    required this.status,
+    this.onBlock = false,
+    super.key,
+  });
 
   final ChargeStatus status;
+  final bool onBlock;
 
   @override
   Widget build(BuildContext context) {
     final colors = VoleiColors.of(context);
-    return VoleiBadge(
+    final badge = VoleiBadge(
       label: chargeStatusLabel(AppLocalizations.of(context), status),
       tone: switch (status) {
         ChargeStatus.pending => colors.warn,
@@ -134,6 +141,17 @@ class ChargeStatusBadge extends StatelessWidget {
         ChargeStatus.waived => colors.neutral,
       },
       dot: status != ChargeStatus.waived,
+      icon: status == ChargeStatus.underReview ? Symbols.hourglass_top : null,
+    );
+    // O neutro já lê sobre o `surface` e o `surfaceHigh` do Isento.
+    if (!onBlock || status == ChargeStatus.waived) return badge;
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: colors.onBlock,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: badge,
     );
   }
 }

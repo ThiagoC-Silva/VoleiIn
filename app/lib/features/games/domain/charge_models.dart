@@ -1,3 +1,4 @@
+import '../../auth/domain/pix_key.dart';
 import 'game_models.dart';
 
 /// Enum `charge_kind` do banco (docs/modelo-dados.md, seção 3).
@@ -47,6 +48,20 @@ enum ChargeWaiveReason {
       values.firstWhere((reason) => reason.value == value);
 }
 
+/// Enum `payment_method` do banco.
+enum PaymentMethod {
+  manual('manual'),
+  receipt('receipt');
+
+  const PaymentMethod(this.value);
+
+  /// Valor do banco.
+  final String value;
+
+  static PaymentMethod parse(String value) =>
+      values.firstWhere((method) => method.value == value);
+}
+
 /// Um valor a pagar do jogo (`charges`), com os nomes do pagador e do
 /// recebedor a quem ele é devido (RN32). O RLS decide quais chegam
 /// (docs/rls-matriz.md, fatia 5).
@@ -62,6 +77,7 @@ class GameCharge {
     required this.amountCents,
     required this.status,
     this.waiveReason,
+    this.paidVia,
   });
 
   final String id;
@@ -76,6 +92,57 @@ class GameCharge {
   final int amountCents;
   final ChargeStatus status;
   final ChargeWaiveReason? waiveReason;
+
+  /// Só no valor Pago.
+  final PaymentMethod? paidVia;
+}
+
+/// O valor a pagar como o pagador o lê, com o jogo e a chave Pix do recebedor
+/// do valor (RN32; docs/ui/telas.md, 9.2).
+class ChargeDetail {
+  const ChargeDetail({
+    required this.id,
+    required this.gameId,
+    this.groupName,
+    required this.startsAt,
+    required this.locationName,
+    required this.receiverId,
+    required this.receiverName,
+    this.receiverPhotoPath,
+    this.receiverPixKeyType,
+    this.receiverPixKey,
+    required this.kind,
+    required this.amountCents,
+    required this.status,
+    this.waiveReason,
+    this.paidAt,
+    this.paidVia,
+  });
+
+  final String id;
+  final String gameId;
+
+  /// Nulo no jogo avulso.
+  final String? groupName;
+  final DateTime startsAt;
+  final String locationName;
+  final String receiverId;
+
+  /// `coalesce(nickname, name)` (RN100).
+  final String receiverName;
+  final String? receiverPhotoPath;
+
+  /// Nulos quando o servidor não mostra a chave (RN102).
+  final PixKeyType? receiverPixKeyType;
+  final String? receiverPixKey;
+  final ChargeKind kind;
+  final int amountCents;
+  final ChargeStatus status;
+  final ChargeWaiveReason? waiveReason;
+
+  /// Só no valor Pago.
+  final DateTime? paidAt;
+  final PaymentMethod? paidVia;
 }
 
 /// Retorno de `preview_complete_game` e de `complete_game`

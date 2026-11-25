@@ -115,7 +115,6 @@ class GamesRepository {
 
     final receiver = game['receiver'] as Map?;
     final contact = Map<String, dynamic>.from(results[4] as Map);
-    final pixType = contact['pix_key_type'] as String?;
     return GameDetail(
       id: game['id'] as String,
       groupId: groupId,
@@ -131,9 +130,7 @@ class GamesRepository {
       receiverId: receiverId,
       receiverName: receiver?['display_name'] as String? ?? '',
       receiverPhotoPath: receiver?['photo_path'] as String?,
-      receiverPixKeyType: pixType == null
-          ? null
-          : PixKeyType.values.firstWhere((type) => type.value == pixType),
+      receiverPixKeyType: _pixKeyType(contact),
       receiverPixKey: contact['pix_key'] as String?,
       participants: [
         for (final row in results[0] as List)
@@ -406,6 +403,65 @@ class GamesRepository {
     await _db.rpc('waive_penalty', params: {'p_charge_id': chargeId});
   });
 
+  /// `mark_charge_paid`: o recebedor marca um valor Pendente como pago, sem
+  /// comprovante (RF84; contratos-api.md, seção 6).
+  Future<void> markChargePaid(String chargeId) => guard(() async {
+    await _db.rpc('mark_charge_paid', params: {'p_charge_id': chargeId});
+  });
+
+  /// `revert_charge`: devolve a Pendente um valor marcado à mão (RF85).
+  Future<void> revertCharge(String chargeId) => guard(() async {
+    await _db.rpc('revert_charge', params: {'p_charge_id': chargeId});
+  });
+
+  /// O valor a pagar, só para o pagador: o RLS o mostra também ao recebedor e
+  /// aos admins do jogo, e o filtro os deixa em "não encontrado" (telas.md,
+  /// 9.2). A chave é a do recebedor do valor, e não a do jogo (RN32).
+  Future<ChargeDetail> fetchCharge(String chargeId) => guard(() async {
+    _requireUuid(chargeId);
+    final row = await _db
+        .from('charges')
+        .select(
+          'id, game_id, receiver_id, kind, amount_cents, status, '
+          'waive_reason, paid_at, paid_via, '
+          'game:games!charges_game_id_fkey(location_name, starts_at), '
+          'receiver:profiles!charges_receiver_id_fkey(display_name, photo_path)',
+        )
+        .eq('id', chargeId)
+        .eq('payer_id', _uid)
+        .maybeSingle();
+    if (row == null) throw const AppException(ErrorCode.notFound);
+
+    final gameId = row['game_id'] as String;
+    final receiverId = row['receiver_id'] as String;
+    final results = await Future.wait<Object?>([
+      _groupNames([gameId]),
+      _db.rpc('get_profile_contact', params: {'p_user_id': receiverId}),
+    ]);
+    final contact = Map<String, dynamic>.from(results[1] as Map);
+    final game = row['game'] as Map;
+    final receiver = row['receiver'] as Map?;
+    final reason = row['waive_reason'] as String?;
+    return ChargeDetail(
+      id: row['id'] as String,
+      gameId: gameId,
+      groupName: (results[0] as Map<String, String>)[gameId],
+      startsAt: _instant(game['starts_at']),
+      locationName: game['location_name'] as String,
+      receiverId: receiverId,
+      receiverName: receiver?['display_name'] as String? ?? '',
+      receiverPhotoPath: receiver?['photo_path'] as String?,
+      receiverPixKeyType: _pixKeyType(contact),
+      receiverPixKey: contact['pix_key'] as String?,
+      kind: ChargeKind.parse(row['kind'] as String),
+      amountCents: row['amount_cents'] as int,
+      status: ChargeStatus.parse(row['status'] as String),
+      waiveReason: reason == null ? null : ChargeWaiveReason.parse(reason),
+      paidAt: _instantOrNull(row['paid_at']),
+      paidVia: _paidVia(row),
+    );
+  });
+
   /// `change_receiver`: indica outro recebedor, antes ou depois da conclusão
   /// (RF33; contratos-api.md, seção 5).
   Future<void> changeReceiver({
@@ -486,6 +542,7 @@ class GamesRepository {
 
   static const _chargeColumns =
       'id, payer_id, receiver_id, kind, amount_cents, status, waive_reason, '
+      'paid_via, '
       'payer:profiles!charges_payer_id_fkey(display_name, photo_path), '
       'receiver:profiles!charges_receiver_id_fkey(display_name)';
 
@@ -504,7 +561,21 @@ class GamesRepository {
       amountCents: row['amount_cents'] as int,
       status: ChargeStatus.parse(row['status'] as String),
       waiveReason: reason == null ? null : ChargeWaiveReason.parse(reason),
+      paidVia: _paidVia(row),
     );
+  }
+
+  static PaymentMethod? _paidVia(Map row) {
+    final value = row['paid_via'] as String?;
+    return value == null ? null : PaymentMethod.parse(value);
+  }
+
+  /// O tipo da chave em `get_profile_contact`.
+  static PixKeyType? _pixKeyType(Map contact) {
+    final value = contact['pix_key_type'] as String?;
+    return value == null
+        ? null
+        : PixKeyType.values.firstWhere((type) => type.value == value);
   }
 
   /// O valor da pessoa: o que não é Isento, se houver.

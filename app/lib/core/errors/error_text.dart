@@ -67,6 +67,8 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.receiverMustBeParticipant => l10n.errorReceiverMustBeParticipant,
     ErrorCode.receiverUnchanged => l10n.errorReceiverUnchanged,
     ErrorCode.receiverChangeBlocked => l10n.errorReceiverChangeBlocked,
+    ErrorCode.notChargeReceiver => l10n.errorNotChargeReceiver,
+    ErrorCode.chargeNotRevertible => l10n.errorChargeNotRevertible,
   };
 }
 

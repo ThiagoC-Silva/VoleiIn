@@ -1018,5 +1018,73 @@
   "errorGameCancelled": "Este jogo foi cancelado.",
   "errorReceiverMustBeParticipant": "O novo recebedor precisa estar na lista.",
   "errorReceiverUnchanged": "Esta pessoa já é a recebedora do jogo.",
-  "errorReceiverChangeBlocked": "Há valores Em análise. Decida-os antes de trocar o recebedor."
+  "errorReceiverChangeBlocked": "Há valores Em análise. Decida-os antes de trocar o recebedor.",
+  "chargeTitle": "Valor a pagar",
+  "chargePayTo": "Pagar para",
+  "chargePayExact": "Pague o valor exato. Assim o app confere o comprovante sozinho.",
+  "chargePay": "Pagar",
+  "chargeUnderReviewNotice": "{name} vai conferir o seu comprovante.",
+  "@chargeUnderReviewNotice": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chargePaidManual": "{name} marcou como pago em {date}.",
+  "@chargePaidManual": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "chargePaidReceipt": "Pago por comprovante em {date}.",
+  "@chargePaidReceipt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "splitOwedToYou": "Devidos a você",
+  "markPaidAction": "Marcar como pago",
+  "markPaidHint": "Sem comprovante, se você já recebeu",
+  "markPaidTitle": "{name} já pagou {amount}?",
+  "@markPaidTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "markPaidBody": "O valor fica Pago. Se precisar, você pode reverter.",
+  "markedPaid": "Marcado como pago.",
+  "revertAction": "Reverter pagamento",
+  "revertHint": "O valor volta para Pendente",
+  "revertTitle": "Reverter o pagamento de {name}?",
+  "@revertTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "revertBody": "O valor volta para Pendente, e {name} é avisado.",
+  "@revertBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentReverted": "Pagamento revertido.",
+  "errorNotChargeReceiver": "Só o recebedor deste valor pode fazer isso.",
+  "errorChargeNotRevertible": "Este pagamento não pode ser revertido."
 }

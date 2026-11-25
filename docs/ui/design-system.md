@@ -304,6 +304,7 @@ Componentes comuns em `app/lib/shared/widgets/`, criados nas fatias 2 a 4. Os do
 | Opção de sheet e a sheet da foto, a mesma do perfil e do grupo (fatia 3) | `sheet_option.dart` |
 | Chips de filtro (7.5, fatia 4) | `filter_chips.dart` |
 | Contador de vagas (7.3, fatia 4) | `slot_counter.dart` |
+| Botão circular e pílula do grupo do topo colorido (7.8, fatia 6) | `hero_parts.dart` |
 | Campo de data, de hora ou de escolha, que abre o seletor no toque (7.2, fatia 4) | `picker_field.dart` |
 
 ## 8. Acessibilidade (RNF05)
