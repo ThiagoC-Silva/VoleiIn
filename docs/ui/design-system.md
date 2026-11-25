@@ -129,8 +129,8 @@ Três famílias, cada uma com um papel:
 
 | Token | Fonte | Peso / tamanho / altura | Uso |
 |-------|-------|-------------------------|-----|
-| `number.hero` | Bebas Neue | 84 | Valor no topo de um valor a pagar |
-| `number.xl` | Bebas Neue | 56 | Horário no topo do jogo |
+| `number.hero` | Bebas Neue | 84 | Valor da própria pessoa, no bloco do Rateio |
+| `number.xl` | Bebas Neue | 56 | Horário no topo do jogo, valor no topo de um valor a pagar (decisão de 25/11/2026) |
 | `number.lg` | Bebas Neue | 40 | Valores dos blocos |
 | `number.md` | Bebas Neue | 26 | Números em card, valor em lista |
 | `title.xl` | Montserrat | 800 / 28 | Título de tela-raiz |

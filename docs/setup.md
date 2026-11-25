@@ -412,6 +412,15 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 - Conferência: 33 migrações, nenhuma tabela sem RLS, nenhum valor a pagar e nenhuma troca, `change_receiver` executável por `authenticated` e não por `anon`. Advisors de segurança: o INFO de RLS sem política nas mesmas 6 tabelas, o WARN `authenticated_security_definer_function_executable` em 27 funções (`change_receiver` entra por desenho) e os mesmos WARN de Auth.
 - **M08:** o "Teste M06" terminou em 21/11/2026 às 01:00 UTC e está Concluído desde as 02:00:00 UTC, com `completion_mode = automatic` e a parte de R$ 20,00. O agente conferiu no banco da produção, e não na tela do celular.
 
+### 9.12 Migração da etapa A da fatia 6 (25/11/2026)
+
+**Feita em 25/11/2026**, pelo agente. A produção tinha as 33 migrações até a fatia 5, com 1 conta, 1 grupo e o "Teste M06", concluído.
+
+- Ensaio da seção 9.2: cópia nova em `~/voleiin-dumps`, banco local na versão `20261119120000`, sem seed, com a carga de `data-local.sql` (o dump sem os 29 blocos `COPY` vazios, como na seção 9.6). A migração `20261124120000` (`create_manual_payment`) aplicou sem erro, os 813 testes pgTAP passaram, e as contagens ficaram iguais antes e depois (1 conta, 1 perfil, 1 grupo, 1 membro, 1 jogo, 1 passagem, 1 admin, 1 linha de histórico de limite, 1 notificação, nenhum valor, nenhum evento de valor e nenhuma troca), sem nenhuma tabela sem RLS.
+- O primeiro `supabase db dump` do schema falhou com `password authentication failed for user "cli_login_postgres"`: a senha temporária do CLI venceu enquanto ele baixava a imagem do Postgres. O segundo passou.
+- `supabase db push --dry-run` listou só essa migração, sem seed nem roles, e o `supabase db push` a aplicou.
+- Conferência: 34 migrações, nenhuma tabela sem RLS, nenhum valor a pagar, `mark_charge_paid` e `revert_charge` executáveis por `authenticated` e não por `anon`, e `private.lock_charge` sem `execute` para `authenticated`. Advisors de segurança: o INFO de RLS sem política nas mesmas 6 tabelas, o WARN `authenticated_security_definer_function_executable` em 29 funções (as 2 novas entram por desenho) e os mesmos WARN de Auth.
+
 ## 10. Domínio, e-mail e convites
 
 | Item | Valor | Observação |
@@ -439,4 +448,6 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 | `dart analyze` acusa getters do `AppLocalizations` que não existem (ex.: `groupsCreate`), depois de um `git pull` | Os arquivos gerados do l10n e do `build_runner` ficam fora do Git e estão velhos nesta máquina | `flutter pub get` e `dart run build_runner build --delete-conflicting-outputs`, em `app/` |
 | Uma Edge Function local responde `Function not found`, e `supabase status` lista `supabase_edge_runtime_VoleiIn` entre os parados | O container do Edge Runtime foi criado antes da função existir (visto ao trocar de máquina) e o `supabase start` não o recriou | `supabase stop` e `supabase start` |
 | `deno test` falha com `Missing SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY or SUPABASE_JWT_SECRET` | Falta uma das variáveis que o CI passa | Exporte `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` e `SUPABASE_JWT_SECRET` a partir de `supabase status -o env` (`API_URL`, `PUBLISHABLE_KEY`, `SECRET_KEY`, `JWT_SECRET`) |
+| Numa máquina nova, o primeiro `scripts/integration-test.sh` termina com `No tests ran` depois de uns 15 min de `assembleDebug` | O primeiro build do Gradle baixa e converte todas as dependências (visto em 25/11/2026: 13 a 14 min com o emulador aberto) e passa do `timeout 900` do script | Rode de novo: o segundo build aproveita o cache e leva 1 a 2 min |
+| O teste de integração para no `setUpAll` com `Missing --dart-define values: GOOGLE_WEB_CLIENT_ID` | O `app/env/local.json` desta máquina está sem o ID do cliente web do Google | Copie o valor da outra máquina (seção 6.2). Só para fluxos sem login com Google, qualquer texto não vazio passa da conferência |
 | `scripts/integration-test.sh` recusa por memória logo depois de outra rodada | O daemon do Gradle da rodada anterior continua com uns 3 GB | `./gradlew --stop` em `app/android` e rode de novo |
