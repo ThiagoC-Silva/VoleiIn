@@ -22,7 +22,8 @@ import '../../games/presentation/split_text.dart';
 /// charges-vazio.png): os atalhos dos totais a pagar e a receber, uma linha
 /// por valor a pagar e uma por jogo a receber. Os totais só somam
 /// `amount_cents` já gravados, em inteiros (contratos-api.md, seção 9). Tocar
-/// numa linha abre o Rateio do jogo, na aba Jogos.
+/// numa linha de A pagar abre o valor a pagar (9.1); numa de A receber, o
+/// Rateio do jogo, na aba Jogos.
 class ChargesScreen extends ConsumerStatefulWidget {
   const ChargesScreen({super.key});
 
@@ -336,7 +337,8 @@ class _ToPayRow extends ConsumerWidget {
       ].join(' · '),
       cents: line.amountCents,
       badge: ChargeStatusBadge(status: line.status),
-      onTap: () => _openSplit(context, line.gameId),
+      onTap: () =>
+          context.goNamed(Routes.charge, pathParameters: {'chargeId': line.id}),
     );
   }
 }

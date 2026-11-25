@@ -86,6 +86,10 @@ class Routes {
   static const String charges = 'charges';
   static const String chargesPath = '/charges';
 
+  /// `/charges/:chargeId`: o valor a pagar (docs/ui/telas.md, 9.2).
+  static const String charge = 'charge';
+  static const String chargePath = ':chargeId';
+
   static const String profile = 'profile';
   static const String profilePath = '/profile';
 

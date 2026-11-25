@@ -1005,11 +1005,14 @@ Decisões de 24/11/2026. Base: `contratos-api.md` (seções 6 a 8), `docs/compro
 
 | Etapa | Escopo | Cenários |
 |-------|--------|----------|
-| **A** | Valor a pagar com a chave Pix, marcar como pago e reverter | PG01 a PG07, C09, S77 (sem comprovantes), S84, S85 (sem **Para conferir**), L23 |
-| **B** | Envio, leitura e análise de comprovantes | CP01 a CP24, RV01 a RV06, PR01 a PR10, NM01 a NM05, CF01 a CF26, RS01 a RS09, C10 a C12, C18, U14, S77 a S83, S85 (**Para conferir**), L24, L25, M09 |
+| **A** | Valor a pagar com a chave Pix, marcar como pago e reverter | PG01 a PG07, C09, S77 (sem comprovantes), S84 (sem **Conferir comprovante**), S85 (sem **Para conferir**), L23 |
+| **B** | Envio, leitura e análise de comprovantes | CP01 a CP24, RV01 a RV06, PR01 a PR10, NM01 a NM05, CF01 a CF26, RS01 a RS09, C10 a C12, C18, U14, S77 a S83, S84 (**Conferir comprovante**), S85 (**Para conferir**), L24, L25, M09 |
 | **C** | Limpeza do Storage e exclusão de conta | SC01 a SC07, EX01 a EX12, RS10, C17, S86, S87, L26, M10 |
 
 S88 e S89 crescem a cada etapa, com as telas dela. E15 também, com os códigos das funções que a etapa cria. E17 entra na etapa C.
+
+- **Decisões de 25/11/2026 (responsável):** o S77 espera **Pagar para** com o nome embaixo, como no `charge.png`, no `telas.md` (9.2) e no `copy.md`, e não "Para Ana". Do S84, **Conferir comprovante** fica para a etapa B, com a tela do comprovante (`telas.md`, 9.5).
+- **Na fatia 5:** a partir da etapa A, o S84 substitui o caso "Ana toca num `share`" do S70 (a Ana é a recebedora, e vê **Marcar como pago**), e o S85 substitui o toque na linha de **A pagar** do S74. Os outros casos do S70 e do S74 continuam.
 
 ### 14.1 Marcar como pago e reverter (RN84, RN85)
 
@@ -1173,7 +1176,7 @@ Deno test, em `supabase/functions/_tests/concurrency/payments_test.ts`, 50 repet
 
 | ID | Tela | Quando | Então |
 |----|------|--------|-------|
-| S77 | Valor a pagar | Fábio, Pendente, sem comprovante; tocar em **Copiar chave**; com um comprovante recusado pela Ana e um por ID repetido; Pago manual; Pago por comprovante; Em análise; Isento; aberto pela Ana | Topo com "R$ 20,84" e **Pendente**, "Para Ana", a chave "CPF · 529.982.247-25" e **Enviar comprovante**. `gamePixCopied`. Os dois comprovantes, do mais novo para o mais antigo, com **Recusado**, a observação e `receiptRejectedDuplicate`. `chargePaidManual`; `chargePaidReceipt`; o aviso `chargeUnderReviewNotice`, sem **Enviar comprovante**; `chargeWaivedManual`. Estado "não encontrado" |
+| S77 | Valor a pagar | Fábio, Pendente, sem comprovante; tocar em **Copiar chave**; com um comprovante recusado pela Ana e um por ID repetido; Pago manual; Pago por comprovante; Em análise; Isento; aberto pela Ana | Topo com "R$ 20,84" e **Pendente**, **Pagar para** com "Ana", a chave "CPF · 529.982.247-25" e **Enviar comprovante**. `gamePixCopied`. Os dois comprovantes, do mais novo para o mais antigo, com **Recusado**, a observação e `receiptRejectedDuplicate`. `chargePaidManual`; `chargePaidReceipt`; o aviso `chargeUnderReviewNotice`, sem **Enviar comprovante**; `chargeWaivedManual`. Estado "não encontrado" |
 | S78 | Enviar comprovante | Escolher uma imagem; um PDF; um arquivo de 11 MB; um `.docx`; `auto_reads_used` 3 | A conferência com a miniatura, ou o nome e o tamanho do PDF; `errorReceiptTooLarge` e `errorReceiptTypeInvalid`, sem enviar; o aviso `receiptNoMoreReads` |
 | S79 | Enviar comprovante | Enviar; tocar fora e no voltar durante a leitura | `receiptReading`, a sheet não fecha, e o botão fica desabilitado. O arquivo vai para `<charge>/<uuid>.<ext>` e depois `process-receipt` é chamada uma vez |
 | S80 | Enviar comprovante | Resultado `approved`; `under_review`; `rejected`; `CHARGE_NOT_PENDING`; sem conexão no meio; `receiptUploadFailed` | `receiptApproved`; `receiptUnderReview` com "Ana"; `receiptDuplicate`, com **Enviar outro**; `SnackBar`, fecha e relê; o erro, fecha e relê; erro na sheet, com **Tentar de novo** |

@@ -17,6 +17,7 @@ import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/badge.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/confirm_sheet.dart';
+import '../../../shared/widgets/hero_parts.dart';
 import '../../../shared/widgets/icon_square.dart';
 import '../../../shared/widgets/inline_notice.dart';
 import '../../../shared/widgets/list_card.dart';
@@ -32,6 +33,7 @@ import 'game_trio.dart';
 import 'receiver_change_sheet.dart';
 import 'split_text.dart';
 import 'games_providers.dart';
+import 'pix_text.dart';
 
 /// Detalhe do jogo (RF37, RF45 a RF47, RF49, RF55; docs/ui/telas.md, 7.3;
 /// game.png, game-admin.png, game-confirmado.png, game-espera.png,
@@ -82,7 +84,7 @@ class _BackOnly extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        child: _CircleButton(
+        child: HeroCircleButton(
           icon: Symbols.arrow_back,
           tooltip: AppLocalizations.of(context).commonBack,
           background: theme.colorScheme.surface,
@@ -425,7 +427,7 @@ class _Hero extends ConsumerWidget {
         children: [
           Row(
             children: [
-              _CircleButton(
+              HeroCircleButton(
                 icon: Symbols.arrow_back,
                 tooltip: l10n.commonBack,
                 background: buttonBackground,
@@ -434,7 +436,7 @@ class _Hero extends ConsumerWidget {
               ),
               const Spacer(),
               if (mapsUrl != null)
-                _CircleButton(
+                HeroCircleButton(
                   icon: Symbols.map,
                   tooltip: l10n.gameOpenMaps,
                   background: buttonBackground,
@@ -466,7 +468,7 @@ class _Hero extends ConsumerWidget {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _GroupPill(
+              GroupPill(
                 label: game.groupName ?? l10n.gameStandalone,
                 standalone: game.groupName == null,
                 background: buttonBackground,
@@ -534,36 +536,6 @@ class _Hero extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _CircleButton extends StatelessWidget {
-  const _CircleButton({
-    required this.icon,
-    required this.tooltip,
-    required this.background,
-    required this.foreground,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final Color background;
-  final Color foreground;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      style: IconButton.styleFrom(
-        backgroundColor: background,
-        foregroundColor: foreground,
-        minimumSize: const Size(56, 56),
-      ),
-      icon: Icon(icon),
-      onPressed: onPressed,
     );
   }
 }
@@ -682,52 +654,6 @@ class _AdminMenu extends ConsumerWidget {
             color: error,
           ),
       ],
-    );
-  }
-}
-
-class _GroupPill extends StatelessWidget {
-  const _GroupPill({
-    required this.label,
-    required this.standalone,
-    required this.background,
-    required this.foreground,
-  });
-
-  final String label;
-  final bool standalone;
-  final Color background;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            standalone ? Symbols.person : Symbols.groups,
-            size: 18,
-            color: foreground,
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: foreground,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -995,7 +921,7 @@ class _ReceiverCard extends ConsumerWidget {
               children: [
                 Text(
                   l10n.profilePixSummary(
-                    _pixTypeLabel(l10n, type),
+                    pixTypeLabel(l10n, type),
                     formatPixKey(type, key),
                   ),
                   style: theme.textTheme.bodyLarge,
@@ -1023,16 +949,6 @@ class _ReceiverCard extends ConsumerWidget {
     );
   }
 }
-
-/// Rótulo do tipo da chave (docs/copy.md, 6.6). A mesma tabela da feature
-/// `auth`, que esta feature não importa (docs/arquitetura-app.md, seção 2).
-String _pixTypeLabel(AppLocalizations l10n, PixKeyType type) => switch (type) {
-  PixKeyType.cpf => l10n.pixTypeCpf,
-  PixKeyType.cnpj => l10n.pixTypeCnpj,
-  PixKeyType.email => l10n.pixTypeEmail,
-  PixKeyType.phone => l10n.pixTypePhone,
-  PixKeyType.random => l10n.pixTypeRandom,
-};
 
 /// Avatar redondo de uma pessoa do jogo, com a foto pela URL assinada.
 class _PersonAvatar extends ConsumerWidget {

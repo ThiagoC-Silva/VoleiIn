@@ -131,7 +131,8 @@ final gameActionsControllerProvider =
       GameActionsController.new,
     );
 
-/// Concluir o jogo (docs/ui/telas.md, 8.2). Com sucesso ou erro, o jogo e
+/// Concluir o jogo e o que o Rateio faz com um valor: isentar, marcar como
+/// pago e reverter (docs/ui/telas.md, 8.2, 8.3 e 9.5). Na conclusão, com sucesso ou erro, o jogo e
 /// Meus jogos são relidos: `GAME_NOT_OPEN` e as faltas recusadas indicam que
 /// os dados mudaram.
 class GameCompletionController extends SubmitController {
@@ -166,6 +167,38 @@ class GameCompletionController extends SubmitController {
       () => ref.read(gamesRepositoryProvider).waivePenalty(chargeId),
     );
     if (ref.mounted) ref.invalidate(gameDetailProvider(gameId));
+    return error;
+  }
+
+  /// `mark_charge_paid` (RF84).
+  Future<AppException?> markPaid({
+    required String gameId,
+    required String chargeId,
+  }) => _payment(
+    gameId,
+    () => ref.read(gamesRepositoryProvider).markChargePaid(chargeId),
+  );
+
+  /// `revert_charge` (RF85).
+  Future<AppException?> revert({
+    required String gameId,
+    required String chargeId,
+  }) => _payment(
+    gameId,
+    () => ref.read(gamesRepositoryProvider).revertCharge(chargeId),
+  );
+
+  /// Com sucesso ou erro, o detalhe e as cobranças releem; o Rateio, pela
+  /// própria tela (docs/ui/telas.md, 9.5).
+  Future<AppException?> _payment(
+    String gameId,
+    Future<void> Function() action,
+  ) async {
+    final error = await submit(action);
+    if (ref.mounted) {
+      ref.invalidate(gameDetailProvider(gameId));
+      ref.invalidate(myChargesProvider);
+    }
     return error;
   }
 }

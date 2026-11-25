@@ -28,7 +28,7 @@ Ana marcou por engano e devolve o valor a Pendente. Só ela pode, só o que foi 
 
 O Fábio abre o valor a pagar, vê a chave Pix da Ana e a copia. A Ana marca e reverte pelo Rateio.
 
-**Regras:** RF77, RF84, RF85, RN102. **Telas:** `docs/ui/telas.md`, seção 9. As leituras são `charges` pelo RLS da fatia 5 e `get_profile_contact` (`docs/contratos-api.md`, seção 9). **Independent Test**: S77 (sem comprovantes), S84, S85 (sem **Para conferir**), S88, S89, L23.
+**Regras:** RF77, RF84, RF85, RN102. **Telas:** `docs/ui/telas.md`, seção 9. As leituras são `charges` pelo RLS da fatia 5 e `get_profile_contact` (`docs/contratos-api.md`, seção 9). **Independent Test**: S77 (sem comprovantes), S84 (sem **Conferir comprovante**), S85 (sem **Para conferir**), S88, S89, L23.
 
 ## Requirements *(mandatory)*
 

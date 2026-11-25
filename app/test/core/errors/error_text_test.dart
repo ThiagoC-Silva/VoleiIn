@@ -166,4 +166,16 @@ void main() {
       expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
     }
   });
+
+  test('E15 (fatia 6, etapa A): textos dos erros do pagamento manual '
+      '(docs/copy.md, 10.7)', () {
+    const texts = {
+      ErrorCode.notChargeReceiver:
+          'Só o recebedor deste valor pode fazer isso.',
+      ErrorCode.chargeNotRevertible: 'Este pagamento não pode ser revertido.',
+    };
+    for (final entry in texts.entries) {
+      expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
+    }
+  });
 }

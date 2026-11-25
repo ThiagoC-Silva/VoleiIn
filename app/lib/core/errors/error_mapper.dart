@@ -156,6 +156,9 @@ const Map<String, ErrorCode> _serverCodes = {
   'RECEIVER_MUST_BE_PARTICIPANT': ErrorCode.receiverMustBeParticipant,
   'RECEIVER_UNCHANGED': ErrorCode.receiverUnchanged,
   'RECEIVER_CHANGE_BLOCKED': ErrorCode.receiverChangeBlocked,
+  // Pagamento manual, etapa A da fatia 6.
+  'NOT_CHARGE_RECEIVER': ErrorCode.notChargeReceiver,
+  'CHARGE_NOT_REVERTIBLE': ErrorCode.chargeNotRevertible,
 };
 
 /// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).
