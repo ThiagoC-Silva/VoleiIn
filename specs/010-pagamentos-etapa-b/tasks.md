@@ -51,4 +51,6 @@ Os PNGs de comprovante já estão em `docs/ui/referencias/fatia-6/` (`charge-env
 
 **T019 em 26/11/2026:** o dublê da Claude API (`supabase/functions/_tests/claude_stub.ts`) e `scripts/functions-serve-stub.sh`, que sobe o `supabase functions serve` com `ANTHROPIC_BASE_URL` apontando para ele, sem o `supabase/functions/.env`. Conferido antes por `curl` (Ana conclui o `...0209`, Bruno envia a imagem boa: `approved`, valor `paid`). L24 e L25 verdes nas APIs 36 e 29, cada um logo depois de um `db reset`. Sem resultado esperado alterado, dois ajustes de montagem no L25, que não tinha rodado: o seed "Quinta com comprovantes" (`...0212`) já deixa um comprovante do Bruno Em análise para a Ana, então **Para conferir** mostra 2, e o teste abre a linha do comprovante do `...0209` pela chave `toReview-<id>`, em vez do texto "Brunão", que aparece duas vezes; e espera a sheet da recusa abrir antes de escrever a observação. O CI passou a checar os tipos do dublê.
 - [ ] T020 M09 com a API real e o build da produção
-- [ ] T021 Chave `voleiin-prod`, `RECEIPT_MODEL` na produção, ensaio, `supabase db push`, deploy da `process-receipt`; advisors
+- [x] T021 Chave `voleiin-prod`, `RECEIPT_MODEL` na produção, ensaio, `supabase db push`, deploy da `process-receipt`; advisors
+
+**T021 em 26/11/2026:** feito antes do T020, que precisa da produção pronta (`docs/setup.md`, 9.13).

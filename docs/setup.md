@@ -426,6 +426,15 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 - `supabase db push --dry-run` listou só essa migração, sem seed nem roles, e o `supabase db push` a aplicou.
 - Conferência: 34 migrações, nenhuma tabela sem RLS, nenhum valor a pagar, `mark_charge_paid` e `revert_charge` executáveis por `authenticated` e não por `anon`, e `private.lock_charge` sem `execute` para `authenticated`. Advisors de segurança: o INFO de RLS sem política nas mesmas 6 tabelas, o WARN `authenticated_security_definer_function_executable` em 29 funções (as 2 novas entram por desenho) e os mesmos WARN de Auth.
 
+### 9.13 Migrações e Edge Function da etapa B da fatia 6 (26/11/2026)
+
+**Feitas em 26/11/2026**, pelo agente. A produção tinha as 34 migrações até a etapa A da fatia 6, com 1 conta, 1 grupo e o "Teste M06", concluído.
+
+- **Segredos:** a chave `voleiin-prod` gravada pelo responsável em `ANTHROPIC_API_KEY` (seção 6.3, passo 4), sem passar pela conversa; o agente conferiu só o nome pelo `supabase secrets list` e gravou `RECEIPT_MODEL=claude-haiku-5-5`.
+- Ensaio da seção 9.2: cópia nova em `~/voleiin-dumps`, banco local na versão `20261124120000`, sem seed, com a carga de `data-local.sql` (o dump sem os 29 blocos `COPY` vazios, como na seção 9.6). As migrações `20261125120000` (`receipts_rls`) e `20261125120100` (`create_receipt_functions`) aplicaram sem erro, os 905 testes pgTAP passaram, e as contagens ficaram iguais antes e depois (1 conta, 1 perfil, 1 grupo, 1 membro, 1 jogo, 1 passagem, 1 admin, 1 linha de histórico de limite, 1 notificação, 1 linha de auditoria, 2 aceites, 2 buckets, nenhum valor, nenhum evento de valor, nenhuma troca e nenhum comprovante), sem nenhuma tabela sem RLS.
+- `supabase db push --dry-run` listou só essas duas, sem seed nem roles, e o `supabase db push` as aplicou. Depois, `supabase functions deploy process-receipt`, com `verify_jwt = false`.
+- Conferência: 36 migrações, nenhuma tabela sem RLS, `receipts` com RLS e 1 política, 2 políticas do bucket `receipts` em `storage.objects`, o bucket privado com 10 MB e os 5 tipos, `record_receipt` só para a `service_role` (nem `authenticated` nem `anon`), `review_receipt` para `authenticated` e não para `anon`, e a `process-receipt` ativa, que responde `401 NOT_AUTHENTICATED` sem login. Advisors de segurança: o INFO de RLS sem política caiu para 5 tabelas (`receipts` ganhou a sua), o WARN `authenticated_security_definer_function_executable` em 30 funções (a `review_receipt` entra por desenho) e os mesmos WARN de Auth.
+
 ## 10. Domínio, e-mail e convites
 
 | Item | Valor | Observação |
