@@ -34,9 +34,16 @@
 
 Os PNGs de comprovante já estão em `docs/ui/referencias/fatia-6/` (`charge-enviar*`, `charge-analise`, `charges-conferir`, `receipt*`).
 
-- [ ] T016 Testes antes: U14, S77 a S83, S84 (**Conferir comprovante**), S85 (**Para conferir**), S88, S89, E15, L24, L25
-- [ ] T017 Telas de comprovante (`docs/ui/telas.md`, seção 9)
-- [ ] T018 `dart format`, `dart analyze` e `flutter test` verdes
+- [x] T016 Testes antes: U14, S77 a S83, S84 (**Conferir comprovante**), S85 (**Para conferir**), S88, S89, E15, L24, L25
+- [x] T017 Telas de comprovante (`docs/ui/telas.md`, seção 9)
+- [x] T018 `dart format`, `dart analyze` e `flutter test` verdes
+
+**Sessão 3 concluída em 26/11/2026** no *branch* `fatia-6/app-b`: `dart format`, `dart analyze` e `flutter test` (668 testes) verdes. Testes antes no *commit* "Testes da etapa B da fatia 6 no app, antes do código", com a saída da falha. Depois dele, sem resultado esperado alterado, dois ajustes de montagem: o S85 rola até o título de A pagar, que o `ListView` não monta fora da tela, e o compara com a última linha de **Para conferir**; o S77 "Em análise" procura o selo dentro do `ReceiptStatusBadge`, porque o selo do valor no topo tem o mesmo texto. As consultas novas foram conferidas contra o Supabase local, com o seed "Quinta com comprovantes" (Ana, Bruno e Carla).
+
+- **App:** `ReceiptsRepository` (leitura de `receipts`, URL assinada de 10 min, envio ao bucket, `process-receipt` com 45 s de espera e `review_receipt`), `ReceiptPicker` (`image_picker` a 2.576 px e `file_picker` 13.4.1, só `.pdf`), a sheet Enviar comprovante, a tela Comprovante (`/receipts/:receiptId`, na aba Cobranças), os comprovantes e **Enviar comprovante** no valor a pagar, **Para conferir** em Cobranças e **Conferir comprovante** no Rateio. Tipo e tamanho do arquivo são conferidos antes do envio (`ReceiptFile.fromPicked`); o conteúdo, pelo servidor.
+- **Decisões de montagem:** a sheet de envio desliga o arrasto e desenha a alça, porque o arrasto da alça fecha a sheet sem passar pelo `PopScope` da leitura (RN86). A tela do comprovante relê, ao voltar, Cobranças, o valor a pagar e o Rateio. O gerador de UUID das fotos virou `core/uuid.dart`, usado também no caminho do comprovante. `chargeProvider` e `gameSplitProvider` foram para `games_providers.dart`.
+- **Textos novos** no `copy.md` (10.2 e 10.3): `receiptReadDateTime` e o formato do tamanho do PDF.
+- **Para a sessão 4 (L24 e L25):** os dois fluxos usam o jogo "Quinta aguardando conclusão" (`...0209`), cada um logo depois de um `db reset`, como o L20 a L23. O dublê da Claude API do `functions serve` (`ANTHROPIC_BASE_URL`) responde pela imagem enviada: a `legibleReceipt` do teste (PNG branco de 2 × 2) tem a leitura boa do valor do Bruno (R$ 30,00, a chave da Ana, a hora atual e um código do Pix novo a cada chamada); a `illegibleReceipt` (PNG preto de 2 × 2), os seis campos nulos.
 
 ## Sessão 4 — Validação
 

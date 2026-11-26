@@ -212,8 +212,90 @@ void main() {
     });
   });
 
-  // Etapa A da fatia 6 (docs/testes-referencia.md, seção 14): sem **Para
-  // conferir**, que chega na etapa B.
+  /// Os comprovantes Em análise que a Ana confere, como o servidor os
+  /// devolve: o da Carlinha foi enviado depois do do Fábio.
+  List<ReviewLine> anaToReview() => [
+    ReviewLine(
+      receiptId: 'receipt-carla',
+      chargeId: 'charge-carla',
+      payerId: carlaId,
+      payerName: 'Carlinha',
+      startsAt: thursday,
+      locationName: 'Quadra do Sesc',
+      amountCents: 2084,
+      sentAt: DateTime.utc(2026, 11, 20, 14),
+    ),
+    ReviewLine(
+      receiptId: 'receipt-fabio',
+      chargeId: 'charge-fabio',
+      payerId: 'fabio',
+      payerName: 'Fábio',
+      startsAt: thursday,
+      locationName: 'Quadra do Sesc',
+      amountCents: 2084,
+      sentAt: DateTime.utc(2026, 11, 20, 12, 10),
+    ),
+  ];
+
+  group('S85: Para conferir', () {
+    testWidgets('Ana com dois valores Em análise a receber: Para conferir · 2, '
+        'do envio mais antigo para o mais novo', (tester) async {
+      h.myCharges(anaLines(), toReview: anaToReview());
+      await openCharges(tester);
+
+      expect(find.text(l10nPt.chargesToReview(2)), findsOneWidget);
+      final fabio = find.text('Fábio');
+      final carla = find.text('Carlinha');
+      expect(fabio, findsOneWidget);
+      expect(carla, findsOneWidget);
+      expect(
+        tester.getTopLeft(fabio).dy,
+        lessThan(tester.getTopLeft(carla).dy),
+      );
+      expect(find.text(l10nPt.chargeStatusUnderReview), findsNWidgets(2));
+      // Entre os atalhos e A pagar.
+      // Entre os atalhos e A pagar: o título de A pagar, abaixo da tela, vem
+      // depois da última linha (o outro "A pagar" é o atalho).
+      await tester.scrollUntilVisible(
+        find.text(l10nPt.chargesNothingToPay),
+        100,
+      );
+      final toPayTitle = find
+          .text(l10nPt.chargesToPay)
+          .evaluate()
+          .map((element) => tester.getTopLeft(find.byWidget(element.widget)).dy)
+          .reduce((a, b) => a > b ? a : b);
+      expect(tester.getTopLeft(carla).dy, lessThan(toPayTitle));
+    });
+
+    testWidgets('a linha abre o comprovante', (tester) async {
+      h.myCharges(anaLines(), toReview: anaToReview());
+      when(
+        () => h.receipts.fetchReceipt('receipt-fabio'),
+      ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
+      await openCharges(tester);
+
+      await tester.tap(find.text('Fábio'));
+      await tester.pumpAndSettle();
+      expect(h.location, '/receipts/receipt-fabio');
+      verify(() => h.receipts.fetchReceipt('receipt-fabio')).called(1);
+    });
+
+    testWidgets('sem nada a conferir: sem a seção', (tester) async {
+      h.myCharges(anaLines());
+      await openCharges(tester);
+
+      expect(find.text(l10nPt.chargesToReview(0)), findsNothing);
+      expect(find.textContaining('Para conferir'), findsNothing);
+    });
+
+    testWidgets('com Para conferir, sem overflow em 150%', (tester) async {
+      h.myCharges(anaLines(), toReview: anaToReview());
+      await openCharges(tester, textScale: 1.5);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('S85: A pagar abre o valor a pagar', () {
     testWidgets('tocar na linha abre /charges/:chargeId', (tester) async {
       signInBruno();

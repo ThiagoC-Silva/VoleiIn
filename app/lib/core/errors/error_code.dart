@@ -93,6 +93,16 @@ enum ErrorCode {
   // mark_charge_paid e revert_charge. As etapas B e C acrescentam os seus.
   notChargeReceiver,
   chargeNotRevertible,
+
+  // Comprovantes, etapa B da fatia 6 (docs/copy.md, 10.7): os códigos de
+  // process-receipt e review_receipt.
+  notChargePayer,
+  receiptNotUnderReview,
+  receiptNoteRequired,
+  receiptFileNotFound,
+  receiptTypeInvalid,
+  receiptTooLarge,
+  duplicateTransaction,
 }
 
 /// Único tipo de exceção que sai da camada `data`.

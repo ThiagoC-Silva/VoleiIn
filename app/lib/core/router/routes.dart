@@ -90,6 +90,10 @@ class Routes {
   static const String charge = 'charge';
   static const String chargePath = ':chargeId';
 
+  /// `/receipts/:receiptId`: o comprovante, na aba Cobranças (telas.md, 9.4).
+  static const String receipt = 'receipt';
+  static const String receiptPath = '/receipts/:receiptId';
+
   static const String profile = 'profile';
   static const String profilePath = '/profile';
 

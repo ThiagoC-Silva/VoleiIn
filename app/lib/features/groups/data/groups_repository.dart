@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide ErrorCode;
 import '../../../core/errors/error_code.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/supabase.dart';
+import '../../../core/uuid.dart';
 import '../domain/group_models.dart';
 
 /// Grupos, convite, solicitações e integrantes (RF14 a RF25, RF103;
@@ -174,7 +174,7 @@ class GroupsRepository {
     required Uint8List bytes,
     required String extension,
   }) => guard(() async {
-    final path = 'groups/$groupId/${_uuidV4()}.$extension';
+    final path = 'groups/$groupId/${uuidV4()}.$extension';
     await _db.storage
         .from(_bucket)
         .uploadBinary(
@@ -294,18 +294,6 @@ final _uuid = RegExp(
 /// e não o erro de conversão do Postgres.
 void _requireUuid(String id) {
   if (!_uuid.hasMatch(id)) throw const AppException(ErrorCode.notFound);
-}
-
-/// UUID v4 com `Random.secure`, como na foto de perfil (research R7 da
-/// fatia 2).
-String _uuidV4() {
-  final random = Random.secure();
-  final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-  return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
-      '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
 }
 
 final groupsRepositoryProvider = Provider<GroupsRepository>(

@@ -10,10 +10,12 @@ import '../../../helpers/games_fixtures.dart';
 import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
 
-/// Cenários S84 (sem **Conferir comprovante**), S88 e S89 da etapa A de
-/// docs/testes-referencia.md, seção 14 (docs/ui/telas.md, 9.2 e 9.5;
+/// Cenários S84, S88 e S89 das etapas A e B de docs/testes-referencia.md,
+/// seção 14 (docs/ui/telas.md, 9.2 e 9.5;
 /// gameSplit-marcarPago.png): as ações do recebedor no Rateio e o **Pagar**
 /// de quem deve.
+const _reviewReceiptId = '00000000-0000-0000-0000-000000000611';
+
 void main() {
   late TestHarness h;
 
@@ -50,7 +52,12 @@ void main() {
       status: ChargeStatus.paid,
       paidVia: PaymentMethod.receipt,
     ),
-    charge(brunoId, 'Brunão', status: ChargeStatus.underReview),
+    charge(
+      brunoId,
+      'Brunão',
+      status: ChargeStatus.underReview,
+      reviewReceiptId: _reviewReceiptId,
+    ),
   ];
 
   /// Abre o Rateio. Cada leitura chama [charges] de novo.
@@ -121,6 +128,38 @@ void main() {
 
       expect(find.byType(BottomSheet), findsNothing);
       expect(h.location, '/games/$finishedId/people/$diegoId');
+    });
+
+    testWidgets('Ana, no Em análise: Conferir comprovante abre o comprovante, '
+        'na aba Cobranças', (tester) async {
+      when(
+        () => h.receipts.fetchReceipt(_reviewReceiptId),
+      ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
+      await openSplit(tester);
+      await tapText(tester, 'Brunão');
+
+      expect(inSheet(l10nPt.reviewReceiptAction), findsOneWidget);
+      expect(inSheet(l10nPt.groupMemberViewProfile), findsOneWidget);
+      expect(inSheet(l10nPt.markPaidAction), findsNothing);
+      expect(inSheet(l10nPt.revertAction), findsNothing);
+
+      await tapFinder(tester, inSheet(l10nPt.reviewReceiptAction));
+      expect(h.location, '/receipts/$_reviewReceiptId');
+      verify(() => h.receipts.fetchReceipt(_reviewReceiptId)).called(1);
+    });
+
+    testWidgets('Edu, admin, no Em análise: o perfil, sem sheet', (
+      tester,
+    ) async {
+      h.signedIn(userId: eduId);
+      await openSplit(
+        tester,
+        game: completedGame(viewerId: eduId).copyWith(adminIds: [anaId, eduId]),
+      );
+      await tapText(tester, 'Brunão');
+
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(h.location, '/games/$finishedId/people/$brunoId');
     });
 
     testWidgets('Edu, admin, na multa: só Isentar multa', (tester) async {

@@ -1,4 +1,5 @@
 import '../../auth/domain/pix_key.dart';
+import '../../payments/domain/receipt_models.dart';
 import 'game_models.dart';
 
 /// Enum `charge_kind` do banco (docs/modelo-dados.md, seção 3).
@@ -78,6 +79,7 @@ class GameCharge {
     required this.status,
     this.waiveReason,
     this.paidVia,
+    this.reviewReceiptId,
   });
 
   final String id;
@@ -95,6 +97,10 @@ class GameCharge {
 
   /// Só no valor Pago.
   final PaymentMethod? paidVia;
+
+  /// O comprovante Em análise, quando quem lê é o recebedor dele: abre
+  /// **Conferir comprovante** (docs/ui/telas.md, 9.5).
+  final String? reviewReceiptId;
 }
 
 /// O valor a pagar como o pagador o lê, com o jogo e a chave Pix do recebedor
@@ -117,6 +123,8 @@ class ChargeDetail {
     this.waiveReason,
     this.paidAt,
     this.paidVia,
+    this.receipts = const [],
+    this.autoReadsUsed = 0,
   });
 
   final String id;
@@ -143,6 +151,13 @@ class ChargeDetail {
   /// Só no valor Pago.
   final DateTime? paidAt;
   final PaymentMethod? paidVia;
+
+  /// Os comprovantes do valor, em qualquer ordem: a tela os mostra do mais
+  /// novo para o mais antigo (telas.md, 9.2).
+  final List<ReceiptSummary> receipts;
+
+  /// Leituras automáticas usadas, até 3 (RN86).
+  final int autoReadsUsed;
 }
 
 /// Retorno de `preview_complete_game` e de `complete_game`
@@ -308,18 +323,60 @@ class GameToReceive {
   final int amountCents;
 }
 
+/// Um comprovante Em análise que quem lê confere, com o valor e o jogo, para
+/// **Para conferir** (docs/ui/telas.md, 9.1).
+class ReviewLine {
+  const ReviewLine({
+    required this.receiptId,
+    required this.chargeId,
+    required this.payerId,
+    required this.payerName,
+    this.payerPhotoPath,
+    required this.startsAt,
+    required this.locationName,
+    required this.amountCents,
+    required this.sentAt,
+  });
+
+  final String receiptId;
+  final String chargeId;
+  final String payerId;
+
+  /// `coalesce(nickname, name)` (RN100).
+  final String payerName;
+  final String? payerPhotoPath;
+  final DateTime startsAt;
+  final String locationName;
+  final int amountCents;
+
+  /// Quando o comprovante foi enviado: a ordem da seção.
+  final DateTime sentAt;
+}
+
 /// A aba Cobranças: os valores a pagar e a receber de quem lê, somando todos
 /// os jogos. O app só soma `amount_cents` já gravados, em inteiros
 /// (contratos-api.md, seção 9).
 class ChargesOverview {
-  ChargesOverview({required this.viewerId, required List<ChargeLine> lines})
-    : toPay = [
-        for (final line in lines)
-          if (line.payerId == viewerId) line,
-      ]..sort(_byGame),
-      toReceive = _receivable(viewerId, lines);
+  ChargesOverview({
+    required this.viewerId,
+    required List<ChargeLine> lines,
+    List<ReviewLine> toReview = const [],
+  }) : toReview = [...toReview]
+         ..sort((a, b) {
+           final bySent = a.sentAt.compareTo(b.sentAt);
+           return bySent != 0 ? bySent : a.receiptId.compareTo(b.receiptId);
+         }),
+       toPay = [
+         for (final line in lines)
+           if (line.payerId == viewerId) line,
+       ]..sort(_byGame),
+       toReceive = _receivable(viewerId, lines);
 
   final String viewerId;
+
+  /// Os comprovantes Em análise que quem lê confere, do envio mais antigo
+  /// para o mais novo (telas.md, 9.1).
+  final List<ReviewLine> toReview;
 
   /// Os valores em que quem lê é o pagador, do jogo mais antigo para o mais
   /// recente.

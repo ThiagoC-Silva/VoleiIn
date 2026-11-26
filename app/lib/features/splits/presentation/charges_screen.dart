@@ -20,7 +20,8 @@ import '../../games/presentation/split_text.dart';
 
 /// Cobranças (RF75, RF76; docs/ui/telas.md, 8.5; charges.png e
 /// charges-vazio.png): os atalhos dos totais a pagar e a receber, uma linha
-/// por valor a pagar e uma por jogo a receber. Os totais só somam
+/// por valor a pagar e uma por jogo a receber. Entre os atalhos e A pagar,
+/// **Para conferir**: os comprovantes Em análise de quem lê (9.1). Os totais só somam
 /// `amount_cents` já gravados, em inteiros (contratos-api.md, seção 9). Tocar
 /// numa linha de A pagar abre o valor a pagar (9.1); numa de A receber, o
 /// Rateio do jogo, na aba Jogos.
@@ -112,6 +113,19 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
             ],
           ),
         ),
+        if (overview.toReview.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          Text(
+            l10n.chargesToReview(overview.toReview.length),
+            style: theme.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+          ListCard(
+            children: [
+              for (final line in overview.toReview) _ToReviewRow(line: line),
+            ],
+          ),
+        ],
         const SizedBox(height: 24),
         Text(
           l10n.chargesToPay,
@@ -339,6 +353,39 @@ class _ToPayRow extends ConsumerWidget {
       badge: ChargeStatusBadge(status: line.status),
       onTap: () =>
           context.goNamed(Routes.charge, pathParameters: {'chargeId': line.id}),
+    );
+  }
+}
+
+/// Um comprovante a conferir: quem pagou, o jogo, o valor e o selo Em
+/// análise. Tocar abre o comprovante.
+class _ToReviewRow extends ConsumerWidget {
+  const _ToReviewRow({required this.line});
+
+  final ReviewLine line;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final path = line.payerPhotoPath;
+    final url = path == null
+        ? null
+        : ref.watch(gameAvatarUrlProvider(path)).value;
+    return _AmountRow(
+      key: Key('toReview-${line.receiptId}'),
+      leading: VoleiAvatar(
+        id: line.payerId,
+        name: line.payerName,
+        imageUrl: url,
+      ),
+      title: line.payerName,
+      subtitle: _gameTitle(line.startsAt, line.locationName),
+      cents: line.amountCents,
+      badge: const ChargeStatusBadge(status: ChargeStatus.underReview),
+      // A tela do comprovante relê a aba ao voltar.
+      onTap: () => context.pushNamed(
+        Routes.receipt,
+        pathParameters: {'receiptId': line.receiptId},
+      ),
     );
   }
 }

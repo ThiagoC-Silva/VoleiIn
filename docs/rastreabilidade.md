@@ -25,6 +25,8 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 
 **Fatia 6, etapa B, sessão 2 (servidor), em 25/11/2026:** `record_receipt`, `review_receipt`, a leitura de `receipts`, o bucket e a Edge Function `process-receipt`, com o conjunto fixo CF01 a CF26 e a medição com a API real, que escolheu o `claude-haiku-5-5` (`comprovantes-ia.md`, seção 9). RF78 a RF83 e RF86 ficam *Em andamento* até as telas (sessão 3) e a validação (sessão 4).
 
+**Fatia 6, etapa B, sessão 3 (app), em 26/11/2026:** Enviar comprovante, Comprovante, **Para conferir** em Cobranças e **Conferir comprovante** no Rateio, com U14, S77 a S85, S88, S89 e E15 verdes. L24 e L25 escritos, para rodar na sessão 4.
+
 **Fatia 6, etapa A, em 25/11/2026:** valor a pagar com a chave Pix, marcar como pago e reverter. Testes automáticos verdes e L23 nas APIs 29 e 36, com a migração `create_manual_payment` na produção (`setup.md`, 9.12). RF84 e RF85 ficam *Em andamento* até a etapa C, que fecha a fatia.
 
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
@@ -106,15 +108,15 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 | RF75 | 5 | — | RLS de `charges` | `/charges` | S74 a S76, L22 | Concluído |
 | RF76 | 5 | — | RLS de `charges` | `/charges` | S74 a S76, Y04 | Concluído |
 | RF77 | 6 | RN102 | `charges`, `get_profile_contact` | `/charges/:chargeId` | S77, S85 | Em andamento |
-| RF78 | 6 | RN86, RN87 | `process-receipt`, Storage `receipts` | — | PR04 a PR06, PR09, RS06, RS07, CP17, CP21 | Em andamento |
-| RF79 | 6 | — | `process-receipt` (Claude API) | — | PR01, PR07, PR08, NM01 a NM05, CF01 a CF26 | Em andamento |
-| RF80 | 6 | RN32, RN88 | `record_receipt` | — | CP01 a CP14, CP23, C12, CF01 a CF24 | Em andamento |
-| RF81 | 6 | RN89 | `record_receipt`, `receipts_transaction_id_idx` | — | CP15, CP16, C10, CF22 | Em andamento |
-| RF82 | 6 | RN80 | `record_receipt` | — | CP01, PR01, C11 | Em andamento |
-| RF83 | 6 | RN81, RN82, RN83 | `record_receipt`, `review_receipt` | — | CP17 a CP20, RV01 a RV06, C18 | Em andamento |
+| RF78 | 6 | RN86, RN87 | `process-receipt`, Storage `receipts` | `/charges/:chargeId` (Enviar comprovante) | PR04 a PR06, PR09, RS06, RS07, CP17, CP21, S78, S79, L24 | Em andamento |
+| RF79 | 6 | — | `process-receipt` (Claude API) | `/charges/:chargeId` (Enviar comprovante) | PR01, PR07, PR08, NM01 a NM05, CF01 a CF26, S79 | Em andamento |
+| RF80 | 6 | RN32, RN88 | `record_receipt` | `/charges/:chargeId`, `/receipts/:receiptId` | CP01 a CP14, CP23, C12, CF01 a CF24, U14, S80, S82, L24 | Em andamento |
+| RF81 | 6 | RN89 | `record_receipt`, `receipts_transaction_id_idx` | `/charges/:chargeId` (Enviar comprovante) | CP15, CP16, C10, CF22, S80 | Em andamento |
+| RF82 | 6 | RN80 | `record_receipt` | `/charges/:chargeId` (Enviar comprovante) | CP01, PR01, C11, S80, L24 | Em andamento |
+| RF83 | 6 | RN81, RN82, RN83 | `record_receipt`, `review_receipt` | `/receipts/:receiptId`, `/charges`, `/games/:gameId/split` | CP17 a CP20, RV01 a RV06, C18, S81 a S85, L25 | Em andamento |
 | RF84 | 6 | RN84 | `mark_charge_paid` | `/games/:gameId/split` | PG01 a PG03, C09, S84, L23 | Em andamento |
 | RF85 | 6 | RN85 | `revert_charge` | `/games/:gameId/split` | PG04 a PG07, S84, L23 | Em andamento |
-| RF86 | 6 | RN90 | `receipts` (RLS) | — | RS01 a RS05, RS08 | Em andamento |
+| RF86 | 6 | RN90 | `receipts` (RLS) | `/charges/:chargeId`, `/receipts/:receiptId` | RS01 a RS05, RS08, S77, S81 | Em andamento |
 | RF87 | 6 | RN91, RN92 | — | — | — | Pendente |
 | RF88 | 7 | RN110 | — | — | — | Pendente |
 | RF89 | 7 | — | — | — | — | Pendente |

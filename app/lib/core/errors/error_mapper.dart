@@ -159,6 +159,14 @@ const Map<String, ErrorCode> _serverCodes = {
   // Pagamento manual, etapa A da fatia 6.
   'NOT_CHARGE_RECEIVER': ErrorCode.notChargeReceiver,
   'CHARGE_NOT_REVERTIBLE': ErrorCode.chargeNotRevertible,
+  // Comprovantes, etapa B da fatia 6.
+  'NOT_CHARGE_PAYER': ErrorCode.notChargePayer,
+  'RECEIPT_NOT_UNDER_REVIEW': ErrorCode.receiptNotUnderReview,
+  'RECEIPT_NOTE_REQUIRED': ErrorCode.receiptNoteRequired,
+  'RECEIPT_FILE_NOT_FOUND': ErrorCode.receiptFileNotFound,
+  'RECEIPT_TYPE_INVALID': ErrorCode.receiptTypeInvalid,
+  'RECEIPT_TOO_LARGE': ErrorCode.receiptTooLarge,
+  'DUPLICATE_TRANSACTION': ErrorCode.duplicateTransaction,
 };
 
 /// Códigos do Supabase Auth (docs/copy.md, seções 5.5 e 6.8).
