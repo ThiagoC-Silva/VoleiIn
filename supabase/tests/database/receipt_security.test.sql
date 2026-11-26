@@ -11,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(13);
+select plan(14);
 
 -- Personagens (docs/setup.md, seção 8), mais o Edu e o Fábio, que só existem
 -- nos testes.
@@ -202,11 +202,11 @@ select is(
 );
 select is(
   array[
-    pg_temp.visible('00000000-0000-0000-0000-00000000000e'),
-    pg_temp.visible('00000000-0000-0000-0000-00000000000b'),
-    pg_temp.visible('00000000-0000-0000-0000-00000000000d')
-  ]::text,
-  '{{},{},{}}',
+    cardinality(pg_temp.visible('00000000-0000-0000-0000-00000000000e')),
+    cardinality(pg_temp.visible('00000000-0000-0000-0000-00000000000b')),
+    cardinality(pg_temp.visible('00000000-0000-0000-0000-00000000000d'))
+  ],
+  array[0, 0, 0],
   'RS01b: o Edu (admin), o Bruno e o Diego não veem nenhum'
 );
 rollback to savepoint rs01;
@@ -222,12 +222,13 @@ set local role authenticated;
 select public.change_receiver('00000000-0000-0000-0000-000000000a01', '00000000-0000-0000-0000-00000000000b');
 reset role;
 select is(
-  array[
-    pg_temp.visible('00000000-0000-0000-0000-00000000000a'),
-    pg_temp.visible('00000000-0000-0000-0000-00000000000b')
-  ]::text,
-  array[array[current_setting('t.old')::uuid], '{}'::uuid[]]::text,
-  'RS02: depois da troca para o Bruno, a Ana vê o recusado; o Bruno, não'
+  pg_temp.visible('00000000-0000-0000-0000-00000000000a'),
+  array[current_setting('t.old')::uuid],
+  'RS02a: depois da troca para o Bruno, a Ana vê o recusado'
+);
+select is(
+  cardinality(pg_temp.visible('00000000-0000-0000-0000-00000000000b')), 0,
+  'RS02b: o Bruno, não'
 );
 select set_config('t.new', pg_temp.send(
   '00000000-0000-0000-0000-000000000c01', '00000000-0000-0000-0000-00000000000f',

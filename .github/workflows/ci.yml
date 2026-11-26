@@ -90,14 +90,16 @@ jobs:
       # chaves são as do projeto local, geradas pelo próprio start; a secreta
       # conta linhas no Q07 e cria as contas da concorrência dos jogos, e o
       # JWT_SECRET assina os tokens dessas contas (research R7 de
-      # specs/003-jogo-etapa-a).
+      # specs/003-jogo-etapa-a). A process-receipt roda no próprio processo do
+      # teste, com a Claude API simulada, e lê os comprovantes do conjunto fixo
+      # (--allow-read; research R7 e R10 de specs/010-pagamentos-etapa-b).
       - name: Testes contra o Supabase local (Deno)
         working-directory: supabase/functions
         run: |
           eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|SECRET_KEY|JWT_SECRET)=')"
           SUPABASE_URL="$API_URL" SUPABASE_PUBLISHABLE_KEY="$PUBLISHABLE_KEY" \
             SUPABASE_SECRET_KEY="$SECRET_KEY" SUPABASE_JWT_SECRET="$JWT_SECRET" \
-            deno test --allow-net --allow-env
+            deno test --allow-net --allow-env --allow-read
 
   functions:
     name: Edge Functions (Deno)
@@ -121,4 +123,4 @@ jobs:
       # Os testes das Edge Functions precisam do Supabase de pé e rodam no job
       # database (research R6 de specs/002-grupos). Aqui, só a checagem de tipos.
       - name: Tipos
-        run: deno check preview-invite/index.ts
+        run: deno check preview-invite/index.ts process-receipt/index.ts process-receipt/live.ts

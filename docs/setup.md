@@ -148,7 +148,7 @@ O app lê com `String.fromEnvironment` e para logo na abertura com uma mensagem 
 |---------|--------------------|-----------------------|----------|
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` | `supabase/.env`, lido pelo `config.toml` com `env()` | Painel do Supabase, Auth → Google | Login com Google |
 | `ANTHROPIC_API_KEY` | `supabase/functions/.env` | `supabase secrets set` | `process-receipt` (fatia 6) |
-| `RECEIPT_MODEL` | `supabase/functions/.env` | `supabase secrets set` | Modelo da Claude API, trocável sem novo deploy (`stacks.md`, 6.2) |
+| `RECEIPT_MODEL` | `supabase/functions/.env` | `supabase secrets set` | Modelo da Claude API, trocável sem novo deploy (`stacks.md`, 6.2). Desde a medição de 25/11/2026, `claude-haiku-5-5` (`comprovantes-ia.md`, seção 9) |
 | `INTERNAL_FUNCTION_KEY` | `supabase/functions/.env` e o Vault local, com um valor só do local, gravado pelo `seed.sql` | `supabase secrets set` e o Vault da produção, com o mesmo valor, gerado na hora | `storage-cleanup`, chamada pelo `pg_cron` (fatia 6) |
 | `FCM_SERVICE_ACCOUNT` | `supabase/functions/.env` | `supabase secrets set` | `send-push` (fatia 7) |
 | SMTP do Resend | Não se aplica (Mailpit) | Painel, Auth → SMTP: host `smtp.resend.com`, usuário `resend`, senha = chave da API do Resend | E-mails de autenticação |
@@ -214,6 +214,8 @@ Feito pelo responsável na Claude Console (`platform.claude.com`), antes da sess
 4. Criar a chave `voleiin-local` e gravá-la em `supabase/functions/.env`, em `ANTHROPIC_API_KEY`. Criar a chave `voleiin-prod` só na sessão 4 da etapa B e gravá-la com `! supabase secrets set ANTHROPIC_API_KEY=... --project-ref zmokpmovphikmobynssy`.
 5. `RECEIPT_MODEL` fica para o agente, depois da medição (`comprovantes-ia.md`, seção 9).
 
+**Feito em 25/11/2026:** os passos 1 a 4, com a chave `voleiin-local`. A Console ofereceu a notificação por valor, ativada em US$ 4. O agente conferiu a chave sem exibi-la, pela lista de modelos da API, e gravou `RECEIPT_MODEL=claude-haiku-5-5` no `supabase/functions/.env` depois da medição.
+
 ## 7. Firebase (fatia 7)
 
 Um projeto Firebase, `voleiin`, com um app Android `br.com.voleiin`. `flutterfire configure` gera `app/lib/firebase_options.dart` e `app/android/app/google-services.json`. Os dois vão para o Git: identificam o projeto e não são segredo, como a chave pública do Supabase. A credencial que envia push é a `FCM_SERVICE_ACCOUNT`, que fica só no servidor.
@@ -257,6 +259,7 @@ Diego continua sem grupo: a solicitação pendente não é contexto (RN107), e e
 | Quinta aguardando conclusão (fatia 5) | `00000000-0000-0000-0000-000000000209` | `JogoAguard01` | Terminou 10 min antes do `db reset`; início 2 h antes do fim, prazo 2 h antes do início | Ginásio Verdão; R$ 90,00; 3 | Ana, Bruno e Carla | Status Confirmado (lista cheia), depois do fim. É o jogo do L20: R$ 30,00 por vaga e R$ 60,00 a receber (decisão de 18/11/2026). O L21 usa o mesmo jogo: cada um roda logo depois de um `db reset` |
 | Quinta com multas (fatia 5, etapa B) | `00000000-0000-0000-0000-000000000210` | `JogoMultas01` | Dia −2, 20h às 22h, prazo às 18h | Ginásio Verdão; R$ 40,00; 4 | Ana e Carla | Bruno cancelou fora do prazo, às 18h30. Concluído pela Ana no seed com a Carla faltosa: parte de R$ 10,00, `absence_penalty` Pendente da Carla e `late_cancellation_penalty` do Bruno, mantida pelas vagas ociosas e isentada pela Ana com `waive_penalty` (research R4 de `specs/007-conclusao-etapa-b`) |
 | Quinta com troca (fatia 5, etapa C) | `00000000-0000-0000-0000-000000000211` | `JogoTroca001` | Dia −3, 20h às 22h, prazo às 18h | Quadra da Lagoa; R$ 60,00; 3 | Ana, Bruno e Carla | Concluído pela Ana no seed (parte de R$ 20,00), que depois passa o recebimento para a Carla com `change_receiver`: a Carla é a recebedora, com o `share` dela Isento; o do Bruno e um `share` novo da Ana ficam Pendentes para a Carla (research R7 de `specs/008-conclusao-etapa-c`) |
+| Quinta com comprovantes (fatia 6, etapa B) | `00000000-0000-0000-0000-000000000212` | `JogoCompr001` | Dia −4, 20h às 22h, prazo às 18h | Ginásio Verdão; R$ 60,00; 3 | Ana, Bruno e Carla | Concluído pela Ana no seed (parte de R$ 20,00). Comprovantes gravados pela `record_receipt`, com a leitura pronta: o da Carla aprovado automaticamente pela chave (o perfil da Ana tem um nome só), com o valor Pago; o do Bruno recusado pela Ana, com observação, e depois um Em análise, com o nome lido sem conferir. Os decididos ficam com o arquivo apagado, e o Em análise, com um caminho sem arquivo (research R12 de `specs/010-pagamentos-etapa-b`) |
 
 - Em todos, quem está primeiro na lista é o admin e o recebedor, e o `game_limit_history` tem a linha do limite inicial.
 - O jogo em andamento, o de prazo vencido e o aguardando conclusão dependem da hora do `supabase db reset`. Desde a fatia 5, o `pg_cron` local conclui sozinho todo jogo que passa de 1 h depois do fim (`auto_complete_due_games`): o aguardando conclusão vira Concluído uns 50 min depois do reset, e os outros dois, umas horas depois. Para voltar ao cenário, rode o `db reset` de novo.

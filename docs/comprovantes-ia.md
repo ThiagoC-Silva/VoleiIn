@@ -121,7 +121,7 @@ Em `record_receipt`, com o valor bloqueado. Usa o recebedor gravado no valor (RN
 - **Chave:** a lida é normalizada pelo tipo da chave atual do recebedor, com as regras de `profile_private` (`modelo-dados.md`, 4.1): CPF e CNPJ sem pontuação e em maiúsculas; e-mail em minúsculas; telefone só dígitos, com `+55` quando vier com 10 ou 11 dígitos; aleatória em minúsculas. Igual à chave atual, confere.
 - **Nome:** os dois em maiúsculas, sem acentos (`normalize(..., NFD)` sem as marcas) e só com letras e espaços. A primeira e a última palavra de `profiles.name` precisam estar, inteiras, entre as palavras do nome lido. Com uma palavra só em `profiles.name`, o nome não confere. O apelido não é usado.
 - **Ordem:** primeiro o ID repetido (RN89). Com o ID em uso por um comprovante `approved` ou `under_review` de **outro** valor, o resultado é `rejected`, mesmo que o resto confira. Depois, tudo `true` é `approved`. Qualquer `false` ou nulo é `under_review`.
-- `validation` guarda as quatro chaves e, quando não houve leitura, `"skipped": "api_failed" | "read_limit" | "file_not_supported"`, com as quatro nulas.
+- `validation` guarda as quatro chaves e, quando não houve leitura, `"skipped": "api_failed" | "read_limit" | "file_not_supported"`, com as quatro nulas. No comprovante recusado por ID repetido, `transaction_id` fica `false`: o ID foi lido e não está livre (research R3 de `specs/010-pagamentos-etapa-b`).
 - A corrida de dois envios com o mesmo ID (C10) termina na violação de `receipts_transaction_id_idx`, capturada e transformada na mesma recusa.
 
 ## 6. Tempo limite, erros e tentativas
@@ -204,13 +204,18 @@ Comprovantes reais do responsável são conferidos no celular (M09, `testes-refe
 | Sonnet 5.5 | `claude-sonnet-5-5` | US$ 2 e US$ 10 | US$ 0,014 | US$ 1,23 | US$ 6,16 |
 | Haiku 5.5 | `claude-haiku-5-5` | US$ 0,10 e US$ 0,50 (até 100 mil tokens por pedido) | US$ 0,0007 | US$ 0,06 | US$ 0,31 |
 
-**Medição** (preenchida na sessão 2 da etapa B):
+**Medição de 25/11/2026** (sessão 2 da etapa B, `deno task receipts:live`, prompt versão 1). O tempo é o de ponta a ponta no Supabase local, do envio ao resultado:
 
 | Modelo | Aprovações indevidas (CF11 a CF24) | Bons que foram para análise (CF01 a CF10) | Tempo mediano e máximo | Custo médio por leitura |
 |--------|------------------------------------|-------------------------------------------|------------------------|-------------------------|
-| Opus 5.5 | a medir | a medir | a medir | a medir |
-| Sonnet 5.5 | a medir | a medir | a medir | a medir |
-| Haiku 5.5 | a medir | a medir | a medir | a medir |
+| Opus 5.5 | não medido | não medido | não medido | não medido |
+| Sonnet 5.5 | não medido | não medido | não medido | não medido |
+| Haiku 5.5 | 0 nas três execuções | 1 em cada execução (CF09) | 1,8 s e 5,3 s | US$ 0,00057 (cerca de 4.500 tokens de entrada e 250 de saída) |
+
+- **Modelo escolhido: `claude-haiku-5-5`.** Passou no critério da seção 7 em três execuções seguidas, e é o mais barato dos três. As três custaram US$ 0,04 juntas.
+- **Decisão do responsável (25/11/2026):** só o Haiku foi medido, para gastar menos. O Opus e o Sonnet ficam sem medição, e só voltam a ser medidos se o Haiku reprovar numa troca de prompt ou de modelo.
+- **CF09:** nas três execuções, o Haiku devolveu o ID quebrado em duas linhas como nulo, e o comprovante foi para análise. É o erro aceitável da seção 7 (até 1 entre os 10 primeiros).
+- Com 440 leituras por mês (5 grupos), o gasto fica perto de US$ 0,25.
 
 **Risco que resta:** a conferência é exata, mas usa o que o modelo leu. Um erro de leitura que acerte por acaso o valor, o destinatário, a data **e** um ID válido aprovaria um pagamento errado. As quatro condições juntas tornam isso improvável, e os exemplos CF11 a CF24 medem os casos mais prováveis. Uma aprovação automática não é reversível (RN85), então o acerto fica fora do app.
 
@@ -219,4 +224,4 @@ Comprovantes reais do responsável são conferidos no celular (M09, `testes-refe
 - O projeto usa um **workspace próprio** na Claude Console (`voleiin`), com uma chave para o local e outra para a produção. O gasto dele não se mistura com outros usos.
 - O alerta é a **notificação por e-mail do limite de gasto** do workspace, em **US$ 4**. O responsável a configura ao criar a chave (`setup.md`, 6.3).
 - **Sem limite de gasto em US$ 5:** ao atingi-lo, as leituras falhariam (RNF10). O crédito pré-pago, com recarga automática desligada, já é um teto: sem crédito, as leituras viram Em análise.
-- A notificação por valor vem de guias de terceiros, e não da documentação oficial consultada. **Se a Console não a oferecer** para a conta, o responsável avisa, e o agente propõe outro mecanismo antes da etapa B fechar. Os tokens de cada leitura ficam em `receipts.extraction`, então a soma do mês já pode ser consultada no banco.
+- **Conferido em 25/11/2026:** a Console oferece a notificação por valor, e o responsável a ativou em US$ 4 no workspace `voleiin`. Os tokens de cada leitura ficam também em `receipts.extraction`, então a soma do mês pode ser consultada no banco.

@@ -5,7 +5,8 @@
 -- aceite dos termos. Fatia 3: os grupos Vôlei de Quinta e Vôlei de Domingo.
 -- Fatia 4: os sete jogos (Aberto, Confirmado, em andamento, Cancelado, prazo
 -- vencido, o da Carla e o avulso). Fatia 5, etapa A: o jogo concluído, com os
--- valores, e o jogo aguardando conclusão.
+-- valores, e o jogo aguardando conclusão. Fatia 6, etapa B: o jogo com
+-- comprovantes nos três status.
 -- Cada fatia acrescenta os seus cenários (jogos, valores, comprovantes...).
 --
 -- IDs fixos e legíveis, para testes e anotações poderem citá-los:
@@ -135,6 +136,8 @@ declare
   v_bruno constant uuid := '00000000-0000-0000-0000-00000000000b';
   v_carla constant uuid := '00000000-0000-0000-0000-00000000000c';
   v_quinta constant uuid := '00000000-0000-0000-0000-000000000101';
+  v_receipt_charge uuid;
+  v_receipt jsonb;
 begin
   insert into public.games (
     id, group_id, created_by, receiver_id, invite_code, location_name, maps_url,
@@ -353,5 +356,90 @@ begin
      where c.game_id = '00000000-0000-0000-0000-000000000208' and c.payer_id = v_carla)
   );
   perform set_config('request.jwt.claims', '', true);
+
+  -- Fatia 6, etapa B (research R12 de specs/010-pagamentos-etapa-b). Quinta com
+  -- comprovantes: quatro dias antes, Ana, Bruno e Carla, R$ 60,00, concluído pela
+  -- Ana. Os comprovantes passam pela record_receipt, com a leitura pronta. A
+  -- Carla tem um aprovado automaticamente (a chave da Ana confere: o perfil dela
+  -- tem um nome só). O Bruno tem um recusado pela Ana e um Em análise, com o nome
+  -- lido sem conferir. Os decididos ficam com o arquivo apagado; o Em análise,
+  -- com um caminho sem arquivo (docs/setup.md, seção 8).
+  insert into public.games (
+    id, group_id, created_by, receiver_id, invite_code, location_name, maps_url,
+    cancellation_deadline, starts_at, ends_at, total_cents, slot_limit, status
+  )
+  values (
+    '00000000-0000-0000-0000-000000000212', v_quinta, v_ana, v_ana, 'JogoCompr001',
+    'Ginásio Verdão', null,
+    (v_today - 4 + time '18:00') at time zone 'America/Fortaleza',
+    (v_today - 4 + time '20:00') at time zone 'America/Fortaleza',
+    (v_today - 4 + time '22:00') at time zone 'America/Fortaleza',
+    6000, 3, 'confirmed'
+  );
+
+  insert into public.game_admins (game_id, user_id)
+  values ('00000000-0000-0000-0000-000000000212', v_ana);
+
+  insert into public.game_participants (game_id, user_id, joined_at)
+  values
+    ('00000000-0000-0000-0000-000000000212', v_ana, now() - interval '6 days'),
+    ('00000000-0000-0000-0000-000000000212', v_bruno, now() - interval '5 days'),
+    ('00000000-0000-0000-0000-000000000212', v_carla, now() - interval '5 days');
+
+  perform private.complete_game_core(
+    (select g from public.games g where g.id = '00000000-0000-0000-0000-000000000212'),
+    v_ana, null, '{}', 'manual', false
+  );
+
+  select c.id into v_receipt_charge from public.charges c
+  where c.game_id = '00000000-0000-0000-0000-000000000212' and c.payer_id = v_carla;
+  perform public.record_receipt(
+    v_receipt_charge, v_carla,
+    v_receipt_charge::text || '/00000000-0000-0000-0000-0000000002c1.jpg', 'image/jpeg', 182000,
+    jsonb_build_object(
+      'outcome', 'read', 'amount_cents', 2000,
+      'paid_at', to_char(v_today - 4 + time '22:31', 'YYYY-MM-DD"T"HH24:MI'),
+      'recipient_name', 'ANA', 'recipient_key', '529.982.247-25',
+      'transaction_id', 'E11122233' || to_char(
+        (v_today - 4 + time '22:31') at time zone 'America/Fortaleza' at time zone 'UTC',
+        'YYYYMMDDHH24MI') || 'SEEDCARLA01',
+      'raw', jsonb_build_object('model', 'seed', 'prompt_version', 1)
+    )
+  );
+
+  select c.id into v_receipt_charge from public.charges c
+  where c.game_id = '00000000-0000-0000-0000-000000000212' and c.payer_id = v_bruno;
+  v_receipt := public.record_receipt(
+    v_receipt_charge, v_bruno,
+    v_receipt_charge::text || '/00000000-0000-0000-0000-0000000002b1.jpg', 'image/jpeg', 95000,
+    jsonb_build_object(
+      'outcome', 'read', 'amount_cents', null, 'paid_at', null, 'recipient_name', null,
+      'recipient_key', null, 'transaction_id', null,
+      'raw', jsonb_build_object('model', 'seed', 'prompt_version', 1)
+    )
+  );
+  perform set_config('request.jwt.claims', json_build_object('sub', v_ana)::text, true);
+  perform public.review_receipt(
+    (v_receipt ->> 'receipt_id')::uuid, false, 'Não dá para ler o valor. Envie outro.'
+  );
+  perform set_config('request.jwt.claims', '', true);
+  perform public.record_receipt(
+    v_receipt_charge, v_bruno,
+    v_receipt_charge::text || '/00000000-0000-0000-0000-0000000002b2.png', 'image/png', 240000,
+    jsonb_build_object(
+      'outcome', 'read', 'amount_cents', 2000,
+      'paid_at', to_char(v_today - 3 + time '09:12', 'YYYY-MM-DD"T"HH24:MI'),
+      'recipient_name', 'ANA PAULA', 'recipient_key', null,
+      'transaction_id', 'E11122233' || to_char(
+        (v_today - 3 + time '09:12') at time zone 'America/Fortaleza' at time zone 'UTC',
+        'YYYYMMDDHH24MI') || 'SEEDBRUNO02',
+      'raw', jsonb_build_object('model', 'seed', 'prompt_version', 1)
+    )
+  );
+
+  update public.receipts r set storage_path = null, file_deleted_at = now()
+  from public.charges c
+  where c.id = r.charge_id and c.game_id = '00000000-0000-0000-0000-000000000212'
+    and r.status <> 'under_review';
 end;
 $seed$;
