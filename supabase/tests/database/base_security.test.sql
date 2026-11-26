@@ -11,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(24);
+select plan(25);
 
 -- B01. Nenhuma tabela de public sem RLS. É o teste "tabela sem RLS" do CI.
 select is_empty(
@@ -45,7 +45,8 @@ select set_eq(
 );
 
 -- B03. Políticas de public. Lista esperada: as seis da fatia 2, as seis da
--- fatia 3, as cinco da fatia 4 e as três da fatia 5, etapa A (docs/rls-matriz.md).
+-- fatia 3, as cinco da fatia 4, as três da fatia 5, etapa A, e a da fatia 6,
+-- etapa B (docs/rls-matriz.md).
 select set_eq(
   $$ select tablename || '.' || policyname from pg_policies where schemaname = 'public' $$,
   array[
@@ -68,13 +69,15 @@ select set_eq(
     'game_limit_history.game_limit_history_select_admin',
     'charges.charges_select_party',
     'charge_events.charge_events_select_party',
-    'receiver_changes.receiver_changes_select_admin'
+    'receiver_changes.receiver_changes_select_admin',
+    'receipts.receipts_select_party'
   ],
-  'B03: as políticas de public são exatamente as da lista esperada (fatia 5, etapa A)'
+  'B03: as políticas de public são exatamente as da lista esperada (fatia 6, etapa B)'
 );
 
 -- B04. Privilégios de tabela e de coluna de anon e authenticated em public.
--- Lista esperada: a da fatia 2, a da fatia 3, a da fatia 4 e a da fatia 5. anon continua sem nenhum.
+-- Lista esperada: a da fatia 2, a da fatia 3, a da fatia 4, a da fatia 5 e a da
+-- fatia 6, etapa B. anon continua sem nenhum.
 select set_eq(
   $$ select a.grantee::regrole::text || ' ' || c.relname || ' ' || a.privilege_type
      from pg_class c
@@ -96,9 +99,10 @@ select set_eq(
     'authenticated game_limit_history SELECT',
     'authenticated charges SELECT',
     'authenticated charge_events SELECT',
-    'authenticated receiver_changes SELECT'
+    'authenticated receiver_changes SELECT',
+    'authenticated receipts SELECT'
   ],
-  'B04a: privilégios de tabela iguais à lista esperada (fatia 5, etapa A)'
+  'B04a: privilégios de tabela iguais à lista esperada (fatia 6, etapa B)'
 );
 
 select set_eq(
@@ -121,14 +125,14 @@ select set_eq(
     'authenticated terms_acceptances.document INSERT',
     'authenticated terms_acceptances.version INSERT'
   ],
-  'B04b: privilégios de coluna iguais à lista esperada (fatia 5, sem coluna nova)'
+  'B04b: privilégios de coluna iguais à lista esperada (fatia 6, sem coluna nova)'
 );
 
 -- B06. Funções de public que anon ou authenticated podem executar, fora as de
 -- extensões. Lista esperada: current_terms_versions() (fatia 2), as dez
 -- funções de grupo (fatia 3), as sete da etapa A, as três da etapa B e as três
 -- da etapa C da fatia 4, as duas da etapa A, a da etapa B e a da etapa C da fatia 5 e
--- as duas da etapa A da fatia 6, só para authenticated.
+-- as duas da etapa A e a da etapa B da fatia 6, só para authenticated.
 -- auto_complete_due_games() é interna e fica fora (Y07). Este é o teste que cobra o `revoke execute ... from public, anon`
 -- de toda função nova (docs/arquitetura-app.md, 14.3).
 select set_eq(
@@ -168,9 +172,10 @@ select set_eq(
     'waive_penalty(uuid)',
     'change_receiver(uuid,uuid)',
     'mark_charge_paid(uuid)',
-    'revert_charge(uuid)'
+    'revert_charge(uuid)',
+    'review_receipt(uuid,boolean,text)'
   ],
-  'B06a: authenticated executa só as funções da lista esperada (fatia 6, etapa A)'
+  'B06a: authenticated executa só as funções da lista esperada (fatia 6, etapa B)'
 );
 
 select is_empty(
@@ -181,6 +186,20 @@ select is_empty(
        and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
        and has_function_privilege('anon', p.oid, 'execute') $$,
   'B06b: nenhuma função de public é executável por anon'
+);
+
+-- B06c. As funções das Edge Functions (ADR 0019): service_role executa, anon e
+-- authenticated não. Lista esperada: record_receipt (fatia 6, etapa B).
+select set_eq(
+  $$ select p.oid::regprocedure::text
+            || ' service_role=' || has_function_privilege('service_role', p.oid, 'execute')
+            || ' authenticated=' || has_function_privilege('authenticated', p.oid, 'execute')
+            || ' anon=' || has_function_privilege('anon', p.oid, 'execute')
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname in ('record_receipt') $$,
+  array['record_receipt(uuid,uuid,text,text,integer,jsonb) service_role=true authenticated=false anon=false'],
+  'B06c: só service_role executa record_receipt (ADR 0019)'
 );
 
 -- B05. Tabela e função criadas depois da primeira migração nascem fechadas.
@@ -293,9 +312,10 @@ select is(
   'B09f: receipts aceita imagem e PDF (RN87)'
 );
 
--- B10. Ninguém envia comprovante: o bucket receipts só abre na fatia 6. Até a
+-- B10. Fora do formato {charge_id}/{uuid}.{ext}, ninguém envia comprovante. Na
 -- fatia 1, o caminho testado era avatars/profiles/<uid>/x.png, que a fatia 2
--- libera ao próprio usuário (P15).
+-- libera ao próprio usuário (P15). A fatia 6, etapa B, abre o bucket receipts ao
+-- pagador de um valor Pendente (RS06).
 set local role authenticated;
 
 select throws_ok(
@@ -321,9 +341,11 @@ select set_eq(
     'avatars_profile_select_context',
     'avatars_group_select_member',
     'avatars_group_insert_admin',
-    'avatars_group_delete_admin'
+    'avatars_group_delete_admin',
+    'receipts_insert_payer',
+    'receipts_select_party'
   ],
-  'B10b: as políticas de storage.objects são exatamente as sete de avatars (fatias 2 e 3)'
+  'B10b: as políticas de storage.objects são as sete de avatars e as duas de receipts'
 );
 
 select is_empty(
@@ -334,7 +356,8 @@ select is_empty(
        and policyname not in (
          'avatars_profile_select_own', 'avatars_profile_insert_own', 'avatars_profile_delete_own',
          'avatars_profile_select_context', 'avatars_group_select_member',
-         'avatars_group_insert_admin', 'avatars_group_delete_admin'
+         'avatars_group_insert_admin', 'avatars_group_delete_admin',
+         'receipts_insert_payer', 'receipts_select_party'
        ) $$,
   'B10c: não há outra política em storage.objects'
 );

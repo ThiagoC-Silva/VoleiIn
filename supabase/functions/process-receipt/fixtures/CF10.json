@@ -1,0 +1,17 @@
+{
+  "id": "CF10",
+  "title": "Pago às 20:00, o minuto do início",
+  "file": "CF10.png",
+  "mime_type": "image/png",
+  "reading": {
+    "payment_status": "completed",
+    "amount_text": "R$ 20,84",
+    "paid_at": "2026-11-19T20:00",
+    "recipient_name": "ANA SOUZA LIMA",
+    "recipient_key": "***.982.247-**",
+    "transaction_id": "E11122233202611192300K4M7P2Q9R10"
+  },
+  "expected": {
+    "result": "approved"
+  }
+}

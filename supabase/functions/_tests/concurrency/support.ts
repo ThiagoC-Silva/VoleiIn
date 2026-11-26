@@ -46,7 +46,7 @@ function base64Url(bytes: Uint8Array): string {
 }
 
 // Token no formato do Auth, assinado com a chave local (HS256), válido por 1 h.
-async function signToken(userId: string): Promise<string> {
+export async function signToken(userId: string): Promise<string> {
   const encoder = new TextEncoder();
   const now = Math.floor(Date.now() / 1000);
   const header = base64Url(encoder.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));

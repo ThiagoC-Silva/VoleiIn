@@ -1,0 +1,13 @@
+{
+  "id": "CF25",
+  "title": "HEIC",
+  "file": "CF25.heic",
+  "mime_type": "image/heic",
+  "reading": null,
+  "expected": {
+    "result": "under_review",
+    "validation": {
+      "skipped": "file_not_supported"
+    }
+  }
+}

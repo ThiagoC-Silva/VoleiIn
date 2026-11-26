@@ -1,0 +1,17 @@
+{
+  "id": "CF03",
+  "title": "Imagem, nome em maiúsculas e sem acento",
+  "file": "CF03.png",
+  "mime_type": "image/png",
+  "reading": {
+    "payment_status": "completed",
+    "amount_text": "R$ 20,84",
+    "paid_at": "2026-11-19T22:15",
+    "recipient_name": "ANA SOUZA LIMA",
+    "recipient_key": "***.982.247-**",
+    "transaction_id": "E11122233202611200115K4M7P2Q9R03"
+  },
+  "expected": {
+    "result": "approved"
+  }
+}

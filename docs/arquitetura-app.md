@@ -384,7 +384,7 @@ grant execute on function public.leave_game(uuid) to authenticated;
 |------|------|---------|
 | pgTAP (schema, RLS, funções) | `supabase/tests/database/<assunto>.test.sql` | `supabase test db` |
 | Edge Functions | `supabase/functions/<nome>/*_test.ts` | `deno test` |
-| Concorrência | `supabase/functions/_tests/concurrency/*_test.ts`, com conexões separadas ao banco local | `deno test --allow-net --allow-env` |
+| Concorrência | `supabase/functions/_tests/concurrency/*_test.ts`, com conexões separadas ao banco local | `deno test --allow-net --allow-env --allow-read` |
 
 - Cada teste pgTAP roda numa transação desfeita no fim, sem deixar dados.
 - Um teste pgTAP não depende do seed: os personagens que ele usa (Ana, Bruno, Carla e Diego, com os IDs fixos de `setup.md`, seção 8) são inseridos no começo da transação, com `on conflict do nothing`. Assim o teste roda no banco com seed e no banco do ensaio de migração, montado com a cópia da produção (`setup.md`, 9.2).

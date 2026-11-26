@@ -407,6 +407,11 @@ allow_dynamic_registration = false
 [functions.preview-invite]
 verify_jwt = false
 
+# O JWT é conferido dentro da função, que responde NOT_AUTHENTICATED no formato
+# do contrato (research R7 de specs/010-pagamentos-etapa-b).
+[functions.process-receipt]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

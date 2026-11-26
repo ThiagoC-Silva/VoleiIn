@@ -1,0 +1,17 @@
+{
+  "id": "CF09",
+  "title": "Imagem com o ID quebrado em duas linhas",
+  "file": "CF09.png",
+  "mime_type": "image/png",
+  "reading": {
+    "payment_status": "completed",
+    "amount_text": "R$ 20,84",
+    "paid_at": "2026-11-19T22:15",
+    "recipient_name": "ANA SOUZA LIMA",
+    "recipient_key": "529.982.247-25",
+    "transaction_id": "E11122233202611200115K4M7P2Q9R09"
+  },
+  "expected": {
+    "result": "approved"
+  }
+}

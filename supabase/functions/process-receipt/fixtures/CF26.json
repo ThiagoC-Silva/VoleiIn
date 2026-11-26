@@ -1,0 +1,14 @@
+{
+  "id": "CF26",
+  "title": "PDF de 60 páginas",
+  "file": "CF26.pdf",
+  "mime_type": "application/pdf",
+  "reading": null,
+  "expected": {
+    "result": "under_review",
+    "validation": {
+      "skipped": "file_not_supported"
+    }
+  },
+  "count_tokens": 96000
+}

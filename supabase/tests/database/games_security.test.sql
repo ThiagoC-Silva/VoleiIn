@@ -39,6 +39,7 @@ on conflict do nothing;
 -- antes da chave Pix da Carla, que a RN105 prende enquanto ela é recebedora.
 -- Valores do jogo concluído do seed (fatia 5) saem antes das passagens.
 delete from public.charge_events;
+delete from public.receipts;
 delete from public.charges;
 delete from public.receiver_changes;
 delete from public.game_waitlist;

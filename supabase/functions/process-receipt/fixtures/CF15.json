@@ -1,0 +1,20 @@
+{
+  "id": "CF15",
+  "title": "Pago às 19:59",
+  "file": "CF15.png",
+  "mime_type": "image/png",
+  "reading": {
+    "payment_status": "completed",
+    "amount_text": "R$ 20,84",
+    "paid_at": "2026-11-19T19:59",
+    "recipient_name": "ANA SOUZA LIMA",
+    "recipient_key": "***.982.247-**",
+    "transaction_id": "E11122233202611192259K4M7P2Q9R15"
+  },
+  "expected": {
+    "result": "under_review",
+    "validation": {
+      "paid_at": false
+    }
+  }
+}
