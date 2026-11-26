@@ -1,0 +1,17 @@
+{
+  "id": "CF02",
+  "title": "Imagem, banco tradicional, chave CPF inteira",
+  "file": "CF02.jpg",
+  "mime_type": "image/jpeg",
+  "reading": {
+    "payment_status": "completed",
+    "amount_text": "R$ 20,84",
+    "paid_at": "2026-11-19T22:15",
+    "recipient_name": "ANA SOUZA LIMA",
+    "recipient_key": "529.982.247-25",
+    "transaction_id": "E11122233202611200115K4M7P2Q9R02"
+  },
+  "expected": {
+    "result": "approved"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "CF13",
+  "title": "Pago a Bruno Costa, com a chave dele",
+  "file": "CF13.jpg",
+  "mime_type": "image/jpeg",
+  "reading": {
+    "payment_status": "completed",
+    "amount_text": "R$ 20,84",
+    "paid_at": "2026-11-19T22:15",
+    "recipient_name": "BRUNO COSTA",
+    "recipient_key": "bruno.costa@exemplo.com",
+    "transaction_id": "E11122233202611200115K4M7P2Q9R13"
+  },
+  "expected": {
+    "result": "under_review",
+    "validation": {
+      "recipient": false
+    }
+  }
+}

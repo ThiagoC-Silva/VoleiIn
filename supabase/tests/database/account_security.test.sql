@@ -45,6 +45,7 @@ where profiles.id = v.id;
 -- (RN105): os jogos saem antes de tudo (research R6 de specs/003-jogo-etapa-a).
 -- Valores do jogo concluído do seed (fatia 5) saem antes das passagens.
 delete from public.charge_events;
+delete from public.receipts;
 delete from public.charges;
 delete from public.receiver_changes;
 delete from public.game_waitlist;

@@ -1,0 +1,23 @@
+{
+  "id": "CF21",
+  "title": "Imagem que não é comprovante (a foto de uma quadra)",
+  "file": "CF21.jpg",
+  "mime_type": "image/jpeg",
+  "reading": {
+    "payment_status": "other",
+    "amount_text": null,
+    "paid_at": null,
+    "recipient_name": null,
+    "recipient_key": null,
+    "transaction_id": null
+  },
+  "expected": {
+    "result": "under_review",
+    "validation": {
+      "amount": null,
+      "recipient": null,
+      "paid_at": null,
+      "transaction_id": null
+    }
+  }
+}

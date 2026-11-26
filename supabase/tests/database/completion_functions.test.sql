@@ -45,6 +45,7 @@ on conflict do nothing;
 -- specs/003-jogo-etapa-a). Os jogos saem antes das chaves Pix, que a RN105
 -- prende enquanto a pessoa é recebedora.
 delete from public.charge_events;
+delete from public.receipts;
 delete from public.charges;
 delete from public.receiver_changes;
 delete from public.game_waitlist;

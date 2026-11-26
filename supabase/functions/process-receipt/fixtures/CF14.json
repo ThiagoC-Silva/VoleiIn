@@ -1,0 +1,20 @@
+{
+  "id": "CF14",
+  "title": "Pago a Ana Paula Ribeiro, chave escondida",
+  "file": "CF14.png",
+  "mime_type": "image/png",
+  "reading": {
+    "payment_status": "completed",
+    "amount_text": "R$ 20,84",
+    "paid_at": "2026-11-19T22:15",
+    "recipient_name": "ANA PAULA RIBEIRO",
+    "recipient_key": "***.441.218-**",
+    "transaction_id": "E11122233202611200115K4M7P2Q9R14"
+  },
+  "expected": {
+    "result": "under_review",
+    "validation": {
+      "recipient": false
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "CF04",
+  "title": "PDF de 1 página",
+  "file": "CF04.pdf",
+  "mime_type": "application/pdf",
+  "reading": {
+    "payment_status": "completed",
+    "amount_text": "R$ 20,84",
+    "paid_at": "2026-11-19T22:15",
+    "recipient_name": "Ana Souza Lima",
+    "recipient_key": "529.982.247-25",
+    "transaction_id": "E11122233202611200115K4M7P2Q9R04"
+  },
+  "expected": {
+    "result": "approved"
+  },
+  "count_tokens": 2400
+}
