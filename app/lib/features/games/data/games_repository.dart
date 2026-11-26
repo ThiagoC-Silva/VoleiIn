@@ -5,6 +5,7 @@ import '../../../core/errors/error_code.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/supabase.dart';
 import '../../auth/domain/pix_key.dart';
+import '../../payments/domain/receipt_models.dart';
 import '../domain/charge_models.dart';
 import '../domain/game_models.dart';
 
@@ -391,7 +392,7 @@ class GamesRepository {
       ]);
       return GameSplit(
         game: game,
-        charges: [for (final row in results[0]) _charge(row)],
+        charges: [for (final row in results[0]) _charge(row, viewerId: _uid)],
         passages: [for (final row in results[1]) _passage(row)],
       );
     });
@@ -423,9 +424,12 @@ class GamesRepository {
         .from('charges')
         .select(
           'id, game_id, receiver_id, kind, amount_cents, status, '
-          'waive_reason, paid_at, paid_via, '
+          'waive_reason, paid_at, paid_via, auto_reads_used, '
           'game:games!charges_game_id_fkey(location_name, starts_at), '
-          'receiver:profiles!charges_receiver_id_fkey(display_name, photo_path)',
+          'receiver:profiles!charges_receiver_id_fkey(display_name, photo_path), '
+          // A dica evita o caminho por charge_events, que liga as duas.
+          'receipts!receipts_charge_id_fkey(id, status, created_at, '
+          'rejection_reason, receiver_note)',
         )
         .eq('id', chargeId)
         .eq('payer_id', _uid)
@@ -459,8 +463,26 @@ class GamesRepository {
       waiveReason: reason == null ? null : ChargeWaiveReason.parse(reason),
       paidAt: _instantOrNull(row['paid_at']),
       paidVia: _paidVia(row),
+      receipts: [
+        for (final receipt in row['receipts'] as List? ?? const [])
+          _receiptSummary(receipt as Map),
+      ],
+      autoReadsUsed: row['auto_reads_used'] as int? ?? 0,
     );
   });
+
+  static ReceiptSummary _receiptSummary(Map row) {
+    final reason = row['rejection_reason'] as String?;
+    return ReceiptSummary(
+      id: row['id'] as String,
+      status: ReceiptStatus.parse(row['status'] as String),
+      createdAt: _instant(row['created_at']),
+      rejectionReason: reason == null
+          ? null
+          : ReceiptRejectionReason.parse(reason),
+      receiverNote: row['receiver_note'] as String?,
+    );
+  }
 
   /// `change_receiver`: indica outro recebedor, antes ou depois da conclusão
   /// (RF33; contratos-api.md, seção 5).
@@ -481,22 +503,53 @@ class GamesRepository {
   /// valores dos outros, que não entram aqui (rls-matriz.md, fatia 5).
   Future<ChargesOverview> fetchMyCharges() => guard(() async {
     final uid = _uid;
-    final rows = await _db
-        .from('charges')
-        .select(
-          'id, game_id, payer_id, receiver_id, kind, amount_cents, status, '
-          'game:games!charges_game_id_fkey(location_name, starts_at), '
-          'receiver:profiles!charges_receiver_id_fkey(display_name, photo_path)',
-        )
-        .or('payer_id.eq.$uid,receiver_id.eq.$uid')
-        .inFilter('status', [
-          ChargeStatus.pending.value,
-          ChargeStatus.underReview.value,
-        ]);
+    final results = await Future.wait<List<Map<String, dynamic>>>([
+      _db
+          .from('charges')
+          .select(
+            'id, game_id, payer_id, receiver_id, kind, amount_cents, status, '
+            'game:games!charges_game_id_fkey(location_name, starts_at), '
+            'receiver:profiles!charges_receiver_id_fkey(display_name, photo_path)',
+          )
+          .or('payer_id.eq.$uid,receiver_id.eq.$uid')
+          .inFilter('status', [
+            ChargeStatus.pending.value,
+            ChargeStatus.underReview.value,
+          ]),
+      // Para conferir (telas.md, 9.1): pelo índice (receiver_id, status).
+      _db
+          .from('receipts')
+          .select(
+            'id, charge_id, payer_id, created_at, '
+            'charge:charges!receipts_charge_id_fkey(amount_cents, '
+            'game:games!charges_game_id_fkey(location_name, starts_at)), '
+            'payer:profiles!receipts_payer_id_fkey(display_name, photo_path)',
+          )
+          .eq('receiver_id', uid)
+          .eq('status', ReceiptStatus.underReview.value),
+    ]);
     return ChargesOverview(
       viewerId: uid,
+      toReview: [
+        for (final row in results[1])
+          ReviewLine(
+            receiptId: row['id'] as String,
+            chargeId: row['charge_id'] as String,
+            payerId: row['payer_id'] as String,
+            payerName: (row['payer'] as Map?)?['display_name'] as String? ?? '',
+            payerPhotoPath: (row['payer'] as Map?)?['photo_path'] as String?,
+            startsAt: _instant(
+              ((row['charge'] as Map)['game'] as Map)['starts_at'],
+            ),
+            locationName:
+                ((row['charge'] as Map)['game'] as Map)['location_name']
+                    as String,
+            amountCents: (row['charge'] as Map)['amount_cents'] as int,
+            sentAt: _instant(row['created_at']),
+          ),
+      ],
       lines: [
-        for (final row in rows)
+        for (final row in results[0])
           ChargeLine(
             id: row['id'] as String,
             gameId: row['game_id'] as String,
@@ -544,9 +597,12 @@ class GamesRepository {
       'id, payer_id, receiver_id, kind, amount_cents, status, waive_reason, '
       'paid_via, '
       'payer:profiles!charges_payer_id_fkey(display_name, photo_path), '
-      'receiver:profiles!charges_receiver_id_fkey(display_name)';
+      'receiver:profiles!charges_receiver_id_fkey(display_name), '
+      // O RLS só devolve os do pagador e os do recebedor (rls-matriz.md).
+      'receipts!receipts_charge_id_fkey(id, status, receiver_id)';
 
-  static GameCharge _charge(Map<String, dynamic> row) {
+  /// Com [viewerId], o comprovante Em análise que essa pessoa confere.
+  static GameCharge _charge(Map<String, dynamic> row, {String? viewerId}) {
     final payer = row['payer'] as Map?;
     final receiver = row['receiver'] as Map?;
     final reason = row['waive_reason'] as String?;
@@ -562,7 +618,21 @@ class GamesRepository {
       status: ChargeStatus.parse(row['status'] as String),
       waiveReason: reason == null ? null : ChargeWaiveReason.parse(reason),
       paidVia: _paidVia(row),
+      reviewReceiptId: viewerId == null
+          ? null
+          : _reviewReceiptId(row['receipts'] as List?, viewerId),
     );
+  }
+
+  static String? _reviewReceiptId(List? receipts, String viewerId) {
+    for (final receipt in receipts ?? const []) {
+      if (receipt is Map &&
+          receipt['status'] == ReceiptStatus.underReview.value &&
+          receipt['receiver_id'] == viewerId) {
+        return receipt['id'] as String;
+      }
+    }
+    return null;
   }
 
   static PaymentMethod? _paidVia(Map row) {

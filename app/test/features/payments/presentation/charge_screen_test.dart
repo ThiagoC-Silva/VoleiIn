@@ -9,6 +9,7 @@ import 'package:voleiin/features/auth/domain/pix_key.dart';
 import 'package:voleiin/features/games/domain/charge_models.dart';
 import 'package:voleiin/features/games/presentation/game_badges.dart';
 import 'package:voleiin/features/payments/domain/receipt_models.dart';
+import 'package:voleiin/features/payments/presentation/receipt_text.dart';
 
 import '../../../helpers/games_fixtures.dart';
 import '../../../helpers/harness.dart';
@@ -250,7 +251,14 @@ void main() {
       final row = find.text('Enviado sex, 20/11 às 12:05');
       await tester.scrollUntilVisible(row, 200);
       expect(row, findsOneWidget);
-      expect(find.text(l10nPt.receiptStatusUnderReview), findsOneWidget);
+      // O selo do comprovante, além do selo do valor no topo.
+      expect(
+        find.descendant(
+          of: find.byType(ReceiptStatusBadge),
+          matching: find.text(l10nPt.receiptStatusUnderReview),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Isento: o motivo, sem a chave', (tester) async {

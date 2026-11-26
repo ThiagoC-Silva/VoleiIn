@@ -24,6 +24,17 @@ final myChargesProvider = FutureProvider.autoDispose<ChargesOverview>(
   (ref) => ref.watch(gamesRepositoryProvider).fetchMyCharges(),
 );
 
+/// O Rateio do jogo concluído, relido ao abrir e ao puxar para baixo
+/// (docs/ui/telas.md, seção 8).
+final gameSplitProvider = FutureProvider.autoDispose.family<GameSplit, String>(
+  (ref, gameId) => ref.watch(gamesRepositoryProvider).fetchSplit(gameId),
+);
+
+/// O valor a pagar, relido ao abrir e ao puxar para baixo (telas.md, seção 9).
+final chargeProvider = FutureProvider.autoDispose.family<ChargeDetail, String>(
+  (ref, chargeId) => ref.watch(gamesRepositoryProvider).fetchCharge(chargeId),
+);
+
 /// O detalhe do jogo, relido a cada evento do Realtime em `games`,
 /// `game_participants` e `game_waitlist` (telas.md, 7.3).
 class GameDetailNotifier extends AsyncNotifier<GameDetail> {

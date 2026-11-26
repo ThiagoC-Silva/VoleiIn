@@ -41,6 +41,7 @@ dependencies:
   # Já vem com supabase_flutter; declarada porque a conversão de erros cita
   # ClientException (docs/arquitetura-app.md, seção 7)
   http: any
+  file_picker: ^13.4.1
 
 dev_dependencies:
   flutter_test:

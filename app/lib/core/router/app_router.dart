@@ -35,6 +35,7 @@ import '../../features/groups/presentation/group_requests_screen.dart';
 import '../../features/groups/presentation/group_screen.dart';
 import '../../features/groups/presentation/groups_screen.dart';
 import '../../features/payments/presentation/charge_screen.dart';
+import '../../features/payments/presentation/receipt_screen.dart';
 import '../../features/splits/presentation/charges_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 import 'routes.dart';
@@ -281,6 +282,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                     ),
                   ),
                 ],
+              ),
+              // O comprovante abre de Cobranças, do valor a pagar e do Rateio,
+              // sempre nesta aba (telas.md, 9.4).
+              GoRoute(
+                path: Routes.receiptPath,
+                name: Routes.receipt,
+                builder: (context, state) => ReceiptScreen(
+                  receiptId: state.pathParameters['receiptId']!,
+                ),
               ),
             ],
           ),

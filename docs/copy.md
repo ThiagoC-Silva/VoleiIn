@@ -801,6 +801,8 @@ O bloco da chave usa `gamePixCopy` e `gamePixCopied` (seção 8.3). `{date}` usa
 | `receiptUploadFailed` | Não deu para enviar o arquivo. Confira a internet e tente de novo. | Erro do passo 2 |
 | `receiptResultUnknown` | A conexão caiu antes da resposta. Confira o status do valor. | `SnackBar` |
 
+O tamanho do PDF no passo 2 usa `formatFileSize`: "184 KB" abaixo de 1 MB e "2,4 MB" acima, só com inteiros (decisão de 26/11/2026, sessão 3 da etapa B). O erro do passo 2 tem o botão **Tentar de novo** (`commonTryAgain`).
+
 ### 10.3 Comprovante
 
 | Chave | Texto | Onde |
@@ -819,10 +821,11 @@ O bloco da chave usa `gamePixCopy` e `gamePixCopied` (seção 8.3). `{date}` usa
 | `receiptExpected` | Esperado: {value} | Linha de apoio |
 | `receiptExpectedFrom` | A partir de {date} às {time} | Esperado da data |
 | `receiptRead` | Lido: {value} | Linha de apoio |
+| `receiptReadDateTime` | {date} às {time} | O valor lido da data, dentro de `receiptRead` (decisão de 26/11/2026) |
 | `receiptCheckOk` | Confere | Selo `ok` |
 | `receiptCheckFail` | Não confere | Selo `bad` |
 | `receiptCheckUnread` | Não lido | Selo `neutral` |
-| `receiptCheckSemantics` | {label}, {result}. {expected}. {read}. | Rótulo de acessibilidade da linha |
+| `receiptCheckSemantics` | {label}, {result}. {expected}. {read}. | Rótulo de acessibilidade da linha. Sem o esperado (código do Pix) ou sem o lido, a frase vazia sai |
 | `receiptSkippedLimit` | O app não leu este comprovante: as 3 leituras deste valor já foram usadas. | Motivo |
 | `receiptSkippedApi` | O app não conseguiu ler este comprovante. | Motivo |
 | `receiptSkippedFile` | O app não lê este tipo de arquivo. | Motivo |

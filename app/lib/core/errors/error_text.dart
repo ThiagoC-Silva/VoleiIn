@@ -69,6 +69,14 @@ String errorText(AppLocalizations l10n, ErrorCode code) {
     ErrorCode.receiverChangeBlocked => l10n.errorReceiverChangeBlocked,
     ErrorCode.notChargeReceiver => l10n.errorNotChargeReceiver,
     ErrorCode.chargeNotRevertible => l10n.errorChargeNotRevertible,
+    ErrorCode.notChargePayer => l10n.errorNotChargePayer,
+    ErrorCode.receiptNotUnderReview => l10n.errorReceiptNotUnderReview,
+    ErrorCode.receiptNoteRequired => l10n.errorReceiptNoteRequired,
+    ErrorCode.receiptFileNotFound => l10n.errorReceiptFileNotFound,
+    ErrorCode.receiptTypeInvalid => l10n.errorReceiptTypeInvalid,
+    ErrorCode.receiptTooLarge => l10n.errorReceiptTooLarge,
+    // O ID repetido usa o texto do resultado (copy.md, 10.7).
+    ErrorCode.duplicateTransaction => l10n.receiptDuplicate,
   };
 }
 

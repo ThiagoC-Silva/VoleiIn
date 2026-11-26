@@ -17,7 +17,6 @@ import '../../../shared/widgets/list_card.dart';
 import '../../../shared/widgets/sheet_option.dart';
 import '../../../shared/widgets/snack.dart';
 import '../../../shared/widgets/state_views.dart';
-import '../data/games_repository.dart';
 import '../domain/charge_models.dart';
 import '../domain/game_models.dart';
 import 'game_badges.dart';
@@ -25,12 +24,6 @@ import 'game_controllers.dart';
 import 'game_trio.dart';
 import 'games_providers.dart';
 import 'split_text.dart';
-
-/// O Rateio do jogo concluído, relido ao abrir e ao puxar para baixo
-/// (docs/ui/telas.md, seção 8).
-final gameSplitProvider = FutureProvider.autoDispose.family<GameSplit, String>(
-  (ref, gameId) => ref.watch(gamesRepositoryProvider).fetchSplit(gameId),
-);
 
 /// Rateio do jogo (RF72 a RF74; docs/ui/telas.md, 8.3; gameSplit.png e
 /// gameSplit-recebedor.png). Na aba Jogos, com a barra inferior. Todos veem o
@@ -646,7 +639,7 @@ class _ChargeRow extends ConsumerWidget {
 }
 
 /// O que se faz com um valor no Rateio.
-enum _ChargeAction { markPaid, revert, waive, profile }
+enum _ChargeAction { review, markPaid, revert, waive, profile }
 
 /// As opções de quem lê neste valor (telas.md, 9.5). Só decide o que aparece:
 /// o servidor confere o papel e o estado.
@@ -654,6 +647,11 @@ List<_ChargeAction> _chargeActions(GameDetail game, GameCharge charge) {
   final isChargeReceiver = charge.receiverId == game.viewerId;
   final pending = charge.status == ChargeStatus.pending;
   final actions = [
+    // O comprovante só abre para o recebedor dele (RF87).
+    if (isChargeReceiver &&
+        charge.status == ChargeStatus.underReview &&
+        charge.reviewReceiptId != null)
+      _ChargeAction.review,
     if (isChargeReceiver && pending) _ChargeAction.markPaid,
     if (isChargeReceiver &&
         charge.status == ChargeStatus.paid &&
@@ -685,6 +683,15 @@ Future<void> _showActions(
   if (chosen == null || !context.mounted) return;
   if (chosen == _ChargeAction.profile) {
     _openPerson(context, game.id, charge.payerId);
+    return;
+  }
+  // O comprovante abre na aba Cobranças (telas.md, 9.4) e, ao voltar, o
+  // Rateio relê.
+  if (chosen == _ChargeAction.review) {
+    context.goNamed(
+      Routes.receipt,
+      pathParameters: {'receiptId': charge.reviewReceiptId!},
+    );
     return;
   }
 
@@ -792,18 +799,21 @@ class _ChargeSheet extends ConsumerWidget {
             for (final action in actions)
               SheetOption(
                 icon: switch (action) {
+                  _ChargeAction.review => Symbols.receipt_long,
                   _ChargeAction.markPaid => Symbols.paid,
                   _ChargeAction.revert => Symbols.undo,
                   _ChargeAction.waive => Symbols.money_off,
                   _ChargeAction.profile => Symbols.person,
                 },
                 label: switch (action) {
+                  _ChargeAction.review => l10n.reviewReceiptAction,
                   _ChargeAction.markPaid => l10n.markPaidAction,
                   _ChargeAction.revert => l10n.revertAction,
                   _ChargeAction.waive => l10n.waiveAction,
                   _ChargeAction.profile => l10n.groupMemberViewProfile,
                 },
                 subtitle: switch (action) {
+                  _ChargeAction.review => null,
                   _ChargeAction.markPaid => l10n.markPaidHint,
                   _ChargeAction.revert => l10n.revertHint,
                   _ChargeAction.waive => l10n.waiveActionHint,

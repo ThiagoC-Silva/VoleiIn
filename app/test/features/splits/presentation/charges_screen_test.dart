@@ -254,10 +254,18 @@ void main() {
       );
       expect(find.text(l10nPt.chargeStatusUnderReview), findsNWidgets(2));
       // Entre os atalhos e A pagar.
-      expect(
-        tester.getTopLeft(find.text(l10nPt.chargesToReview(2))).dy,
-        lessThan(tester.getTopLeft(find.text(l10nPt.chargesToPay).last).dy),
+      // Entre os atalhos e A pagar: o título de A pagar, abaixo da tela, vem
+      // depois da última linha (o outro "A pagar" é o atalho).
+      await tester.scrollUntilVisible(
+        find.text(l10nPt.chargesNothingToPay),
+        100,
       );
+      final toPayTitle = find
+          .text(l10nPt.chargesToPay)
+          .evaluate()
+          .map((element) => tester.getTopLeft(find.byWidget(element.widget)).dy)
+          .reduce((a, b) => a > b ? a : b);
+      expect(tester.getTopLeft(carla).dy, lessThan(toPayTitle));
     });
 
     testWidgets('a linha abre o comprovante', (tester) async {

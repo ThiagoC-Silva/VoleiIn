@@ -10,27 +10,27 @@ import '../../../core/router/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/avatar.dart';
+import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/hero_parts.dart';
+import '../../../shared/widgets/icon_square.dart';
+import '../../../shared/widgets/list_card.dart';
 import '../../../shared/widgets/inline_notice.dart';
 import '../../../shared/widgets/snack.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../auth/domain/pix_key.dart';
-import '../../games/data/games_repository.dart';
 import '../../games/domain/charge_models.dart';
 import '../../games/presentation/game_badges.dart';
 import '../../games/presentation/games_providers.dart';
 import '../../games/presentation/pix_text.dart';
 import '../../games/presentation/split_text.dart';
-
-/// O valor a pagar, relido ao abrir e ao puxar para baixo (telas.md, seção 9).
-final chargeProvider = FutureProvider.autoDispose.family<ChargeDetail, String>(
-  (ref, chargeId) => ref.watch(gamesRepositoryProvider).fetchCharge(chargeId),
-);
+import '../domain/receipt_models.dart';
+import 'receipt_send_sheet.dart';
+import 'receipt_text.dart';
 
 /// Valor a pagar (RF77; docs/ui/telas.md, 9.2; charge.png, charge-analise.png
 /// e charge-pago.png): quanto e a quem pagar, com a chave Pix do recebedor do
-/// valor. Só para o pagador, na aba Cobranças. Os comprovantes e **Enviar
-/// comprovante** chegam na etapa B.
+/// valor, os comprovantes e, com o valor Pendente, **Enviar comprovante**
+/// (9.3). Só para o pagador, na aba Cobranças.
 class ChargeScreen extends ConsumerWidget {
   const ChargeScreen({required this.chargeId, super.key});
 
@@ -51,9 +51,25 @@ class ChargeScreen extends ConsumerWidget {
         label: AppLocalizations.of(context).chargeTitle,
         child: Scaffold(
           body: switch (charge) {
-            AsyncValue(:final value?) => RefreshIndicator(
-              onRefresh: () => ref.refresh(chargeProvider(chargeId).future),
-              child: _ChargeBody(charge: value),
+            AsyncValue(:final value?) => Column(
+              children: [
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () =>
+                        ref.refresh(chargeProvider(chargeId).future),
+                    child: _ChargeBody(charge: value),
+                  ),
+                ),
+                // O botão aparece mesmo sem leitura disponível (RN86).
+                if (value.status == ChargeStatus.pending)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                    child: PrimaryButton(
+                      label: AppLocalizations.of(context).receiptSend,
+                      onPressed: () => _send(context, ref, value),
+                    ),
+                  ),
+              ],
             ),
             AsyncError(:final error) => SafeArea(
               child: Column(
@@ -75,6 +91,17 @@ class ChargeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Abre a sheet e, ao fechar, mostra o aviso que ela devolveu e relê.
+Future<void> _send(
+  BuildContext context,
+  WidgetRef ref,
+  ChargeDetail charge,
+) async {
+  final message = await showReceiptSendSheet(context, charge);
+  ref.invalidate(chargeProvider(charge.id));
+  if (message != null && context.mounted) showSnack(context, message);
 }
 
 /// Só o voltar, nos estados sem valor (erro, não encontrado).
@@ -131,35 +158,54 @@ class _ChargeBody extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: switch (charge.status) {
-                ChargeStatus.pending => [_PayTo(charge: charge)],
-                ChargeStatus.underReview => [
-                  _PayTo(charge: charge),
-                  const SizedBox(height: 16),
-                  InlineNotice(
-                    icon: Symbols.hourglass_top,
-                    color: colors.split,
-                    text: l10n.chargeUnderReviewNotice(charge.receiverName),
+              children: [
+                ...switch (charge.status) {
+                  ChargeStatus.pending => [_PayTo(charge: charge)],
+                  ChargeStatus.underReview => [
+                    _PayTo(charge: charge),
+                    const SizedBox(height: 16),
+                    InlineNotice(
+                      icon: Symbols.hourglass_top,
+                      color: colors.split,
+                      text: l10n.chargeUnderReviewNotice(charge.receiverName),
+                    ),
+                  ],
+                  ChargeStatus.paid => [
+                    InlineNotice(
+                      icon: Symbols.check_circle,
+                      color: colors.receive,
+                      text: charge.paidVia == PaymentMethod.receipt
+                          ? l10n.chargePaidReceipt(paidDate)
+                          : l10n.chargePaidManual(
+                              charge.receiverName,
+                              paidDate,
+                            ),
+                    ),
+                  ],
+                  ChargeStatus.waived => [
+                    InlineNotice(
+                      icon: Symbols.money_off,
+                      color: theme.colorScheme.surfaceContainerHigh,
+                      iconColor: theme.colorScheme.onSurface,
+                      text: chargeWaivedLabel(l10n, charge.waiveReason),
+                    ),
+                  ],
+                },
+                if (charge.receipts.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Text(l10n.chargeReceipts, style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 12),
+                  ListCard(
+                    children: [
+                      // Do mais novo para o mais antigo (telas.md, 9.2).
+                      for (final receipt in [
+                        ...charge.receipts,
+                      ]..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
+                        _ReceiptRow(receipt: receipt),
+                    ],
                   ),
                 ],
-                ChargeStatus.paid => [
-                  InlineNotice(
-                    icon: Symbols.check_circle,
-                    color: colors.receive,
-                    text: charge.paidVia == PaymentMethod.receipt
-                        ? l10n.chargePaidReceipt(paidDate)
-                        : l10n.chargePaidManual(charge.receiverName, paidDate),
-                  ),
-                ],
-                ChargeStatus.waived => [
-                  InlineNotice(
-                    icon: Symbols.money_off,
-                    color: theme.colorScheme.surfaceContainerHigh,
-                    iconColor: theme.colorScheme.onSurface,
-                    text: chargeWaivedLabel(l10n, charge.waiveReason),
-                  ),
-                ],
-              },
+              ],
             ),
           ),
         ],
@@ -389,6 +435,81 @@ class _PayTo extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Uma linha da lista de comprovantes (charge.png): "Enviado {data} às
+/// {hora}", o selo e, embaixo, a observação ou o ID repetido. Tocar abre o
+/// comprovante.
+class _ReceiptRow extends StatelessWidget {
+  const _ReceiptRow({required this.receipt});
+
+  final ReceiptSummary receipt;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final note = receiptRejectionText(
+      l10n,
+      receipt.rejectionReason,
+      receipt.receiverNote,
+    );
+    return MergeSemantics(
+      child: InkWell(
+        // A tela do comprovante relê esta ao voltar.
+        onTap: () => context.pushNamed(
+          Routes.receipt,
+          pathParameters: {'receiptId': receipt.id},
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 72),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const IconSquare(icon: Symbols.receipt_long),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.receiptSentAt(
+                          formatShortDate(receipt.createdAt),
+                          formatTime(receipt.createdAt),
+                        ),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ReceiptStatusBadge(status: receipt.status),
+                      if (note != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          note,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                ExcludeSemantics(
+                  child: Icon(
+                    Symbols.chevron_right,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

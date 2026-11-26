@@ -1086,5 +1086,207 @@
   },
   "paymentReverted": "Pagamento revertido.",
   "errorNotChargeReceiver": "Só o recebedor deste valor pode fazer isso.",
-  "errorChargeNotRevertible": "Este pagamento não pode ser revertido."
+  "errorChargeNotRevertible": "Este pagamento não pode ser revertido.",
+  "chargesToReview": "Para conferir · {count}",
+  "@chargesToReview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chargeReceipts": "Comprovantes",
+  "receiptSentAt": "Enviado {date} às {time}",
+  "@receiptSentAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptSend": "Enviar comprovante",
+  "receiptSendBody": "Envie a imagem ou o PDF do Pix. O app lê o comprovante e, se tudo conferir, o valor fica Pago na hora.",
+  "receiptPickImage": "Escolher imagem",
+  "receiptPickPdf": "Escolher PDF",
+  "receiptNoMoreReads": "O app já leu 3 comprovantes deste valor. O próximo vai direto para {name} conferir.",
+  "@receiptNoMoreReads": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptPickOther": "Escolher outro",
+  "receiptSendAction": "Enviar",
+  "receiptReading": "Lendo o comprovante. Leva até 30 segundos.",
+  "receiptApproved": "Comprovante aprovado. O valor está Pago.",
+  "receiptUnderReview": "O comprovante foi para {name} conferir.",
+  "@receiptUnderReview": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptDuplicate": "Este comprovante já foi usado em outro pagamento.",
+  "receiptSendOther": "Enviar outro",
+  "receiptDone": "Pronto",
+  "receiptClose": "Fechar",
+  "receiptUploadFailed": "Não deu para enviar o arquivo. Confira a internet e tente de novo.",
+  "receiptResultUnknown": "A conexão caiu antes da resposta. Confira o status do valor.",
+  "receiptTitle": "Comprovante",
+  "receiptOpenPdf": "Abrir PDF",
+  "receiptImageLabel": "Imagem do comprovante. Toque para ampliar.",
+  "receiptFileDeleted": "O arquivo foi apagado em {date}.",
+  "@receiptFileDeleted": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptFileError": "Não deu para abrir o arquivo.",
+  "receiptCheckTitle": "Conferência",
+  "receiptCheckHint": "O app leu o comprovante. Confira com o arquivo antes de decidir.",
+  "receiptCheckAmount": "Valor",
+  "receiptCheckRecipient": "Quem recebeu",
+  "receiptCheckDate": "Data e hora",
+  "receiptCheckCode": "Código do Pix",
+  "receiptExpected": "Esperado: {value}",
+  "@receiptExpected": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptExpectedFrom": "A partir de {date} às {time}",
+  "@receiptExpectedFrom": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptRead": "Lido: {value}",
+  "@receiptRead": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptReadDateTime": "{date} às {time}",
+  "@receiptReadDateTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptCheckOk": "Confere",
+  "receiptCheckFail": "Não confere",
+  "receiptCheckUnread": "Não lido",
+  "receiptCheckSemantics": "{label}, {result}. {expected}. {read}.",
+  "@receiptCheckSemantics": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "result": {
+        "type": "String"
+      },
+      "expected": {
+        "type": "String"
+      },
+      "read": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptSkippedLimit": "O app não leu este comprovante: as 3 leituras deste valor já foram usadas.",
+  "receiptSkippedApi": "O app não conseguiu ler este comprovante.",
+  "receiptSkippedFile": "O app não lê este tipo de arquivo.",
+  "receiptStatusUnderReview": "Em análise",
+  "receiptStatusApproved": "Aprovado",
+  "receiptStatusRejected": "Recusado",
+  "receiptDecidedAuto": "Aprovado pelo app em {date}.",
+  "@receiptDecidedAuto": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptDecidedApproved": "Aprovado por {name} em {date}.",
+  "@receiptDecidedApproved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptDecidedRejected": "Recusado por {name} em {date}.",
+  "@receiptDecidedRejected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptRejectedDuplicate": "Recusado: já foi usado em outro pagamento.",
+  "receiptNoteQuoted": "\"{note}\"",
+  "@receiptNoteQuoted": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptApprove": "Aprovar",
+  "receiptReject": "Recusar",
+  "receiptApproveTitle": "Aprovar o comprovante?",
+  "receiptApproveBody": "O valor de {amount} fica Pago e não pode voltar.",
+  "@receiptApproveBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptRejectTitle": "Recusar o comprovante",
+  "receiptRejectBody": "O valor volta para Pendente, e {name} lê a sua observação.",
+  "@receiptRejectBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptNoteLabel": "Observação",
+  "receiptNoteRequired": "Escreva o motivo da recusa.",
+  "receiptApprovedByYou": "Comprovante aprovado.",
+  "receiptRejectedByYou": "Comprovante recusado.",
+  "reviewReceiptAction": "Conferir comprovante",
+  "errorNotChargePayer": "Este valor a pagar não é seu.",
+  "errorReceiptNotUnderReview": "Este comprovante já foi decidido.",
+  "errorReceiptNoteRequired": "Escreva uma observação para recusar.",
+  "errorReceiptFileNotFound": "Não encontramos o arquivo enviado. Envie de novo.",
+  "errorReceiptTypeInvalid": "Envie uma imagem ou um PDF.",
+  "errorReceiptTooLarge": "O arquivo passa de 10 MB."
 }
