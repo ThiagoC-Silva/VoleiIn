@@ -36,6 +36,7 @@ void main() {
 
   const password = 'voleiin123';
   const awaitingId = '00000000-0000-0000-0000-000000000209';
+  const brunoId = '00000000-0000-0000-0000-00000000000b';
 
   setUpAll(() async {
     Env.ensureComplete();
@@ -99,6 +100,24 @@ void main() {
     } on PostgrestException catch (error) {
       if (error.message != 'GAME_NOT_OPEN') rethrow;
     }
+  }
+
+  /// O comprovante Em análise do Bruno no jogo do fluxo, lido pela sessão atual.
+  Future<String> underReviewReceiptId() async {
+    final client = Supabase.instance.client;
+    final charge = await client
+        .from('charges')
+        .select('id')
+        .eq('game_id', awaitingId)
+        .eq('payer_id', brunoId)
+        .single();
+    final receipt = await client
+        .from('receipts')
+        .select('id')
+        .eq('charge_id', charge['id'] as String)
+        .eq('status', 'under_review')
+        .single();
+    return receipt['id'] as String;
   }
 
   /// Abre o app do zero, com a sessão atual e o seletor trocado.
@@ -186,12 +205,16 @@ void main() {
     await signIn('ana@voleiin.test');
     await openApp(tester, illegibleReceipt);
     await openCharges(tester);
-    await pumpUntil(tester, find.text(l10nPt.chargesToReview(1)));
-    await tapReady(tester, find.text('Brunão'));
+    // O seed "Quinta com comprovantes" (`...0212`) já tem um comprovante do
+    // Bruno Em análise para a Ana: são dois, e o do fluxo é o do jogo `...0209`.
+    await pumpUntil(tester, find.text(l10nPt.chargesToReview(2)));
+    final receiptId = await underReviewReceiptId();
+    await tapReady(tester, find.byKey(Key('toReview-$receiptId')));
     // A API leu, sem nada legível: as quatro linhas Não lido.
     await pumpUntil(tester, find.text(l10nPt.receiptCheckTitle));
     expect(find.text(l10nPt.receiptCheckUnread), findsNWidgets(4));
     await tapReady(tester, button<OutlinedButton>(l10nPt.receiptReject));
+    await pumpUntil(tester, inSheet(find.byType(TextField)));
     await tester.enterText(
       inSheet(find.byType(TextField)),
       'Não dá para ler o comprovante.',

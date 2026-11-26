@@ -1190,7 +1190,7 @@ Deno test, em `supabase/functions/_tests/concurrency/payments_test.ts`, 50 repet
 | S88 | Todas as telas da seção 9 do `telas.md` e as sheets | Fonte do sistema em 150% | Nenhum *overflow* |
 | S89 | Valor a pagar, Enviar comprovante, Comprovante e Excluir conta | Leitura pelo TalkBack (`Semantics`) | Imagem do comprovante com `receiptImageLabel`; linhas da conferência lidas inteiras ("Valor, não confere. Esperado R$ 20,84, lido R$ 20,80"); botões e linhas com rótulo e área de 48 × 48 |
 
-**Fluxos**, testes de integração no emulador (API 29 e 36) contra o Supabase local, pelos `scripts/` (`setup.md`, 3.1). Cada fluxo prepara o próprio jogo concluído, como o L22 (total R$ 90,00, limite 3, Ana recebedora, Bruno e Carla com R$ 30,00 Pendente). A `process-receipt` local fala com um servidor simulado da Claude API, pela variável `ANTHROPIC_BASE_URL` do SDK, que só o `supabase functions serve` dos testes define: a função não tem caminho de leitura falsa. O seletor de arquivo do app é trocado por um dublê.
+**Fluxos**, testes de integração no emulador (API 29 e 36) contra o Supabase local, pelos `scripts/` (`setup.md`, 3.1). Cada fluxo prepara o próprio jogo concluído, como o L22 (total R$ 90,00, limite 3, Ana recebedora, Bruno e Carla com R$ 30,00 Pendente). A `process-receipt` local fala com um servidor simulado da Claude API, pela variável `ANTHROPIC_BASE_URL` do SDK, que só o `supabase functions serve` dos testes define (`scripts/functions-serve-stub.sh`, com o dublê `supabase/functions/_tests/claude_stub.ts`): a função não tem caminho de leitura falsa. O seletor de arquivo do app é trocado por um dublê.
 
 | ID | Dado | Quando | Então |
 |----|------|--------|-------|

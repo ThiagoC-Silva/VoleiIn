@@ -36,6 +36,10 @@ Os testes das Edge Functions ficam na pasta de cada uma (`preview-invite/index_t
 processo do teste, com a Claude API simulada por um servidor local (research R7 de
 `specs/010-pagamentos-etapa-b`).
 
+`claude_stub.ts` não é teste: é o dublê da Claude API do `supabase functions serve` dos fluxos L24 e
+L25 no emulador, que `scripts/functions-serve-stub.sh` sobe (`docs/setup.md`, seção 3). Ele responde
+pela imagem enviada, as duas de `app/integration_test/receipts_flow_test.dart`.
+
 **Com a API real** (`docs/comprovantes-ia.md`, seções 7 e 9), à parte e fora do CI, porque gasta
 crédito: com as mesmas variáveis, `deno task receipts:live <modelo>`, que lê a `ANTHROPIC_API_KEY`
 do `supabase/functions/.env`.
