@@ -70,6 +70,8 @@ scripts/emulator.sh 36            # ou 29; espera o boot terminar
 scripts/integration-test.sh       # todos; ou um arquivo: scripts/integration-test.sh integration_test/account_flow_test.dart
 ```
 
+Os fluxos de comprovante (L24 e L25, `receipts_flow_test.dart`) precisam, num terminal à parte, de `scripts/functions-serve-stub.sh`: ele sobe o dublê da Claude API (`supabase/functions/_tests/claude_stub.ts`, na porta 54399) e o `supabase functions serve` com `ANTHROPIC_BASE_URL` apontando para ele, sem ler o `supabase/functions/.env`. Nenhuma chave real entra, e nada gasta crédito. Cada fluxo roda logo depois de um `supabase db reset`, que não derruba o `functions serve`.
+
 ### 3.1 Memória
 
 **Máquina mínima:** 16 GB de RAM. Recomendado ter 8 GB de swap (abaixo).
@@ -454,3 +456,4 @@ O projeto `VoleiIn` tem o banco do v0, em português, e precisa ficar como novo 
 | Numa máquina nova, o primeiro `scripts/integration-test.sh` termina com `No tests ran` depois de uns 15 min de `assembleDebug` | O primeiro build do Gradle baixa e converte todas as dependências (visto em 25/11/2026: 13 a 14 min com o emulador aberto) e passa do `timeout 900` do script | Rode de novo: o segundo build aproveita o cache e leva 1 a 2 min |
 | O teste de integração para no `setUpAll` com `Missing --dart-define values: GOOGLE_WEB_CLIENT_ID` | O `app/env/local.json` desta máquina está sem o ID do cliente web do Google | Copie o valor da outra máquina (seção 6.2). Só para fluxos sem login com Google, qualquer texto não vazio passa da conferência |
 | `scripts/integration-test.sh` recusa por memória logo depois de outra rodada | O daemon do Gradle da rodada anterior continua com uns 3 GB | `./gradlew --stop` em `app/android` e rode de novo |
+| `supabase db reset` termina com `DbSetupError` (`error running container: exit 1`), e o teste seguinte falha no login com `Database error querying schema` | Falha passageira do CLI ao recriar o banco (visto em 26/11/2026, entre rodadas do L25) | Rode o `db reset` de novo e só abra o teste quando ele terminar com `Finished supabase db reset` |

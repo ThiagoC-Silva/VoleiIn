@@ -123,4 +123,4 @@ jobs:
       # Os testes das Edge Functions precisam do Supabase de pé e rodam no job
       # database (research R6 de specs/002-grupos). Aqui, só a checagem de tipos.
       - name: Tipos
-        run: deno check preview-invite/index.ts process-receipt/index.ts process-receipt/live.ts
+        run: deno check preview-invite/index.ts process-receipt/index.ts process-receipt/live.ts _tests/claude_stub.ts
