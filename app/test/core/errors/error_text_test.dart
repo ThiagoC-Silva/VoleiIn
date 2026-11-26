@@ -178,4 +178,21 @@ void main() {
       expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
     }
   });
+  test('E15 (fatia 6, etapa B): textos dos erros do comprovante '
+      '(docs/copy.md, 10.7)', () {
+    const texts = {
+      ErrorCode.notChargePayer: 'Este valor a pagar não é seu.',
+      ErrorCode.receiptNotUnderReview: 'Este comprovante já foi decidido.',
+      ErrorCode.receiptNoteRequired: 'Escreva uma observação para recusar.',
+      ErrorCode.receiptFileNotFound:
+          'Não encontramos o arquivo enviado. Envie de novo.',
+      ErrorCode.receiptTypeInvalid: 'Envie uma imagem ou um PDF.',
+      ErrorCode.receiptTooLarge: 'O arquivo passa de 10 MB.',
+      ErrorCode.duplicateTransaction:
+          'Este comprovante já foi usado em outro pagamento.',
+    };
+    for (final entry in texts.entries) {
+      expect(errorText(l10nPt, entry.key), entry.value, reason: entry.key.name);
+    }
+  });
 }

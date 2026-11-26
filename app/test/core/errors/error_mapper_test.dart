@@ -328,4 +328,33 @@ void main() {
       expect(toAppException(exception).code, entry.value);
     });
   }
+  // Fatia 6, etapa B: process-receipt e review_receipt (docs/copy.md, 10.7),
+  // pela função SQL e pela resposta de erro da Edge Function.
+  const receiptCodes = {
+    'NOT_CHARGE_PAYER': ErrorCode.notChargePayer,
+    'RECEIPT_NOT_UNDER_REVIEW': ErrorCode.receiptNotUnderReview,
+    'RECEIPT_NOTE_REQUIRED': ErrorCode.receiptNoteRequired,
+    'RECEIPT_FILE_NOT_FOUND': ErrorCode.receiptFileNotFound,
+    'RECEIPT_TYPE_INVALID': ErrorCode.receiptTypeInvalid,
+    'RECEIPT_TOO_LARGE': ErrorCode.receiptTooLarge,
+    'DUPLICATE_TRANSACTION': ErrorCode.duplicateTransaction,
+    'CHARGE_NOT_PENDING': ErrorCode.chargeNotPending,
+  };
+  for (final entry in receiptCodes.entries) {
+    test('E15 (fatia 6, etapa B): P0001 com ${entry.key} vira '
+        '${entry.value.name}', () {
+      final exception = PostgrestException(message: entry.key, code: 'P0001');
+      expect(toAppException(exception).code, entry.value);
+    });
+    test('E15 (fatia 6, etapa B): process-receipt com ${entry.key} vira '
+        '${entry.value.name}', () {
+      final exception = FunctionException(
+        status: 422,
+        details: {
+          'error': {'code': entry.key},
+        },
+      );
+      expect(toAppException(exception).code, entry.value);
+    });
+  }
 }

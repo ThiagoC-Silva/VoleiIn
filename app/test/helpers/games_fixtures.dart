@@ -195,6 +195,7 @@ GameCharge charge(
   String receiverName = 'Ana',
   ChargeWaiveReason? waiveReason,
   PaymentMethod? paidVia,
+  String? reviewReceiptId,
 }) => GameCharge(
   id: 'charge-$payerId',
   payerId: payerId,
@@ -206,6 +207,7 @@ GameCharge charge(
   status: status,
   waiveReason: waiveReason,
   paidVia: paidVia,
+  reviewReceiptId: reviewReceiptId,
 );
 
 /// O jogo do R01: Quadra do Sesc, R$ 250,00, 12 vagas, depois do fim. Por

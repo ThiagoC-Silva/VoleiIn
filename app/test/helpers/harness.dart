@@ -15,6 +15,7 @@ import 'package:voleiin/core/share.dart';
 import 'package:voleiin/core/router/app_router.dart';
 import 'package:voleiin/features/auth/data/auth_repository.dart';
 import 'package:voleiin/core/photo_picker.dart';
+import 'package:voleiin/core/receipt_picker.dart';
 import 'package:voleiin/features/auth/data/profile_repository.dart';
 import 'package:voleiin/features/auth/data/terms_repository.dart';
 import 'package:voleiin/features/auth/domain/legal_document.dart';
@@ -28,6 +29,7 @@ import 'package:voleiin/features/games/domain/charge_models.dart';
 import 'package:voleiin/features/games/domain/game_models.dart';
 import 'package:voleiin/features/groups/data/groups_repository.dart';
 import 'package:voleiin/features/groups/domain/group_models.dart';
+import 'package:voleiin/features/payments/data/receipts_repository.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -44,6 +46,22 @@ class MockSharer extends Mock implements Sharer {}
 class MockGamesRepository extends Mock implements GamesRepository {}
 
 class FakeGameInput extends Fake implements GameInput {}
+
+class MockReceiptsRepository extends Mock implements ReceiptsRepository {}
+
+/// Seletor do comprovante trocado por respostas em fila: cada escolha de
+/// imagem ou de PDF consome a próxima. Fila vazia é quem desistiu.
+class FakeReceiptPicker implements ReceiptPicker {
+  final images = <PickedFile?>[];
+  final pdfs = <PickedFile?>[];
+
+  @override
+  Future<PickedFile?> pickImage() async =>
+      images.isEmpty ? null : images.removeAt(0);
+
+  @override
+  Future<PickedFile?> pickPdf() async => pdfs.isEmpty ? null : pdfs.removeAt(0);
+}
 
 /// Guarda os links que o app pediu para abrir (Maps, discador, WhatsApp).
 /// [works] falso simula o aparelho sem app para o link.
@@ -101,6 +119,7 @@ class TestHarness {
     registerFallbackValue(GroupRole.member);
     registerFallbackValue(FakeGameInput());
     registerFallbackValue(() {});
+    registerFallbackValue(Uri());
 
     when(() => auth.onAuthStateChange)
         .thenAnswer((_) => const Stream<AuthState>.empty());
@@ -123,6 +142,9 @@ class TestHarness {
     when(() => games.avatarUrl(any())).thenAnswer(
       (_) async => 'http://127.0.0.1:54321/storage/v1/object/sign/avatars/p',
     );
+    when(() => receipts.fileUrl(any())).thenAnswer(
+      (_) async => 'http://127.0.0.1:54321/storage/v1/object/sign/receipts/r',
+    );
     when(() => games.watchGame(any(), any())).thenAnswer((invocation) {
       final gameId = invocation.positionalArguments[0] as String;
       _realtime[gameId] = invocation.positionalArguments[1] as void Function();
@@ -139,6 +161,8 @@ class TestHarness {
   final games = MockGamesRepository();
   final pickers = FakeDateTimePicker();
   final links = FakeLinkOpener();
+  final receipts = MockReceiptsRepository();
+  final receiptPicker = FakeReceiptPicker();
 
   /// O relógio do aparelho, só para mostrar (docs/arquitetura-app.md, seção
   /// 8). Segunda, 16/11/2026, 12:00 em Fortaleza, antes de todos os jogos dos
@@ -160,6 +184,8 @@ class TestHarness {
       dateTimePickerProvider.overrideWithValue(pickers),
       clockProvider.overrideWithValue(() => now),
       linkOpenerProvider.overrideWithValue(links),
+      receiptsRepositoryProvider.overrideWithValue(receipts),
+      receiptPickerProvider.overrideWithValue(receiptPicker),
     ],
     // Sem repetição automática: quem tenta de novo é a pessoa.
     retry: (_, _) => null,
@@ -276,9 +302,15 @@ class TestHarness {
 
   /// A aba Cobranças e o contador dela (telas.md, 8.5): os valores a pagar e
   /// a receber de quem está logado. Cada leitura chama [lines] de novo.
-  void myCharges(List<ChargeLine> lines, {String viewerId = anaId}) {
+  /// [toReview] são os comprovantes Em análise que quem lê confere (9.1).
+  void myCharges(
+    List<ChargeLine> lines, {
+    String viewerId = anaId,
+    List<ReviewLine> toReview = const [],
+  }) {
     when(() => games.fetchMyCharges()).thenAnswer(
-      (_) async => ChargesOverview(viewerId: viewerId, lines: lines),
+      (_) async =>
+          ChargesOverview(viewerId: viewerId, lines: lines, toReview: toReview),
     );
   }
 

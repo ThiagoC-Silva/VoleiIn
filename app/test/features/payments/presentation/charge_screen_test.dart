@@ -8,14 +8,15 @@ import 'package:voleiin/core/theme/app_theme.dart';
 import 'package:voleiin/features/auth/domain/pix_key.dart';
 import 'package:voleiin/features/games/domain/charge_models.dart';
 import 'package:voleiin/features/games/presentation/game_badges.dart';
+import 'package:voleiin/features/payments/domain/receipt_models.dart';
 
 import '../../../helpers/games_fixtures.dart';
 import '../../../helpers/harness.dart';
 import '../../../helpers/test_app.dart';
 
-/// Cenários S77 (sem comprovantes), S88 e S89 da etapa A de
-/// docs/testes-referencia.md, seção 14 (docs/ui/telas.md, 9.2; charge.png,
-/// charge-analise.png e charge-pago.png): o valor a pagar do Fábio à Ana.
+/// Cenários S77, S88 e S89 das etapas A e B de docs/testes-referencia.md,
+/// seção 14 (docs/ui/telas.md, 9.2; charge.png, charge-analise.png e
+/// charge-pago.png): o valor a pagar do Fábio à Ana, com os comprovantes.
 void main() {
   late TestHarness h;
 
@@ -32,6 +33,8 @@ void main() {
     ChargeWaiveReason? waiveReason,
     String? groupName = 'Vôlei de Quinta',
     ChargeKind kind = ChargeKind.share,
+    List<ReceiptSummary> receipts = const [],
+    int autoReadsUsed = 0,
   }) {
     // A chave só vem do servidor com o valor Pendente ou Em análise (RN102).
     final open =
@@ -54,8 +57,30 @@ void main() {
       // Sexta, 20/11/2026, 09:10 em Fortaleza.
       paidAt: paidVia == null ? null : DateTime.utc(2026, 11, 20, 12, 10),
       paidVia: paidVia,
+      receipts: receipts,
+      autoReadsUsed: autoReadsUsed,
     );
   }
+
+  /// Os dois recusados do charge.png, como o servidor os devolve: do mais
+  /// antigo para o mais novo.
+  List<ReceiptSummary> rejectedPair() => [
+    ReceiptSummary(
+      id: 'receipt-dup',
+      status: ReceiptStatus.rejected,
+      // Quinta, 19/11/2026, 22:30 em Fortaleza.
+      createdAt: DateTime.utc(2026, 11, 20, 1, 30),
+      rejectionReason: ReceiptRejectionReason.duplicateTransaction,
+    ),
+    ReceiptSummary(
+      id: 'receipt-note',
+      status: ReceiptStatus.rejected,
+      // Sexta, 20/11/2026, 09:10 em Fortaleza.
+      createdAt: DateTime.utc(2026, 11, 20, 12, 10),
+      rejectionReason: ReceiptRejectionReason.receiverRejected,
+      receiverNote: 'O valor está errado, faltam 4 centavos.',
+    ),
+  ];
 
   void stub(ChargeDetail value) {
     when(() => h.games.fetchCharge(chargeId)).thenAnswer((_) async => value);
@@ -89,8 +114,51 @@ void main() {
       expect(find.text('Ana'), findsOneWidget);
       expect(find.text('CPF · 529.982.247-25'), findsOneWidget);
       expect(find.text(l10nPt.chargePayExact), findsOneWidget);
-      // Comprovantes e Enviar comprovante chegam na etapa B.
-      expect(find.byType(FilledButton), findsNothing);
+      expect(buttonWithText<FilledButton>(l10nPt.receiptSend), findsOneWidget);
+      // Sem comprovante, sem a lista.
+      expect(find.text(l10nPt.chargeReceipts), findsNothing);
+    });
+
+    testWidgets('com um recusado pela Ana e um por ID repetido: do mais novo '
+        'para o mais antigo', (tester) async {
+      stub(detail(receipts: rejectedPair()));
+      await open(tester);
+
+      final newer = find.text('Enviado sex, 20/11 às 09:10');
+      final older = find.text('Enviado qui, 19/11 às 22:30');
+      await tester.scrollUntilVisible(older, 200);
+      expect(find.text(l10nPt.chargeReceipts), findsOneWidget);
+      expect(newer, findsOneWidget);
+      expect(
+        tester.getTopLeft(newer).dy,
+        lessThan(tester.getTopLeft(older).dy),
+      );
+      expect(find.text(l10nPt.receiptStatusRejected), findsNWidgets(2));
+      expect(
+        find.text(
+          l10nPt.receiptNoteQuoted('O valor está errado, faltam 4 centavos.'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(l10nPt.receiptRejectedDuplicate), findsOneWidget);
+      // Ainda Pendente: pode enviar outro.
+      expect(buttonWithText<FilledButton>(l10nPt.receiptSend), findsOneWidget);
+    });
+
+    testWidgets('tocar num comprovante abre /receipts/:receiptId', (
+      tester,
+    ) async {
+      stub(detail(receipts: rejectedPair()));
+      when(
+        () => h.receipts.fetchReceipt('receipt-note'),
+      ).thenAnswer((_) async => throw const AppException(ErrorCode.notFound));
+      await open(tester);
+
+      final row = find.text('Enviado sex, 20/11 às 09:10');
+      await tester.ensureVisible(row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+      expect(h.location, '/receipts/receipt-note');
     });
 
     testWidgets('Copiar chave copia a chave sem formatação', (tester) async {
@@ -146,6 +214,7 @@ void main() {
 
       expect(find.text('Pago por comprovante em sex, 20/11.'), findsOneWidget);
       expect(find.text(l10nPt.chargePayTo), findsNothing);
+      expect(find.text(l10nPt.receiptSend), findsNothing);
     });
 
     testWidgets('Em análise: o aviso e a chave, sem Enviar comprovante', (
@@ -158,6 +227,30 @@ void main() {
       expect(find.text('CPF · 529.982.247-25'), findsOneWidget);
       expect(heroColor(tester), VoleiColors.dark.split);
       expect(find.byType(FilledButton), findsNothing);
+      expect(find.text(l10nPt.receiptSend), findsNothing);
+    });
+
+    testWidgets('Em análise, com o comprovante na lista e o selo Em análise', (
+      tester,
+    ) async {
+      stub(
+        detail(
+          status: ChargeStatus.underReview,
+          receipts: [
+            ReceiptSummary(
+              id: 'receipt-review',
+              status: ReceiptStatus.underReview,
+              createdAt: DateTime.utc(2026, 11, 20, 15, 5),
+            ),
+          ],
+        ),
+      );
+      await open(tester);
+
+      final row = find.text('Enviado sex, 20/11 às 12:05');
+      await tester.scrollUntilVisible(row, 200);
+      expect(row, findsOneWidget);
+      expect(find.text(l10nPt.receiptStatusUnderReview), findsOneWidget);
     });
 
     testWidgets('Isento: o motivo, sem a chave', (tester) async {
@@ -220,6 +313,7 @@ void main() {
     for (final (name, build) in [
       ('Pendente', () => detail()),
       ('Em análise', () => detail(status: ChargeStatus.underReview)),
+      ('Pendente com comprovantes', () => detail(receipts: rejectedPair())),
       (
         'Pago',
         () => detail(status: ChargeStatus.paid, paidVia: PaymentMethod.manual),
@@ -245,7 +339,7 @@ void main() {
       tester,
     ) async {
       final semantics = tester.ensureSemantics();
-      stub(detail());
+      stub(detail(receipts: rejectedPair()));
       await open(tester);
 
       expect(find.bySemanticsLabel(l10nPt.chargeTitle), findsOneWidget);
