@@ -38,5 +38,13 @@ Precisa do `charge.png` em `docs/ui/referencias/fatia-6/`.
 
 ## Sessão 4 — Validação
 
-- [ ] T012 L23 nas APIs 29 e 36
-- [ ] T013 Ensaio e `supabase db push`; advisors
+- [x] T012 L23 nas APIs 29 e 36
+- [x] T013 Ensaio e `supabase db push`; advisors
+
+**Sessão 4 concluída em 25/11/2026** no *branch* `fatia-6/validacao-a`.
+
+- **Máquina de 20 GB:** com o OK do responsável, ganhou o JDK 21 e o SDK do Android sem `sudo`, em `~/development` e `~/Android/Sdk`, com os AVDs `voleiin_api29` e `voleiin_api36` do `setup.md` (seção 3). O primeiro build passou do `timeout 900` do script, e o `local.json` dela não tinha o `GOOGLE_WEB_CLIENT_ID` (`setup.md`, seção 11, com as duas linhas novas).
+- **L23:** verde na primeira rodada válida, com um `db reset` antes de cada uma: API 36 (34 s) e API 29 (29 s). Nenhum código mudou.
+- **Ensaio e produção:** `docs/setup.md`, 9.12.
+- **Decisão do responsável (25/11/2026):** o valor no topo do valor a pagar fica em `number.xl` (56), como estão a tela, a seção 7.8 e o `telas.md` (9.2). A tabela da seção 5 do `design-system.md` foi corrigida, e `number.hero` (84) ficou para o valor da própria pessoa no bloco do Rateio, como no `gameSplit.png` e no código.
+- **Divergência a resolver:** o `telas.md` (8.3) diz que esse valor do Rateio usa `number.md` (26). O PNG e o código usam 84.

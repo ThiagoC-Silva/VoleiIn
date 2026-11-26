@@ -23,6 +23,8 @@ A fatia 1 (Fundação) não tem RF: ela entrega o schema, o RLS e o CI, cobertos
 
 **Fatia 5, em 24/11/2026:** etapa C (troca de recebedor e Cobranças) com testes automáticos verdes e L22 nas APIs 29 e 36, e as migrações das três etapas na produção (`setup.md`, 9.9 a 9.11). M08 conferido no banco da produção em 24/11/2026. Os 25 RFs da fatia estão concluídos.
 
+**Fatia 6, etapa A, em 25/11/2026:** valor a pagar com a chave Pix, marcar como pago e reverter. Testes automáticos verdes e L23 nas APIs 29 e 36, com a migração `create_manual_payment` na produção (`setup.md`, 9.12). RF84 e RF85 ficam *Em andamento* até a etapa C, que fecha a fatia.
+
 | RF | Fatia | RN | Banco e serviços | Telas | Testes | Status |
 |----|-------|----|------------------|-------|--------|--------|
 | RF01 | 2 | — | Auth; `profiles`, `profile_private` (`on_auth_user_confirmed`) | `/signup` | S01, S02, L08 | Concluído |
